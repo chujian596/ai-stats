@@ -126,8 +126,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">特号排行 ▶</div>
-    <div id="rankTableBody" style="display:none">
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">特号排行 ▼</div>
+    <div id="rankTableBody">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
         <table style="font-size:12px">
@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v12.4';
+var APP_VER = 'v12.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -738,8 +738,8 @@ function renderPaySide(){
     h += '</div>';
   }
   h += '<div id="sidePayResult" style="font-size:14px;margin:4px 0;padding:8px;background:#f8f9fa;border-radius:6px;line-height:1.6"></div>';
-  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:4px;font-size:12px;color:#999;text-align:center;cursor:pointer">手动赔付 ▼</div>';
-  h += '<div id="payCtrl">';
+  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:4px;font-size:12px;color:#999;text-align:center;cursor:pointer">手动赔付 ▶</div>';
+  h += '<div id="payCtrl" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   var btnLabel = sidePaySel || (labels.prodBtn||'选产品');
   if(sidePaySel && sidePaySel.indexOf(',') >= 0){
@@ -816,8 +816,8 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="font-weight:700;margin:0 0 6px;font-size:18px;cursor:pointer">' + (labels.split || '📊 股东分账') + ' ▼</div>';
-  h += '<div id="splitBody">';
+  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">' + (labels.split || '📊 股东分账') + ' ▶</div>';
+  h += '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:15px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0">`;
   h += '</div>';
@@ -1982,7 +1982,7 @@ function renderAll(){
     singleProducts.forEach(p => { if((sData[p.code]||{amount:0}).amount > 0) hasData = true; });
     const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
     if(lianCodes.length > 0) hasData = true;
-    const collapsed = false;
+    const collapsed = true;
     sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer"><span>平特肖 ${collapsed?'▶':'▼'}</span><span>单量 / 金额</span></div>`;
     sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
