@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.7';
+var APP_VER = 'v13.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -330,8 +330,11 @@ function autoPayout(){
   var totalPayout = 0;
 
   allOrders.forEach(function(o){
+    var seenCodes = {};
     (o.codes||[]).forEach(function(code){
-      var price = Number(o.price) || 0;
+      if(seenCodes[code]) return;
+      seenCodes[code] = true;
+      var price = codeSalesForOrder(o, code);
       if(code.startsWith('连肖')){
         var zs = code.replace('连肖','').split('');
         var allHit = zs.every(function(z){ return hitZodiacSet[z]; });
