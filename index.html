@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.3';
+var APP_VER = 'v9.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -636,7 +636,8 @@ function renderPaySide(){
     var arr = sidePaySel.split(',');
     btnLabel = arr.length + '个特号: ' + arr.map(x => x.replace('(单)','')).join(' ');
   }
-  h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:16px;background:#fff;text-align:left;min-width:0;-webkit-touch-callout:none">${btnLabel}</button>`;
+  h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff;text-align:left;min-width:0;-webkit-touch-callout:none">${btnLabel}</button>`;
+  h += `<button onclick="sidePayReset()" style="border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff;color:#666;white-space:nowrap">复位</button>`;
   h += `<span style="font-size:15px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += `<span style="font-size:15px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += '</div>';
@@ -1077,6 +1078,12 @@ function openProdPicker(){
 function editProdBtnLabel(){
   var n = prompt('选产品按钮文字:', labels.prodBtn || '选产品');
   if(n !== null){ labels.prodBtn = n.trim() || '选产品'; saveLabels(); renderPaySide(); }
+}
+function sidePayReset(){
+  sidePaySel = '';
+  renderPaySide();
+  previewSidePay();
+  renderSideCustPay();
 }
 function pickProd(v, type){
   if(type === 'num'){
