@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.2';
+var APP_VER = 'v10.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -638,6 +638,7 @@ function renderPaySide(){
   }
   h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff;text-align:left;min-width:0;-webkit-touch-callout:none">${btnLabel}</button>`;
   h += `<button onclick="sidePayReset()" style="border:none;border-radius:6px;padding:5px 10px;font-size:13px;background:#1f6feb;color:#fff;white-space:nowrap;font-weight:700">复位</button>`;
+  h += `<input id="sideLianXiao" type="text" placeholder="连肖:马龙" maxlength="2" style="width:80px;border:1px solid #7c3aed;border-radius:6px;padding:5px 8px;font-size:13px;text-align:center;color:#7c3aed" onchange="setLianXiao(this.value)">`;
   h += `<span style="font-size:15px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += `<span style="font-size:15px;color:#999">平特倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += '</div>';
@@ -661,11 +662,14 @@ function previewSidePay(){
   let totalComp = 0;
   let lines = '';
   prods.forEach(raw => {
-    const isSingle = raw.endsWith('(单)');
+    const isLian = raw.startsWith('连肖');
+    const isSingle = !isLian && raw.endsWith('(单)');
     const prod = raw.replace('(单)','');
-    const mult = isSingle
-      ? (prod === '平特马' ? 1.8 : multSingle)
-      : multBundle;
+    const mult = isLian
+      ? (raw.includes('马') ? 3.5 : 4)
+      : isSingle
+        ? (prod === '平特马' ? 1.8 : multSingle)
+        : multBundle;
     let prodSales = 0;
     orders.forEach(o => {
       const codes = o.codes || [];
@@ -674,7 +678,7 @@ function previewSidePay(){
     });
     const comp = prodSales * mult;
     totalComp += comp;
-    lines += `<div style="font-size:13px;display:flex;justify-content:space-between"><span>${prod}${isSingle?'(单)':''} 卖 ${prodSales.toFixed(2)} × ${mult}</span><span>赔 ${comp.toFixed(2)}</span></div>`;
+    lines += `<div style="font-size:13px;display:flex;justify-content:space-between"><span>${prod}${isLian?'连肖':isSingle?'(单)':''} 卖 ${prodSales.toFixed(2)} × ${mult}</span><span>赔 ${comp.toFixed(2)}</span></div>`;
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const profit = totalSales - totalComp;
@@ -1081,6 +1085,20 @@ function editProdBtnLabel(){
 }
 function sidePayReset(){
   sidePaySel = '';
+  renderPaySide();
+  previewSidePay();
+  renderSideCustPay();
+}
+function setLianXiao(v){
+  v = v.trim();
+  if(v.length === 2 && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2}$/.test(v)){
+    sidePaySel = '连肖' + v;
+  } else if(v){
+    myAlert('请输入两个生肖字，如：马龙');
+    return;
+  } else {
+    sidePaySel = '';
+  }
   renderPaySide();
   previewSidePay();
   renderSideCustPay();
