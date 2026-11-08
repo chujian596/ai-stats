@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v18.9';
+var APP_VER = 'v19.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1498,7 +1498,7 @@ function saveCustomerRoster(){
   renderAll();
 }
 function removeRoster(name){
-  if(!confirm('把「' + name + '」从客户名单删除？\n（历史订单不会删，统计仍然保留）')) return;
+  if(!confirm('删除？')) return;
   roster = roster.filter(n => n !== name);
   saveRoster();
   renderAll();
