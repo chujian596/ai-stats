@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.8';
+var APP_VER = 'v9.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1819,13 +1819,23 @@ function renderAll(){
       });
     });
     let sh = '';
-    sh += '<table style="font-size:12px;width:100%"><tr><th>平特肖</th><th>销量</th><th>金额</th></tr>';
+    sh += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px"><span>平特肖</span><span>销量 / 金额</span></div>';
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
       .sort((a,b) => b.d.amount - a.d.amount)
       .forEach(({p, d}) => {
-        sh += `<tr><td style="font-weight:700">${esc(p.code)}</td><td style="font-size:15px;font-weight:700">${d.qty}</td><td style="font-size:16px;font-weight:800;color:#cf1322">${d.amount.toFixed(2)}</td></tr>`;
+        const active = d.amount > 0;
+        const bg = active ? '#fff7f7' : '#fafafa';
+        const badgeColor = p.code === '平特马' ? '#fa8c16' : '#1f6feb';
+        sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;margin-bottom:3px;border-radius:8px;background:${bg};border-left:3px solid ${active ? badgeColor : '#eee'}">
+<div style="display:flex;align-items:center;gap:6px">
+<span style="background:${active ? badgeColor : '#e8e8e8'};color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(p.code.replace('平特',''))}</span>
+</div>
+<div style="display:flex;gap:12px;align-items:center">
+<span style="font-size:14px;font-weight:700;color:${active ? '#333' : '#bbb'}">${d.qty}单</span>
+<span style="font-size:16px;font-weight:800;color:${active ? '#cf1322' : '#ccc'};min-width:60px;text-align:right">${d.amount.toFixed(2)}</span>
+</div>
+</div>`;
       });
-    sh += '</table>';
     document.getElementById('rank-singles').innerHTML = sh;
   } else {
     document.getElementById('rank-singles').innerHTML = '';
