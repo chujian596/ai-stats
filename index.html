@@ -1618,8 +1618,8 @@ function handleSave(){
       codes: p.codes,
       createdAt: created
     });
-    const modeTxt = p.isPer ? '每件' : '套餐总价';
-    results.push(`【${customer}】${qty}件(${p.codes.join(',')})，${modeTxt}${p.price}元，每件${unit.toFixed(2)}元，共${amount.toFixed(2)}元`);
+    const modeTxt = p.isPer ? '×' : '=';
+    results.push(`${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`);
   });
 
   saveOrders();
