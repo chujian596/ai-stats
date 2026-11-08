@@ -912,29 +912,34 @@ function openProdPicker(){
   if(old) old.remove();
   var overlay = document.createElement('div');
   overlay.id = 'prodPickerOverlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:flex-end';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:flex-end';
   var grid = document.createElement('div');
-  grid.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;padding:12px;width:100%;max-height:60vh;overflow-y:auto';
+  grid.id = 'prodPickerGrid';
+  grid.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;padding:12px;width:100%;max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch';
   var html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">选产品</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
+  html += '<div id="prodGridInner" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
     var sel = sidePaySel === p.code ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div data-code="'+p.code+'" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;'+sel+'">'+p.code+'</div>';
+    html += '<div class="prodCell" data-code="'+p.code+'" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:14px;font-weight:700;'+sel+'">'+p.code+'</div>';
   });
   products.filter(p => p.single).forEach(p => {
     var sel = sidePaySel === p.code+'(单)' ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div data-code="'+p.code+'(单)" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;'+sel+'">'+p.code+'单</div>';
+    html += '<div class="prodCell" data-code="'+p.code+'(单)" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:12px;font-weight:700;'+sel+'">'+p.code+'单</div>';
   });
   html += '</div>';
   html += '<div id="prodPickerClose" style="text-align:center;padding:10px;margin-top:6px;color:#666;font-size:14px;border-top:1px solid #eee">关闭</div>';
   grid.innerHTML = html;
   overlay.appendChild(grid);
-  overlay.onclick = function(e){ if(e.target === overlay) overlay.remove(); };
-  grid.querySelectorAll('[data-code]').forEach(function(el){
-    el.onclick = function(){ pickProd(this.getAttribute('data-code')); };
-  });
-  document.getElementById('prodPickerClose').onclick = function(){ overlay.remove(); };
   document.body.appendChild(overlay);
+  // 事件委托
+  grid.addEventListener('click', function(e){
+    var cell = e.target.closest('.prodCell');
+    if(cell){ pickProd(cell.getAttribute('data-code')); return; }
+    if(e.target.id === 'prodPickerClose'){ overlay.remove(); return; }
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) overlay.remove();
+  });
 }
 function pickProd(v){
   sidePaySel = v;
