@@ -1606,7 +1606,7 @@ function renderAll(){
     orderHtml = '<tr><td colspan="7" style="color:#999">暂无订单</td></tr>';
   } else {
     recent.forEach((o, i) => {
-      const idx = orders.length - recent.length + i;
+      const idx = orders.length - 1 - i;
       orderHtml += `<tr>
         <td class="cust">${esc(o.customer || '散客')}</td>
         <td class="raw" title="${esc(o.raw)}">${esc(o.raw)}</td>
