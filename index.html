@@ -1411,16 +1411,34 @@ function parseLine(text){
   if(!(price > 0)) throw new Error('价格必须大于0');
   const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   const codes = [];
+  const zodiacs = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 智能拆分：把连在一起的中文套餐名拆开
   const bundleNames = products.filter(p => !/^\d{2}$/.test(p.code)).map(p => p.code).sort((a,b) => b.length - a.length);
+  let lastWasPingTe = false;
   for(const p of parts){
     let rest = p;
-    let matched = false;
     while(rest){
       let found = false;
+      // 如果上一个匹配了"平特X"，且当前以生肖开头，自动补"平特"
+      if(lastWasPingTe){
+        for(const z of zodiacs){
+          if(rest.startsWith('平特'+z)){
+            // already has 平特 prefix
+            break;
+          }
+        }
+        // check if rest starts with bare zodiac
+        for(const z of zodiacs){
+          if(rest.startsWith(z) && products.find(x => x.code === '平特'+z)){
+            rest = '平特' + rest;
+            break;
+          }
+        }
+      }
       for(const bn of bundleNames){
         if(rest.startsWith(bn)){
           codes.push(resolveCode(bn));
+          lastWasPingTe = bn.startsWith('平特');
           rest = rest.slice(bn.length);
           found = true;
           break;
