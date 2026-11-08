@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.9';
+var APP_VER = 'v11.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -650,7 +650,7 @@ function renderPaySide(){
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:flex-end">';
   h += '<span style="font-size:10px;color:#7c3aed;margin-bottom:2px">连肖</span>';
-  h += `<input id="sideLianXiao" type="text" placeholder="马龙" maxlength="2" style="width:100%;height:36px;border:1px solid #7c3aed;border-radius:6px;padding:0;font-size:14px;text-align:center;color:#7c3aed;box-sizing:border-box" onchange="setLianXiao(this.value)">`;
+  h += `<input id="sideLianXiao" type="text" placeholder="马龙兔" maxlength="4" style="width:100%;height:36px;border:1px solid #7c3aed;border-radius:6px;padding:0;font-size:14px;text-align:center;color:#7c3aed;box-sizing:border-box" onchange="setLianXiao(this.value)">`;
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:0.8;justify-content:flex-end">';
   h += '<span style="font-size:10px;color:#999;margin-bottom:2px">清除</span>';
@@ -681,7 +681,7 @@ function previewSidePay(){
     const isSingle = !isLian && raw.endsWith('(单)');
     const prod = raw.replace('(单)','');
     const mult = isLian
-      ? (raw.includes('马') ? 3.5 : 4)
+      ? (() => { const z = prod.replace('连肖',''); const n = z.length; const base = n===2?4:n===3?10:30; return z.includes('马') ? base-0.5 : base; })()
       : isSingle
         ? (prod === '平特马' ? 1.8 : multSingle)
         : multBundle;
@@ -1106,10 +1106,10 @@ function sidePayReset(){
 }
 function setLianXiao(v){
   v = v.trim();
-  if(v.length === 2 && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2}$/.test(v)){
+  if(v.length >= 2 && v.length <= 4 && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4}$/.test(v)){
     sidePaySel = '连肖' + v;
   } else if(v){
-    myAlert('请输入两个生肖字，如：马龙');
+    myAlert('请输入2-4个生肖字，如：马龙、马龙兔、马龙兔虎');
     return;
   } else {
     sidePaySel = '';
@@ -1497,10 +1497,10 @@ function parseLine(text){
   if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
-  // 5. 连肖识别："连肖马龙"、"平连马龙"、"平特马龙二连"、"马龙二连"→"连肖马龙"
-  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/g, '连肖$1');
-  codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})二连/g, '连肖$1');
-  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})二连/g, '连肖$1');
+  // 5. 连肖识别：2-4个生肖
+  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
+  codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连/g, (m, z, n) => '连肖' + z);
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连/g, (m, z, n) => '连肖' + z);
   // 拆分并逐个识别
   const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   const codes = [];
@@ -1508,8 +1508,8 @@ function parseLine(text){
     let rest = part;
     while(rest){
       let found = false;
-      // 先识别"连肖XX"（二连肖）
-      const lmM = rest.match(/^连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/);
+      // 先识别"连肖XXXX"（2-4连肖）
+      const lmM = rest.match(/^连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/);
       if(lmM){
         codes.push('连肖' + lmM[1]);
         rest = rest.slice(lmM[0].length);
@@ -1891,15 +1891,17 @@ function renderAll(){
 </div>
 </div>`;
       });
-    // 二连肖
+    // 连肖
     if(lianCodes.length > 0){
-      sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:13px;color:#999;font-weight:700">二连肖（4倍/含马3.5倍）</div>';
+      sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:13px;color:#999;font-weight:700">连肖（2连4倍/3连10倍/4连30倍，含马减0.5）</div>';
       lianCodes.forEach(c => {
         const d = sData[c];
-        const hasMa = c.includes('马');
-        const mult = hasMa ? 3.5 : 4;
+        const z = c.replace('连肖','');
+        const n = z.length;
+        const base = n===2?4:n===3?10:30;
+        const mult = z.includes('马') ? base-0.5 : base;
         sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;margin-bottom:3px;border-radius:8px;background:#f0f7ff;border-left:3px solid #7c3aed">
-<span style="background:#7c3aed;color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(c.replace('连肖',''))}连</span>
+<span style="background:#7c3aed;color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(z)}${n}连</span>
 <span style="font-size:14px;font-weight:700;color:#333">${d.qty}单 × ${mult}倍</span>
 <span style="font-size:15px;font-weight:800;color:#cf1322">${d.amount.toFixed(2)}</span>
 </div>`;
