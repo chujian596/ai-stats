@@ -429,7 +429,7 @@ function showAutoPay(){
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * payMult;
   const profit = totalSales - comp;
-  const color = profit >= 0 ? '#0a0' : '#cf1322';
+  const color = profit >= 0 ? '#cf1322' : '#cf1322';
   let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
   // 显示哪些客户买了这个产品
   const custKeys = Object.keys(custMap);
@@ -515,9 +515,9 @@ function renderPaySide(){
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   let h = `<div id="payTitle" style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
-  h += `<span>销售 <b style="font-size:16px">${sales.toFixed(2)}</b></span>`;
+  h += `<span>销售 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
   h += `<span>赔付 <b style="font-size:16px;color:#cf1322">-${total.toFixed(2)}</b></span>`;
-  h += `<span>净收 <b style="font-size:16px;color:#1a7f37">${(sales-total).toFixed(2)}</b></span>`;
+  h += `<span>净收 <b style="font-size:16px;color:#cf1322">${(sales-total).toFixed(2)}</b></span>`;
   h += '</div>';
   // 最近赔付记录
   if(pays.length > 0){
@@ -562,10 +562,10 @@ function previewSidePay(){
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * mult;
   const profit = totalSales - comp;
-  const color = profit >= 0 ? '#1a7f37' : '#cf1322';
+  const color = profit >= 0 ? '#cf1322' : '#cf1322';
   box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-<div style="font-size:14px">${prod} 卖了 <b>${prodSales.toFixed(2)}</b> × ${mult}倍</div>
-<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩 <b style="color:${color}">${profit.toFixed(2)}</b></div>
+<div style="font-size:14px">${prod} 卖了 <b style="color:#cf1322">${prodSales.toFixed(2)}</b> × ${mult}倍</div>
+<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩 <b style="color:#cf1322">${profit.toFixed(2)}</b></div>
 </div>`;
 }
 function renderSplitSide(){
@@ -652,7 +652,7 @@ function renderSideCustPay(){
       const bought = custBuy[c]||0;
       const paid = custPaid[c]||0;
       const net = bought - paid;
-      const color = net < 0 ? '#cf1322' : '#1a7f37';
+      const color = net < 0 ? '#cf1322' : '#cf1322';
       h += '<div style="display:flex;justify-content:space-between;padding:5px 0">';
       h += '<span style="font-size:15px">' + esc(c) + '</span>';
       h += '<span style="color:' + color + ';font-weight:700;font-size:15px">' + (net >= 0 ? '赚' : '亏') + Math.abs(net).toFixed(2) + '</span>';
@@ -798,7 +798,7 @@ function renderAutoCustPay(){
     const bought = custBuy[c]||0;
     const paid = custPaid[c]||0;
     const net = bought - paid;
-    const color = net < 0 ? '#cf1322' : '#1a7f37';
+    const color = net < 0 ? '#cf1322' : '#cf1322';
     h += '<tr><td>' + esc(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#cf1322">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:700">'+net.toFixed(2)+'</td></tr>';
   });
   h += '</tbody></table>';
@@ -1158,7 +1158,7 @@ function renderCP(){
       const bought = custBuy[c]||0;
       const paid = custPaid[c]||0;
       const net = bought - paid;
-      const color = net < 0 ? '#cf1322' : '#1a7f37';
+      const color = net < 0 ? '#cf1322' : '#cf1322';
       return '<tr><td>' + esc(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#cf1322">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:700">'+net.toFixed(2)+'</td></tr>';
     }).join('') || '<tr><td colspan="4" style="color:#999">暂无数据</td></tr>';
   }
@@ -1491,8 +1491,8 @@ function renderAll(){
   if(sb) sb.textContent = labels.singleBtn || '单品模式';
   const { map, custMap, totalQty, totalAmount } = getStats();
   const payTotal = pays.reduce((s,p) => s + Number(p.amount||0), 0);
-  document.getElementById('totals').textContent =
-    `总订单 ${orders.length} | 总销量 ${totalQty} | 销售 ${totalAmount.toFixed(2)} | 赔付 -${payTotal.toFixed(2)} | 净收入 ${(totalAmount - payTotal).toFixed(2)} 元`;
+  document.getElementById('totals').innerHTML =
+    `总订单 ${orders.length} | 总销量 ${totalQty} | 销售 <span style="color:#ff6b6b">${totalAmount.toFixed(2)}</span> | 赔付 -<span style="color:#ff6b6b">${payTotal.toFixed(2)}</span> | 净收入 <span style="color:#ff6b6b">${(totalAmount - payTotal).toFixed(2)}</span> 元`;
   document.getElementById('bigAmount').textContent = totalAmount.toFixed(2);
   document.getElementById('bigSub').textContent = orders.length + '单 / ' + totalQty + '件';
 
