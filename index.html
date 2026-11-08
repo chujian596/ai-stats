@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.0';
+var APP_VER = 'v13.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1766,36 +1766,28 @@ function handleSave(){
   const created = new Date().toLocaleString('zh-CN', { hour12: false });
   const results = [];
 
-  // 合并相同单价的行成一单
-  const merged = [];
+  // 一次保存=一个单，所有行合并成一条订单记录
+  const allCodes = [];
+  let totalAmount = 0;
+  const results = [];
   parsed.forEach(p => {
-    const key = (p.isPer ? 'per' : 'flat') + '_' + p.price;
-    const found = merged.find(m => m.key === key);
-    if(found){
-      found.p.codes = found.p.codes.concat(p.codes);
-      found.p.raw += ' ' + p.raw;
-    } else {
-      merged.push({ key, p: { raw: p.raw, codes: p.codes.slice(), price: p.price, isPer: p.isPer } });
-    }
-  });
-
-  merged.forEach((m, idx) => {
-    const p = m.p;
     const qty = p.codes.length;
     const unit = p.isPer ? p.price : (p.price / qty);
     const amount = qty * unit;
-    orders.push({
-      id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2,7)}`,
-      customer,
-      raw: p.raw,
-      price: unit,
-      qty,
-      amount,
-      codes: p.codes,
-      createdAt: created
-    });
+    allCodes.push(...p.codes);
+    totalAmount += amount;
     const modeTxt = p.isPer ? '×' : '=';
     results.push(`${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`);
+  });
+  orders.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+    customer,
+    raw: parsed.map(p=>p.raw).join('; '),
+    price: totalAmount,
+    qty: allCodes.length,
+    amount: totalAmount,
+    codes: allCodes,
+    createdAt: created
   });
 
   saveOrders();
