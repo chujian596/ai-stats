@@ -526,13 +526,11 @@ function autoPay(){
     const times = codes.filter(c => c === prod).length;
     prodSales += (Number(o.price)||0) * times;
   });
-  const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * payMult;
-  if(confirm(`${prod}卖了 ${prodSales.toFixed(2)} × ${payMult}倍 = 赔付 ${comp.toFixed(2)} 元\n总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余 ${(totalSales-comp).toFixed(2)} 元\n\n记入赔付？`)){
-    pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
-    savePays();
-    renderAll();
-  }
+  pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
+  savePays();
+  renderAll();
+  showAutoPay();
 }
 function delPay(idx){
   if(!confirm('删除这笔赔付？')) return;
@@ -1248,8 +1246,12 @@ function cpQuickPay(cust, code, amt){
   if(!confirm('给客户「' + cust + '」赔付 ' + amt.toFixed(2) + ' 元？')) return;
   custpays.unshift({ customer: cust, product: code, amount: amt, note: '商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
   saveCP();
+  // 同时记入总赔付，让顶部净收更新
+  pays.unshift({ product: code, amount: amt, note: cust+' 商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
+  savePays();
   cpLookup();
   renderCP();
+  renderAll();
 }
 
 function cpAdd(){
