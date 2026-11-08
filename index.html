@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.9';
+var APP_VER = 'v14.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -371,8 +371,11 @@ function autoPayout(){
     totalPayout += payout;
     var label = r.label;
     if(/^\d{2}$/.test(label)) label = label + '号';
-    results.push(label + ' ×' + r.mult + ' = ' + payout.toFixed(2));
+    results.push(label + ' 下注' + r.bet.toFixed(2) + ' ×' + r.mult + ' = ' + payout.toFixed(2));
   });
+
+  var totalSales = orders.reduce(function(s,o){ return s + Number(o.amount||0); }, 0);
+  var net = totalSales - totalPayout;
 
   var msg = '';
   if(period) msg += '期数：' + period + '\n';
@@ -383,13 +386,29 @@ function autoPayout(){
     msg += '本轮无命中';
     myAlert(msg);
   } else {
-    msg += '命中赔付：\n' + results.join('\n') + '\n\n合计赔付：' + totalPayout.toFixed(2);
-    if(confirm(msg + '\n\n记入赔付记录？')){
+    msg += '命中赔付：\n' + results.join('\n') + '\n\n';
+    msg += '总单金额：' + totalSales.toFixed(2) + '\n';
+    msg += '合计赔付：' + totalPayout.toFixed(2) + '\n';
+    msg += (net >= 0 ? '盈利：' : '亏损：') + Math.abs(net).toFixed(2);
+    // 自定义弹窗，标题"账单统计"
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+      + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">账单统计</div>'
+      + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+      + '<div style="display:flex;border-top:1px solid #eee">'
+      + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
+      + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#1f6feb;font-weight:700">记入赔付</button>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#mcCancel').onclick = () => ov.remove();
+    ov.querySelector('#mcOk').onclick = () => {
+      ov.remove();
       pays.unshift({ product: '自动结算', amount: totalPayout, note: period ? '期' + period + ' ' : '' + '特' + specialNum, time: new Date().toLocaleString('zh-CN') });
       savePays();
       renderAll();
       var pc = document.getElementById('payCtrl'); if(pc) pc.style.display=''; var pb = document.getElementById('profitBody'); if(pb) pb.style.display='';
-    }
+    };
   }
   document.getElementById('drawInput').value = '';
 }
