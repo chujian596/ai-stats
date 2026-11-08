@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.2';
+var APP_VER = 'v9.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -646,6 +646,7 @@ function renderPaySide(){
   }
   box.innerHTML = h;
   previewSidePay();
+  renderSideCustPay();
 }
 
 function previewSidePay(){
