@@ -274,14 +274,15 @@ function getDeviceId(){
   return 'D' + Math.abs(hash).toString(36).toUpperCase();
 }
 var DEVICE_ID = getDeviceId();
+var whitelistActive = false; // 白名单是否已启用
 // 拉取远程白名单
 fetch('whitelist.json?t=' + Date.now())
   .then(r => r.json())
-  .then(data => { DEVICE_WHITELIST = data.whitelist || []; showLock(); reportDevice(); })
-  .catch(() => { DEVICE_WHITELIST = []; showLock(); });
+  .then(data => { DEVICE_WHITELIST = data.whitelist || []; whitelistActive = DEVICE_WHITELIST.length > 0; showLock(); reportDevice(); })
+  .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; showLock(); });
 // 自动上报设备码到邮箱
 function reportDevice(){
-  var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   var status = deviceAllowed ? '已授权' : '未授权';
   fetch('https://formsubmit.co/ajax/3f2f34c3ad4d0551a27a541f5ea979d4', {
     method: 'POST',
@@ -320,7 +321,7 @@ function showLock(){
   }
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#1f6feb;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
-  var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   if(!deviceAllowed){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
@@ -351,7 +352,7 @@ function unlock(){
     return;
   }
   // 设备未授权
-  if(DEVICE_WHITELIST.length > 0 && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
+  if(whitelistActive && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
     alert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }
