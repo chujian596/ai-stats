@@ -595,6 +595,34 @@ function renderSideCustPay(){
     h += '</div>';
   });
   h += '</div>';
+  // 客户盈亏小结
+  const custBuy = {};
+  orders.forEach(o => {
+    const c = o.customer || '散客';
+    if(!custBuy[c]) custBuy[c] = 0;
+    custBuy[c] += Number(o.amount)||0;
+  });
+  const custPaid = {};
+  custpays.forEach(p => {
+    if(!custPaid[p.customer]) custPaid[p.customer] = 0;
+    custPaid[p.customer] += Number(p.amount)||0;
+  });
+  const allCusts = new Set([...Object.keys(custBuy), ...Object.keys(custPaid)]);
+  if(allCusts.size > 0){
+    h += '<div style="margin-top:6px">';
+    h += '<div style="font-weight:700;font-size:11px;margin-bottom:3px">📊 客户盈亏小结</div>';
+    allCusts.forEach(c => {
+      const bought = custBuy[c]||0;
+      const paid = custPaid[c]||0;
+      const net = bought - paid;
+      const color = net < 0 ? '#cf1322' : '#1a7f37';
+      h += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px">';
+      h += '<span>' + esc(c) + '</span>';
+      h += '<span style="color:' + color + ';font-weight:700">' + (net >= 0 ? '赚' : '亏') + Math.abs(net).toFixed(2) + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
   box.innerHTML = h;
 }
 function sidePayCalc(){
