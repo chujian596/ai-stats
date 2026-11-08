@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v8.3';
+var APP_VER = 'v8.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1413,10 +1413,10 @@ function parseLine(text){
   // 处理"马龙兔平特肖"这种写法：末尾有"平特肖"或"平特"，前面的生肖全部补"平特"
   let parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   parts = parts.map(part => {
-    // 平X → 平特X
-    part = part.replace(/平([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
-    // 特肖X → X，特X → X（去掉"特"前缀，就是普通套餐）
-    part = part.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1');
+    // 先处理"特肖X"→X 和 "特X"→X（只匹配开头）
+    part = part.replace(/^特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/, '$1');
+    // 再处理"平X"→"平特X"（只匹配开头的平，不动平特里的特）
+    part = part.replace(/^平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
     let m = part.match(/^(.+?)平特肖?$/);
     if(m && /[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(m[1]) && !/[0-9]/.test(m[1])){
       let s = m[1];
