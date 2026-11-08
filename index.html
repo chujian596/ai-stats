@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v18.1';
+var APP_VER = 'v18.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2320,6 +2320,7 @@ function renderRisk(){
   }
   // 二分搜索：找最坏净盈亏=target时的阈值
   function findT(target){
+    if(worstAt(0) >= target) return 0; // 全飞已经达标
     let lo=0, hi=numBets[sorted[0]]||100;
     for(let i=0;i<30;i++){
       const mid=(lo+hi)/2;
