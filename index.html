@@ -75,7 +75,14 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <div><span style="font-size:11px;color:#666">累计</span> <span id="bigAmount" style="font-size:22px;font-weight:800;color:#cf1322">0.00</span></div>
         <div id="bigSub" style="font-size:14px;color:#cf1322;font-weight:700"></div>
       </div>
-      <button type="button" style="border:1px solid #1f6feb;background:#e8f0ff;color:#1f6feb;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="switchShop()">🏪<span id="shopLabel">小澳AI店铺</span></button>
+      <button type="button" style="border:1px solid #1f6feb;background:#e8f0ff;color:#1f6feb;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="toggleShop()">🏪<span id="shopLabel">小澳AI店铺</span>▾</button>
+    </div>
+    <div id="shopBox" style="display:none;background:#f7f7f7;border-radius:8px;padding:8px;margin-bottom:6px">
+      <div style="font-size:12px;color:#666;margin-bottom:6px">选择店铺：</div>
+      <div style="display:flex;gap:6px">
+        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #1f6feb;background:#fff;color:#1f6feb;font-weight:700;font-size:14px" onclick="doSwitchShop('A')">小澳AI店铺</button>
+        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #1f6feb;background:#fff;color:#1f6feb;font-weight:700;font-size:14px" onclick="doSwitchShop('B')">小港AI店铺</button>
+      </div>
     </div>
   </div>
   <section class="card">
@@ -1392,12 +1399,14 @@ function handleSave(){
   }
 }
 
-function switchShop(){
-  var next = shop === 'A' ? 'B' : 'A';
-  if(confirm('切换到「' + shopNames[next] + '」？\n当前「' + shopNames[shop] + '」的数据不会丢失。')){
-    localStorage.setItem('current_shop', next);
-    location.reload();
-  }
+function toggleShop(){
+  const b = document.getElementById('shopBox');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+function doSwitchShop(s){
+  if(s === shop){ document.getElementById('shopBox').style.display = 'none'; return; }
+  localStorage.setItem('current_shop', s);
+  location.reload();
 }
 function toggleCust(){
   const b = document.getElementById('custBox');
