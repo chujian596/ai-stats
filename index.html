@@ -103,6 +103,11 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn primary" style="flex:1;padding:5px;font-size:12px" onclick="handleSave()">保存</button>
       <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
     </div>
+    <div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
+      <div style="font-size:12px;color:#16a34a;font-weight:700;margin-bottom:4px">开奖录入（自动算赔付）</div>
+      <input id="drawInput" class="input" style="font-size:13px;padding:6px" placeholder="如：312 11/8 31 46 04 43 32 15 38">
+      <button class="btn primary" style="width:100%;margin-top:4px;padding:6px;font-size:13px" onclick="autoPayout()">自动结算</button>
+    </div>
     <div id="saveMsg" style="margin-top:6px;font-size:17px;color:#1f6feb"></div>
   </section>
 
@@ -274,6 +279,73 @@ fetch('version.txt?t=' + Date.now())
       location.reload();
     }
   }).catch(function(){});
+// 生肖映射：号码→生肖
+var NUM2ZODIAC = {};
+[['马',[1,13,25,37,49]],['蛇',[2,14,26,38]],['龙',[3,15,27,39]],['兔',[4,16,28,40]],['虎',[5,17,29,41]],['牛',[6,18,30,42]],['鼠',[7,19,31,43]],['猪',[8,20,32,44]],['狗',[9,21,33,45]],['鸡',[10,22,34,46]],['猴',[11,23,35,47]],['羊',[12,24,36,48]]].forEach(function(z){ z[1].forEach(function(n){ NUM2ZODIAC[n] = z[0]; }); });
+
+// 自动结算：解析开奖结果，自动计算所有命中赔付
+function autoPayout(){
+  var raw = document.getElementById('drawInput').value.trim();
+  if(!raw){ myAlert('请输入开奖结果'); return; }
+  var nums = raw.match(/\d+/g);
+  if(!nums || nums.length < 8){ myAlert('格式不对\n示例：312 11/8 31 46 04 43 32 15 38\n需要至少8个数字'); return; }
+  var period = nums[0];
+  var regularNums = nums.slice(1, 7).map(Number);
+  var specialNum = Number(nums[7]);
+  var regularZodiacs = regularNums.map(function(n){ return NUM2ZODIAC[n]; });
+  var specialZodiac = NUM2ZODIAC[specialNum];
+  var allZodiacs = regularZodiacs.concat([specialZodiac]);
+  var hitZodiacSet = {};
+  allZodiacs.forEach(function(z){ hitZodiacSet[z] = true; });
+
+  var shop = currentShop();
+  var allOrders = JSON.parse(localStorage.getItem(shop==='A'?'orders':'orders_shopB')||'[]');
+  var results = [];
+  var totalPayout = 0;
+
+  allOrders.forEach(function(o){
+    (o.codes||[]).forEach(function(code){
+      var price = Number(o.price) || 0;
+      if(code.startsWith('连肖')){
+        var zs = code.replace('连肖','').split('');
+        var allHit = zs.every(function(z){ return hitZodiacSet[z]; });
+        if(allHit){
+          var n = zs.length;
+          var base = n===2?4:n===3?10:30;
+          var mult = zs.indexOf('马') >= 0 ? base - 0.5 : base;
+          var payout = price * mult;
+          totalPayout += payout;
+          results.push(code + ' ×' + mult + ' = ' + payout.toFixed(2));
+        }
+      }
+      else if(code.startsWith('平特')){
+        var z = code.replace('平特','');
+        if(regularZodiacs.indexOf(z) >= 0){
+          var mult = code === '平特马' ? 1.8 : payMultSingle;
+          var payout = price * mult;
+          totalPayout += payout;
+          results.push(code + ' ×' + mult + ' = ' + payout.toFixed(2));
+        }
+      }
+      else if(/^\d{2}$/.test(code)){
+        if(Number(code) === specialNum){
+          var payout2 = price * payMult;
+          totalPayout += payout2;
+          results.push(code + '号 ×' + payMult + ' = ' + payout2.toFixed(2));
+        }
+      }
+    });
+  });
+
+  var msg = '期数：' + period + '\n特号：' + specialNum + '(' + specialZodiac + ')\n平特：' + regularNums.join(' ') + '\n\n';
+  if(results.length === 0){
+    msg += '本轮无命中';
+  } else {
+    msg += '命中赔付：\n' + results.join('\n') + '\n\n合计赔付：' + totalPayout.toFixed(2);
+  }
+  myAlert(msg);
+  document.getElementById('drawInput').value = '';
+}
 var DEVICE_WHITELIST = [];
 // 生成设备指纹
 function getDeviceId(){
