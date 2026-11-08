@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v14.2';
+var APP_VER = 'v14.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1976,9 +1976,10 @@ function hideSub(code){
 function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); } catch(e){} }
 try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
 
-function calcOrderWin(o){
-  if(!lastDraw) return 0;
-  let win = 0;
+function calcOrderWinDetail(o){
+  if(!lastDraw) return { total: 0, lines: [] };
+  let total = 0;
+  const lines = [];
   const seen = {};
   (o.codes||[]).forEach(code => {
     if(seen[code]) return; seen[code] = true;
@@ -1992,22 +1993,30 @@ function calcOrderWin(o){
         const n = zs.length;
         const base = n===2?4:n===3?10:30;
         const mult = zs.includes('马') ? base-0.5 : base;
-        win += bet * mult;
+        const w = bet * mult;
+        total += w;
+        lines.push(code + ' 下注' + bet.toFixed(0) + ' ×' + mult + ' = ' + w.toFixed(2));
       }
     } else if(code.startsWith('平特')){
       const z = code.replace('平特','');
       if(lastDraw.regularNums.some(n => NUM2ZODIAC[n] === z)){
         const mult = code === '平特马' ? 1.8 : payMultSingle;
-        win += bet * mult;
+        const w = bet * mult;
+        total += w;
+        lines.push(code + ' 下注' + bet.toFixed(0) + ' ×' + mult + ' = ' + w.toFixed(2));
       }
     } else if(/^\d{2}$/.test(code)){
       if(Number(code) === lastDraw.specialNum){
-        win += bet * payMult;
+        const w = bet * payMult;
+        total += w;
+        lines.push(code + '号 下注' + bet.toFixed(0) + ' ×' + payMult + ' = ' + w.toFixed(2));
       }
     }
   });
-  return win;
+  return { total, lines };
 }
+
+function calcOrderWin(o){ return calcOrderWinDetail(o).total; }
 
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
@@ -2042,10 +2051,15 @@ function renderOrdersList(){
     h += `<div id="od_${gi}" style="display:none;padding:6px 8px">`;
     g.orders.forEach(({o, idx}) => {
       const codes = (o.codes||[]).join(' ');
-      const win = calcOrderWin(o);
+      const wd = calcOrderWinDetail(o);
       h += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5">`;
       h += `<div style="display:flex;justify-content:space-between"><span style="color:#666">${esc(codes.substring(0,40))}</span><span style="color:#cf1322;font-weight:700">${Number(o.amount).toFixed(2)}</span></div>`;
-      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))}${win>0?' 中奖:'+win.toFixed(2):''}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
+      if(wd.lines.length){
+        wd.lines.forEach(l => {
+          h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
+        });
+      }
+      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
       h += `</div>`;
     });
     h += `</div></div>`;
@@ -2060,9 +2074,10 @@ function copyCustOrders(cust){
   orders.forEach(o => {
     if((o.customer||'散客') === cust){
       totalBet += Number(o.amount)||0;
-      const w = calcOrderWin(o);
-      totalWin += w;
-      lines.push((o.codes||[]).join(' ') + ' = ' + Number(o.amount).toFixed(2) + (w>0?' (中奖'+w.toFixed(2)+')':''));
+      const wd = calcOrderWinDetail(o);
+      totalWin += wd.total;
+      lines.push((o.codes||[]).join(' ') + ' = ' + Number(o.amount).toFixed(2));
+      wd.lines.forEach(l => lines.push('  命中: ' + l));
     }
   });
   const net = totalWin - totalBet;
