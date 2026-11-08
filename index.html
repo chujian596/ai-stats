@@ -1727,8 +1727,8 @@ function renderAll(){
         sData[c].amount += Number(o.price) || 0;
       });
     });
-    let sh = `<div style="font-weight:700;margin:4px 0 2px;border-top:1px solid #eee;padding-top:4px">${labels.singles}</div>`;
-    sh += '<table style="font-size:12px;width:100%"><tr><th style="cursor:pointer" ontouchstart="colPressTimer=setTimeout(function(){var n=prompt('+"'列名:'"+','+(labels.colName||'单品名')+');if(n!==null){labels.colName=n.trim()||'+"'单品名'"+';saveLabels();renderAll();}},600)" ontouchend="clearTimeout(colPressTimer)">'+(labels.colName||'单品名')+'</th><th>销量</th><th>金额</th></tr>';
+    let sh = '';
+    sh += '<table style="font-size:12px;width:100%"><tr><th>平特肖</th><th>销量</th><th>金额</th></tr>';
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
       .sort((a,b) => b.d.amount - a.d.amount)
       .forEach(({p, d}) => {
