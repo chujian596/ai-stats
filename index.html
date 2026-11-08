@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v18.2';
+var APP_VER = 'v18.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2318,13 +2318,15 @@ function renderRisk(){
     const maxKept = Math.min(numBets[sorted[0]]||0, T);
     return kept - maxKept*payMult - ptePayout;
   }
-  // 二分搜索：找最坏净盈亏=target时的阈值
+  // 二分搜索：找最坏净盈亏>=target时的最大阈值
   function findT(target){
-    if(worstAt(0) >= target) return 0; // 全飞已经达标
-    let lo=0, hi=numBets[sorted[0]]||100;
+    const maxBet = numBets[sorted[0]]||100;
+    if(worstAt(0) < target) return 0;      // 全飞都不达标，只能全飞
+    if(worstAt(maxBet) >= target) return maxBet; // 全留都没事
+    let lo=0, hi=maxBet;
     for(let i=0;i<30;i++){
       const mid=(lo+hi)/2;
-      if(worstAt(mid) < target) lo=mid; else hi=mid;
+      if(worstAt(mid) >= target) lo=mid; else hi=mid;
     }
     return Math.round(lo);
   }
