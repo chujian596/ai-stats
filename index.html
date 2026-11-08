@@ -1963,8 +1963,23 @@ function importBackup(ev){
   reader.readAsText(file, 'UTF-8');
 }
 
+function myConfirm(msg, cb){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">提示</div>'
+    + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6">' + msg.replace(/\n/g,'<br>') + '</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
+    + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#1f6feb;font-weight:700">确定</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#mcCancel').onclick = () => ov.remove();
+  ov.querySelector('#mcOk').onclick = () => { ov.remove(); cb(); };
+}
+
 function clearOrders(){
-  if(!confirm('确定清除所有订单和赔付记录？\\n客户名单保留。')) return;
+  myConfirm('确定清除所有订单和赔付记录？<br>客户名单保留。', () => {
   orders = [];
   pays = [];
   custpays = [];
@@ -1972,6 +1987,7 @@ function clearOrders(){
   try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
   try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
   renderAll();
+  });
 }
 
 function clearAll(){
