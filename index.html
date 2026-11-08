@@ -303,7 +303,7 @@ function showLock(){
   } else {
     timeTxt = '会员剩余 <b style="font-size:17px;color:#1f6feb">' + Math.ceil(left/86400000) + '</b> 天';
   }
-  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">本机设备码：<b style="color:#1f6feb">' + DEVICE_ID + '</b></span>';
+  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#1f6feb;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
   var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   if(!deviceAllowed){
