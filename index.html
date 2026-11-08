@@ -393,6 +393,7 @@ const PAY_MULT_SINGLE_KEY = sk('product_stats_pay_mult_single_v1');
 let pays = [];
 let payMult = 1;
 let payMultSingle = 1;
+let sidePaySel = '';
 try { pays = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e){ pays = []; }
 try { payMult = parseFloat(localStorage.getItem(PAY_MULT_KEY) || '1') || 1; } catch(e){ payMult = 1; }
 try { payMultSingle = parseFloat(localStorage.getItem(PAY_MULT_SINGLE_KEY) || '1') || 1; } catch(e){ payMultSingle = 1; }
@@ -510,9 +511,7 @@ function renderPaySide(){
   const box = document.getElementById('rank-pay');
   if(!box) return;
   // 保存当前选择，避免重建后丢失
-  const oldSel = box.querySelector('#sidePayProduct');
   const oldMult = box.querySelector('#sidePayMult');
-  const savedSel = oldSel ? oldSel.value : '';
   const savedMult = oldMult ? oldMult.value : payMult;
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
@@ -533,11 +532,7 @@ function renderPaySide(){
   }
   h += '<div id="sidePayResult" style="font-size:14px;margin:4px 0;padding:8px;background:#f8f9fa;border-radius:6px;line-height:1.6"></div>';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
-  h += `<select id="sidePayProduct" onchange="previewSidePay();renderSideCustPay()" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px;min-width:0">`;
-  h += '<option value="">选产品</option>';
-  products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => { h += `<option value="${esc(p.code)}"${savedSel===p.code?' selected':''}>${esc(p.code)}</option>`; });
-  products.filter(p => p.single).forEach(p => { h += `<option value="${esc(p.code)}"${savedSel===p.code+'(单)'?' selected':''}>${esc(p.code)}(单)</option>`; });
-  h += '</select>';
+  h += `<button id="sidePayProductBtn" onclick="openProdPicker()" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:13px;background:#fff;text-align:left;min-width:0">${sidePaySel||'选产品'}</button>`;
   h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){previewSidePay();renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += `<span style="font-size:11px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
@@ -549,7 +544,7 @@ function renderPaySide(){
 function previewSidePay(){
   const box = document.getElementById('sidePayResult');
   if(!box) return;
-  const rawProd = document.getElementById('sidePayProduct').value;
+  const rawProd = sidePaySel;
   if(!rawProd){ box.innerHTML = ''; return; }
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
@@ -592,10 +587,9 @@ function renderSplitSide(){
 function renderSideCustPay(){
   const box = document.getElementById('sideCustPay');
   if(!box) return;
-  const prodSel = document.getElementById('sidePayProduct');
   const multInput = document.getElementById('sidePayMult');
   const multSingleInput = document.getElementById('sidePayMultSingle');
-  const rawProd = prodSel ? prodSel.value : '';
+  const rawProd = sidePaySel;
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
   const mult = isSingle
@@ -675,7 +669,7 @@ function renderSideCustPay(){
   box.innerHTML = h;
 }
 function sidePayCalc(){
-  const rawProd = document.getElementById('sidePayProduct').value;
+  const rawProd = sidePaySel;
   if(!rawProd){ alert('选产品'); return; }
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
@@ -914,6 +908,36 @@ function loadMode(){
   catch(e){ return 'bundle'; }
 }
 let mode = loadMode();
+function openProdPicker(){
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:flex-end';
+  var grid = document.createElement('div');
+  grid.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-height:70vh;overflow-y:auto';
+  var html = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">选产品</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+  products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
+    var sel = sidePaySel === p.code ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
+    html += '<div onclick="pickProd(\''+esc(p.code)+'\')" style="text-align:center;padding:10px 4px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;'+sel+'">'+esc(p.code)+'</div>';
+  });
+  products.filter(p => p.single).forEach(p => {
+    var sel = sidePaySel === p.code+'(单)' ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
+    html += '<div onclick="pickProd(\''+esc(p.code)+'(单)\')" style="text-align:center;padding:10px 4px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;'+sel+'">'+esc(p.code)+'(单)</div>';
+  });
+  html += '</div>';
+  html += '<div onclick="this.parentElement.parentElement.remove()" style="text-align:center;padding:12px;margin-top:8px;color:#666;font-size:14px;border-top:1px solid #eee">关闭</div>';
+  grid.innerHTML = html;
+  overlay.appendChild(grid);
+  overlay.onclick = function(e){ if(e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+function pickProd(v){
+  sidePaySel = v;
+  var olds = document.querySelectorAll('div[style*="z-index:9999"]');
+  olds.forEach(function(d){d.remove();});
+  renderPaySide();
+  previewSidePay();
+  renderSideCustPay();
+}
 function editBundleLabel(){
   var n = prompt('套餐按钮文字:', labels.bundleBtn || '套餐模式');
   if(n !== null){ labels.bundleBtn = n.trim() || '套餐模式'; saveLabels(); renderAll(); }
