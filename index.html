@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v8.8';
+var APP_VER = 'v8.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1411,10 +1411,14 @@ function parseLine(text){
   if(!(price > 0)) throw new Error('价格必须大于0');
   const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 预处理：统一把输入转成标准产品名
+  // 先保护"平特"不被后面的特X替换误删
+  codeText = codeText.replace(/平特/g, '『PT』');
   // 1. "特肖X"→X, "特X"→X
   codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1');
   // 2. "平X"→"平特X"（单独的平+生肖）
   codeText = codeText.replace(/平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+  // 恢复"平特"
+  codeText = codeText.replace(/『PT』/g, '平特');
   // 3. "平特马龙兔"→"平特马平特龙平特兔"
   codeText = codeText.replace(/平特([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zs) => {
     return zs.split('').map(c => '平特' + c).join('');
