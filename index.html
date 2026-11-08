@@ -62,7 +62,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </div>
 <header>
   <div style="text-align:center;padding:4px 0 2px;font-size:16px;font-weight:900;letter-spacing:4px;background:linear-gradient(90deg,#ff4d4f,#ffa940,#ffd666,#ffa940,#ff4d4f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 20px rgba(255,77,79,.3)">🧧 财源广进 紫气东来 🧧</div>
-  <div class="title" id="mainTitle" contenteditable="true" spellcheck="false" onblur="labels.mainTitle=this.textContent;saveLabels();this.innerHTML=labels.mainTitle+' <span style=\'font-size:10px;opacity:0.7\'>v8.0</span>'">AI数据统计系统 <span style="font-size:10px;opacity:0.7">v8.0</span></div>
+  <div class="title" id="mainTitle" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v8\\.0/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\\'font-size:10px;opacity:0.7\\'>v8.0</span>'">AI数据统计系统 <span style="font-size:10px;opacity:0.7">v8.0</span></div>
   <div id="memInfo" style="font-size:10px;opacity:0.8;text-align:right"></div>
 </header>
 <main>
@@ -251,10 +251,6 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn danger" onclick="clearAll()">清空全部数据</button>
     </div>
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
-    <p class="hint">
-      数据只保存在当前浏览器本地。清除浏览器数据、换浏览器、移动/重命名这个 HTML 文件，都可能导致数据丢失。<br>
-      请定期点“备份JSON”，把备份文件存到微信收藏或网盘。旧备份可以直接导入，会自动兼容。
-    </p>
   </section>
 </main>
 
