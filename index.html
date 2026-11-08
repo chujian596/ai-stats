@@ -131,7 +131,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">特号排行 ▼</div>
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">统计表 ▼</div>
     <div id="rankTableBody">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v12.8';
+var APP_VER = 'v12.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -757,8 +757,8 @@ function renderPaySide(){
   }
   h += '</div>'; // close payCtrl
   h += '<div id="sidePayResult" style="font-size:14px;margin:4px 0;padding:8px;background:#f8f9fa;border-radius:6px;line-height:1.6"></div>';
-  // 盈利/亏损统计（折叠，默认关闭）
-  h += '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">盈利/亏损统计 ▶</div>';
+  // 盈利统计（折叠，默认关闭）
+  h += '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">盈利统计 ▶</div>';
   h += '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   h += `<span>总单 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
