@@ -509,7 +509,7 @@ function renderPaySide(){
   const savedMult = oldMult ? oldMult.value : payMult;
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
-  let h = `<div id="payTitle" style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
+  let h = `<div id="payTitle" style="font-weight:700;margin:0 0 6px;font-size:18px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   h += `<span>销售 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
   h += `<span>赔付 <b style="font-size:16px;color:#cf1322">-${total.toFixed(2)}</b></span>`;
@@ -567,7 +567,7 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt(\'分账标题:\',labels.split);if(n!==null){labels.split=n;saveLabels();renderSplitSide();}">' + (labels.split || '📊 股东分账') + '</div>';
+  let h = '<div style="font-weight:700;margin:0 0 6px;font-size:18px;cursor:pointer" ondblclick="var n=prompt(\'分账标题:\',labels.split);if(n!==null){labels.split=n;saveLabels();renderSplitSide();}">' + (labels.split || '📊 股东分账') + '</div>';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:11px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;min-width:0">`;
   h += '</div>';
