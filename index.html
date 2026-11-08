@@ -761,6 +761,8 @@ function sidePayCalc(){
 const LABEL_KEY = sk('product_stats_labels_v1');
 var labels = { singles: '📦 单品累计（按金额排序）', pay: '💸 赔付/利润', split: '📊 股东分账', mainTitle: 'AI云统计系统', bundleBtn: '套餐模式', singleBtn: '单品模式', prodBtn: '选产品' };
 try { Object.assign(labels, JSON.parse(localStorage.getItem(LABEL_KEY)||'{}')); } catch(e){}
+// 强制更新系统名
+if(labels.mainTitle === 'AI数据统计系统'){ labels.mainTitle = 'AI云统计系统'; saveLabels(); }
 function saveLabels(){ try { localStorage.setItem(LABEL_KEY, JSON.stringify(labels)); } catch(e){} }
 function updateTitles(){
   // 只更新标题文字，不调用renderAll（避免输入框失焦）
