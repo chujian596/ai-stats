@@ -648,18 +648,27 @@ function renderSideCustPay(){
   });
   const allCusts = new Set([...Object.keys(custBuy), ...Object.keys(custPaid)]);
   if(allCusts.size > 0){
+    let totalBuy = 0, totalPaid = 0;
+    allCusts.forEach(c => {
+      totalBuy += custBuy[c]||0;
+      totalPaid += custPaid[c]||0;
+    });
     h += '<div style="margin-top:10px">';
     h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">📊 客户盈亏小结</div>';
     allCusts.forEach(c => {
       const bought = custBuy[c]||0;
       const paid = custPaid[c]||0;
       const net = bought - paid;
-      const color = net < 0 ? '#cf1322' : '#cf1322';
       h += '<div style="display:flex;justify-content:space-between;padding:5px 0">';
       h += '<span style="font-size:15px">' + esc(c) + '</span>';
-      h += '<span style="color:' + color + ';font-weight:700;font-size:15px">' + (net >= 0 ? '赚' : '亏') + Math.abs(net).toFixed(2) + '</span>';
+      h += '<span style="color:#cf1322;font-weight:700;font-size:15px">' + (net >= 0 ? '赚' : '亏') + Math.abs(net).toFixed(2) + '</span>';
       h += '</div>';
     });
+    h += '<div style="border-top:2px solid #cf1322;margin-top:6px;padding-top:6px">';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px">累计应收</span><span style="color:#cf1322;font-weight:800;font-size:16px">' + totalBuy.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px">累计已赔</span><span style="color:#cf1322;font-weight:800;font-size:16px">' + totalPaid.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #ddd;margin-top:3px"><span style="font-size:14px;font-weight:700">实际净收</span><span style="color:#cf1322;font-weight:800;font-size:18px">' + (totalBuy-totalPaid).toFixed(2) + '</span></div>';
+    h += '</div>';
     h += '</div>';
   }
   box.innerHTML = h;
