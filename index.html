@@ -1563,7 +1563,7 @@ function handleSave(){
   });
 
   if(errors.length > 0){
-    alert('解析失败，未保存任何一行：\n\n' + errors.join('\n'));
+    myAlert('无法识别：\n' + errors.join('\n'));
     return;
   }
 
@@ -1982,6 +1982,19 @@ function importBackup(ev){
     }
   };
   reader.readAsText(file, 'UTF-8');
+}
+
+function myAlert(msg){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">提示</div>'
+    + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+    + '<div style="border-top:1px solid #eee">'
+    + '<button id="maOk" style="width:100%;padding:14px;border:none;background:#fff;font-size:16px;color:#1f6feb;font-weight:700">确定</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#maOk').onclick = () => ov.remove();
 }
 
 function myConfirm(msg, cb){
