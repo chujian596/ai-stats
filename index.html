@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v14.1';
+var APP_VER = 'v14.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -323,6 +323,8 @@ function autoPayout(){
   var allZodiacs = regularZodiacs.concat([specialZodiac]);
   var hitZodiacSet = {};
   allZodiacs.forEach(function(z){ hitZodiacSet[z] = true; });
+  lastDraw = { specialNum, regularNums: [...regularNums], period };
+  saveLastDraw();
 
   var allOrders = JSON.parse(localStorage.getItem(KEY) || '[]');
   var results = [];
@@ -592,6 +594,7 @@ const PAY_MULT_SINGLE_KEY = sk('product_stats_pay_mult_single_v1');
 let pays = [];
 let payMult = 1;
 let payMultSingle = 2;
+let lastDraw = null; // {specialNum, regularNums, period}
 let sidePaySel = '';
 try { pays = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e){ pays = []; }
 try { payMult = parseFloat(localStorage.getItem(PAY_MULT_KEY) || '1') || 1; } catch(e){ payMult = 1; }
@@ -1970,34 +1973,79 @@ function hideSub(code){
   saveProducts();
   renderAll();
 }
+function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); } catch(e){} }
+try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
+
+function calcOrderWin(o){
+  if(!lastDraw) return 0;
+  let win = 0;
+  const seen = {};
+  (o.codes||[]).forEach(code => {
+    if(seen[code]) return; seen[code] = true;
+    const bet = codeSalesForOrder(o, code);
+    if(code.startsWith('连肖')){
+      const zs = code.replace('连肖','').split('');
+      const allZ = lastDraw.regularNums.map(n=>NUM2ZODIAC[n]||[]).flat().concat([NUM2ZODIAC[lastDraw.specialNum]]);
+      const hitSet = {}; allZ.forEach(z=>hitSet[z]=true);
+      const allHit = zs.every(z=>hitSet[z]);
+      if(allHit){
+        const n = zs.length;
+        const base = n===2?4:n===3?10:30;
+        const mult = zs.includes('马') ? base-0.5 : base;
+        win += bet * mult;
+      }
+    } else if(code.startsWith('平特')){
+      const z = code.replace('平特','');
+      if(lastDraw.regularNums.some(n => NUM2ZODIAC[n] === z)){
+        const mult = code === '平特马' ? 1.8 : payMultSingle;
+        win += bet * mult;
+      }
+    } else if(/^\d{2}$/.test(code)){
+      if(Number(code) === lastDraw.specialNum){
+        win += bet * payMult;
+      }
+    }
+  });
+  return win;
+}
+
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
-  // Group by customer
   const groups = {};
   orders.forEach((o, idx) => {
     const c = o.customer || '散客';
-    if(!groups[c]) groups[c] = { orders: [], totalBet: 0 };
+    if(!groups[c]) groups[c] = { orders: [], totalBet: 0, totalWin: 0 };
     groups[c].orders.push({ o, idx });
     groups[c].totalBet += Number(o.amount) || 0;
+    groups[c].totalWin += calcOrderWin(o);
   });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
   let h = '';
+  if(lastDraw){
+    h += `<div style="font-size:11px;color:#999;margin-bottom:6px">上期开奖：特${String(lastDraw.specialNum).padStart(2,'0')}(${NUM2ZODIAC[lastDraw.specialNum]||''}) 平特${lastDraw.regularNums.map(n=>String(n).padStart(2,'0')).join(' ')}</div>`;
+  }
   custNames.forEach((c, gi) => {
     const g = groups[c];
+    const net = g.totalWin - g.totalBet;
     h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden">`;
-    h += `<div onclick="var e=document.getElementById('od_${gi}');e.style.display=e.style.display==='none'?'':'none'" style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#f8f9fa;cursor:pointer">`;
-    h += `<div style="font-weight:700;font-size:14px">${esc(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></div>`;
-    h += `<div style="display:flex;gap:8px;align-items:center">`;
-    h += `<span style="font-size:13px;color:#cf1322;font-weight:700">${g.totalBet.toFixed(2)}</span>`;
+    h += `<div onclick="var e=document.getElementById('od_${gi}');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;background:#f8f9fa;cursor:pointer">`;
+    h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
+    h += `<span style="font-weight:700;font-size:14px">${esc(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></span>`;
     h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #1f6feb;background:#fff;color:#1f6feb;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
+    h += `</div>`;
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
+    h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
+    h += `<span>中奖 <b style="color:#cf1322">${g.totalWin.toFixed(2)}</b></span>`;
+    h += `<span>${net>=0?'盈利':'亏损'} <b style="color:${net>=0?'#16a34a':'#cf1322'}">${Math.abs(net).toFixed(2)}</b></span>`;
     h += `</div></div>`;
     h += `<div id="od_${gi}" style="display:none;padding:6px 8px">`;
     g.orders.forEach(({o, idx}) => {
       const codes = (o.codes||[]).join(' ');
+      const win = calcOrderWin(o);
       h += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5">`;
       h += `<div style="display:flex;justify-content:space-between"><span style="color:#666">${esc(codes.substring(0,40))}</span><span style="color:#cf1322;font-weight:700">${Number(o.amount).toFixed(2)}</span></div>`;
-      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))}${win>0?' 中奖:'+win.toFixed(2):''}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
       h += `</div>`;
     });
     h += `</div></div>`;
@@ -2007,18 +2055,19 @@ function renderOrdersList(){
 }
 
 function copyCustOrders(cust){
-  const g = { orders: [], totalBet: 0 };
+  let totalBet = 0, totalWin = 0;
+  const lines = [];
   orders.forEach(o => {
     if((o.customer||'散客') === cust){
-      g.orders.push(o);
-      g.totalBet += Number(o.amount)||0;
+      totalBet += Number(o.amount)||0;
+      const w = calcOrderWin(o);
+      totalWin += w;
+      lines.push((o.codes||[]).join(' ') + ' = ' + Number(o.amount).toFixed(2) + (w>0?' (中奖'+w.toFixed(2)+')':''));
     }
   });
-  let text = cust + ' 下注总计:' + g.totalBet.toFixed(2) + '\n';
-  g.orders.forEach(o => {
-    text += (o.codes||[]).join(' ') + ' = ' + Number(o.amount).toFixed(2) + '\n';
-  });
-  navigator.clipboard.writeText(text).then(()=>myAlert('已复制:\n'+text));
+  const net = totalWin - totalBet;
+  let text = cust + '\n下注总计:' + totalBet.toFixed(2) + '\n中奖总计:' + totalWin.toFixed(2) + '\n' + (net>=0?'盈利':'亏损') + ':' + Math.abs(net).toFixed(2) + '\n\n' + lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>myAlert('已复制'));
 }
 
 function copyAllOrders(){
