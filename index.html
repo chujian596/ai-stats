@@ -131,6 +131,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">特号排行 ▼</div>
+    <div id="rankTableBody">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
         <table style="font-size:12px">
@@ -144,6 +146,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
           <tbody id="tbody-rank-r"></tbody>
         </table>
       </div>
+    </div>
     </div>
     <div style="margin-top:6px;font-size:12px;border-top:1px solid #eee;padding-top:4px">
       <div id="rank-singles" style="margin-bottom:8px"></div>
@@ -266,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v12.0';
+var APP_VER = 'v12.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
