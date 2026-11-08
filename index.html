@@ -159,7 +159,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-orders" class="card tab-panel" style="display:none">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>客户</th><th>各号单价</th><th>特号数量</th><th>本单金额</th><th>时间</th><th>退单</th></tr></thead>
+        <thead><tr><th>客户</th><th>特号数量</th><th>本单金额</th><th>时间</th><th>退单</th></tr></thead>
         <tbody id="tbody-orders"></tbody>
       </table>
     </div>
@@ -1785,16 +1785,15 @@ function renderAll(){
   const recent = orders.slice().reverse().slice(0, 100);
   let orderHtml = '';
   if(recent.length === 0){
-    orderHtml = '<tr><td colspan="6" style="color:#999">暂无订单</td></tr>';
+    orderHtml = '<tr><td colspan="5" style="color:#999">暂无订单</td></tr>';
   } else {
     recent.forEach((o, i) => {
       const idx = orders.length - 1 - i;
       orderHtml += `<tr>
         <td class="cust">${esc(o.customer || '散客')}</td>
-        <td>${Number(o.price)}</td>
         <td>${o.qty}</td>
         <td>${Number(o.amount).toFixed(2)}</td>
-        <td style="font-size:10px">${esc(o.createdAt)}</td>
+        <td style="font-size:10px">${esc((o.createdAt||'').replace(/^\d{4}\/\d{1,2}\//,'').replace(/:\d{2}$/,''))}</td>
         <td><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:2px 6px;font-size:10px">删</button></td>
       </tr>`;
     });
