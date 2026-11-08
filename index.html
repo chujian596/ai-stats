@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v14.7';
+var APP_VER = 'v14.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2123,19 +2123,20 @@ function renderOrdersList(){
 
 function copyCustOrders(cust){
   let totalBet = 0, totalWin = 0;
-  const lines = [];
+  const amts = [];
   orders.forEach(o => {
     if((o.customer||'散客') === cust){
-      totalBet += Number(o.amount)||0;
-      const wd = calcOrderWinDetail(o);
-      totalWin += wd.total;
-      const rawLines = (o.raw||'').split('; ').filter(Boolean);
-      rawLines.forEach(rl => lines.push(rl));
-      wd.lines.forEach(l => lines.push('  命中: ' + l));
+      const amt = Number(o.amount)||0;
+      totalBet += amt;
+      totalWin += calcOrderWin(o);
+      amts.push(amt.toFixed(0));
     }
   });
   const net = totalWin - totalBet;
-  let text = cust + '\n下注总计:' + totalBet.toFixed(2) + '\n中奖总计:' + totalWin.toFixed(2) + '\n' + (net>=0?'盈利':'亏损') + ':' + Math.abs(net).toFixed(2) + '\n\n' + lines.join('\n');
+  let text = cust + '\n';
+  text += '下注总计:' + amts.join('+') + '=' + totalBet.toFixed(2) + '\n';
+  text += '中奖总计:' + totalWin.toFixed(2) + '\n';
+  text += (net>=0?'盈利':'亏损') + ':' + Math.abs(net).toFixed(2);
   navigator.clipboard.writeText(text).then(()=>myAlert('已复制'));
 }
 
