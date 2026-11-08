@@ -1413,10 +1413,13 @@ function parseLine(text){
   // 处理"马龙兔平特肖"这种写法：末尾有"平特肖"或"平特"，前面的生肖全部补"平特"
   let parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   parts = parts.map(part => {
+    // 平X → 平特X
+    part = part.replace(/平([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+    // 特肖X → X，特X → X（去掉"特"前缀，就是普通套餐）
+    part = part.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1');
     let m = part.match(/^(.+?)平特肖?$/);
     if(m && /[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(m[1]) && !/[0-9]/.test(m[1])){
       let s = m[1];
-      // 逐个生肖补"平特"
       let result = '';
       for(const ch of s){
         if(zodiacs.includes(ch) && products.find(x => x.code === '平特'+ch)){
