@@ -144,7 +144,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-cust" class="card tab-panel" style="display:none">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>排名</th><th>客户</th><th>订单数</th><th>销量</th><th>累计金额(元)</th></tr></thead>
+        <thead><tr><th>排名</th><th>客户</th><th>订单数</th><th>型号数</th><th>累计金额(元)</th></tr></thead>
         <tbody id="tbody-cust"></tbody>
       </table>
     </div>
@@ -1429,9 +1429,12 @@ function getStats(){
   let totalQty = 0, totalAmount = 0;
   orders.forEach((o, idx) => {
     const c = o.customer || '散客';
-    if(!custMap[c]) custMap[c] = { orders: 0, qty: 0, amount: 0, lastIdx: -1 };
+    if(!custMap[c]) custMap[c] = { orders: 0, qty: 0, codes: {}, amount: 0, lastIdx: -1 };
     custMap[c].orders += 1;
-    custMap[c].qty += (o.codes || []).length;
+    (o.codes || []).forEach(code => {
+      custMap[c].codes[code] = true;
+    });
+    custMap[c].qty = Object.keys(custMap[c].codes).length;
     custMap[c].amount += Number(o.amount) || 0;
     custMap[c].lastIdx = idx;
     (o.codes || []).forEach(code => {
