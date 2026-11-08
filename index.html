@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AI统计">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#7c3aed">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
@@ -18,7 +18,7 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);background-attachment:fixed;color:#e8e8e8;padding-bottom:30px;font-size:17px;min-height:100vh}
-header{background:rgba(15,118,110,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .title{font-size:15px;font-weight:700}
 .totals{font-size:13px;margin-top:1px;opacity:.95;font-weight:700}
 main{padding:10px}
@@ -28,13 +28,13 @@ main{padding:10px}
 .textarea{resize:vertical;min-height:60px;font-family:Consolas,monospace}
 .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .btn{flex:1 1 auto;min-width:80px;border:1px solid #d9dde3;background:#fff;color:#1f2329;border-radius:8px;padding:8px 6px;font-size:14px;font-weight:600}
-.btn.primary{background:#0f766e;border-color:#0f766e;color:#fff}
+.btn.primary{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .btn.danger{background:#fff2f0;border-color:#ffccc7;color:#cf1322}
 .btn:active{opacity:.75}
-.last{margin-top:6px;font-size:15px;color:#0f766e;line-height:1.5;word-break:break-all;white-space:pre-line}
+.last{margin-top:6px;font-size:15px;color:#7c3aed;line-height:1.5;word-break:break-all;white-space:pre-line}
 .tabs{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:wrap}
 .tab{flex:1;border:none;background:#e6e9ef;color:#444;border-radius:8px;padding:6px 2px;font-size:13px;font-weight:600}
-.tab.active{background:#0f766e;color:#fff}
+.tab.active{background:#7c3aed;color:#fff}
 .table-wrap{max-height:55vh;overflow:auto;border-radius:8px;border:1px solid #eef0f3}
 table{width:100%;border-collapse:collapse;font-size:16px}
 th,td{padding:3px 4px;text-align:center;border-bottom:1px solid #eef0f3;white-space:nowrap;line-height:1.3}
@@ -46,8 +46,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 .table-wrap.compact th,.table-wrap.compact td{padding:4px 4px}
 .table-wrap.compact .cb{font-size:15px !important;padding:3px 6px !important}
 #chipRow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{border:1px solid #99f6e4;color:#0f766e;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
-.chip.on{background:#0f766e;border-color:#0f766e;color:#fff}
+.chip{border:1px solid #d8b4fe;color:#7c3aed;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
+.chip.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .chip .cnt{font-size:15px;font-weight:400;opacity:.7;margin-left:4px}
 </style>
 </head>
@@ -58,10 +58,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="lockMsg" style="font-size:17px;color:#666;margin-bottom:10px"></div>
     <div id="lockPwdWrap">
       <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:17px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
-      <button onclick="unlock()" style="width:100%;border:none;background:#0f766e;color:#fff;border-radius:8px;padding:12px;font-size:16px;font-weight:700">进入</button>
+      <button onclick="unlock()" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:12px;font-size:16px;font-weight:700">进入</button>
     </div>
   </div>
-  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#0f766e;color:#fff;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
+  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
 </div>
 <header>
   <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span style="font-size:10px;opacity:0.7">v8.5</span></div>
@@ -76,13 +76,13 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <div><span style="font-size:11px;color:#666">累计</span> <span id="bigAmount" style="font-size:22px;font-weight:800;color:#cf1322">0.00</span></div>
         <div id="bigSub" style="font-size:14px;color:#cf1322;font-weight:700"></div>
       </div>
-      <button type="button" style="border:1px solid #0f766e;background:#e6fffa;color:#0f766e;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="toggleShop()">🏪<span id="shopLabel">澳门云统计</span>▾</button>
+      <button type="button" style="border:1px solid #7c3aed;background:#f3e8ff;color:#7c3aed;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="toggleShop()">🏪<span id="shopLabel">澳门云统计</span>▾</button>
     </div>
     <div id="shopBox" style="display:none;background:#f7f7f7;border-radius:8px;padding:8px;margin-bottom:6px">
       <div style="font-size:12px;color:#666;margin-bottom:6px">选择店铺：</div>
       <div style="display:flex;gap:6px">
-        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #0f766e;background:#fff;color:#0f766e;font-weight:700;font-size:14px" onclick="doSwitchShop('A')">澳门云统计</button>
-        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #0f766e;background:#fff;color:#0f766e;font-weight:700;font-size:14px" onclick="doSwitchShop('B')">香港云统计</button>
+        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-weight:700;font-size:14px" onclick="doSwitchShop('A')">澳门云统计</button>
+        <button type="button" style="flex:1;padding:8px;border-radius:6px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-weight:700;font-size:14px" onclick="doSwitchShop('B')">香港云统计</button>
       </div>
     </div>
   </div>
@@ -92,10 +92,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
     <datalist id="customerList"></datalist>
     <div id="chipRow"></div>
-    <button type="button" style="border:none;background:none;color:#0f766e;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
+    <button type="button" style="border:none;background:none;color:#7c3aed;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;display:none">
-      <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #0f766e;background:#0f766e;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
+      <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #7c3aed;background:#7c3aed;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
     <textarea id="input" class="textarea" placeholder="订单输入区"></textarea>
@@ -103,7 +103,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn primary" style="flex:1;padding:5px;font-size:12px" onclick="handleSave()">保存</button>
       <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
     </div>
-    <div id="saveMsg" style="margin-top:6px;font-size:17px;color:#0f766e"></div>
+    <div id="saveMsg" style="margin-top:6px;font-size:17px;color:#7c3aed"></div>
     <div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
       <div style="font-size:12px;color:#16a34a;font-weight:700;margin-bottom:4px">开奖录入（自动算赔付）</div>
       <input id="drawInput" class="input" style="font-size:13px;padding:6px" placeholder="输入开奖六个平号+特">
@@ -131,7 +131,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#0f766e;border-radius:8px;margin-bottom:6px;cursor:pointer">排行榜 ▼</div>
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">排行榜 ▼</div>
     <div id="rankTableBody">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
@@ -167,7 +167,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-orders" class="card tab-panel" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">订单对账</div>
-      <button onclick="copyAllOrders()" style="border:1px solid #0f766e;background:#fff;color:#0f766e;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button>
+      <button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button>
     </div>
     <div id="ordersList"></div>
   </section>
@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v15.2';
+var APP_VER = 'v15.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -400,7 +400,7 @@ function autoPayout(){
       + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
       + '<div style="display:flex;border-top:1px solid #eee">'
       + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
-      + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#0f766e;font-weight:700">记入赔付</button>'
+      + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">记入赔付</button>'
       + '</div></div>';
     document.body.appendChild(ov);
     ov.querySelector('#mcCancel').onclick = () => ov.remove();
@@ -469,13 +469,13 @@ function showLock(){
   if(expired){
     timeTxt = '会员已到期';
   } else if(left < 3600000){
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#0f766e">' + Math.ceil(left/60000) + '</b> 分钟';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/60000) + '</b> 分钟';
   } else if(left < 86400000){
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#0f766e">' + Math.ceil(left/3600000) + '</b> 小时';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/3600000) + '</b> 小时';
   } else {
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#0f766e">' + Math.ceil(left/86400000) + '</b> 天';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/86400000) + '</b> 天';
   }
-  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#0f766e;font-size:14px">' + DEVICE_ID + '</b></span>';
+  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#7c3aed;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
   var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   if(!deviceAllowed){
@@ -483,7 +483,7 @@ function showLock(){
     document.getElementById('lockEnterBtn').style.display = 'none';
     var inp = document.getElementById('lockPwd');
     inp.placeholder = '此设备未授权';
-    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#0f766e">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
+    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#7c3aed">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
     document.getElementById('lockScreen').style.display = 'block';
     return;
   }
@@ -536,7 +536,7 @@ setInterval(function(){
   var txt = d + '天 ' + h + '时 ' + m + '分 ' + s + '秒';
   var el = document.getElementById('lockMsg');
   if(el && document.getElementById('lockScreen').style.display !== 'none'){
-    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#0f766e">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#0f766e;font-size:14px">' + DEVICE_ID + '</b></span>';
+    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#7c3aed;font-size:14px">' + DEVICE_ID + '</b></span>';
   }
   var mem = document.getElementById('memInfo');
   if(mem) mem.textContent = '会员剩' + d + '天' + h + '时' + m + '分';
@@ -612,11 +612,11 @@ function openPayProdPicker(){
   var html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">选特号</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
-    var sel = payTabSel === p.code ? 'background:#0f766e;color:#fff' : 'background:#f5f5f5';
+    var sel = payTabSel === p.code ? 'background:#7c3aed;color:#fff' : 'background:#f5f5f5';
     html += '<div class="payCell" data-code="'+p.code+'" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:15px;font-weight:700;'+sel+'">'+p.code+'</div>';
   });
   products.filter(p => p.single).forEach(p => {
-    var sel = payTabSel === p.code+'(单)' ? 'background:#0f766e;color:#fff' : 'background:#f5f5f5';
+    var sel = payTabSel === p.code+'(单)' ? 'background:#7c3aed;color:#fff' : 'background:#f5f5f5';
     html += '<div class="payCell" data-code="'+p.code+'(单)" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:12px;font-weight:700;'+sel+'">'+p.code+'单</div>';
   });
   html += '</div>';
@@ -756,14 +756,14 @@ function renderPaySide(){
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   // 盈利统计（折叠，默认关闭）
-  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#0f766e;border-radius:8px;margin-bottom:6px;cursor:pointer">盈利统计 ▶</div>';
+  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">盈利统计 ▶</div>';
   h += '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   h += `<span>总单 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
   h += `<span>赔付 <b style="font-size:16px;color:#cf1322">-${total.toFixed(2)}</b></span>`;
   h += `<span>净收 <b style="font-size:16px;color:${(sales-total)>=0?'#16a34a':'#cf1322'}">${(sales-total).toFixed(2)}</b></span>`;
   h += `</div>`;
-  h += `<button onclick="copyProfit()" style="width:100%;border:1px solid #0f766e;background:#fff;color:#0f766e;border-radius:6px;padding:6px;font-size:12px;margin-bottom:6px">复制盈亏明细</button>`;
+  h += `<button onclick="copyProfit()" style="width:100%;border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:6px;font-size:12px;margin-bottom:6px">复制盈亏明细</button>`;
   // Per-customer breakdown
   if(lastDraw){
     h += '<div style="font-size:10px;font-weight:700;margin:4px 0 2px;color:#666">按客户</div>';
@@ -793,7 +793,7 @@ function renderPaySide(){
   }
   h += '</div>'; // close profitBody
 
-  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#0f766e;border-radius:8px;margin-bottom:6px;cursor:pointer">手动赔付 ▶</div>';
+  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">手动赔付 ▶</div>';
   h += '<div id="payCtrl" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   var btnLabel = sidePaySel || (labels.prodBtn||'选产品');
@@ -819,10 +819,10 @@ function renderPaySide(){
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:0.8;justify-content:flex-end">';
   h += '<span style="font-size:10px;color:#999;margin-bottom:2px">清除</span>';
-  h += `<button onclick="sidePayReset()" style="width:100%;height:36px;border:none;border-radius:6px;padding:0;font-size:14px;background:#0f766e;color:#fff;white-space:nowrap;font-weight:700">复位</button>`;
+  h += `<button onclick="sidePayReset()" style="width:100%;height:36px;border:none;border-radius:6px;padding:0;font-size:14px;background:#7c3aed;color:#fff;white-space:nowrap;font-weight:700">复位</button>`;
   h += '</div>';
   h += '</div>';
-  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font-size:16px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
+  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:10px;font-size:16px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   if(pays.length > 0){
     h += '<button onclick="clearPays()" style="width:100%;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:8px;padding:8px;font-size:14px;font-weight:700;margin-bottom:3px">清空赔付记录</button>';
   }
@@ -872,14 +872,14 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#0f766e;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 股东分账') + ' ▶</div>';
+  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 股东分账') + ' ▶</div>';
   h += '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:15px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0">`;
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="sideSplitCalc()" style="flex:1;border:none;background:#0f766e;color:#fff;border-radius:6px;padding:10px;font-size:16px;font-weight:700">飞单统计</button>';
-  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #99f6e4;background:#f0fdfa;color:#0f766e;border-radius:6px;padding:10px;font-size:16px">复制</button>';
+  h += '<button onclick="sideSplitCalc()" style="flex:1;border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:10px;font-size:16px;font-weight:700">飞单统计</button>';
+  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #d8b4fe;background:#faf5ff;color:#7c3aed;border-radius:6px;padding:10px;font-size:16px">复制</button>';
   h += '</div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
@@ -1237,13 +1237,13 @@ function openProdPicker(){
   var html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">选特号</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
-    var sel = sidePaySel === p.code ? 'background:#0f766e;color:#fff' : 'background:#f5f5f5';
+    var sel = sidePaySel === p.code ? 'background:#7c3aed;color:#fff' : 'background:#f5f5f5';
     html += '<div class="prodCell" data-code="'+p.code+'" data-type="num" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:15px;font-weight:700;'+sel+'">'+p.code+'</div>';
   });
   products.filter(p => p.single).forEach(p => {
     var v = p.code+'(单)';
     var arr = sidePaySel ? sidePaySel.split(',') : [];
-    var sel = arr.includes(v) ? 'background:#0f766e;color:#fff' : 'background:#f5f5f5';
+    var sel = arr.includes(v) ? 'background:#7c3aed;color:#fff' : 'background:#f5f5f5';
     html += '<div class="prodCell" data-code="'+v+'" data-type="zodiac" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:12px;font-weight:700;'+sel+'">'+p.code+'单</div>';
   });
   html += '</div>';
@@ -1329,11 +1329,11 @@ function updateModeBtns(){
   var bb = document.getElementById('mode-btn-bundle');
   var sb = document.getElementById('mode-btn-single');
   if(bb){
-    if(mode === 'bundle'){ bb.style.background = '#0f766e'; bb.style.color = '#fff'; bb.style.border = '2px solid #0f766e'; }
+    if(mode === 'bundle'){ bb.style.background = '#7c3aed'; bb.style.color = '#fff'; bb.style.border = '2px solid #7c3aed'; }
     else { bb.style.background = '#fff'; bb.style.color = '#333'; bb.style.border = '2px solid #ddd'; }
   }
   if(sb){
-    if(mode === 'single'){ sb.style.background = '#0f766e'; sb.style.color = '#fff'; sb.style.border = '2px solid #0f766e'; }
+    if(mode === 'single'){ sb.style.background = '#7c3aed'; sb.style.color = '#fff'; sb.style.border = '2px solid #7c3aed'; }
     else { sb.style.background = '#fff'; sb.style.color = '#333'; sb.style.border = '2px solid #ddd'; }
   }
 }
@@ -1343,7 +1343,7 @@ function saveProducts(){
 }
 function colorBadge(code){
   const p = products.find(x => x.code === code);
-  const bg = {red:'#e64545', blue:'#0f766e', green:'#23a55a'}[(p && p.color)] || '#eef0f3';
+  const bg = {red:'#e64545', blue:'#7c3aed', green:'#23a55a'}[(p && p.color)] || '#eef0f3';
   const fg = p && p.color ? '#fff' : '#444';
   const name = p && p.name ? ' ' + esc(p.name) : '';
   return `<span class="cb" style="display:inline-block;padding:0px 4px;border-radius:3px;background:${bg};color:${fg};font-weight:700;font-size:11px;line-height:1.3;white-space:nowrap">${esc(code)}${name}</span>`;
@@ -1401,7 +1401,7 @@ function renderSettings(){
   // 标题输入框不在这里重置，避免覆盖用户正在输入的内容
   const sw = (p, cn, bg, title) => {
     const active = (p.color || '') === (cn === 'none' ? '' : cn);
-    const ring = active ? 'box-shadow:0 0 0 2px #0f766e;' : '';
+    const ring = active ? 'box-shadow:0 0 0 2px #7c3aed;' : '';
     return `<span onclick="setProductColor('${esc(p.code)}','${cn}')" title="${title}" style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${bg};border:1px solid #bbb;margin:0 2px;cursor:pointer;${ring}"></span>`;
   };
   const subList = products.filter(p => /^\d{2}$/.test(p.code) || (p.custom && !p.slot && !p.single && !/^套餐\d+$/.test(p.code)));
@@ -1410,7 +1410,7 @@ function renderSettings(){
   if(subCountEl) subCountEl.textContent = subList.length;
   if(subBody){
     subBody.innerHTML = subList.map(p =>
-      `<tr><td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#0f766e','蓝')}${sw(p,'green','#23a55a','绿')}</td><td style="font-weight:700">${esc(p.code)}</td><td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:3px;font-size:17px"></td></tr>`
+      `<tr><td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#7c3aed','蓝')}${sw(p,'green','#23a55a','绿')}</td><td style="font-weight:700">${esc(p.code)}</td><td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:3px;font-size:17px"></td></tr>`
     ).join('');
   }
   const rows = products.filter(p => !/^\d{2}$/.test(p.code) && !p.single).slice().sort((a,b) =>
@@ -1421,12 +1421,12 @@ function renderSettings(){
     for(let i=1;i<=49;i++){
       const c = String(i).padStart(2,'0');
       const on = (p.links || []).includes(c);
-      pills.push(`<span onclick="toggleLink('${esc(p.code)}','${c}')" title="点选/取消" style="display:inline-block;${on?'background:#0f766e;color:#fff;border-color:#0f766e;':'background:#f2f4f7;color:#666;'}border:1px solid #d9dde3;border-radius:5px;padding:2px 5px;margin:1px;font-size:11px;cursor:pointer">${c}</span>`);
+      pills.push(`<span onclick="toggleLink('${esc(p.code)}','${c}')" title="点选/取消" style="display:inline-block;${on?'background:#7c3aed;color:#fff;border-color:#7c3aed;':'background:#f2f4f7;color:#666;'}border:1px solid #d9dde3;border-radius:5px;padding:2px 5px;margin:1px;font-size:11px;cursor:pointer">${c}</span>`);
     }
     return `
     <tr>
-      <td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#0f766e','蓝')}${sw(p,'green','#23a55a','绿')}</td>
-      <td style="font-weight:700;min-width:100px">${(p.links||[]).length ? '<span style="background:#0f766e;color:#fff;border-radius:4px;padding:1px 5px;font-size:11px;margin-right:4px">主产品</span><br>' : ''}<input value="${esc(p.code)}" onchange="renameCode('${esc(p.code)}',this.value)" style="font-weight:700;border:1px solid #0f766e;border-radius:6px;padding:3px 6px;font-size:15px;width:100%"><div style="font-size:11px;color:#0f766e;font-weight:400">${(p.links||[]).length ? '套餐含'+p.links.length+'个' : ''}</div></td>
+      <td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#7c3aed','蓝')}${sw(p,'green','#23a55a','绿')}</td>
+      <td style="font-weight:700;min-width:100px">${(p.links||[]).length ? '<span style="background:#7c3aed;color:#fff;border-radius:4px;padding:1px 5px;font-size:11px;margin-right:4px">主产品</span><br>' : ''}<input value="${esc(p.code)}" onchange="renameCode('${esc(p.code)}',this.value)" style="font-weight:700;border:1px solid #7c3aed;border-radius:6px;padding:3px 6px;font-size:15px;width:100%"><div style="font-size:11px;color:#7c3aed;font-weight:400">${(p.links||[]).length ? '套餐含'+p.links.length+'个' : ''}</div></td>
       <td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注名" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:4px;font-size:17px"></td>
       <td style="min-width:180px"><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px">${pills.join('')}</div>
         <button onclick="removeProduct('${esc(p.code)}')" style="width:100%;border:none;background:#cf1322;color:#fff;border-radius:6px;padding:7px;font-size:17px;font-weight:700">删除此产品</button>
@@ -1516,7 +1516,7 @@ function cpLookup(){
     document.getElementById('cpResult').innerHTML = '<div style="padding:8px;color:#999;font-size:12px">没有客户买过商品 ' + code + '</div>';
     return;
   }
-  let h = '<div style="background:#f0fdfa;border-radius:6px;padding:8px;font-size:12px;word-break:break-all">';
+  let h = '<div style="background:#faf5ff;border-radius:6px;padding:8px;font-size:12px;word-break:break-all">';
   h += '<div style="font-weight:700;margin-bottom:4px">商品 ' + code + ' 买客（赔付' + payMult + '倍）：</div>';
   keys.forEach(k => {
     const payAmt = matches[k].amount * payMult;
@@ -2088,7 +2088,7 @@ function renderOrdersList(){
     h += `<div onclick="var e=document.getElementById('od_${gi}');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;background:#f8f9fa;cursor:pointer">`;
     h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
     h += `<span style="font-weight:700;font-size:14px">${esc(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></span>`;
-    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #0f766e;background:#fff;color:#0f766e;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
+    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
     h += `</div>`;
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
     h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
@@ -2181,7 +2181,7 @@ function renderAll(){
     } else {
       let pq = 0, pa = 0;
       links.forEach(k => { pq += (map[k]?map[k].qty:0); pa += (map[k]?map[k].amount:0); });
-      allHtml += `<tr style="background:#eef4ff"><td style="font-weight:700">${colorBadge(p.code)}<span style="font-size:11px;color:#0f766e;font-weight:400">（含${links.length}个型号）</span></td><td style="font-weight:700">${pq}</td><td style="font-weight:700;color:#cf1322">${pa.toFixed(2)}</td><td>${delBtn}</td></tr>`;
+      allHtml += `<tr style="background:#eef4ff"><td style="font-weight:700">${colorBadge(p.code)}<span style="font-size:11px;color:#7c3aed;font-weight:400">（含${links.length}个型号）</span></td><td style="font-weight:700">${pq}</td><td style="font-weight:700;color:#cf1322">${pa.toFixed(2)}</td><td>${delBtn}</td></tr>`;
     }
   });
   document.getElementById('tbody-all').innerHTML = allHtml;
@@ -2216,7 +2216,7 @@ function renderAll(){
     const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
     if(lianCodes.length > 0) hasData = true;
     const collapsed = true;
-    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#0f766e;border-radius:8px;margin-bottom:6px;cursor:pointer"><span>平特肖 ${collapsed?'▶':'▼'}</span></div>`;
+    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer"><span>平特肖 ${collapsed?'▶':'▼'}</span></div>`;
     sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
@@ -2227,7 +2227,7 @@ function renderAll(){
         return za - zb;
       })
       .forEach(({p, d}) => {
-        const badgeColor = p.code === '平特马' ? '#fa8c16' : '#0f766e';
+        const badgeColor = p.code === '平特马' ? '#fa8c16' : '#7c3aed';
         sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;margin-bottom:3px;border-radius:8px;background:#fff7f7;border-left:3px solid ${badgeColor}">
 <div style="display:flex;align-items:center;gap:6px">
 <span style="background:${badgeColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(p.code.replace('平特',''))}</span>
@@ -2420,7 +2420,7 @@ function myAlert(msg){
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
     + '<div style="border-top:1px solid #eee">'
-    + '<button id="maOk" style="width:100%;padding:14px;border:none;background:#fff;font-size:16px;color:#0f766e;font-weight:700">确定</button>'
+    + '<button id="maOk" style="width:100%;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确定</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelector('#maOk').onclick = () => ov.remove();
@@ -2434,7 +2434,7 @@ function myConfirm(msg, cb){
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6">' + msg.replace(/\n/g,'<br>') + '</div>'
     + '<div style="display:flex;border-top:1px solid #eee">'
     + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
-    + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#0f766e;font-weight:700">确定</button>'
+    + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确定</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelector('#mcCancel').onclick = () => ov.remove();
