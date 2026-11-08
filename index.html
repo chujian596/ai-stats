@@ -276,6 +276,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
+      <button class="btn" style="border-color:#faad14;color:#fa8c16" onclick="clearOrders()">清除订单</button>
       <button class="btn danger" onclick="clearAll()">清空全部数据</button>
     </div>
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
@@ -512,6 +513,11 @@ function renderPays(){
 function renderPaySide(){
   const box = document.getElementById('rank-pay');
   if(!box) return;
+  // 保存当前选择，避免重建后丢失
+  const oldSel = box.querySelector('#sidePayProduct');
+  const oldMult = box.querySelector('#sidePayMult');
+  const savedSel = oldSel ? oldSel.value : '';
+  const savedMult = oldMult ? oldMult.value : payMult;
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   let h = `<div id="payTitle" style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
@@ -532,10 +538,10 @@ function renderPaySide(){
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   h += `<select id="sidePayProduct" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px;min-width:0">`;
   h += '<option value="">选产品</option>';
-  products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => { h += `<option value="${esc(p.code)}">${esc(p.code)}</option>`; });
-  products.filter(p => p.single).forEach(p => { h += `<option value="${esc(p.code)}">${esc(p.code)}(单)</option>`; });
+  products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => { h += `<option value="${esc(p.code)}"${savedSel===p.code?' selected':''}>${esc(p.code)}</option>`; });
+  products.filter(p => p.single).forEach(p => { h += `<option value="${esc(p.code)}"${savedSel===p.code+'(单)'?' selected':''}>${esc(p.code)}(单)</option>`; });
   h += '</select>';
-  h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${payMult}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
+  h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
   h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   h += '<div id="sidePayResult" style="font-size:10px;min-height:14px;color:#cf1322"></div>';
@@ -546,7 +552,7 @@ function renderSplitSide(){
   if(!box) return;
   let h = '<div style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt(\'分账标题:\',labels.split);if(n!==null){labels.split=n;saveLabels();renderSplitSide();}">' + (labels.split || '📊 股东分账') + '</div>';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
-  h += `<span style="font-size:11px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" value="${splitTakeAll}" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;min-width:0">`;
+  h += `<span style="font-size:11px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:4px;font-size:12px;min-width:0">`;
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="sideSplitCalc()" style="flex:1;border:none;background:#1f6feb;color:#fff;border-radius:4px;padding:4px;font-size:11px;font-weight:700">计算</button>';
@@ -897,9 +903,10 @@ function cpLookup(){
     const cnt = codes.filter(c => c === code).length;
     if(cnt > 0){
       const cust = o.customer || '散客';
-      if(!matches[cust]) matches[cust] = { count: 0, amount: 0 };
+      if(!matches[cust]) matches[cust] = { count: 0, amount: 0, orders: [] };
       matches[cust].count += cnt;
       matches[cust].amount += (Number(o.price)||0) * cnt;
+      matches[cust].orders.push({ raw: o.raw || '', price: o.price, cnt: cnt, time: o.createdAt || '' });
     }
   });
   const keys = Object.keys(matches);
@@ -907,12 +914,19 @@ function cpLookup(){
     document.getElementById('cpResult').innerHTML = '<div style="padding:8px;color:#999;font-size:12px">没有客户买过商品 ' + code + '</div>';
     return;
   }
-  let h = '<div style="background:#f0f5ff;border-radius:6px;padding:8px;font-size:12px">';
+  let h = '<div style="background:#f0f5ff;border-radius:6px;padding:8px;font-size:12px;word-break:break-all">';
   h += '<div style="font-weight:700;margin-bottom:4px">商品 ' + code + ' 买客：</div>';
   keys.forEach(k => {
-    h += '<div style="padding:3px 0;border-bottom:1px solid #d6e4ff;display:flex;justify-content:space-between">';
-    h += '<span>' + k + ' ×' + matches[k].count + '单</span>';
-    h += '<span style="color:#1f6feb;font-weight:700">' + matches[k].amount.toFixed(2) + '元</span>';
+    h += '<div style="padding:6px 0;border-bottom:1px solid #d6e4ff">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    h += '<span style="font-weight:700">' + esc(k) + ' ×' + matches[k].count + '</span>';
+    h += '<span style="color:#cf1322;font-weight:700">应赔 ' + matches[k].amount.toFixed(2) + '元</span>';
+    h += '</div>';
+    h += '<div style="color:#666;font-size:11px;margin-top:2px;line-height:1.5">';
+    matches[k].orders.forEach(o => {
+      h += '<div>购:' + esc(o.raw.substring(0,30)) + ' → ' + Number(o.price).toFixed(2) + '元/单</div>';
+    });
+    h += '</div>';
     h += '</div>';
   });
   h += '</div>';
@@ -1437,7 +1451,7 @@ function renderAll(){
 }
 
 function switchTab(name){
-  ['all','rank','cust','orders','pay','split','settings'].forEach(k => {
+  ['all','rank','cust','orders','pay','custpay','split','settings'].forEach(k => {
     var sec = document.getElementById('tab-' + k);
     var btn = document.getElementById('tab-btn-' + k);
     if(sec) sec.style.display = (k === name ? 'block' : 'none');
@@ -1527,17 +1541,31 @@ function importBackup(ev){
   reader.readAsText(file, 'UTF-8');
 }
 
+function clearOrders(){
+  if(!confirm('确定清除所有订单和赔付记录？\\n客户名单保留。')) return;
+  orders = [];
+  pays = [];
+  custpays = [];
+  try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}
+  try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
+  try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
+  renderAll();
+}
+
 function clearAll(){
-  if(!confirm('确定清空全部订单数据？不可恢复！建议先备份JSON。')) return;
+  if(!confirm('确定清空全部数据？不可恢复！建议先备份JSON。')) return;
   if(!confirm('再次确认：真的要清空全部数据吗？')) return;
   orders = [];
   pays = [];
+  custpays = [];
   payMult = 1;
   splitTakeAll = 0;
-  // 清空所有localStorage（保留会员锁）
+  // 保留会员锁和客户名单
   var lockBackup = localStorage.getItem(LOCK_KEY);
+  var rosterBackup = localStorage.getItem(RKEY);
   localStorage.clear();
   if(lockBackup) localStorage.setItem(LOCK_KEY, lockBackup);
+  if(rosterBackup) localStorage.setItem(RKEY, rosterBackup);
   location.reload();
 }
 
