@@ -262,8 +262,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 // 会员锁 - 每次打开都显示验证页
 var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
-// 设备白名单：把每台手机的设备码加到这里，不在名单里的进不去
-// 手机锁屏页面会显示设备码
+// 设备白名单：从whitelist.json远程拉取
 var DEVICE_WHITELIST = [];
 // 生成设备指纹
 function getDeviceId(){
@@ -275,6 +274,11 @@ function getDeviceId(){
   return 'D' + Math.abs(hash).toString(36).toUpperCase();
 }
 var DEVICE_ID = getDeviceId();
+// 拉取远程白名单
+fetch('whitelist.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => { DEVICE_WHITELIST = data.whitelist || []; showLock(); })
+  .catch(() => { DEVICE_WHITELIST = []; showLock(); });
 var BAKE_EXPIRE;
 var savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}');
 if(savedLock.expire){
@@ -306,7 +310,8 @@ function showLock(){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
     var inp = document.getElementById('lockPwd');
-    inp.placeholder = '此设备未授权，请联系管理员';
+    inp.placeholder = '此设备未授权';
+    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#1f6feb">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
     return;
   }
   if(expired){
@@ -344,7 +349,6 @@ function unlock(){
   }
 }
 function skipLock(){ document.getElementById('lockScreen').style.display = 'none'; }
-showLock();
 // 每秒倒计时
 setInterval(function(){
   var left = lockData.expire - Date.now();
