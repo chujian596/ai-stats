@@ -262,6 +262,19 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 // 会员锁 - 每次打开都显示验证页
 var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
+// 设备白名单：把每台手机的设备码加到这里，不在名单里的进不去
+// 手机锁屏页面会显示设备码
+var DEVICE_WHITELIST = [];
+// 生成设备指纹
+function getDeviceId(){
+  var ua = navigator.userAgent;
+  var scr = screen.width + 'x' + screen.height + 'x' + window.devicePixelRatio;
+  var s = ua + '|' + scr;
+  var hash = 0;
+  for(var i=0;i<s.length;i++){ hash = ((hash<<5)-hash+s.charCodeAt(i))|0; }
+  return 'D' + Math.abs(hash).toString(36).toUpperCase();
+}
+var DEVICE_ID = getDeviceId();
 var BAKE_EXPIRE;
 var savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}');
 if(savedLock.expire){
@@ -286,7 +299,16 @@ function showLock(){
   } else {
     timeTxt = '会员剩余 <b style="font-size:17px;color:#1f6feb">' + Math.ceil(left/86400000) + '</b> 天';
   }
-  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString();
+  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">本机设备码：<b style="color:#1f6feb">' + DEVICE_ID + '</b></span>';
+  // 设备白名单检查（白名单为空时不限制）
+  var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  if(!deviceAllowed){
+    document.getElementById('lockPwdWrap').style.display = '';
+    document.getElementById('lockEnterBtn').style.display = 'none';
+    var inp = document.getElementById('lockPwd');
+    inp.placeholder = '此设备未授权，请联系管理员';
+    return;
+  }
   if(expired){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
@@ -301,12 +323,16 @@ function showLock(){
 }
 function unlock(){
   var p = document.getElementById('lockPwd').value;
-  // 管理员码：延期30天
+  // 管理员码：延期30天 + 绕过设备检查
   if(p === ADMIN_CODE){
     lockData.expire = Date.now() + 31 * 86400000;
     localStorage.setItem(LOCK_KEY, JSON.stringify(lockData));
-    alert('已延期31天，新到期：' + new Date(lockData.expire).toLocaleDateString());
-    location.reload();
+    document.getElementById('lockScreen').style.display = 'none';
+    return;
+  }
+  // 设备未授权
+  if(DEVICE_WHITELIST.length > 0 && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
+    alert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }
   // 没密码不能进，到期后必须输管理员码
