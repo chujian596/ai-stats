@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v17.1';
+var APP_VER = 'v17.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2277,7 +2277,18 @@ function renderRisk(){
     currentFly += Math.max(0, (numBets[i]||0) - splitTakeAll);
   }
   const cappedMaxBet = splitTakeAll > 0 ? Math.min(numBets[sorted[0]]||0, splitTakeAll) : (numBets[sorted[0]]||0);
-  const afterFlyPayout = cappedMaxBet * payMult;
+  const specialPayout = cappedMaxBet * payMult;
+  // 平特总赔付风险
+  let ptePayout = 0;
+  orders.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(ZODIAC_PRODUCTS && ZODIAC_PRODUCTS.includes(c)){
+        const mult = (c === '马') ? 1.8 : payMultSingle;
+        ptePayout += codeSalesForOrder(o, c) * mult;
+      }
+    });
+  });
+  const afterFlyPayout = specialPayout + ptePayout;
   const flyRebate = currentFly * 0.03;
   const afterFlyNet = (totalSales - currentFly) - afterFlyPayout + flyRebate;
   const breakevenThreshold = totalSales / payMult;
@@ -2302,7 +2313,9 @@ function renderRisk(){
   h += `<div style="display:flex;justify-content:space-between"><span>飞出去（那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>反水3%</span><b style="color:#16a34a">+${flyRebate.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCash.toFixed(0)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>自留最高赔付</span><b>${afterFlyPayout.toFixed(0)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:10px;color:#999"><span>├ 特号赔付</span><span>${specialPayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:10px;color:#999"><span>└ 平特赔付</span><span>${ptePayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between"><span>总赔付风险</span><b>${afterFlyPayout.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>自留后最坏净盈亏</span><b style="color:${afterFlyNet>=0?'#16a34a':'#cf1322'}">${afterFlyNet>=0?'+':''}${afterFlyNet.toFixed(0)}</b></div>`;
   h += `</div>`;
   h += '</div>';
