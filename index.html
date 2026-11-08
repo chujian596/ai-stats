@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.7';
+var APP_VER = 'v10.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1863,7 +1863,14 @@ function renderAll(){
       });
     });
     let sh = '';
-    sh += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px"><span>平特肖</span><span>销量 / 金额</span></div>';
+    // 检查是否有数据
+    let hasData = false;
+    singleProducts.forEach(p => { if((sData[p.code]||{amount:0}).amount > 0) hasData = true; });
+    const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
+    if(lianCodes.length > 0) hasData = true;
+    const collapsed = !hasData;
+    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer"><span>平特肖 ${collapsed?'▶':'▼'}</span><span>销量 / 金额</span></div>`;
+    sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
       .sort((a,b) => {
@@ -1886,7 +1893,6 @@ function renderAll(){
 </div>`;
       });
     // 二连肖
-    const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
     if(lianCodes.length > 0){
       sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:13px;color:#999;font-weight:700">二连肖（4倍/含马3.5倍）</div>';
       lianCodes.forEach(c => {
@@ -1900,6 +1906,7 @@ function renderAll(){
 </div>`;
       });
     }
+    sh += '</div>'; // close singlesList
     document.getElementById('rank-singles').innerHTML = sh;
   } else {
     document.getElementById('rank-singles').innerHTML = '';
