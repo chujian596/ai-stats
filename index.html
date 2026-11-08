@@ -342,6 +342,7 @@ function showLock(){
     var inp = document.getElementById('lockPwd');
     inp.placeholder = '此设备未授权';
     document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#1f6feb">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
+    document.getElementById('lockScreen').style.display = 'block';
     return;
   }
   if(expired){
