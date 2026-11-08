@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v17.9';
+var APP_VER = 'v18.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2309,13 +2309,28 @@ function renderRisk(){
   h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:6px;font-size:15px">🔗 飞单阈值（调了实时生效）</div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
   h += `<div style="display:flex;gap:6px">`;
-  // 自动推荐：按可承受亏损反推阈值
-  const safeBase = totalSales - ptePayout;
-  const rec0 = Math.max(0, Math.round(safeBase / payMult)); // 保本
-  const rec20 = Math.max(0, Math.round((safeBase - totalSales*0.2) / payMult)); // 最多亏20%
-  const rec40 = Math.max(0, Math.round((safeBase - totalSales*0.4) / payMult)); // 最多亏40%
+  // 真正计算：给定阈值T，算最坏净盈亏
+  function worstAt(T){
+    let fly = 0;
+    for(let i=1;i<=49;i++) fly += Math.max(0, (numBets[i]||0) - T);
+    const kept = totalSales - fly;
+    const maxKept = Math.min(numBets[sorted[0]]||0, T);
+    return kept - maxKept*payMult - ptePayout;
+  }
+  // 二分搜索：找最坏净盈亏=target时的阈值
+  function findT(target){
+    let lo=0, hi=numBets[sorted[0]]||100;
+    for(let i=0;i<30;i++){
+      const mid=(lo+hi)/2;
+      if(worstAt(mid) < target) lo=mid; else hi=mid;
+    }
+    return Math.round(lo);
+  }
+  const rec0 = findT(0);           // 保本：最坏不亏
+  const rec20 = findT(-totalSales*0.2);  // 最多亏20%
+  const rec40 = findT(-totalSales*0.4);  // 最多亏40%
   const recs = [
-    {label:'🛡️保本', val:rec0, loss:'不亏', color:'#16a34a'},
+    {label:'🛡️保本', val:rec0, loss:'最坏不亏', color:'#16a34a'},
     {label:'⚖️稳健', val:rec20, loss:'亏≤20%', color:'#e67e22'},
     {label:'🔥宽松', val:rec40, loss:'亏≤40%', color:'#cf1322'}
   ];
