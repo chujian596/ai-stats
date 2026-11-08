@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.7';
+var APP_VER = 'v9.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -454,11 +454,11 @@ const PAY_MULT_KEY = sk('product_stats_pay_mult_v1');
 const PAY_MULT_SINGLE_KEY = sk('product_stats_pay_mult_single_v1');
 let pays = [];
 let payMult = 1;
-let payMultSingle = 1;
+let payMultSingle = 2;
 let sidePaySel = '';
 try { pays = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e){ pays = []; }
 try { payMult = parseFloat(localStorage.getItem(PAY_MULT_KEY) || '1') || 1; } catch(e){ payMult = 1; }
-try { payMultSingle = parseFloat(localStorage.getItem(PAY_MULT_SINGLE_KEY) || '1') || 1; } catch(e){ payMultSingle = 1; }
+try { payMultSingle = parseFloat(localStorage.getItem(PAY_MULT_SINGLE_KEY) || '2') || 2; } catch(e){ payMultSingle = 2; }
 var payTabSel = '';
 function openPayProdPicker(){
   var old = document.getElementById('payProdOverlay');
