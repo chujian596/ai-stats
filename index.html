@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.1';
+var APP_VER = 'v10.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1464,9 +1464,10 @@ function parseLine(text){
   if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
-  // 5. "连肖马龙"或"马龙二连"或"平特马龙二连"→"连肖马龙"
+  // 5. 连肖识别："连肖马龙"、"平连马龙"、"平特马龙二连"、"马龙二连"→"连肖马龙"
+  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/g, '连肖$1');
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})二连/g, '连肖$1');
-  codeText = codeText.replace(/连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/g, '连肖$1');
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})二连/g, '连肖$1');
   // 拆分并逐个识别
   const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   const codes = [];
