@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v17.3';
+var APP_VER = 'v17.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2240,17 +2240,33 @@ function renderRisk(){
   });
   const losePct = (loseNums/49*100).toFixed(0);
   const winPct = (winNums/49*100).toFixed(0);
+  const zeroPct = (zeroCnt/49*100).toFixed(0);
+  const activeNums = 49 - zeroCnt;
   const worstNum = sorted[0], worstBet = numBets[worstNum]||0;
   const worstNet = totalSales - worstBet*payMult;
+  // 集中度：top5号占总单多少%
+  const top5sum = top5.reduce((s,n) => s + numBets[n], 0);
+  const concPct = totalSales > 0 ? (top5sum/totalSales*100).toFixed(0) : 0;
+  // 期望值
+  let ev = 0;
+  sorted.forEach(n => { ev += (totalSales - numBets[n]*payMult) / 49; });
   let verdict = '';
-  if(losePct > 50) verdict = '风险偏高：超过一半的号开了你都亏，建议飞单';
-  else if(losePct > 30) verdict = '中等风险：部分高危号建议飞出去';
-  else verdict = '风险可控：大部分号开了你赚';
+  if(losePct > 50) verdict = '⚠️ 风险高：超过一半的号开了你都亏，必须飞单';
+  else if(losePct > 30) verdict = '⚡ 中等风险：部分高危号建议飞出去';
+  else verdict = '✅ 风险可控：大部分号开了你赚';
   h += `<div style="margin:6px 0;padding:8px;background:${losePct>50?'#fef2f2':losePct>30?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:12px">`;
   h += `<div style="font-weight:700;margin-bottom:4px">📊 持仓分析</div>`;
-  h += `<div>总单<b>${totalSales.toFixed(0)}</b> | 均衡线<b>${(totalSales/payMult).toFixed(0)}</b>元/号（超过此线开了亏）</div>`;
-  h += `<div style="margin-top:4px"><span style="color:#cf1322;font-weight:700">亏${loseNums}个(${losePct}%)</span> · <span style="color:#e67e22;font-weight:700">赚${winNums}个(${winPct}%)</span> · <span style="color:#16a34a;font-weight:700">零${zeroCnt}个</span></div>`;
-  h += `<div style="margin-top:4px">最坏开${String(worstNum).padStart(2,'0')}号：<b style="color:#cf1322">${worstNet.toFixed(0)}</b> | 最好开零额号：<b style="color:#16a34a">+${totalSales.toFixed(0)}</b></div>`;
+  h += `<div>总单<b>${totalSales.toFixed(0)}</b> | 均衡线<b>${(totalSales/payMult).toFixed(0)}</b>元/号</div>`;
+  h += `<div style="margin-top:4px;font-size:11px;color:#666">号码分布：${activeNums}个有注(${activeNums/49*100|0}%) · ${zeroCnt}个零额(${zeroPct}%)</div>`;
+  h += `<div style="margin-top:4px;display:flex;gap:8px">`;
+  h += `<span>亏<b style="color:#cf1322">${loseNums}</b>个(${losePct}%)</span>`;
+  h += `<span>赚<b style="color:#e67e22">${winNums}</b>个(${winPct}%)</span>`;
+  h += `<span>零<b style="color:#16a34a">${zeroCnt}</b>个</span>`;
+  h += `</div>`;
+  h += `<div style="margin-top:4px">最坏：开${String(worstNum).padStart(2,'0')}号亏<b style="color:#cf1322">${Math.abs(worstNet).toFixed(0)}</b></div>`;
+  h += `<div>最好：开零额号赚<b style="color:#16a34a">+${totalSales.toFixed(0)}</b></div>`;
+  h += `<div>平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>/期</div>`;
+  h += `<div>集中度：top5号占<b>${concPct}%</b>${concPct>60?'（过度集中，建议飞单）':''}</div>`;
   h += `<div style="margin-top:4px;font-weight:700;color:${losePct>50?'#cf1322':losePct>30?'#e67e22':'#16a34a'}">➡ ${verdict}</div>`;
   h += `</div>`;
   // Top risk numbers
@@ -2264,13 +2280,6 @@ function renderRisk(){
     h += `<span>${String(n).padStart(2,'0')} ${NUM2ZODIAC[n]||''} 下注${bet.toFixed(0)}</span>`;
     h += `<span style="color:${net>=0?'#16a34a':'#cf1322'}">${net>=0?'+':''}${net.toFixed(0)} (${riskPct}%)</span></div>`;
   });
-  // Expected value
-  let ev = 0;
-  sorted.forEach(n => {
-    ev += (totalSales - numBets[n]*payMult) / 49;
-  });
-  h += `<div style="margin-top:6px;padding:6px;background:#f8f9fa;border-radius:6px;font-size:12px">`;
-  h += `平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>（开49个号的平均盈亏）</div>`;
   // 飞单联动
   let currentFly = 0;
   for(let i=1;i<=49;i++){
