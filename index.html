@@ -94,9 +94,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="chipRow"></div>
     <button type="button" style="border:none;background:none;color:#1f6feb;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
     </div>
-    <div style="display:flex;gap:4px;margin-top:4px">
-      <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:6px 2px;font-size:12px" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
-      <button id="mode-btn-single" class="btn" style="min-width:0;flex:1;padding:6px 2px;font-size:12px" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #1f6feb;background:#1f6feb;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
+      <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
     <textarea id="input" class="textarea" placeholder=""></textarea>
     <div style="display:flex;gap:6px;margin-top:6px">
@@ -1077,7 +1077,20 @@ function editSingleLabel(){
 function setMode(m){
   mode = m;
   try { localStorage.setItem(PKEY + '_mode', m); } catch(e){}
+  updateModeBtns();
   renderAll();
+}
+function updateModeBtns(){
+  var bb = document.getElementById('mode-btn-bundle');
+  var sb = document.getElementById('mode-btn-single');
+  if(bb){
+    if(mode === 'bundle'){ bb.style.background = '#1f6feb'; bb.style.color = '#fff'; bb.style.border = '2px solid #1f6feb'; }
+    else { bb.style.background = '#fff'; bb.style.color = '#333'; bb.style.border = '2px solid #ddd'; }
+  }
+  if(sb){
+    if(mode === 'single'){ sb.style.background = '#1f6feb'; sb.style.color = '#fff'; sb.style.border = '2px solid #1f6feb'; }
+    else { sb.style.background = '#fff'; sb.style.color = '#333'; sb.style.border = '2px solid #ddd'; }
+  }
 }
 function saveProducts(){
   try { localStorage.setItem(PKEY, JSON.stringify(products)); }
@@ -1714,7 +1727,7 @@ function renderAll(){
         sData[c].amount += Number(o.price) || 0;
       });
     });
-    let sh = `<div id="singlesTitle" style="font-weight:700;margin:4px 0 2px;border-top:1px solid #eee;padding-top:4px;cursor:pointer" ondblclick="var n=prompt('单品标题:',labels.singles);if(n!==null){labels.singles=n;saveLabels();document.getElementById('singlesTitle').textContent=labels.singles;}">${labels.singles}</div>`;
+    let sh = `<div id="singlesTitle" style="font-weight:700;margin:8px 0 4px;padding:10px 14px;background:linear-gradient(135deg,#e8f0fe,#f0f7ff);border:2px solid #1f6feb;border-radius:10px;cursor:pointer;font-size:15px;color:#1f6feb" ontouchstart="singlesPressTimer=setTimeout(function(){var n=prompt('单品标题:',labels.singles);if(n!==null){labels.singles=n.trim()||'单品累计';saveLabels();renderAll();}},600)" ontouchend="clearTimeout(singlesPressTimer)">${labels.singles}</div>`;
     sh += '<table style="font-size:12px;width:100%"><tr><th>单品名</th><th>销量</th><th>金额</th></tr>';
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
       .sort((a,b) => b.d.amount - a.d.amount)
@@ -1926,6 +1939,7 @@ function clearAll(){
   location.reload();
 }
 
+updateModeBtns();
 renderAll();
 document.getElementById('shopLabel').textContent = shopNames[shop];
 var left2 = lockData.expire - Date.now();
