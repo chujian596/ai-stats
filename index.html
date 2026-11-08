@@ -71,10 +71,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="totals" style="font-size:13px;font-weight:700;margin-bottom:4px">总订单 0 | 总销量 0 | 总金额 0.00 元</div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">👤客户:<span id="custLabel">散客</span>▾</button>
-      <div style="text-align:right">
-        <span style="font-size:11px;color:#666">累计</span>
-        <span id="bigAmount" style="font-size:22px;font-weight:800;color:#cf1322">0.00</span>
-        <span id="bigSub" style="font-size:14px;color:#999;font-weight:600;margin-left:8px"></span>
+      <div style="text-align:center">
+        <div><span style="font-size:11px;color:#666">累计</span> <span id="bigAmount" style="font-size:22px;font-weight:800;color:#cf1322">0.00</span></div>
+        <div id="bigSub" style="font-size:13px;color:#999;font-weight:600"></div>
       </div>
       <button type="button" style="border:1px solid #1f6feb;background:#e8f0ff;color:#1f6feb;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="switchShop()">🏪<span id="shopLabel">小澳AI店铺</span></button>
     </div>
@@ -88,8 +87,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <button type="button" style="border:none;background:none;color:#1f6feb;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
     </div>
     <div style="display:flex;gap:4px;margin-top:4px">
-      <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('bundle')" ondblclick="event.stopPropagation();var n=prompt('套餐按钮文字:',labels.bundleBtn);if(n!==null){labels.bundleBtn=n.trim()||'套餐模式';saveLabels();renderAll();}">套餐模式</button>
-      <button id="mode-btn-single" class="btn" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('single')" ondblclick="event.stopPropagation();var n=prompt('单品按钮文字:',labels.singleBtn);if(n!==null){labels.singleBtn=n.trim()||'单品模式';saveLabels();renderAll();}">单品模式</button>
+      <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:6px 2px;font-size:12px" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
+      <button id="mode-btn-single" class="btn" style="min-width:0;flex:1;padding:6px 2px;font-size:12px" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
     <textarea id="input" class="textarea" placeholder=""></textarea>
     <div style="display:flex;gap:6px;margin-top:6px">
@@ -908,6 +907,14 @@ function loadMode(){
   catch(e){ return 'bundle'; }
 }
 let mode = loadMode();
+function editBundleLabel(){
+  var n = prompt('套餐按钮文字:', labels.bundleBtn || '套餐模式');
+  if(n !== null){ labels.bundleBtn = n.trim() || '套餐模式'; saveLabels(); renderAll(); }
+}
+function editSingleLabel(){
+  var n = prompt('单品按钮文字:', labels.singleBtn || '单品模式');
+  if(n !== null){ labels.singleBtn = n.trim() || '单品模式'; saveLabels(); renderAll(); }
+}
 function setMode(m){
   mode = m;
   try { localStorage.setItem(PKEY + '_mode', m); } catch(e){}
