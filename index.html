@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v8.6';
+var APP_VER = 'v8.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1417,6 +1417,12 @@ function parseLine(text){
     part = part.replace(/^特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/, '$1');
     // 再处理"平X"→"平特X"（只匹配开头的平，不动平特里的特）
     part = part.replace(/^平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+    // "平特马龙兔"→"平特马平特龙平特兔"：平特后面连续的生肖都补平特
+    part = part.replace(/平特([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zods) => {
+      let out = '';
+      for(const ch of zods){ out += '平特' + ch; }
+      return out;
+    });
     let m = part.match(/^(.+?)平特肖?$/);
     if(m && /[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(m[1]) && !/[0-9]/.test(m[1])){
       let s = m[1];
