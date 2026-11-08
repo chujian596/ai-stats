@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.9';
+var APP_VER = 'v10.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1820,8 +1820,13 @@ function renderAll(){
     });
     let sh = '';
     sh += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px"><span>平特肖</span><span>销量 / 金额</span></div>';
+    const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
-      .sort((a,b) => b.d.amount - a.d.amount)
+      .sort((a,b) => {
+        const za = zodOrder.indexOf(a.p.code.replace('平特',''));
+        const zb = zodOrder.indexOf(b.p.code.replace('平特',''));
+        return za - zb;
+      })
       .forEach(({p, d}) => {
         const active = d.amount > 0;
         const bg = active ? '#fff7f7' : '#fafafa';
