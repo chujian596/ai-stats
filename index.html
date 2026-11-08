@@ -131,7 +131,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">统计表 ▼</div>
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 4px;font-size:14px;font-weight:700;color:#333;border-bottom:2px solid #f0f0f0;margin-bottom:4px;cursor:pointer">账单统计 ▼</div>
     <div id="rankTableBody">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.8';
+var APP_VER = 'v13.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -329,41 +329,49 @@ function autoPayout(){
   var results = [];
   var totalPayout = 0;
 
+  var payoutMap = {}; // key -> {bet, mult}
   allOrders.forEach(function(o){
     var seenCodes = {};
     (o.codes||[]).forEach(function(code){
       if(seenCodes[code]) return;
       seenCodes[code] = true;
       var price = codeSalesForOrder(o, code);
+      var mult = 0;
       if(code.startsWith('连肖')){
         var zs = code.replace('连肖','').split('');
         var allHit = zs.every(function(z){ return hitZodiacSet[z]; });
         if(allHit){
           var n = zs.length;
           var base = n===2?4:n===3?10:30;
-          var mult = zs.indexOf('马') >= 0 ? base - 0.5 : base;
-          var payout = price * mult;
-          totalPayout += payout;
-          results.push(code + ' ×' + mult + ' = ' + payout.toFixed(2));
+          mult = zs.indexOf('马') >= 0 ? base - 0.5 : base;
         }
       }
       else if(code.startsWith('平特')){
         var z = code.replace('平特','');
         if(regularZodiacs.indexOf(z) >= 0){
-          var mult = code === '平特马' ? 1.8 : payMultSingle;
-          var payout = price * mult;
-          totalPayout += payout;
-          results.push(code + ' ×' + mult + ' = ' + payout.toFixed(2));
+          mult = code === '平特马' ? 1.8 : payMultSingle;
         }
       }
       else if(/^\d{2}$/.test(code)){
         if(Number(code) === specialNum){
-          var payout2 = price * payMult;
-          totalPayout += payout2;
-          results.push(code + '号 ×' + payMult + ' = ' + payout2.toFixed(2));
+          mult = payMult;
         }
       }
+      if(mult > 0){
+        var key = code + '|' + mult;
+        if(!payoutMap[key]) payoutMap[key] = { label: code, bet: 0, mult: mult };
+        payoutMap[key].bet += price;
+      }
     });
+  });
+  var results = [];
+  Object.keys(payoutMap).forEach(function(k){
+    var r = payoutMap[k];
+    var payout = r.bet * r.mult;
+    totalPayout += payout;
+    var label = r.label;
+    if(/^\d{2}$/.test(label)) label = label + '号';
+    results.push(label + ' ×' + r.mult + ' = ' + payout.toFixed(2));
   });
 
   var msg = '';
