@@ -1395,7 +1395,7 @@ function parseLine(text){
   if(!text) return null;
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
-  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款)?|个)\\s*' + numRe + unitRe + '\\s*$'));
+  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖)?|个)\\s*' + numRe + unitRe + '\\s*$'));
   let isPer, price, codeText;
   if(mGe){
     isPer = true;
@@ -1470,7 +1470,7 @@ function handleSave(){
   try {
   const text = document.getElementById('input').value;
   // 智能拆分：只有一行里写多个"各X"才按锚点拆；有多行时按换行拆
-  const anchorRe = /(?:各(?:数|号|个|件|样|款)?|个)\s*(?:[0-9]+(?:\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)\s*(?:元|米|块|钱|块钱|圆)?/g;
+  const anchorRe = /(?:各(?:数|号|个|件|样|款|肖)?|个)\s*(?:[0-9]+(?:\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)\s*(?:元|米|块|钱|块钱|圆)?/g;
   const hasNewline = /[\r\n]/.test(text);
   const anchors = [...text.matchAll(anchorRe)];
   let rawLines;
