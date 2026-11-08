@@ -68,7 +68,6 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 <main>
   <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
   <div style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
-    <div id="totals" style="font-size:13px;font-weight:700;margin-bottom:4px">总订单 0 | 总销量 0 | 总金额 0.00 元</div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">👤客户:<span id="custLabel">散客</span>▾</button>
       <div style="text-align:center">
@@ -1547,8 +1546,6 @@ function renderAll(){
   if(sb) sb.textContent = labels.singleBtn || '单品模式';
   const { map, custMap, totalQty, totalAmount } = getStats();
   const payTotal = pays.reduce((s,p) => s + Number(p.amount||0), 0);
-  document.getElementById('totals').innerHTML =
-    `总订单 ${orders.length} | 总销量 ${totalQty} | 销售 <span style="color:#ff6b6b">${totalAmount.toFixed(2)}</span> | 赔付 -<span style="color:#ff6b6b">${payTotal.toFixed(2)}</span> | 净收入 <span style="color:#ff6b6b">${(totalAmount - payTotal).toFixed(2)}</span> 元`;
   document.getElementById('bigAmount').textContent = totalAmount.toFixed(2);
   document.getElementById('bigSub').textContent = orders.length + '单';
 
