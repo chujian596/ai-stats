@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v17.5';
+var APP_VER = 'v17.6';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2242,20 +2242,41 @@ function renderRisk(){
   const winPct = (winNums/49*100).toFixed(0);
   const zeroPct = (zeroCnt/49*100).toFixed(0);
   const activeNums = 49 - zeroCnt;
-  const worstNum = sorted[0], worstBet = numBets[worstNum]||0;
-  const worstNet = totalSales - worstBet*payMult;
-  // 集中度：top5号占总单多少%
+  // 飞单后实际自留的最坏情况
+  let currentFly = 0;
+  for(let i=1;i<=49;i++){
+    currentFly += Math.max(0, (numBets[i]||0) - splitTakeAll);
+  }
+  const flyRebate = currentFly * 0.03;
+  const keptCash = totalSales - currentFly;
+  // 平特总赔付风险
+  let ptePayout = 0;
+  orders.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('平特')){
+        const mult = (c === '平特马') ? 1.8 : payMultSingle;
+        ptePayout += codeSalesForOrder(o, c) * mult;
+      }
+    });
+  });
+  const worstNum = sorted[0];
+  const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : (numBets[worstNum]||0);
+  const worstNet = keptCash - worstKeptBet*payMult - ptePayout + flyRebate;
+  // 集中度
   const top5sum = top5.reduce((s,n) => s + numBets[n], 0);
   const concPct = totalSales > 0 ? (top5sum/totalSales*100).toFixed(0) : 0;
-  // 期望值
+  // 期望值（飞单后）
   let ev = 0;
-  sorted.forEach(n => { ev += (totalSales - numBets[n]*payMult) / 49; });
+  sorted.forEach(n => {
+    const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
+    ev += (keptCash - keptBet*payMult - ptePayout + flyRebate) / 49;
+  });
   let verdict = '';
-  if(losePct > 50) verdict = '⚠️ 风险高：超过一半的号开了你都亏，必须飞单';
-  else if(losePct > 30) verdict = '⚡ 中等风险：部分高危号建议飞出去';
-  else verdict = '✅ 风险可控：大部分号开了你赚';
-  h += `<div style="margin:6px 0;padding:8px;background:${losePct>50?'#fef2f2':losePct>30?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:12px">`;
-  h += `<div style="font-weight:700;margin-bottom:4px">📊 持仓分析</div>`;
+  if(worstNet < -1000) verdict = '⚠️ 风险高：最坏亏超过1000，建议降低阈值飞更多';
+  else if(worstNet < 0) verdict = '⚡ 中等风险：最坏小亏，可接受';
+  else verdict = '✅ 风险可控：开任何号都不亏';
+  h += `<div style="margin:6px 0;padding:8px;background:${worstNet<-1000?'#fef2f2':worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:12px">`;
+  h += `<div style="font-weight:700;margin-bottom:4px">📊 持仓分析${splitTakeAll>0?'（飞单后）':''}</div>`;
   h += `<div>总单<b>${totalSales.toFixed(0)}</b> | 均衡线<b>${(totalSales/payMult).toFixed(0)}</b>元/号</div>`;
   h += `<div style="margin-top:4px;font-size:11px;color:#666">号码分布：${activeNums}个有注(${activeNums/49*100|0}%) · ${zeroCnt}个零额(${zeroPct}%)</div>`;
   h += `<div style="margin-top:4px;display:flex;gap:8px">`;
@@ -2263,11 +2284,11 @@ function renderRisk(){
   h += `<span>赚<b style="color:#e67e22">${winNums}</b>个(${winPct}%)</span>`;
   h += `<span>零<b style="color:#16a34a">${zeroCnt}</b>个</span>`;
   h += `</div>`;
-  h += `<div style="margin-top:4px">最坏：开${String(worstNum).padStart(2,'0')}号亏<b style="color:#cf1322">${Math.abs(worstNet).toFixed(0)}</b></div>`;
-  h += `<div>最好：开零额号赚<b style="color:#16a34a">+${totalSales.toFixed(0)}</b></div>`;
+  h += `<div style="margin-top:4px">最坏：开${String(worstNum).padStart(2,'0')}号${worstNet<0?'亏':'赚'}<b style="color:${worstNet<0?'#cf1322':'#16a34a'}">${Math.abs(worstNet).toFixed(0)}</b></div>`;
+  h += `<div>最好：开零额号赚<b style="color:#16a34a">+${(keptCash+flyRebate).toFixed(0)}</b></div>`;
   h += `<div>平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>/期</div>`;
-  h += `<div>集中度：top5号占<b>${concPct}%</b>${concPct>60?'（过度集中，建议飞单）':''}</div>`;
-  h += `<div style="margin-top:4px;font-weight:700;color:${losePct>50?'#cf1322':losePct>30?'#e67e22':'#16a34a'}">➡ ${verdict}</div>`;
+  h += `<div>集中度：top5号占<b>${concPct}%</b>${concPct>60?'（过度集中）':''}</div>`;
+  h += `<div style="margin-top:4px;font-weight:700;color:${worstNet<-1000?'#cf1322':worstNet<0?'#e67e22':'#16a34a'}">➡ ${verdict}</div>`;
   h += `</div>`;
   // Top risk numbers
   h += '<div style="font-size:11px;font-weight:700;margin:6px 0 2px">风险最高号码：</div>';
@@ -2281,26 +2302,9 @@ function renderRisk(){
     h += `<span style="color:${net>=0?'#16a34a':'#cf1322'}">${net>=0?'+':''}${net.toFixed(0)} (${riskPct}%)</span></div>`;
   });
   // 飞单联动
-  let currentFly = 0;
-  for(let i=1;i<=49;i++){
-    currentFly += Math.max(0, (numBets[i]||0) - splitTakeAll);
-  }
-  const cappedMaxBet = splitTakeAll > 0 ? Math.min(numBets[sorted[0]]||0, splitTakeAll) : (numBets[sorted[0]]||0);
-  const specialPayout = cappedMaxBet * payMult;
-  // 平特总赔付风险
-  let ptePayout = 0;
-  orders.forEach(o => {
-    (o.codes||[]).forEach(c => {
-      if(typeof c === 'string' && c.startsWith('平特')){
-        const z = c.replace('平特','');
-        const mult = (z === '马') ? 1.8 : payMultSingle;
-        ptePayout += codeSalesForOrder(o, c) * mult;
-      }
-    });
-  });
+  const specialPayout = worstKeptBet * payMult;
   const afterFlyPayout = specialPayout + ptePayout;
-  const flyRebate = currentFly * 0.03;
-  const afterFlyNet = (totalSales - currentFly) - afterFlyPayout + flyRebate;
+  const afterFlyNet = worstNet;
   const breakevenThreshold = totalSales / payMult;
   h += `<div style="margin-top:6px;padding:8px;background:#faf5ff;border-radius:8px;font-size:11px">`;
   h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:4px">🔗 飞单阈值（调了实时生效）</div>`;
@@ -2318,7 +2322,6 @@ function renderRisk(){
   h += `</div>`;
   h += `<div style="color:#999;font-size:10px;margin-top:4px">保本阈值=${Math.round(breakevenThreshold)}（每号不超此值，开任何号不亏）</div>`;
   // 飞后残留
-  const keptCash = totalSales - currentFly;
   h += `<div style="border-top:1px solid #e9d5ff;margin-top:6px;padding-top:6px">`;
   h += `<div style="display:flex;justify-content:space-between"><span>飞出去（那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>反水3%</span><b style="color:#16a34a">+${flyRebate.toFixed(0)}</b></div>`;
