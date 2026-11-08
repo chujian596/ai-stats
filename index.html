@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v11.0';
+var APP_VER = 'v11.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1498,6 +1498,7 @@ function parseLine(text){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
   // 5. 连肖识别：2-4个生肖
+  codeText = codeText.replace(/([三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
   codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连/g, (m, z, n) => '连肖' + z);
