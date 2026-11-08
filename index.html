@@ -651,7 +651,7 @@ function previewSidePay(){
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
   const mult = isSingle
-    ? (parseFloat(document.getElementById('sidePayMultSingle').value)||1)
+    ? (prod === '马' ? 1.8 : (parseFloat(document.getElementById('sidePayMultSingle').value)||1))
     : (parseFloat(document.getElementById('sidePayMult').value)||1);
   let prodSales = 0;
   orders.forEach(o => {
@@ -695,7 +695,7 @@ function renderSideCustPay(){
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
   const mult = isSingle
-    ? (multSingleInput ? (parseFloat(multSingleInput.value)||1) : payMultSingle)
+    ? (prod === '马' ? 1.8 : (multSingleInput ? (parseFloat(multSingleInput.value)||1) : payMultSingle))
     : (multInput ? (parseFloat(multInput.value)||1) : payMult);
   if(!prod){
     box.innerHTML = '<div style="color:#999;padding:4px">选上面产品号后，这里显示要赔给哪些客户</div>';
@@ -776,10 +776,9 @@ function sidePayCalc(){
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
   const mult = isSingle
-    ? (parseFloat(document.getElementById('sidePayMultSingle').value)||1)
+    ? (prod === '马' ? 1.8 : (parseFloat(document.getElementById('sidePayMultSingle').value)||1))
     : (parseFloat(document.getElementById('sidePayMult').value)||1);
-  if(isSingle){ payMultSingle = mult; try { localStorage.setItem(PAY_MULT_SINGLE_KEY, payMultSingle); } catch(e){} }
-  else { payMult = mult; try { localStorage.setItem(PAY_MULT_KEY, payMult); } catch(e){} }
+  if(!isSingle){ payMult = mult; try { localStorage.setItem(PAY_MULT_KEY, payMult); } catch(e){} }
   let prodSales = 0;
   orders.forEach(o => {
     const codes = o.codes || [];
