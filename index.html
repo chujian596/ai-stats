@@ -528,6 +528,7 @@ function renderPaySide(){
     });
     h += '</div>';
   }
+  h += '<div id="sidePayResult" style="font-size:14px;margin:4px 0;padding:8px;background:#f8f9fa;border-radius:6px;line-height:1.6"></div>';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   h += `<select id="sidePayProduct" onchange="previewSidePay();renderSideCustPay()" style="flex:1;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px;min-width:0">`;
   h += '<option value="">选产品</option>';
@@ -537,7 +538,6 @@ function renderPaySide(){
   h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){previewSidePay();renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += `<span style="font-size:11px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
-  h += '<div id="sidePayResult" style="font-size:11px;margin-bottom:3px;color:#cf1322"></div>';
   h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   box.innerHTML = h;
   previewSidePay();
@@ -563,7 +563,7 @@ function previewSidePay(){
   const comp = prodSales * mult;
   const profit = totalSales - comp;
   const color = profit >= 0 ? '#1a7f37' : '#cf1322';
-  box.innerHTML = `${prod}卖了 ${prodSales.toFixed(2)} × ${mult}倍 = 赔 <b>${comp.toFixed(2)}</b> | 总销售 ${totalSales.toFixed(2)} - 赔 = 剩 <b style="color:${color}">${profit.toFixed(2)}</b>`;
+  box.innerHTML = `<div style="font-size:13px">${prod} 卖了 <b>${prodSales.toFixed(2)}</b> × ${mult}倍</div><div style="font-size:13px">赔付：<b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩：<b style="color:${color}">${profit.toFixed(2)}</b></div>`;
 }
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
