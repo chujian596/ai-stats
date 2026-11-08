@@ -98,7 +98,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #1f6feb;background:#1f6feb;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
-    <textarea id="input" class="textarea" placeholder=""></textarea>
+    <textarea id="input" class="textarea" placeholder="订单输入区"></textarea>
     <div style="display:flex;gap:6px;margin-top:6px">
       <button class="btn primary" style="flex:1;padding:5px;font-size:12px" onclick="handleSave()">保存</button>
       <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v12.9';
+var APP_VER = 'v13.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
