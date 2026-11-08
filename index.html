@@ -953,7 +953,12 @@ function editProdBtnLabel(){
   if(n !== null){ labels.prodBtn = n.trim() || '选产品'; saveLabels(); renderPaySide(); }
 }
 function pickProd(v){
-  sidePaySel = v;
+  // 再点已选的 = 取消选择
+  if(sidePaySel === v){
+    sidePaySel = '';
+  } else {
+    sidePaySel = v;
+  }
   var old = document.getElementById('prodPickerOverlay');
   if(old) old.remove();
   renderPaySide();
