@@ -197,13 +197,13 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:100px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:15px" onchange="renderSplit()">
-      <button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="calcSplit()">计算</button>
+      <button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="toggleSplit()">飞单统计</button>
     </div>
-    <div id="splitSummary" style="font-size:17px;margin-bottom:6px"></div>
-    <div style="display:flex;gap:6px;margin-bottom:6px">
+    <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
+    <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
       <button class="btn primary" style="font-size:12px;padding:4px 10px" onclick="copySplit()">📋 复制给股东</button>
     </div>
-    <div class="table-wrap" style="max-height:250px;overflow-y:auto">
+    <div class="table-wrap" style="max-height:250px;overflow-y:auto;display:none" id="splitTableWrap">
       <table style="font-size:12px">
         <thead><tr><th>编号</th><th>金额(股东)</th></tr></thead>
         <tbody id="tbody-split"></tbody>
@@ -906,6 +906,14 @@ function sideSplitCalc(){
   const st = document.getElementById('splitTakeAll');
   if(st) st.value = splitTakeAll;
   renderSplit();
+}
+var splitVisible = false;
+function toggleSplit(){
+  splitVisible = !splitVisible;
+  document.getElementById('splitSummary').style.display = splitVisible ? '' : 'none';
+  document.getElementById('splitCopyWrap').style.display = splitVisible ? '' : 'none';
+  document.getElementById('splitTableWrap').style.display = splitVisible ? '' : 'none';
+  if(splitVisible) calcSplit();
 }
 function calcSplit(){
   splitTakeAll = parseFloat(document.getElementById('splitTakeAll').value) || 0;
