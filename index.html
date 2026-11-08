@@ -193,9 +193,6 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-split" class="card tab-panel" style="display:none">
-    <div style="font-size:12px;margin-bottom:6px">
-      只统计01-49。填一个阈值（如100）：每个产品卖了超过阈值的部分给股东，低于阈值的不给。
-    </div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" onchange="renderSplit()">
@@ -269,7 +266,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v11.7';
+var APP_VER = 'v11.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
