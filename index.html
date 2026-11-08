@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v17.7';
+var APP_VER = 'v17.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2274,11 +2274,11 @@ function renderRisk(){
   if(worstNet < -1000) verdict = '⚠️ 风险高：最坏亏超过1000，建议降低阈值飞更多';
   else if(worstNet < 0) verdict = '⚡ 中等风险：最坏小亏，可接受';
   else verdict = '✅ 风险可控：开任何号都不亏';
-  h += `<div style="margin:6px 0;padding:8px;background:${worstNet<-1000?'#fef2f2':worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:12px">`;
-  h += `<div style="font-weight:700;margin-bottom:4px">📊 持仓分析${splitTakeAll>0?'（飞单后）':''}</div>`;
+  h += `<div style="margin:6px 0;padding:10px;background:${worstNet<-1000?'#fef2f2':worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:15px;line-height:1.6">`;
+  h += `<div style="font-weight:700;margin-bottom:4px;font-size:16px">📊 持仓分析${splitTakeAll>0?'（飞单后）':''}</div>`;
   h += `<div>总单<b>${totalSales.toFixed(0)}</b> | 均衡线<b>${(totalSales/payMult).toFixed(0)}</b>元/号</div>`;
-  h += `<div style="margin-top:4px;font-size:11px;color:#666">号码分布：${activeNums}个有注(${activeNums/49*100|0}%) · ${zeroCnt}个零额(${zeroPct}%)</div>`;
-  h += `<div style="margin-top:4px;display:flex;gap:8px">`;
+  h += `<div style="margin-top:4px;font-size:13px;color:#666">号码分布：${activeNums}个有注(${activeNums/49*100|0}%) · ${zeroCnt}个零额(${zeroPct}%)</div>`;
+  h += `<div style="margin-top:4px;display:flex;gap:10px">`;
   h += `<span>亏<b style="color:#cf1322">${loseNums}</b>个(${losePct}%)</span>`;
   h += `<span>赚<b style="color:#e67e22">${winNums}</b>个(${winPct}%)</span>`;
   h += `<span>零<b style="color:#16a34a">${zeroCnt}</b>个</span>`;
@@ -2290,13 +2290,13 @@ function renderRisk(){
   h += `<div style="margin-top:4px;font-weight:700;color:${worstNet<-1000?'#cf1322':worstNet<0?'#e67e22':'#16a34a'}">➡ ${verdict}</div>`;
   h += `</div>`;
   // Top risk numbers
-  h += '<div style="font-size:11px;font-weight:700;margin:6px 0 2px">风险最高号码：</div>';
+  h += '<div style="font-size:14px;font-weight:700;margin:8px 0 4px">风险最高号码：</div>';
   top5.forEach(n => {
     const bet = numBets[n];
     const payout = bet * payMult;
     const net = totalSales - payout;
     const riskPct = totalSales > 0 ? (net/totalSales*100).toFixed(0) : 0;
-    h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid #f5f5f5">`;
+    h += `<div style="display:flex;justify-content:space-between;font-size:14px;padding:3px 0;border-bottom:1px solid #f5f5f5">`;
     h += `<span>${String(n).padStart(2,'0')} ${NUM2ZODIAC[n]||''} 下注${bet.toFixed(0)}</span>`;
     h += `<span style="color:${net>=0?'#16a34a':'#cf1322'}">${net>=0?'+':''}${net.toFixed(0)} (${riskPct}%)</span></div>`;
   });
@@ -2305,10 +2305,10 @@ function renderRisk(){
   const afterFlyPayout = specialPayout + ptePayout;
   const afterFlyNet = worstNet;
   const breakevenThreshold = totalSales / payMult;
-  h += `<div style="margin-top:6px;padding:8px;background:#faf5ff;border-radius:8px;font-size:11px">`;
-  h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:4px">🔗 飞单阈值（调了实时生效）</div>`;
-  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span>每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:70px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:14px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:700">设</button></div>`;
-  h += `<div style="display:flex;gap:4px">`;
+  h += `<div style="margin-top:8px;padding:10px;background:#faf5ff;border-radius:8px;font-size:14px;line-height:1.6">`;
+  h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:6px;font-size:15px">🔗 飞单阈值（调了实时生效）</div>`;
+  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
+  h += `<div style="display:flex;gap:6px">`;
   const presets = [
     {label:'🛡️保本', mult:1.0, color:'#16a34a'},
     {label:'⚖️稳健', mult:1.3, color:'#e67e22'},
@@ -2316,16 +2316,16 @@ function renderRisk(){
   ];
   presets.forEach(p => {
     const val = Math.round(breakevenThreshold * p.mult);
-    h += `<button onclick="splitTakeAll=${val};saveSplitAll();renderSplit();renderRisk()" style="flex:1;border:1px solid ${p.color};color:${p.color};background:#fff;border-radius:6px;padding:6px 4px;font-size:11px;font-weight:700">${p.label}<br>${val}</button>`;
+    h += `<button onclick="splitTakeAll=${val};saveSplitAll();renderSplit();renderRisk()" style="flex:1;border:1px solid ${p.color};color:${p.color};background:#fff;border-radius:6px;padding:8px 4px;font-size:13px;font-weight:700">${p.label}<br>${val}</button>`;
   });
   h += `</div>`;
-  h += `<div style="color:#999;font-size:10px;margin-top:4px">保本阈值=${Math.round(breakevenThreshold)}（每号不超此值，开任何号不亏）</div>`;
+  h += `<div style="color:#999;font-size:12px;margin-top:6px">保本阈值=${Math.round(breakevenThreshold)}（每号不超此值，开任何号不亏）</div>`;
   // 飞后残留
-  h += `<div style="border-top:1px solid #e9d5ff;margin-top:6px;padding-top:6px">`;
+  h += `<div style="border-top:1px solid #e9d5ff;margin-top:8px;padding-top:8px">`;
   h += `<div style="display:flex;justify-content:space-between"><span>飞出去（那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCash.toFixed(0)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:10px;color:#999"><span>├ 特号赔付</span><span>${specialPayout.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:10px;color:#999"><span>└ 平特赔付</span><span>${ptePayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 特号赔付</span><span>${specialPayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>└ 平特赔付</span><span>${ptePayout.toFixed(0)}</span></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>总赔付风险</span><b>${afterFlyPayout.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between"><span>自留后最坏净盈亏</span><b style="color:${afterFlyNet>=0?'#16a34a':'#cf1322'}">${afterFlyNet>=0?'+':''}${afterFlyNet.toFixed(0)}</b></div>`;
   h += `</div>`;
