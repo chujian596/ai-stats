@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.1';
+var APP_VER = 'v13.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -806,13 +806,13 @@ function previewSidePay(){
     });
     const comp = prodSales * mult;
     totalComp += comp;
-    lines += `<div style="font-size:13px;display:flex;justify-content:space-between"><span>${prod}${isLian?'连肖':isSingle?'(单)':''} 卖 ${prodSales.toFixed(2)} × ${mult}</span><span>赔 ${comp.toFixed(2)}</span></div>`;
+    lines += `<div style="font-size:13px;display:flex;justify-content:space-between"><span>${prod}${isLian?'连肖':isSingle?'(单)':''} 总单金额 ${prodSales.toFixed(2)} × ${mult}</span><span>赔 ${comp.toFixed(2)}</span></div>`;
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const profit = totalSales - totalComp;
   box.innerHTML = lines + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;border-top:1px solid #eee;padding-top:4px">
 <div style="font-size:14px;font-weight:700">合计</div>
-<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${totalComp.toFixed(2)}</b> | 剩 <b style="color:#cf1322">${profit.toFixed(2)}</b></div>
+<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${totalComp.toFixed(2)}</b> | 亏损 <b style="color:#cf1322">${profit.toFixed(2)}</b></div>
 </div>`;
 }
 function renderSplitSide(){
