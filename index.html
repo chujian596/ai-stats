@@ -270,7 +270,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v16.3';
+var APP_VER = 'v16.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2272,7 +2272,7 @@ function renderRisk(){
   const breakevenThreshold = totalSales / payMult;
   h += `<div style="margin-top:6px;padding:8px;background:#faf5ff;border-radius:8px;font-size:11px">`;
   h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:4px">🔗 飞单阈值（调了实时生效）</div>`;
-  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span>每号上限</span><input type="number" value="${splitTakeAll}" style="width:70px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:14px;text-align:center" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplit();renderRisk()"><span>元</span></div>`;
+  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span>每号上限</span><input type="number" value="${splitTakeAll}" style="width:70px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:14px;text-align:center" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplit();renderRisk()"><span>元</span></div>`;
   h += `<div style="display:flex;gap:4px">`;
   const presets = [
     {label:'🛡️保本', mult:1.0, color:'#16a34a'},
