@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v9.1';
+var APP_VER = 'v9.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -631,7 +631,12 @@ function renderPaySide(){
   }
   h += '<div id="sidePayResult" style="font-size:14px;margin:4px 0;padding:8px;background:#f8f9fa;border-radius:6px;line-height:1.6"></div>';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
-  h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:16px;background:#fff;text-align:left;min-width:0;-webkit-touch-callout:none">${sidePaySel||labels.prodBtn||'选产品'}</button>`;
+  var btnLabel = sidePaySel || (labels.prodBtn||'选产品');
+  if(sidePaySel && sidePaySel.indexOf(',') >= 0){
+    var arr = sidePaySel.split(',');
+    btnLabel = arr.length + '个特号: ' + arr.map(x => x.replace('(单)','')).join(' ');
+  }
+  h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:16px;background:#fff;text-align:left;min-width:0;-webkit-touch-callout:none">${btnLabel}</button>`;
   h += `<span style="font-size:15px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += `<span style="font-size:15px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += '</div>';
@@ -648,24 +653,32 @@ function previewSidePay(){
   if(!box) return;
   const rawProd = sidePaySel;
   if(!rawProd){ box.innerHTML = ''; return; }
-  const isSingle = rawProd.endsWith('(单)');
-  const prod = rawProd.replace('(单)','');
-  const mult = isSingle
-    ? (prod === '平特马' ? 1.8 : (parseFloat(document.getElementById('sidePayMultSingle').value)||1))
-    : (parseFloat(document.getElementById('sidePayMult').value)||1);
-  let prodSales = 0;
-  orders.forEach(o => {
-    const codes = o.codes || [];
-    const times = codes.filter(c => c === prod).length;
-    prodSales += (Number(o.price)||0) * times;
+  const prods = rawProd.split(',');
+  const multSingle = parseFloat(document.getElementById('sidePayMultSingle').value)||1;
+  const multBundle = parseFloat(document.getElementById('sidePayMult').value)||1;
+  let totalComp = 0;
+  let lines = '';
+  prods.forEach(raw => {
+    const isSingle = raw.endsWith('(单)');
+    const prod = raw.replace('(单)','');
+    const mult = isSingle
+      ? (prod === '平特马' ? 1.8 : multSingle)
+      : multBundle;
+    let prodSales = 0;
+    orders.forEach(o => {
+      const codes = o.codes || [];
+      const times = codes.filter(c => c === prod).length;
+      prodSales += (Number(o.price)||0) * times;
+    });
+    const comp = prodSales * mult;
+    totalComp += comp;
+    lines += `<div style="font-size:13px;display:flex;justify-content:space-between"><span>${prod}${isSingle?'(单)':''} 卖 ${prodSales.toFixed(2)} × ${mult}</span><span>赔 ${comp.toFixed(2)}</span></div>`;
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
-  const comp = prodSales * mult;
-  const profit = totalSales - comp;
-  const color = profit >= 0 ? '#cf1322' : '#cf1322';
-  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-<div style="font-size:14px">${prod} 卖了 <b style="color:#cf1322">${prodSales.toFixed(2)}</b> × ${mult}倍</div>
-<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩 <b style="color:#cf1322">${profit.toFixed(2)}</b></div>
+  const profit = totalSales - totalComp;
+  box.innerHTML = lines + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;border-top:1px solid #eee;padding-top:4px">
+<div style="font-size:14px;font-weight:700">合计</div>
+<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${totalComp.toFixed(2)}</b> | 剩 <b style="color:#cf1322">${profit.toFixed(2)}</b></div>
 </div>`;
 }
 function renderSplitSide(){
@@ -692,25 +705,25 @@ function renderSideCustPay(){
   const multInput = document.getElementById('sidePayMult');
   const multSingleInput = document.getElementById('sidePayMultSingle');
   const rawProd = sidePaySel;
-  const isSingle = rawProd.endsWith('(单)');
-  const prod = rawProd.replace('(单)','');
-  const mult = isSingle
-    ? (prod === '平特马' ? 1.8 : (multSingleInput ? (parseFloat(multSingleInput.value)||1) : payMultSingle))
-    : (multInput ? (parseFloat(multInput.value)||1) : payMult);
-  if(!prod){
+  if(!rawProd){
     box.innerHTML = '<div style="color:#999;padding:4px">选上面产品号后，这里显示要赔给哪些客户</div>';
     return;
   }
+  const prods = rawProd.split(',');
   const custMap = {};
-  orders.forEach(o => {
-    const codes = o.codes || [];
-    const times = codes.filter(c => c === prod).length;
-    if(times > 0){
-      const amt = (Number(o.price)||0) * times;
-      const cust = o.customer || '散客';
-      if(!custMap[cust]) custMap[cust] = 0;
-      custMap[cust] += amt;
-    }
+  prods.forEach(raw => {
+    const isSingle = raw.endsWith('(单)');
+    const prod = raw.replace('(单)','');
+    orders.forEach(o => {
+      const codes = o.codes || [];
+      const times = codes.filter(c => c === prod).length;
+      if(times > 0){
+        const amt = (Number(o.price)||0) * times;
+        const cust = o.customer || '散客';
+        if(!custMap[cust]) custMap[cust] = 0;
+        custMap[cust] += amt;
+      }
+    });
   });
   const keys = Object.keys(custMap);
   h = '<div style="margin-top:6px;font-size:15px"></div>';
@@ -1032,11 +1045,13 @@ function openProdPicker(){
   html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
     var sel = sidePaySel === p.code ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div class="prodCell" data-code="'+p.code+'" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:15px;font-weight:700;'+sel+'">'+p.code+'</div>';
+    html += '<div class="prodCell" data-code="'+p.code+'" data-type="num" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:15px;font-weight:700;'+sel+'">'+p.code+'</div>';
   });
   products.filter(p => p.single).forEach(p => {
-    var sel = sidePaySel === p.code+'(单)' ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div class="prodCell" data-code="'+p.code+'(单)" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:12px;font-weight:700;'+sel+'">'+p.code+'单</div>';
+    var v = p.code+'(单)';
+    var arr = sidePaySel ? sidePaySel.split(',') : [];
+    var sel = arr.includes(v) ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
+    html += '<div class="prodCell" data-code="'+v+'" data-type="zodiac" style="text-align:center;padding:10px 2px;border-radius:6px;font-size:12px;font-weight:700;'+sel+'">'+p.code+'单</div>';
   });
   html += '</div>';
   html += '<div id="prodPickerClose" style="text-align:center;padding:12px;margin-top:6px;color:#666;font-size:15px;border-top:1px solid #eee">关闭</div>';
@@ -1046,12 +1061,12 @@ function openProdPicker(){
   grid.addEventListener('touchend', function(e){
     e.preventDefault();
     var cell = e.target.closest('.prodCell');
-    if(cell){ pickProd(cell.getAttribute('data-code')); return; }
+    if(cell){ pickProd(cell.getAttribute('data-code'), cell.getAttribute('data-type')); return; }
     if(e.target.id === 'prodPickerClose'){ overlay.remove(); return; }
   }, {passive:false});
   grid.addEventListener('click', function(e){
     var cell = e.target.closest('.prodCell');
-    if(cell){ pickProd(cell.getAttribute('data-code')); return; }
+    if(cell){ pickProd(cell.getAttribute('data-code'), cell.getAttribute('data-type')); return; }
     if(e.target.id === 'prodPickerClose'){ overlay.remove(); return; }
   });
   overlay.addEventListener('click', function(e){
@@ -1062,12 +1077,20 @@ function editProdBtnLabel(){
   var n = prompt('选产品按钮文字:', labels.prodBtn || '选产品');
   if(n !== null){ labels.prodBtn = n.trim() || '选产品'; saveLabels(); renderPaySide(); }
 }
-function pickProd(v){
-  // 再点已选的 = 取消选择
-  if(sidePaySel === v){
-    sidePaySel = '';
-  } else {
+function pickProd(v, type){
+  if(type === 'num'){
+    // 数字单选，直接替换
     sidePaySel = v;
+  } else {
+    // 平特肖多选，最多7个
+    var arr = sidePaySel ? sidePaySel.split(',') : [];
+    if(arr.includes(v)){
+      arr = arr.filter(x => x !== v);
+    } else {
+      if(arr.length >= 7){ myAlert('最多选7个'); return; }
+      arr.push(v);
+    }
+    sidePaySel = arr.join(',');
   }
   var old = document.getElementById('prodPickerOverlay');
   if(old) old.remove();
