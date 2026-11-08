@@ -144,7 +144,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-cust" class="card tab-panel" style="display:none">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>排名</th><th>客户</th><th>订单数</th><th>型号数</th><th>累计金额(元)</th></tr></thead>
+        <thead><tr><th>排名</th><th>客户</th><th>订单数</th><th>累计金额(元)</th></tr></thead>
         <tbody id="tbody-cust"></tbody>
       </table>
     </div>
@@ -1574,10 +1574,10 @@ function renderAll(){
   custRows.sort((a,b) => b.amount - a.amount || b.qty - a.qty || a.name.localeCompare(b.name,'zh'));
   let custHtml = '';
   if(custRows.length === 0){
-    custHtml = '<tr><td colspan="5" style="color:#999">暂无客户数据</td></tr>';
+    custHtml = '<tr><td colspan="4" style="color:#999">暂无客户数据</td></tr>';
   } else {
     custRows.forEach((r, idx) => {
-      custHtml += `<tr><td>${idx+1}</td><td class="cust">${esc(r.name)}</td><td>${r.orders}</td><td>${r.qty}</td><td>${r.amount.toFixed(2)}</td></tr>`;
+      custHtml += `<tr><td>${idx+1}</td><td class="cust">${esc(r.name)}</td><td>${r.orders}</td><td style="color:#cf1322;font-weight:700">${r.amount.toFixed(2)}</td></tr>`;
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
