@@ -14,50 +14,50 @@
 <title>AI数据统计系统</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f2f4f7;color:#1f2329;padding-bottom:30px;font-size:16px}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f2f4f7;color:#1f2329;padding-bottom:30px;font-size:18px}
 header{background:#1f6feb;color:#fff;padding:12px 16px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.title{font-size:17px;font-weight:700}
-.totals{font-size:15px;margin-top:3px;opacity:.95;font-weight:700}
+.title{font-size:19px;font-weight:700}
+.totals{font-size:17px;margin-top:3px;opacity:.95;font-weight:700}
 main{padding:10px}
 .card{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.lbl{display:block;font-size:14px;color:#555;margin:6px 0 3px}
-.input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:17px;background:#fafbfc;outline:none}
+.lbl{display:block;font-size:16px;color:#555;margin:6px 0 3px}
+.input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:19px;background:#fafbfc;outline:none}
 .textarea{resize:vertical;min-height:60px;font-family:Consolas,monospace}
 .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.btn{flex:1 1 auto;min-width:80px;border:1px solid #d9dde3;background:#fff;color:#1f2329;border-radius:8px;padding:10px 8px;font-size:15px;font-weight:600}
+.btn{flex:1 1 auto;min-width:80px;border:1px solid #d9dde3;background:#fff;color:#1f2329;border-radius:8px;padding:12px 10px;font-size:17px;font-weight:600}
 .btn.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
 .btn.danger{background:#fff2f0;border-color:#ffccc7;color:#cf1322}
 .btn:active{opacity:.75}
-.last{margin-top:6px;font-size:14px;color:#1f6feb;line-height:1.5;word-break:break-all;white-space:pre-line}
+.last{margin-top:6px;font-size:16px;color:#1f6feb;line-height:1.5;word-break:break-all;white-space:pre-line}
 .tabs{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:wrap}
-.tab{flex:1;border:none;background:#e6e9ef;color:#444;border-radius:8px;padding:8px 4px;font-size:14px;font-weight:600}
+.tab{flex:1;border:none;background:#e6e9ef;color:#444;border-radius:8px;padding:8px 4px;font-size:16px;font-weight:600}
 .tab.active{background:#1f6feb;color:#fff}
 .table-wrap{max-height:55vh;overflow:auto;border-radius:8px;border:1px solid #eef0f3}
-table{width:100%;border-collapse:collapse;font-size:15px}
-th,td{padding:5px 6px;text-align:center;border-bottom:1px solid #eef0f3;white-space:nowrap;line-height:1.4}
-th{background:#f6f8fa;position:sticky;top:0;z-index:2;font-weight:700;color:#444;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:17px}
+th,td{padding:8px 8px;text-align:center;border-bottom:1px solid #eef0f3;white-space:nowrap;line-height:1.4}
+th{background:#f6f8fa;position:sticky;top:0;z-index:2;font-weight:700;color:#444;font-size:16px}
 td.raw{max-width:150px;overflow:hidden;text-overflow:ellipsis;text-align:left;white-space:nowrap}
 td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;white-space:nowrap}
-.hint{font-size:13px;color:#888;line-height:1.5;margin:8px 0 0}
-.table-wrap.compact table{font-size:14px}
+.hint{font-size:15px;color:#888;line-height:1.5;margin:8px 0 0}
+.table-wrap.compact table{font-size:16px}
 .table-wrap.compact th,.table-wrap.compact td{padding:4px 4px}
-.table-wrap.compact .cb{font-size:14px !important;padding:3px 6px !important}
+.table-wrap.compact .cb{font-size:16px !important;padding:3px 6px !important}
 #chipRow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{border:1px solid #c9d6f2;color:#1f6feb;background:#fff;border-radius:999px;padding:5px 12px;font-size:14px;font-weight:600}
+.chip{border:1px solid #c9d6f2;color:#1f6feb;background:#fff;border-radius:999px;padding:5px 12px;font-size:16px;font-weight:600}
 .chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.chip .cnt{font-size:14px;font-weight:400;opacity:.7;margin-left:4px}
+.chip .cnt{font-size:16px;font-weight:400;opacity:.7;margin-left:4px}
 </style>
 </head>
 <body>
 <div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;padding:20px;box-sizing:border-box">
   <div style="max-width:320px;margin:80px auto;text-align:center">
     <div style="font-size:20px;font-weight:700;margin-bottom:20px">🔐 会员验证</div>
-    <div id="lockMsg" style="font-size:13px;color:#666;margin-bottom:10px"></div>
+    <div id="lockMsg" style="font-size:15px;color:#666;margin-bottom:10px"></div>
     <div id="lockPwdWrap">
-      <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:16px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
-      <button onclick="unlock()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:12px;font-size:15px;font-weight:700">进入</button>
+      <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:18px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
+      <button onclick="unlock()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:12px;font-size:17px;font-weight:700">进入</button>
     </div>
-    <button id="lockEnterBtn" onclick="skipLock()" style="display:none;width:100%;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:12px;font-size:15px;font-weight:700">进入系统</button>
+    <button id="lockEnterBtn" onclick="skipLock()" style="display:none;width:100%;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:12px;font-size:17px;font-weight:700">进入系统</button>
   </div>
 </div>
 <header>
@@ -67,10 +67,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <div id="memInfo" style="font-size:10px;opacity:0.8;text-align:right"></div>
 </header>
 <main>
-  <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:10px"></div>
+  <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:15px;line-height:1.6;margin-bottom:10px"></div>
   <div style="background:#fff;border-radius:8px;padding:4px 10px;margin-bottom:4px;display:flex;align-items:baseline;gap:6px">
     <span style="font-size:10px;color:#666">累计</span>
-    <span id="bigAmount" style="font-size:16px;font-weight:800;color:#cf1322">0.00</span>
+    <span id="bigAmount" style="font-size:18px;font-weight:800;color:#cf1322">0.00</span>
     <span style="font-size:10px;color:#666">元</span>
     <span id="bigSub" style="font-size:10px;color:#999;margin-left:auto"></span>
   </div>
@@ -84,7 +84,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
     <datalist id="customerList"></datalist>
     <div id="chipRow"></div>
-    <button type="button" style="border:none;background:none;color:#1f6feb;font-size:13px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
+    <button type="button" style="border:none;background:none;color:#1f6feb;font-size:15px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
     </div>
     <div style="display:flex;gap:4px;margin-top:4px">
       <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('bundle')" ondblclick="var n=prompt('套餐按钮文字:',labels.bundleBtn);if(n!==null){labels.bundleBtn=n;saveLabels();document.getElementById('mode-btn-bundle').textContent=labels.bundleBtn;}">套餐模式</button>
@@ -95,7 +95,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn primary" style="flex:1;padding:5px;font-size:12px" onclick="handleSave()">保存</button>
       <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
     </div>
-    <div id="saveMsg" style="margin-top:6px;font-size:13px;color:#1f6feb"></div>
+    <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#1f6feb"></div>
   </section>
 
   <div class="tabs">
@@ -158,7 +158,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-pay" class="card tab-panel" style="display:none">
-    <div style="font-size:13px;margin-bottom:8px">
+    <div style="font-size:15px;margin-bottom:8px">
       销售总额：<b id="paySales">0.00</b> 元 |
       总赔付：<b style="color:#cf1322" id="payTotal">0.00</b> 元 |
       净收入：<b id="payNet">0.00</b> 元
@@ -186,11 +186,11 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       只统计01-49。填一个阈值（如100）：每个产品卖了超过阈值的部分给股东，低于阈值的不给。
     </div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-      <span style="font-size:13px">阈值：</span>
-      <input id="splitTakeAll" type="number" placeholder="如100" style="width:100px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px" onchange="renderSplit()">
+      <span style="font-size:15px">阈值：</span>
+      <input id="splitTakeAll" type="number" placeholder="如100" style="width:100px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px" onchange="renderSplit()">
       <button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="calcSplit()">计算</button>
     </div>
-    <div id="splitSummary" style="font-size:13px;margin-bottom:6px"></div>
+    <div id="splitSummary" style="font-size:15px;margin-bottom:6px"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <button class="btn primary" style="font-size:12px;padding:4px 10px" onclick="copySplit()">📋 复制给股东</button>
     </div>
@@ -211,8 +211,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <p class="hint" style="margin:0 0 6px">两个通道：①<b>子产品 01-49</b> 一直都在，下面第一块改颜色和备注；②再下面是 <b>12 个套餐空位</b>，点编号框改成你的产品名，右边勾选包含哪几个子产品。</p>
     <p style="font-weight:700;margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center">① 子产品列表（<span id="subCount">0</span> 个）<button onclick="resetSubs()" style="border:none;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700">重置为1-49</button></p>
     <div style="display:flex;gap:6px;margin-bottom:6px">
-      <input id="newSubCode" class="input" placeholder="加新编号，如 51 或 手机壳红" style="flex:1;font-size:14px">
-      <button class="btn primary" style="min-width:70px;padding:6px 10px;font-size:13px" onclick="addSub()">添加</button>
+      <input id="newSubCode" class="input" placeholder="加新编号，如 51 或 手机壳红" style="flex:1;font-size:16px">
+      <button class="btn primary" style="min-width:70px;padding:6px 10px;font-size:15px" onclick="addSub()">添加</button>
     </div>
     <div class="table-wrap compact" style="max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch">
       <table>
@@ -273,11 +273,11 @@ function showLock(){
   if(expired){
     timeTxt = '会员已到期';
   } else if(left < 3600000){
-    timeTxt = '会员剩余 <b style="font-size:16px;color:#1f6feb">' + Math.ceil(left/60000) + '</b> 分钟';
+    timeTxt = '会员剩余 <b style="font-size:18px;color:#1f6feb">' + Math.ceil(left/60000) + '</b> 分钟';
   } else if(left < 86400000){
-    timeTxt = '会员剩余 <b style="font-size:16px;color:#1f6feb">' + Math.ceil(left/3600000) + '</b> 小时';
+    timeTxt = '会员剩余 <b style="font-size:18px;color:#1f6feb">' + Math.ceil(left/3600000) + '</b> 小时';
   } else {
-    timeTxt = '会员剩余 <b style="font-size:16px;color:#1f6feb">' + Math.ceil(left/86400000) + '</b> 天';
+    timeTxt = '会员剩余 <b style="font-size:18px;color:#1f6feb">' + Math.ceil(left/86400000) + '</b> 天';
   }
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString();
   if(expired){
@@ -416,7 +416,7 @@ function showAutoPay(){
   const profit = totalSales - comp;
   const color = profit >= 0 ? '#0a0' : '#cf1322';
   document.getElementById('autoPayResult').innerHTML =
-    `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:14px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
+    `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:16px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
 }
 function autoPay(){
   savePayMult();
@@ -479,7 +479,7 @@ function renderPaySide(){
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   let h = `<div id="payTitle" style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
-  h += '<div style="font-size:14px;margin-bottom:8px;line-height:2">';
+  h += '<div style="font-size:16px;margin-bottom:8px;line-height:2">';
   h += `销售 <b style="font-size:24px">${sales.toFixed(2)}</b><br>`;
   h += `赔付 <b style="font-size:24px;color:#cf1322">-${total.toFixed(2)}</b><br>`;
   h += `净收入 <b style="font-size:24px;color:#1a7f37">${(sales-total).toFixed(2)}</b>`;
@@ -501,7 +501,7 @@ function renderPaySide(){
   h += '</select>';
   h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${payMult}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
-  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:8px;font-size:13px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
+  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:8px;font-size:15px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   h += '<div id="sidePayResult" style="font-size:10px;min-height:14px;color:#cf1322"></div>';
   box.innerHTML = h;
 }
@@ -766,7 +766,7 @@ function renderSettings(){
   if(subCountEl) subCountEl.textContent = subList.length;
   if(subBody){
     subBody.innerHTML = subList.map(p =>
-      `<tr><td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#1f6feb','蓝')}${sw(p,'green','#23a55a','绿')}</td><td style="font-weight:700">${esc(p.code)}</td><td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:3px;font-size:13px"></td></tr>`
+      `<tr><td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#1f6feb','蓝')}${sw(p,'green','#23a55a','绿')}</td><td style="font-weight:700">${esc(p.code)}</td><td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:3px;font-size:15px"></td></tr>`
     ).join('');
   }
   const rows = products.filter(p => !/^\d{2}$/.test(p.code) && !p.single).slice().sort((a,b) =>
@@ -782,10 +782,10 @@ function renderSettings(){
     return `
     <tr>
       <td style="white-space:nowrap">${sw(p,'none','#eee','无')}${sw(p,'red','#e64545','红')}${sw(p,'blue','#1f6feb','蓝')}${sw(p,'green','#23a55a','绿')}</td>
-      <td style="font-weight:700;min-width:100px">${(p.links||[]).length ? '<span style="background:#1f6feb;color:#fff;border-radius:4px;padding:1px 5px;font-size:11px;margin-right:4px">主产品</span><br>' : ''}<input value="${esc(p.code)}" onchange="renameCode('${esc(p.code)}',this.value)" style="font-weight:700;border:1px solid #1f6feb;border-radius:6px;padding:3px 6px;font-size:14px;width:100%"><div style="font-size:11px;color:#1f6feb;font-weight:400">${(p.links||[]).length ? '套餐含'+p.links.length+'个' : ''}</div></td>
-      <td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注名" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:4px;font-size:13px"></td>
+      <td style="font-weight:700;min-width:100px">${(p.links||[]).length ? '<span style="background:#1f6feb;color:#fff;border-radius:4px;padding:1px 5px;font-size:11px;margin-right:4px">主产品</span><br>' : ''}<input value="${esc(p.code)}" onchange="renameCode('${esc(p.code)}',this.value)" style="font-weight:700;border:1px solid #1f6feb;border-radius:6px;padding:3px 6px;font-size:16px;width:100%"><div style="font-size:11px;color:#1f6feb;font-weight:400">${(p.links||[]).length ? '套餐含'+p.links.length+'个' : ''}</div></td>
+      <td><input value="${esc(p.name)}" onchange="renameProduct('${esc(p.code)}',this.value)" placeholder="备注名" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:4px;font-size:15px"></td>
       <td style="min-width:180px"><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px">${pills.join('')}</div>
-        <button onclick="removeProduct('${esc(p.code)}')" style="width:100%;border:none;background:#cf1322;color:#fff;border-radius:6px;padding:7px;font-size:13px;font-weight:700">删除此产品</button>
+        <button onclick="removeProduct('${esc(p.code)}')" style="width:100%;border:none;background:#cf1322;color:#fff;border-radius:6px;padding:7px;font-size:15px;font-weight:700">删除此产品</button>
       </td>
     </tr>`;
   }).join('');
@@ -1199,7 +1199,7 @@ function renderAll(){
   const left = subCodes.slice(0, 25);
   const right = subCodes.slice(25);
   const rowHtml = (list, startIdx) => list.map((r, i) =>
-    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:14px;font-weight:700">${r.q}</td><td style="font-size:15px;font-weight:800">${r.a.toFixed(2)}</td></tr>`
+    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:16px;font-weight:700">${r.q}</td><td style="font-size:17px;font-weight:800">${r.a.toFixed(2)}</td></tr>`
   ).join('');
   document.getElementById('tbody-rank-l').innerHTML = rowHtml(left, 1);
   document.getElementById('tbody-rank-r').innerHTML = rowHtml(right, 26);
@@ -1220,7 +1220,7 @@ function renderAll(){
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
       .sort((a,b) => b.d.amount - a.d.amount)
       .forEach(({p, d}) => {
-        sh += `<tr><td style="font-weight:700">${esc(p.code)}</td><td style="font-size:14px;font-weight:700">${d.qty}</td><td style="font-size:15px;font-weight:800">${d.amount.toFixed(2)}</td></tr>`;
+        sh += `<tr><td style="font-weight:700">${esc(p.code)}</td><td style="font-size:16px;font-weight:700">${d.qty}</td><td style="font-size:17px;font-weight:800">${d.amount.toFixed(2)}</td></tr>`;
       });
     sh += '</table>';
     document.getElementById('rank-singles').innerHTML = sh;
