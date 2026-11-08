@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.3';
+var APP_VER = 'v13.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -632,7 +632,7 @@ function showAutoPay(){
     const codes = o.codes || [];
     const times = codes.filter(c => c === prod).length;
     if(times > 0){
-      const amt = (Number(o.price)||0) * times;
+      const amt = codeSalesForOrder(o, prod);
       prodSales += amt;
       const cust = o.customer || '散客';
       if(!custMap[cust]) custMap[cust] = 0;
@@ -669,7 +669,7 @@ function autoPay(){
   orders.forEach(o => {
     const codes = o.codes || [];
     const times = codes.filter(c => c === prod).length;
-    prodSales += (Number(o.price)||0) * times;
+    prodSales += codeSalesForOrder(o, prod);
   });
   const comp = prodSales * payMult;
   pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
@@ -802,7 +802,7 @@ function previewSidePay(){
     orders.forEach(o => {
       const codes = o.codes || [];
       const times = codes.filter(c => c === prod).length;
-      prodSales += (Number(o.price)||0) * times;
+      prodSales += codeSalesForOrder(o, prod);
     });
     const comp = prodSales * mult;
     totalComp += comp;
@@ -854,7 +854,7 @@ function renderSideCustPay(){
       const codes = o.codes || [];
       const times = codes.filter(c => c === prod).length;
       if(times > 0){
-        const amt = (Number(o.price)||0) * times;
+        const amt = codeSalesForOrder(o, prod);
         const cust = o.customer || '散客';
         if(!custMap[cust]) custMap[cust] = 0;
         custMap[cust] += amt;
@@ -932,7 +932,7 @@ function sidePayCalc(){
   orders.forEach(o => {
     const codes = o.codes || [];
     const times = codes.filter(c => c === prod).length;
-    prodSales += (Number(o.price)||0) * times;
+    prodSales += codeSalesForOrder(o, prod);
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * mult;
@@ -973,7 +973,7 @@ function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(sp
 function getSplitSales(){
   const sales = {};
   orders.forEach(o => (o.codes||[]).forEach(c => {
-    if(/^\d{2}$/.test(c)) sales[c] = (sales[c]||0) + (Number(o.price)||0);
+    if(/^\d{2}$/.test(c)) sales[c] = (sales[c]||0) + codeSalesForOrder(o, c);
   }));
   return sales;
 }
@@ -1012,7 +1012,7 @@ function renderAutoCustPay(){
     const codes = o.codes || [];
     const times = codes.filter(c => c === prod).length;
     if(times > 0){
-      const amt = (Number(o.price)||0) * times;
+      const amt = codeSalesForOrder(o, prod);
       const cust = o.customer || '散客';
       if(!custMap[cust]) custMap[cust] = 0;
       custMap[cust] += amt;
@@ -1658,6 +1658,13 @@ function parseLine(text){
   return { codes, price, isPer };
 }
 
+
+function codeSalesForOrder(o, prod){
+  if(o.codeAmts && o.codeAmts[prod]) return o.codeAmts[prod];
+  const codes = o.codes||[];
+  const times = codes.filter(c=>c===prod).length;
+  return (Number(o.price)||0)*times;
+}
 function handleSave(){
   try {
   let text = document.getElementById('input').value;
@@ -1768,12 +1775,16 @@ function handleSave(){
 
   // 一次保存=一个单，所有行合并成一条订单记录
   const allCodes = [];
+  const codeAmts = {}; // per-code amount map
   let totalAmount = 0;
   parsed.forEach(p => {
     const qty = p.codes.length;
     const unit = p.isPer ? p.price : (p.price / qty);
     const amount = qty * unit;
-    allCodes.push(...p.codes);
+    p.codes.forEach(c => {
+      allCodes.push(c);
+      codeAmts[c] = (codeAmts[c]||0) + unit;
+    });
     totalAmount += amount;
     const modeTxt = p.isPer ? '×' : '=';
     results.push(`${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`);
@@ -1786,6 +1797,7 @@ function handleSave(){
     qty: allCodes.length,
     amount: totalAmount,
     codes: allCodes,
+    codeAmts: codeAmts,
     createdAt: created
   });
 
@@ -1966,7 +1978,7 @@ function renderAll(){
       (o.codes||[]).forEach(c => {
         if(!sData[c]) sData[c] = { qty: 0, amount: 0 };
         sData[c].qty += 1;
-        sData[c].amount += Number(o.price) || 0;
+        sData[c].amount += codeSalesForOrder(o, c);
       });
     });
     let sh = '';
