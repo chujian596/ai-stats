@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v14.3';
+var APP_VER = 'v14.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -645,7 +645,7 @@ function addPay(){
   let amt = parseFloat(document.getElementById('payAmount').value);
   const note = document.getElementById('payNote').value.trim();
   const prod = document.getElementById('payProduct').value;
-  if(!amt || amt <= 0){ alert('请输入赔付金额'); return; }
+  if(!amt || amt <= 0){ myAlert('请输入赔付金额'); return; }
   if(payMult !== 1) amt = amt * payMult;
   pays.unshift({ product: prod, amount: amt, note: note + (payMult!==1?`（×${payMult}）`:'') , time: new Date().toLocaleString('zh-CN') });
   savePays();
@@ -696,7 +696,7 @@ function showAutoPay(){
 function autoPay(){
   savePayMult();
   const prod = payTabSel;
-  if(!prod){ alert('请先选产品'); return; }
+  if(!prod){ myAlert('请先选产品'); return; }
   let prodSales = 0;
   orders.forEach(o => {
     const codes = o.codes || [];
@@ -953,7 +953,7 @@ function renderSideCustPay(){
 }
 function sidePayCalc(){
   const rawProd = sidePaySel;
-  if(!rawProd){ alert('选产品'); return; }
+  if(!rawProd){ myAlert('选产品'); return; }
   const isSingle = rawProd.endsWith('(单)');
   const prod = rawProd.replace('(单)','');
   const mult = isSingle
@@ -1110,7 +1110,7 @@ function sideSplitCopy(){
   const txt = lines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  alert('已复制：\n' + txt);
+  myAlert('已复制：\n' + txt);
 }
 function sideSplitCalc(){
   splitTakeAll = parseFloat(document.getElementById('sideSplitTh').value) || 0;
@@ -1166,7 +1166,7 @@ function copySplit(){
   navigator.clipboard.writeText(text).then(() => {
     document.getElementById('splitResult').style.display = 'block';
     document.getElementById('splitResult').textContent = text;
-    alert('已复制到剪贴板');
+    myAlert('已复制到剪贴板');
   }).catch(() => {
     document.getElementById('splitResult').style.display = 'block';
     document.getElementById('splitResult').textContent = text + '\n\n（手动长按复制）';
@@ -1337,8 +1337,8 @@ function toggleLink(code, link){
 }
 function addProduct(){
   const v = document.getElementById('newProductCode').value.trim();
-  if(!v){ alert('请输入产品编号或名称'); return; }
-  if(v.length > 12){ alert('名字太长了（12个字以内）'); return; }
+  if(!v){ myAlert('请输入产品编号或名称'); return; }
+  if(v.length > 12){ myAlert('名字太长了（12个字以内）'); return; }
   products.push({ code: v, name: '', color: '', links: [], custom: true });
   saveProducts();
   document.getElementById('newProductCode').value = '';
@@ -1355,7 +1355,7 @@ function renameProduct(code, name){
 function removeProduct(code){
   const isBundle = products.some(p => p.code === code && (p.custom || (p.links||[]).length > 0 || !/^\d{2}$/.test(p.code)));
   if(!isBundle){
-    alert(code + ' 是固定子产品（01-50），不能删除。\n主产品请用自己起的名字（例如：手机壳小米）。');
+    myAlert(code + ' 是固定子产品（01-50），不能删除。\n主产品请用自己起的名字（例如：手机壳小米）。');
     return;
   }
   if(!confirm('删除主产品「' + code + '」？\n（历史订单不会删，但这个套餐以后不再展开）')) return;
@@ -1366,7 +1366,7 @@ function removeProduct(code){
 function renameCode(oldCode, newCode){
   newCode = String(newCode).trim();
   if(!newCode || newCode === oldCode){ renderAll(); return; }
-  if(newCode.length > 12){ alert('名字太长（12字内）'); renderAll(); return; }
+  if(newCode.length > 12){ myAlert('名字太长（12字内）'); renderAll(); return; }
   const p = products.find(x => x.code === oldCode);
   if(!p){ renderAll(); return; }
   p.code = newCode;
@@ -1426,16 +1426,16 @@ function renameSingleByIdx(idx, newCode){
   const p = singles[idx];
   if(!p) return;
   if(!newCode || newCode === p.code) return;
-  if(products.find(x => x.single && x.code === newCode)){ alert('单品「' + newCode + '」已存在'); return; }
+  if(products.find(x => x.single && x.code === newCode)){ myAlert('单品「' + newCode + '」已存在'); return; }
   p.code = newCode;
   saveProducts(); renderSettings(); renderAll();
 }
 let _uidSeq = Date.now();
 function addSingle(){
   const name = document.getElementById('newSingleName').value.trim();
-  if(!name){ alert('请输入单品名'); return; }
+  if(!name){ myAlert('请输入单品名'); return; }
   // 允许和套餐同名，但同通道不重复
-  if(products.find(p => p.code === name && p.single)){ alert('单品「' + name + '」已存在'); return; }
+  if(products.find(p => p.code === name && p.single)){ myAlert('单品「' + name + '」已存在'); return; }
   products.push({ code: name, name: '', color: '', links: [], custom: true, single: true, _uid: 's' + (_uidSeq++) });
   saveProducts(); renderSettings(); renderAll();
   document.getElementById('newSingleName').value = '';
@@ -1450,8 +1450,8 @@ function deleteSingle(code, uid){
 }
 function saveCustomerRoster(){
   const name = document.getElementById('customerName').value.trim();
-  if(!name){ alert('请先在上面输入客户名字'); return; }
-  if(roster.includes(name)){ alert('「' + name + '」已经在客户名单里了'); return; }
+  if(!name){ myAlert('请先在上面输入客户名字'); return; }
+  if(roster.includes(name)){ myAlert('「' + name + '」已经在客户名单里了'); return; }
   roster.push(name);
   saveRoster();
   renderAll();
@@ -1534,8 +1534,8 @@ function cpAdd(){
   const amt = parseFloat(document.getElementById('cpAmt').value) || 0;
   const note = document.getElementById('cpNote').value.trim();
   const code = document.getElementById('cpSearch').value.trim();
-  if(!cust){ alert('请填客户名'); return; }
-  if(amt <= 0){ alert('请填赔付金额'); return; }
+  if(!cust){ myAlert('请填客户名'); return; }
+  if(amt <= 0){ myAlert('请填赔付金额'); return; }
   custpays.unshift({ customer: cust, product: code, amount: amt, note: note, time: new Date().toLocaleString('zh-CN') });
   saveCP();
   document.getElementById('cpAmt').value = '';
@@ -1725,7 +1725,7 @@ function handleSave(){
     rawLines = text.split(/[\r\n。；;]+/);
   }
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
-  if(lines.length === 0){ alert('请先粘贴订单内容'); return; }
+  if(lines.length === 0){ myAlert('请先粘贴订单内容'); return; }
 
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
@@ -1858,7 +1858,7 @@ function handleSave(){
     if(sl) sl.style.display = 'block';
   }, 50);
   } catch(err){
-    alert('保存出错：' + err.message + '\n\n' + err.stack);
+    myAlert('保存出错：' + err.message + '\n\n' + err.stack);
   }
 }
 
@@ -1888,6 +1888,7 @@ function selectCustomer(name){
   document.getElementById('customerName').value = name;
   updateCustLabel();
   renderAll();
+  document.getElementById('custBox').style.display = 'none';
   document.getElementById('input').focus();
 }
 function pickProduct(code){
@@ -1950,8 +1951,8 @@ function resetSubs(){
 function addSub(){
   const inp = document.getElementById('newSubCode');
   const v = inp.value.trim();
-  if(!v){ alert('请输入编号'); return; }
-  if(products.find(p => p.code === v)){ alert('「' + v + '」已存在'); return; }
+  if(!v){ myAlert('请输入编号'); return; }
+  if(products.find(p => p.code === v)){ myAlert('「' + v + '」已存在'); return; }
   products.push({ code: v, name: '', color: '', custom: true });
   try {
     const hidden = JSON.parse(localStorage.getItem(PKEY + '_hidden') || '[]');
@@ -2347,9 +2348,9 @@ function importBackup(ev){
       if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
       saveOrders();
       renderAll();
-      alert('导入成功');
+      myAlert('导入成功');
     } catch(err) {
-      alert('导入失败：' + err.message);
+      myAlert('导入失败：' + err.message);
     } finally {
       ev.target.value = '';
     }
