@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v11.3';
+var APP_VER = 'v11.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -307,14 +307,16 @@ function autoPayout(){
       specialNum = nums[1];
     }
   } else {
-    // 多个数字：第一个是期数，最后一个是特号，中间是平特号
-    // 但要过滤掉日期数字（如11,8）
     period = nums[0];
-    // 找所有1-49的号码
     var allNums = nums.filter(function(n){ return n >= 1 && n <= 49; });
-    if(allNums.length < 2){ myAlert('号码太少，至少需要特号'); return; }
+    if(allNums.length < 1){ myAlert('没找到号码'); return; }
+    // 最后7个是开奖号（6平特+1特号），自动跳过前面的日期
     specialNum = allNums[allNums.length - 1];
-    regularNums = allNums.slice(0, -1);
+    if(allNums.length >= 7){
+      regularNums = allNums.slice(-7, -1);
+    } else {
+      regularNums = allNums.slice(0, -1);
+    }
   }
 
   var regularZodiacs = regularNums.map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean);
@@ -363,15 +365,20 @@ function autoPayout(){
 
   var msg = '';
   if(period) msg += '期数：' + period + '\n';
-  msg += '特号：' + specialNum + '(' + (specialZodiac||'?') + ')';
-  if(regularNums.length) msg += '\n平特：' + regularNums.join(' ');
+  msg += '特号：' + String(specialNum).padStart(2,'0') + '(' + (specialZodiac||'?') + ')';
+  if(regularNums.length) msg += '\n平特：' + regularNums.map(function(n){ return String(n).padStart(2,'0') + (NUM2ZODIAC[n]||''); }).join(' ');
   msg += '\n\n';
   if(results.length === 0){
     msg += '本轮无命中';
+    myAlert(msg);
   } else {
     msg += '命中赔付：\n' + results.join('\n') + '\n\n合计赔付：' + totalPayout.toFixed(2);
+    if(confirm(msg + '\n\n记入赔付记录？')){
+      pays.unshift({ product: '自动结算', amount: totalPayout, note: period ? '期' + period + ' ' : '' + '特' + specialNum, time: new Date().toLocaleString('zh-CN') });
+      savePays();
+      renderAll();
+    }
   }
-  myAlert(msg);
   document.getElementById('drawInput').value = '';
 }
 var DEVICE_WHITELIST = [];
