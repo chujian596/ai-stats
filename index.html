@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.5';
+var APP_VER = 'v13.6';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -972,9 +972,12 @@ try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '0') || 0; } 
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
 function getSplitSales(){
   const sales = {};
-  orders.forEach(o => (o.codes||[]).forEach(c => {
-    if(/^\d{2}$/.test(c)) sales[c] = (sales[c]||0) + codeSalesForOrder(o, c);
-  }));
+  orders.forEach(o => {
+    const seen = {};
+    (o.codes||[]).forEach(c => {
+      if(/^\d{2}$/.test(c) && !seen[c]){ seen[c] = true; sales[c] = (sales[c]||0) + codeSalesForOrder(o, c); }
+    });
+  });
   return sales;
 }
 function renderSplit(){
@@ -1871,11 +1874,15 @@ function getStats(){
     custMap[c].qty = Object.keys(custMap[c].codes).length;
     custMap[c].amount += Number(o.amount) || 0;
     custMap[c].lastIdx = idx;
+    const seenInOrder = {};
     (o.codes || []).forEach(code => {
       const k = String(code).padStart(2,'0');
       if(map[k]){
         map[k].qty += 1;
-        map[k].amount += codeSalesForOrder(o, code);
+        if(!seenInOrder[k]){
+          seenInOrder[k] = true;
+          map[k].amount += codeSalesForOrder(o, code);
+        }
       }
     });
     totalQty += (o.codes || []).length;
@@ -1975,10 +1982,11 @@ function renderAll(){
     // 从订单里算每个单品的销量和金额
     const sData = {};
     orders.forEach(o => {
+      const seenS = {};
       (o.codes||[]).forEach(c => {
         if(!sData[c]) sData[c] = { qty: 0, amount: 0 };
         sData[c].qty += 1;
-        sData[c].amount += codeSalesForOrder(o, c);
+        if(!seenS[c]){ seenS[c] = true; sData[c].amount += codeSalesForOrder(o, c); }
       });
     });
     let sh = '';
