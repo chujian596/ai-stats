@@ -909,31 +909,38 @@ function loadMode(){
 }
 let mode = loadMode();
 function openProdPicker(){
+  var old = document.getElementById('prodPickerOverlay');
+  if(old) old.remove();
   var overlay = document.createElement('div');
+  overlay.id = 'prodPickerOverlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:flex-end';
   var grid = document.createElement('div');
-  grid.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-height:70vh;overflow-y:auto';
-  var html = '<div style="font-size:16px;font-weight:700;margin-bottom:12px">选产品</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+  grid.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;padding:12px;width:100%;max-height:60vh;overflow-y:auto';
+  var html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">选产品</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   products.filter(p => /^\d{2}$/.test(p.code)).forEach(p => {
     var sel = sidePaySel === p.code ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div onclick="pickProd(\''+esc(p.code)+'\')" style="text-align:center;padding:10px 4px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;'+sel+'">'+esc(p.code)+'</div>';
+    html += '<div data-code="'+p.code+'" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;'+sel+'">'+p.code+'</div>';
   });
   products.filter(p => p.single).forEach(p => {
     var sel = sidePaySel === p.code+'(单)' ? 'background:#1f6feb;color:#fff' : 'background:#f5f5f5';
-    html += '<div onclick="pickProd(\''+esc(p.code)+'(单)\')" style="text-align:center;padding:10px 4px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;'+sel+'">'+esc(p.code)+'(单)</div>';
+    html += '<div data-code="'+p.code+'(单)" style="text-align:center;padding:8px 2px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;'+sel+'">'+p.code+'单</div>';
   });
   html += '</div>';
-  html += '<div onclick="this.parentElement.parentElement.remove()" style="text-align:center;padding:12px;margin-top:8px;color:#666;font-size:14px;border-top:1px solid #eee">关闭</div>';
+  html += '<div id="prodPickerClose" style="text-align:center;padding:10px;margin-top:6px;color:#666;font-size:14px;border-top:1px solid #eee">关闭</div>';
   grid.innerHTML = html;
   overlay.appendChild(grid);
   overlay.onclick = function(e){ if(e.target === overlay) overlay.remove(); };
+  grid.querySelectorAll('[data-code]').forEach(function(el){
+    el.onclick = function(){ pickProd(this.getAttribute('data-code')); };
+  });
+  document.getElementById('prodPickerClose').onclick = function(){ overlay.remove(); };
   document.body.appendChild(overlay);
 }
 function pickProd(v){
   sidePaySel = v;
-  var olds = document.querySelectorAll('div[style*="z-index:9999"]');
-  olds.forEach(function(d){d.remove();});
+  var old = document.getElementById('prodPickerOverlay');
+  if(old) old.remove();
   renderPaySide();
   previewSidePay();
   renderSideCustPay();
