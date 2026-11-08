@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v11.2';
+var APP_VER = 'v11.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -287,19 +287,43 @@ var NUM2ZODIAC = {};
 function autoPayout(){
   var raw = document.getElementById('drawInput').value.trim();
   if(!raw){ myAlert('请输入开奖结果'); return; }
+  // 提取所有数字
   var nums = raw.match(/\d+/g);
-  if(!nums || nums.length < 8){ myAlert('格式不对\n示例：312 11/8 31 46 04 43 32 15 38\n需要至少8个数字'); return; }
-  var period = nums[0];
-  var regularNums = nums.slice(1, 7).map(Number);
-  var specialNum = Number(nums[7]);
-  var regularZodiacs = regularNums.map(function(n){ return NUM2ZODIAC[n]; });
+  if(!nums || nums.length < 1){ myAlert('没识别到数字'); return; }
+  nums = nums.map(Number);
+
+  // 判断模式：只有1个数字=只输入特号
+  var period = '', regularNums = [], specialNum;
+  if(nums.length === 1){
+    specialNum = nums[0];
+  } else if(nums.length === 2){
+    // 可能是"期数 特号"或"特号 平特号"
+    // 如果第一个<50且第二个<50，认为是两个号码，最后一个是特号
+    if(nums[0] < 50 && nums[1] < 50){
+      regularNums = [nums[0]];
+      specialNum = nums[1];
+    } else {
+      period = nums[0];
+      specialNum = nums[1];
+    }
+  } else {
+    // 多个数字：第一个是期数，最后一个是特号，中间是平特号
+    // 但要过滤掉日期数字（如11,8）
+    period = nums[0];
+    // 找所有1-49的号码
+    var allNums = nums.filter(function(n){ return n >= 1 && n <= 49; });
+    if(allNums.length < 2){ myAlert('号码太少，至少需要特号'); return; }
+    specialNum = allNums[allNums.length - 1];
+    regularNums = allNums.slice(0, -1);
+  }
+
+  var regularZodiacs = regularNums.map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean);
   var specialZodiac = NUM2ZODIAC[specialNum];
   var allZodiacs = regularZodiacs.concat([specialZodiac]);
   var hitZodiacSet = {};
   allZodiacs.forEach(function(z){ hitZodiacSet[z] = true; });
 
-  var shop = currentShop();
-  var allOrders = JSON.parse(localStorage.getItem(shop==='A'?'orders':'orders_shopB')||'[]');
+  var allOrders = JSON.parse(localStorage.getItem(KEY) || '[]');
   var results = [];
   var totalPayout = 0;
 
@@ -337,7 +361,11 @@ function autoPayout(){
     });
   });
 
-  var msg = '期数：' + period + '\n特号：' + specialNum + '(' + specialZodiac + ')\n平特：' + regularNums.join(' ') + '\n\n';
+  var msg = '';
+  if(period) msg += '期数：' + period + '\n';
+  msg += '特号：' + specialNum + '(' + (specialZodiac||'?') + ')';
+  if(regularNums.length) msg += '\n平特：' + regularNums.join(' ');
+  msg += '\n\n';
   if(results.length === 0){
     msg += '本轮无命中';
   } else {
