@@ -200,7 +200,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
-      <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">📋 复制给股东</button>
+      <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">📋 复制飞单</button>
     </div>
     <div class="table-wrap" style="max-height:250px;overflow-y:auto;display:none" id="splitTableWrap">
       <table style="font-size:12px">
@@ -266,7 +266,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v11.8';
+var APP_VER = 'v11.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -635,12 +635,12 @@ function showAutoPay(){
       custMap[cust] += amt;
     }
   });
-  // 总销售额
+  // 总单金额额
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * payMult;
   const profit = totalSales - comp;
   const color = profit >= 0 ? '#cf1322' : '#cf1322';
-  let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
+  let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总单金额 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
   // 显示哪些客户买了这个产品
   const custKeys = Object.keys(custMap);
   if(custKeys.length > 0){
@@ -929,7 +929,7 @@ function sidePayCalc(){
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * mult;
   const profit = totalSales - comp;
-  if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总销售${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
+  if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总单金额${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
     pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${mult}`, time: new Date().toLocaleString('zh-CN') });
     savePays();
     renderAll();
@@ -1077,7 +1077,7 @@ function sideSplitCalc(){
   const total = keys.reduce((s,k) => s + sales[k], 0);
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
   document.getElementById('sideSplitSummary').innerHTML =
-    `总销售 <b style="font-size:16px">${total.toFixed(2)}</b> | 阈值 <b style="font-size:16px">${splitTakeAll.toFixed(0)}</b> | 股东应得 <b style="color:#cf1322;font-size:16px">${partner.toFixed(2)}</b>`;
+    `总单金额 <b style="font-size:16px">${total.toFixed(2)}</b> | 阈值 <b style="font-size:16px">${splitTakeAll.toFixed(0)}</b> | 飞单总金额 <b style="color:#cf1322;font-size:16px">${partner.toFixed(2)}</b>`;
   let rows = '';
   keys.forEach(k => {
     const extra = Math.max(0, sales[k] - splitTakeAll);
@@ -1104,7 +1104,7 @@ function calcSplit(){
   const total = keys.reduce((s,k) => s + sales[k], 0);
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
   document.getElementById('splitSummary').innerHTML =
-    `总销售：<b>${total.toFixed(2)}</b> 元 | 阈值：<b>${splitTakeAll.toFixed(2)}</b> | 股东应得：<b style="color:#cf1322">${partner.toFixed(2)}</b> 元`;
+    `总单金额：<b>${total.toFixed(2)}</b> 元 | 阈值：<b>${splitTakeAll.toFixed(2)}</b> | 飞单总金额：<b style="color:#cf1322">${partner.toFixed(2)}</b> 元`;
 }
 function copySplit(){
   calcSplit();
