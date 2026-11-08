@@ -89,8 +89,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <button type="button" style="border:none;background:none;color:#1f6feb;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
     </div>
     <div style="display:flex;gap:4px;margin-top:4px">
-      <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('bundle')" ondblclick="var n=prompt('套餐按钮文字:',labels.bundleBtn);if(n!==null){labels.bundleBtn=n;saveLabels();document.getElementById('mode-btn-bundle').textContent=labels.bundleBtn;}">套餐模式</button>
-      <button id="mode-btn-single" class="btn" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('single')" ondblclick="var n=prompt('单品按钮文字:',labels.singleBtn);if(n!==null){labels.singleBtn=n;saveLabels();document.getElementById('mode-btn-single').textContent=labels.singleBtn;}">单品模式</button>
+      <button id="mode-btn-bundle" class="btn primary" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('bundle')" ondblclick="event.stopPropagation();var n=prompt('套餐按钮文字:',labels.bundleBtn);if(n!==null){labels.bundleBtn=n.trim()||'套餐模式';saveLabels();renderAll();}">套餐模式</button>
+      <button id="mode-btn-single" class="btn" style="min-width:0;flex:1;padding:4px 2px;font-size:10px" onclick="setMode('single')" ondblclick="event.stopPropagation();var n=prompt('单品按钮文字:',labels.singleBtn);if(n!==null){labels.singleBtn=n.trim()||'单品模式';saveLabels();renderAll();}">单品模式</button>
     </div>
     <textarea id="input" class="textarea" placeholder=""></textarea>
     <div style="display:flex;gap:6px;margin-top:6px">
