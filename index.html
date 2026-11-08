@@ -363,7 +363,7 @@ setInterval(function(){
   var txt = d + '天 ' + h + '时 ' + m + '分 ' + s + '秒';
   var el = document.getElementById('lockMsg');
   if(el && document.getElementById('lockScreen').style.display !== 'none'){
-    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#1f6feb">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString();
+    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#1f6feb">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#1f6feb;font-size:14px">' + DEVICE_ID + '</b></span>';
   }
   var mem = document.getElementById('memInfo');
   if(mem) mem.textContent = '会员剩' + d + '天' + h + '时' + m + '分';
