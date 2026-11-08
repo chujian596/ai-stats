@@ -64,7 +64,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
 </div>
 <header>
-  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span style="font-size:10px;opacity:0.7">v8.2</span></div>
+  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span style="font-size:10px;opacity:0.7">v8.5</span></div>
   <div id="memInfo" style="font-size:10px;opacity:0.8;text-align:right"></div>
 </header>
 <main>
@@ -264,13 +264,13 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v8.4';
+var APP_VER = 'v8.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && v !== APP_VER && localStorage.getItem('app_ver') !== v){
-      localStorage.setItem('app_ver', v);
+    if(v && v !== APP_VER){
+      // 云端版本和本地不一样，强制刷新拉新版
       location.reload();
     }
   }).catch(function(){});
