@@ -579,22 +579,22 @@ function renderSideCustPay(){
   });
   const keys = Object.keys(custMap);
   if(keys.length === 0){
-    box.innerHTML = '<div style="color:#999;padding:4px">商品 ' + prod + ' 暂无客户购买</div>';
-    return;
-  }
-  let h = '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:4px;padding:6px;margin-top:4px">';
-  h += '<div style="font-weight:700;margin-bottom:4px;color:#cf1322">需赔付客户（' + prod + ' ×' + mult + '倍）</div>';
-  keys.forEach(k => {
-    const payAmt = custMap[k] * mult;
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px dashed #ffccc7">';
-    h += '<span style="font-weight:600">' + esc(k) + '</span>';
-    h += '<span style="display:flex;align-items:center;gap:6px">';
-    h += '<span style="color:#cf1322;font-weight:700">' + payAmt.toFixed(2) + '</span>';
-    h += '<button onclick="cpQuickPay(\'' + esc(k) + '\',\'' + prod + '\',' + payAmt + ')" style="border:none;background:#cf1322;color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700">赔</button>';
-    h += '</span>';
+    h = '<div style="color:#999;padding:4px">商品 ' + prod + ' 无人购买，无需赔付</div>';
+  } else {
+    h = '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:4px;padding:6px;margin-top:4px">';
+    h += '<div style="font-weight:700;margin-bottom:4px;color:#cf1322">需赔付客户（' + prod + ' ×' + mult + '倍）</div>';
+    keys.forEach(k => {
+      const payAmt = custMap[k] * mult;
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px dashed #ffccc7">';
+      h += '<span style="font-weight:600">' + esc(k) + '</span>';
+      h += '<span style="display:flex;align-items:center;gap:6px">';
+      h += '<span style="color:#cf1322;font-weight:700">' + payAmt.toFixed(2) + '</span>';
+      h += '<button onclick="cpQuickPay(\'' + esc(k) + '\',\'' + prod + '\',' + payAmt + ')" style="border:none;background:#cf1322;color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700">赔</button>';
+      h += '</span>';
+      h += '</div>';
+    });
     h += '</div>';
-  });
-  h += '</div>';
+  }
   // 客户盈亏小结
   const custBuy = {};
   orders.forEach(o => {
