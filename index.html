@@ -283,7 +283,7 @@ fetch('whitelist.json?t=' + Date.now())
 function reportDevice(){
   var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   var status = deviceAllowed ? '已授权' : '未授权';
-  fetch('https://formsubmit.co/ajax/708813404@qq.com', {
+  fetch('https://formsubmit.co/ajax/3f2f34c3ad4d0551a27a541f5ea979d4', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
