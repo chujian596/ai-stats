@@ -153,6 +153,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div id="rank-split" style="border-top:1px dashed #e5e5e5;padding-top:6px"></div>
       <div id="rank-pay" style="border-top:1px dashed #e5e5e5;padding-top:6px;margin-top:6px"></div>
     </div>
+    <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="margin-top:8px;padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;cursor:pointer">⚠️ 风险评估 ▶</div>
+    <div id="riskBody" style="display:none"></div>
   </section>
 
   <section id="tab-cust" class="card tab-panel" style="display:none">
@@ -268,7 +270,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v15.3';
+var APP_VER = 'v15.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2156,6 +2158,80 @@ function copyAllOrders(){
   navigator.clipboard.writeText(text).then(()=>myAlert('已复制汇总'));
 }
 
+function renderRisk(){
+  const box = document.getElementById('riskBody');
+  if(!box) return;
+  // Per-number bet accumulation
+  const numBets = {}; // 01-49 -> total bet
+  for(let i=1;i<=49;i++) numBets[i] = 0;
+  let totalSales = 0;
+  orders.forEach(o => {
+    totalSales += Number(o.amount)||0;
+    const seen = {};
+    (o.codes||[]).forEach(c => {
+      if(seen[c]) return; seen[c] = true;
+      if(/^\d{2}$/.test(c)){
+        numBets[Number(c)] += codeSalesForOrder(o, c);
+      }
+    });
+  });
+  // Sort numbers by bet
+  const sorted = Object.keys(numBets).map(Number).sort((a,b) => numBets[b]-numBets[a]);
+  // Tier: high = bet*mult > sales (risk>100%), low = >0, zero = 0
+  let highNums = [], lowNums = [], zeroNums = [];
+  sorted.forEach(n => {
+    const bet = numBets[n];
+    const payout = bet * payMult;
+    if(bet === 0) zeroNums.push(n);
+    else if(payout > totalSales) highNums.push(n);
+    else lowNums.push(n);
+  });
+  // Top 5 risk
+  const top5 = sorted.filter(n => numBets[n] > 0).slice(0,5);
+  let h = '';
+  h += '<div style="font-size:12px;line-height:1.8">';
+  h += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>总单金额</span><b style="color:#cf1322">${totalSales.toFixed(2)}</b></div>`;
+  // Tiers
+  h += '<div style="margin:6px 0">';
+  h += `<div style="background:#fef2f2;padding:6px;border-radius:6px;margin-bottom:3px"><b style="color:#cf1322">🔴 高危号（${highNums.length}个 / ${(highNums.length/49*100).toFixed(0)}%）</b><br>开这些号你倒贴：`;
+  if(highNums.length === 0) h += '无';
+  else highNums.slice(0,8).forEach(n => {
+    const p = numBets[n]*payMult;
+    h += `<span style="display:inline-block;background:#cf1322;color:#fff;border-radius:4px;padding:1px 5px;margin:1px;font-size:10px">${String(n).padStart(2,'0')}赔${p.toFixed(0)}</span>`;
+  });
+  h += '</div>';
+  h += `<div style="background:#fffbeb;padding:6px;border-radius:6px;margin-bottom:3px"><b style="color:#e67e22">🟡 低危号（${lowNums.length}个 / ${(lowNums.length/49*100).toFixed(0)}%）</b><br>开这些号你小赚/小赔`;
+  if(lowNums.length === 0) h += ' 无';
+  h += '</div>';
+  h += `<div style="background:#f0fdf4;padding:6px;border-radius:6px"><b style="color:#16a34a">🟢 零额号（${zeroNums.length}个 / ${(zeroNums.length/49*100).toFixed(0)}%）</b><br>开这些号全收${totalSales.toFixed(0)}</div>`;
+  h += '</div>';
+  // Top risk numbers
+  h += '<div style="font-size:11px;font-weight:700;margin:6px 0 2px">风险最高号码：</div>';
+  top5.forEach(n => {
+    const bet = numBets[n];
+    const payout = bet * payMult;
+    const riskPct = totalSales > 0 ? (payout/totalSales*100).toFixed(0) : 0;
+    const net = totalSales - payout;
+    h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid #f5f5f5">`;
+    h += `<span>${String(n).padStart(2,'0')} ${NUM2ZODIAC[n]||''} 下注${bet.toFixed(0)}</span>`;
+    h += `<span>${riskPct}% ${net>=0?'赚':'亏'}${Math.abs(net).toFixed(0)}</span></div>`;
+  });
+  // Expected value
+  let ev = 0;
+  sorted.forEach(n => {
+    ev += (totalSales - numBets[n]*payMult) / 49;
+  });
+  h += `<div style="margin-top:6px;padding:6px;background:#f8f9fa;border-radius:6px;font-size:12px">`;
+  h += `平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>（开49个号的平均盈亏）</div>`;
+  // 飞单建议
+  const maxPayout = sorted.length ? (numBets[sorted[0]]||0)*payMult : 0;
+  const suggestedFly = Math.max(0, maxPayout - totalSales);
+  h += `<div style="margin-top:4px;padding:6px;background:#faf5ff;border-radius:6px;font-size:11px">`;
+  h += `最高单赔付：${maxPayout.toFixed(0)}<br>建议飞单额：<b style="color:#7c3aed">${suggestedFly.toFixed(0)}</b>（覆盖最高风险号）</div>`;
+  h += '</div>';
+  box.innerHTML = h;
+}
+
 function renderAll(){
   // 自定义标题
   const mt = document.getElementById('mainTitle');
@@ -2305,6 +2381,7 @@ function renderAll(){
   renderPays();
   renderSplit();
   renderSettings();
+  renderRisk();
 
   const bB = document.getElementById('mode-btn-bundle');
   const bS = document.getElementById('mode-btn-single');
