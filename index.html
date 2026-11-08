@@ -270,7 +270,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v15.5';
+var APP_VER = 'v15.6';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2188,9 +2188,31 @@ function renderRisk(){
   });
   // Top 5 risk
   const top5 = sorted.filter(n => numBets[n] > 0).slice(0,5);
+  const maxBet = numBets[sorted[0]] || 1;
   let h = '';
   h += '<div style="font-size:12px;line-height:1.8">';
   h += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>总单金额</span><b style="color:#cf1322">${totalSales.toFixed(2)}</b></div>`;
+  // Visual bar chart: 49 bars
+  h += '<div style="display:flex;align-items:flex-end;gap:1px;height:80px;padding:4px 0;border-bottom:2px solid #eee;margin-bottom:6px">';
+  for(let i=1;i<=49;i++){
+    const bet = numBets[i]||0;
+    const payout = bet * payMult;
+    const net = totalSales - payout;
+    let color = '#d1fae5'; // green-ish for zero
+    if(bet > 0){
+      color = net < 0 ? '#cf1322' : '#fbbf24'; // red=loss, yellow=profit
+    }
+    const barH = bet > 0 ? Math.max(4, (bet/maxBet)*70) : 2;
+    h += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%" title="${i}号 下注${bet.toFixed(0)}">`;
+    h += `<div style="width:100%;background:${color};border-radius:2px 2px 0 0;min-height:${barH}px"></div>`;
+    h += `</div>`;
+  }
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;font-size:10px;color:#666;margin-bottom:6px">';
+  h += '<span><span style="display:inline-block;width:10px;height:10px;background:#cf1322;border-radius:2px"></span> 赔穿(亏)</span>';
+  h += '<span><span style="display:inline-block;width:10px;height:10px;background:#fbbf24;border-radius:2px"></span> 有注(赚)</span>';
+  h += '<span><span style="display:inline-block;width:10px;height:10px;background:#d1fae5;border-radius:2px"></span> 零额(全收)</span>';
+  h += '</div>';
   // Tiers
   h += '<div style="margin:6px 0">';
   h += `<div style="background:#fef2f2;padding:6px;border-radius:6px;margin-bottom:3px"><b style="color:#cf1322">🔴 高危号（${highNums.length}个 / ${(highNums.length/49*100).toFixed(0)}%）</b><br>开这些号你倒贴：`;
