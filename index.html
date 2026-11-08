@@ -563,7 +563,10 @@ function previewSidePay(){
   const comp = prodSales * mult;
   const profit = totalSales - comp;
   const color = profit >= 0 ? '#1a7f37' : '#cf1322';
-  box.innerHTML = `<div style="font-size:13px">${prod} 卖了 <b>${prodSales.toFixed(2)}</b> × ${mult}倍</div><div style="font-size:13px">赔付：<b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩：<b style="color:${color}">${profit.toFixed(2)}</b></div>`;
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="font-size:14px">${prod} 卖了 <b>${prodSales.toFixed(2)}</b> × ${mult}倍</div>
+<div style="font-size:14px;text-align:right">赔 <b style="color:#cf1322">${comp.toFixed(2)}</b> | 剩 <b style="color:${color}">${profit.toFixed(2)}</b></div>
+</div>`;
 }
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
