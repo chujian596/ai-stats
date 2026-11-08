@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v8.7';
+var APP_VER = 'v8.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1403,88 +1403,53 @@ function parseLine(text){
     codeText = text.slice(0, mGe.index).trim();
   } else {
     const mTotal = text.match(new RegExp(numRe + unitRe + '\\s*$'));
-    if(!mTotal) throw new Error('没找到价格：写“各50”=每个50元；或结尾直接写数字=套餐总价');
+    if(!mTotal) throw new Error('没找到价格');
     isPer = false;
     price = toPriceNum(mTotal[1]);
     codeText = text.slice(0, text.length - mTotal[0].length).trim();
   }
   if(!(price > 0)) throw new Error('价格必须大于0');
-  const zodiacs = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-  // 处理"马龙兔平特肖"这种写法：末尾有"平特肖"或"平特"，前面的生肖全部补"平特"
-  let parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
-  parts = parts.map(part => {
-    // 先处理"特肖X"→X 和 "特X"→X（只匹配开头）
-    part = part.replace(/^特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/, '$1');
-    // 再处理"平X"→"平特X"（只匹配开头的平，不动平特里的特）
-    part = part.replace(/^平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
-    // "平特马龙兔"→"平特马平特龙平特兔"：平特后面连续的生肖都补平特
-    part = part.replace(/平特([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zods) => {
-      let out = '';
-      for(const ch of zods){ out += '平特' + ch; }
-      return out;
-    });
-    let m = part.match(/^(.+?)平特肖?$/);
-    if(m && /[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(m[1]) && !/[0-9]/.test(m[1])){
-      let s = m[1];
-      let result = '';
-      for(const ch of s){
-        if(zodiacs.includes(ch) && products.find(x => x.code === '平特'+ch)){
-          result += '平特' + ch;
-        } else {
-          result += ch;
-        }
-      }
-      return result;
-    }
-    return part;
+  const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
+  // 预处理：统一把输入转成标准产品名
+  // 1. "特肖X"→X, "特X"→X
+  codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1');
+  // 2. "平X"→"平特X"（单独的平+生肖）
+  codeText = codeText.replace(/平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+  // 3. "平特马龙兔"→"平特马平特龙平特兔"
+  codeText = codeText.replace(/平特([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zs) => {
+    return zs.split('').map(c => '平特' + c).join('');
   });
+  // 4. "马龙兔平特肖"→"平特马平特龙平特兔"
+  let em = codeText.match(/^(.+?)平特肖?$/);
+  if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
+    codeText = em[1].split('').map(c => '平特' + c).join('');
+  }
+  // 拆分并逐个识别
+  const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   const codes = [];
-  // 智能拆分：把连在一起的中文套餐名拆开
-  const bundleNames = products.filter(p => !/^\d{2}$/.test(p.code)).map(p => p.code).sort((a,b) => b.length - a.length);
-  let lastWasPingTe = false;
-  for(const p of parts){
-    let rest = p;
+  for(const part of parts){
+    let rest = part;
     while(rest){
       let found = false;
-      // 如果上一个匹配了"平特X"，且当前以生肖开头，自动补"平特"
-      if(lastWasPingTe){
-        for(const z of zodiacs){
-          if(rest.startsWith('平特'+z)){
-            // already has 平特 prefix
-            break;
-          }
-        }
-        // check if rest starts with bare zodiac
-        for(const z of zodiacs){
-          if(rest.startsWith(z) && products.find(x => x.code === '平特'+z)){
-            rest = '平特' + rest;
-            break;
-          }
-        }
-      }
-      for(const bn of bundleNames){
-        if(rest.startsWith(bn)){
-          codes.push(resolveCode(bn));
-          lastWasPingTe = bn.startsWith('平特');
-          rest = rest.slice(bn.length);
+      // 优先匹配长名字
+      const names = products.filter(p => !/^\d{2}$/.test(p.code)).map(p => p.code).sort((a,b) => b.length - a.length);
+      for(const nm of names){
+        if(rest.startsWith(nm)){
+          codes.push(nm);
+          rest = rest.slice(nm.length);
           found = true;
           break;
         }
       }
       if(!found){
-        // 尝试数字编号（只认1-2位，三位以上如100不当产品，直接跳过）
         const m = rest.match(/^(\d{1,2})(?!\d)/);
         if(m){
-          codes.push(resolveCode(m[1]));
+          codes.push(m[1].padStart(2,'0'));
           rest = rest.slice(m[1].length);
         } else {
-          // 跳过开头的中文/文字或三位以上数字（不是产品就当备注忽略），继续找
           const skip = rest.match(/^[^\d]+/) || rest.match(/^\d{3,}/);
-          if(skip){
-            rest = rest.slice(skip[0].length);
-          } else {
-            rest = '';
-          }
+          if(skip) rest = rest.slice(skip[0].length);
+          else rest = '';
         }
       }
     }
