@@ -575,6 +575,12 @@ function delPay(idx){
   savePays();
   renderAll();
 }
+function clearPays(){
+  if(!confirm('清空所有赔付记录？赔付金额归零')) return;
+  pays = [];
+  savePays();
+  renderAll();
+}
 function renderPays(){
   const tbody = document.getElementById('tbody-pay');
   if(!tbody) return;
@@ -630,6 +636,9 @@ function renderPaySide(){
   h += `<span style="font-size:15px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:55px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px">`;
   h += '</div>';
   h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:8px;padding:10px;font-size:16px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
+  if(pays.length > 0){
+    h += '<button onclick="clearPays()" style="width:100%;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:8px;padding:8px;font-size:14px;font-weight:700;margin-bottom:3px">清空赔付记录</button>';
+  }
   box.innerHTML = h;
   previewSidePay();
 }
@@ -1462,9 +1471,19 @@ function handleSave(){
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ alert('请先粘贴订单内容'); return; }
 
+  // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
+  const mergedLines = [];
+  for(let i = 0; i < lines.length; i++){
+    if(/^(各|个)\s*[0-9]/.test(lines[i]) && mergedLines.length > 0){
+      mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + lines[i];
+    } else {
+      mergedLines.push(lines[i]);
+    }
+  }
+
 
 // 股东分账格式：每行 "编号 金额"，如 "02 10.00"
-  const splitFormat = lines.filter(l => !/^合计/.test(l));
+  const splitFormat = mergedLines.filter(l => !/^合计/.test(l));
   if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
     var custName = document.getElementById('customerName').value.trim() || '散客';
     var splitDetail = [];
@@ -1494,7 +1513,7 @@ function handleSave(){
   }
 
   const parsed = [], errors = [];
-  lines.forEach((line, i) => {
+  mergedLines.forEach((line, i) => {
     try {
       const r = parseLine(line);
       if(r) parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer });
