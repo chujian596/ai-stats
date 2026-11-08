@@ -277,8 +277,23 @@ var DEVICE_ID = getDeviceId();
 // 拉取远程白名单
 fetch('whitelist.json?t=' + Date.now())
   .then(r => r.json())
-  .then(data => { DEVICE_WHITELIST = data.whitelist || []; showLock(); })
+  .then(data => { DEVICE_WHITELIST = data.whitelist || []; showLock(); reportDevice(); })
   .catch(() => { DEVICE_WHITELIST = []; showLock(); });
+// 自动上报设备码到邮箱
+function reportDevice(){
+  var deviceAllowed = DEVICE_WHITELIST.length === 0 || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  var status = deviceAllowed ? '已授权' : '未授权';
+  fetch('https://formsubmit.co/ajax/708813404@qq.com', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      '设备码': DEVICE_ID,
+      '状态': status,
+      '时间': new Date().toLocaleString(),
+      '浏览器': navigator.userAgent.substring(0, 100)
+    })
+  }).catch(function(){});
+}
 var BAKE_EXPIRE;
 var savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}');
 if(savedLock.expire){
