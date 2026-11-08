@@ -183,30 +183,12 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-custpay" class="card tab-panel" style="display:none">
-    <div style="font-size:12px;margin-bottom:6px;color:#666">输入商品编号，自动查出哪个客户买了，然后记赔付给该客户</div>
+    <div style="font-size:12px;margin-bottom:6px;color:#666">输入商品编号，查出哪个客户买了，点"赔"按钮直接记赔</div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
       <input id="cpSearch" type="text" placeholder="输入商品号如05" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:14px" oninput="cpLookup()">
       <button onclick="cpLookup()" style="border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700">查询</button>
     </div>
     <div id="cpResult" style="margin-bottom:8px"></div>
-    <div style="border-top:1px solid #eee;padding-top:6px;margin-top:6px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:4px">记客户赔付</div>
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
-        <input id="cpCust" type="text" list="customerList" placeholder="客户名" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
-        <input id="cpAmt" type="number" placeholder="赔付金额" style="width:90px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-        <input id="cpNote" type="text" placeholder="备注(选填)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
-        <button onclick="cpAdd()" style="border:none;background:#cf1322;color:#fff;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700">记入赔付</button>
-      </div>
-    </div>
-    <div style="font-weight:700;font-size:13px;margin:8px 0 4px">📋 客户赔付记录</div>
-    <div class="table-wrap" style="max-height:200px;overflow-y:auto">
-      <table style="font-size:12px">
-        <thead><tr><th>客户</th><th>商品</th><th>赔付额</th><th>备注</th><th>时间</th><th>删</th></tr></thead>
-        <tbody id="tbody-cp"></tbody>
-      </table>
-    </div>
     <div style="font-weight:700;font-size:13px;margin:10px 0 4px">📊 客户盈亏汇总</div>
     <div class="table-wrap">
       <table style="font-size:12px">
@@ -920,7 +902,10 @@ function cpLookup(){
     h += '<div style="padding:6px 0;border-bottom:1px solid #d6e4ff">';
     h += '<div style="display:flex;justify-content:space-between;align-items:center">';
     h += '<span style="font-weight:700">' + esc(k) + ' ×' + matches[k].count + '</span>';
-    h += '<span style="color:#cf1322;font-weight:700">应赔 ' + matches[k].amount.toFixed(2) + '元</span>';
+    h += '<span style="display:flex;align-items:center;gap:6px">';
+    h += '<span style="color:#cf1322;font-weight:700">' + matches[k].amount.toFixed(2) + '元</span>';
+    h += '<button onclick="cpQuickPay(\'' + esc(k) + '\',\'' + code + '\',' + matches[k].amount + ')" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:4px 10px;font-size:12px;font-weight:700">赔</button>';
+    h += '</span>';
     h += '</div>';
     h += '<div style="color:#666;font-size:11px;margin-top:2px;line-height:1.5">';
     matches[k].orders.forEach(o => {
@@ -931,6 +916,14 @@ function cpLookup(){
   });
   h += '</div>';
   document.getElementById('cpResult').innerHTML = h;
+}
+
+function cpQuickPay(cust, code, amt){
+  if(!confirm('给客户「' + cust + '」赔付 ' + amt.toFixed(2) + ' 元？')) return;
+  custpays.unshift({ customer: cust, product: code, amount: amt, note: '商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
+  saveCP();
+  cpLookup();
+  renderCP();
 }
 
 function cpAdd(){
@@ -955,12 +948,6 @@ function cpDelete(idx){
 }
 
 function renderCP(){
-  const tbody = document.getElementById('tbody-cp');
-  if(!tbody) return;
-  tbody.innerHTML = custpays.map((p,i) =>
-    '<tr><td>' + esc(p.customer) + '</td><td>' + esc(p.product||'-') + '</td><td style="color:#cf1322;font-weight:700">-'+Number(p.amount).toFixed(2)+'</td><td>' + esc(p.note||'') + '</td><td style="font-size:10px;color:#999">' + esc(p.time||'') + '</td><td><button onclick="cpDelete('+i+')" style="border:none;background:none;color:#cf1322">删</button></td></tr>'
-  ).join('') || '<tr><td colspan="6" style="color:#999">暂无记录</td></tr>';
-
   // 客户汇总
   const custBuy = {};
   orders.forEach(o => {
