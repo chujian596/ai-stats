@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.0';
+var APP_VER = 'v10.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1464,6 +1464,9 @@ function parseLine(text){
   if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
+  // 5. "连肖马龙"或"马龙二连"或"平特马龙二连"→"连肖马龙"
+  codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})二连/g, '连肖$1');
+  codeText = codeText.replace(/连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/g, '连肖$1');
   // 拆分并逐个识别
   const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
   const codes = [];
@@ -1471,6 +1474,13 @@ function parseLine(text){
     let rest = part;
     while(rest){
       let found = false;
+      // 先识别"连肖XX"（二连肖）
+      const lmM = rest.match(/^连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2})/);
+      if(lmM){
+        codes.push('连肖' + lmM[1]);
+        rest = rest.slice(lmM[0].length);
+        continue;
+      }
       // 优先匹配长名字
       const names = products.filter(p => !/^\d{2}$/.test(p.code)).map(p => p.code).sort((a,b) => b.length - a.length);
       for(const nm of names){
@@ -1841,6 +1851,21 @@ function renderAll(){
 </div>
 </div>`;
       });
+    // 二连肖
+    const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
+    if(lianCodes.length > 0){
+      sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:13px;color:#999;font-weight:700">二连肖（4倍/含马3.5倍）</div>';
+      lianCodes.forEach(c => {
+        const d = sData[c];
+        const hasMa = c.includes('马');
+        const mult = hasMa ? 3.5 : 4;
+        sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;margin-bottom:3px;border-radius:8px;background:#f0f7ff;border-left:3px solid #7c3aed">
+<span style="background:#7c3aed;color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(c.replace('连肖',''))}连</span>
+<span style="font-size:14px;font-weight:700;color:#333">${d.qty}单 × ${mult}倍</span>
+<span style="font-size:15px;font-weight:800;color:#cf1322">${d.amount.toFixed(2)}</span>
+</div>`;
+      });
+    }
     document.getElementById('rank-singles').innerHTML = sh;
   } else {
     document.getElementById('rank-singles').innerHTML = '';
