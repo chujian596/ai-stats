@@ -269,7 +269,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v13.6';
+var APP_VER = 'v13.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1820,6 +1820,11 @@ function handleSave(){
   document.getElementById('input').value = '';
   renderAll();
   switchTab('rank');
+  // 保存后自动展开平特肖列表
+  setTimeout(() => {
+    const sl = document.getElementById('singlesList');
+    if(sl) sl.style.display = 'block';
+  }, 50);
   } catch(err){
     alert('保存出错：' + err.message + '\n\n' + err.stack);
   }
