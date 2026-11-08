@@ -479,10 +479,10 @@ function renderPaySide(){
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   let h = `<div id="payTitle" style="font-weight:700;margin:0 0 4px;font-size:12px;cursor:pointer" ondblclick="var n=prompt('赔付标题:',labels.pay);if(n!==null){labels.pay=n;saveLabels();renderAll();}">${labels.pay}</div>`;
-  h += '<div style="font-size:15px;margin-bottom:8px;line-height:2">';
-  h += `销售 <b style="font-size:24px">${sales.toFixed(2)}</b><br>`;
-  h += `赔付 <b style="font-size:24px;color:#cf1322">-${total.toFixed(2)}</b><br>`;
-  h += `净收入 <b style="font-size:24px;color:#1a7f37">${(sales-total).toFixed(2)}</b>`;
+  h += '<div style="font-size:12px;margin-bottom:4px;line-height:1.6">';
+  h += `销售 <b style="font-size:16px">${sales.toFixed(2)}</b><br>`;
+  h += `赔付 <b style="font-size:16px;color:#cf1322">-${total.toFixed(2)}</b><br>`;
+  h += `净收入 <b style="font-size:16px;color:#1a7f37">${(sales-total).toFixed(2)}</b>`;
   h += '</div>';
   // 最近赔付记录
   if(pays.length > 0){
@@ -501,7 +501,7 @@ function renderPaySide(){
   h += '</select>';
   h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${payMult}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
-  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:8px;font-size:17px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
+  h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   h += '<div id="sidePayResult" style="font-size:10px;min-height:14px;color:#cf1322"></div>';
   box.innerHTML = h;
 }
