@@ -1475,6 +1475,7 @@ function handleSave(){
   const mergedLines = [];
   for(let i = 0; i < lines.length; i++){
     if(/^(共|合计)/.test(lines[i])) continue; // 跳过合计行
+    if(!/\d/.test(lines[i])) continue; // 跳过没有数字的行（客户名等）
     if(/^(各|个)\s*[0-9]/.test(lines[i]) && mergedLines.length > 0){
       mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + lines[i];
     } else {
