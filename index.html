@@ -264,7 +264,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v10.8';
+var APP_VER = 'v10.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -645,7 +645,7 @@ function renderPaySide(){
   h += `<input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){previewSidePay();renderSideCustPay();}" style="width:100%;height:36px;border:1px solid #ddd;border-radius:6px;padding:0;font-size:14px;text-align:center;color:#666;box-sizing:border-box">`;
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:1.5;justify-content:flex-end">';
-  h += '<span style="font-size:10px;color:#fff;margin-bottom:2px">&nbsp;</span>';
+  h += '<span style="font-size:10px;color:#999;margin-bottom:2px">开奖号</span>';
   h += `<button id="sidePayProductBtn" onclick="openProdPicker()" onlongpress="editProdBtnLabel()" style="width:100%;height:36px;border:1px solid #ddd;border-radius:6px;padding:0;font-size:14px;background:#fff;text-align:center;min-width:0;white-space:nowrap;overflow:hidden;-webkit-touch-callout:none">${btnLabel}</button>`;
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:flex-end">';
@@ -653,7 +653,7 @@ function renderPaySide(){
   h += `<input id="sideLianXiao" type="text" placeholder="马龙" maxlength="2" style="width:100%;height:36px;border:1px solid #7c3aed;border-radius:6px;padding:0;font-size:14px;text-align:center;color:#7c3aed;box-sizing:border-box" onchange="setLianXiao(this.value)">`;
   h += '</div>';
   h += '<div style="display:flex;flex-direction:column;align-items:center;flex:0.8;justify-content:flex-end">';
-  h += '<span style="font-size:10px;color:#fff;margin-bottom:2px">&nbsp;</span>';
+  h += '<span style="font-size:10px;color:#999;margin-bottom:2px">清除</span>';
   h += `<button onclick="sidePayReset()" style="width:100%;height:36px;border:none;border-radius:6px;padding:0;font-size:14px;background:#1f6feb;color:#fff;white-space:nowrap;font-weight:700">复位</button>`;
   h += '</div>';
   h += '</div>';
@@ -1873,22 +1873,21 @@ function renderAll(){
     sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
+      .filter(x => x.d.amount > 0)
       .sort((a,b) => {
         const za = zodOrder.indexOf(a.p.code.replace('平特',''));
         const zb = zodOrder.indexOf(b.p.code.replace('平特',''));
         return za - zb;
       })
       .forEach(({p, d}) => {
-        const active = d.amount > 0;
-        const bg = active ? '#fff7f7' : '#fafafa';
         const badgeColor = p.code === '平特马' ? '#fa8c16' : '#1f6feb';
-        sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;margin-bottom:3px;border-radius:8px;background:${bg};border-left:3px solid ${active ? badgeColor : '#eee'}">
+        sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;margin-bottom:3px;border-radius:8px;background:#fff7f7;border-left:3px solid ${badgeColor}">
 <div style="display:flex;align-items:center;gap:6px">
-<span style="background:${active ? badgeColor : '#e8e8e8'};color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(p.code.replace('平特',''))}</span>
+<span style="background:${badgeColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(p.code.replace('平特',''))}</span>
 </div>
 <div style="display:flex;gap:12px;align-items:center">
-<span style="font-size:14px;font-weight:700;color:${active ? '#333' : '#bbb'}">${d.qty}单</span>
-<span style="font-size:16px;font-weight:800;color:${active ? '#cf1322' : '#ccc'};min-width:60px;text-align:right">${d.amount.toFixed(2)}</span>
+<span style="font-size:14px;font-weight:700;color:#333">${d.qty}单</span>
+<span style="font-size:16px;font-weight:800;color:#cf1322;min-width:60px;text-align:right">${d.amount.toFixed(2)}</span>
 </div>
 </div>`;
       });
