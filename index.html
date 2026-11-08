@@ -1373,8 +1373,9 @@ function renderAll(){
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
+  const allCustNames = Array.from(new Set([...roster, ...custRows.map(r => r.name)]));
   document.getElementById('customerList').innerHTML =
-    custRows.map(r => `<option value="${esc(r.name)}">`).join('');
+    allCustNames.map(n => `<option value="${esc(n)}">`).join('');
 
   const selected = document.getElementById('customerName').value.trim();
   const allNames = Array.from(new Set([...roster, ...Object.keys(custMap)]));
