@@ -104,6 +104,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <button class="tab" id="tab-btn-cust" onclick="switchTab('cust')">客户统计</button>
     <button class="tab" id="tab-btn-orders" onclick="switchTab('orders')">订单记录</button>
     <button class="tab" id="tab-btn-pay" onclick="switchTab('pay')">赔付</button>
+    <button class="tab" id="tab-btn-custpay" onclick="switchTab('custpay')">客赔</button>
     <button class="tab" id="tab-btn-split" onclick="switchTab('split')">分账</button>
     <!-- <button class="tab" id="tab-btn-settings" onclick="switchTab('settings')">产品设置</button> -->
   </div>
@@ -177,6 +178,40 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <table>
         <thead><tr><th>产品</th><th>金额</th><th>备注</th><th>时间</th><th>删</th></tr></thead>
         <tbody id="tbody-pay"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-custpay" class="card tab-panel" style="display:none">
+    <div style="font-size:12px;margin-bottom:6px;color:#666">输入商品编号，自动查出哪个客户买了，然后记赔付给该客户</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <input id="cpSearch" type="text" placeholder="输入商品号如05" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:14px" oninput="cpLookup()">
+      <button onclick="cpLookup()" style="border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700">查询</button>
+    </div>
+    <div id="cpResult" style="margin-bottom:8px"></div>
+    <div style="border-top:1px solid #eee;padding-top:6px;margin-top:6px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">记客户赔付</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+        <input id="cpCust" type="text" list="customerList" placeholder="客户名" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
+        <input id="cpAmt" type="number" placeholder="赔付金额" style="width:90px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <input id="cpNote" type="text" placeholder="备注(选填)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">
+        <button onclick="cpAdd()" style="border:none;background:#cf1322;color:#fff;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700">记入赔付</button>
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px">📋 客户赔付记录</div>
+    <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+      <table style="font-size:12px">
+        <thead><tr><th>客户</th><th>商品</th><th>赔付额</th><th>备注</th><th>时间</th><th>删</th></tr></thead>
+        <tbody id="tbody-cp"></tbody>
+      </table>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin:10px 0 4px">📊 客户盈亏汇总</div>
+    <div class="table-wrap">
+      <table style="font-size:12px">
+        <thead><tr><th>客户</th><th>消费额</th><th>已赔付</th><th>剩余利润</th></tr></thead>
+        <tbody id="tbody-cpsum"></tbody>
       </table>
     </div>
   </section>
@@ -470,6 +505,7 @@ function renderPays(){
   ).join('') : '<tr><td colspan="5" style="color:#999">暂无赔付记录</td></tr>';
   renderPaySide();
   renderSplitSide();
+  renderCP();
 }
 
 // 主页面右侧赔付摘要（与「赔付」标签页同一份数据）
@@ -952,7 +988,97 @@ function handleSave(){
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ alert('请先粘贴订单内容'); return; }
 
-  // 股东分账格式：每行 "编号 金额"，如 "02 10.00"
+  // ===== 客户赔付 =====
+const CP_KEY = sk('product_stats_custpay_v1');
+let custpays = [];
+try { custpays = JSON.parse(localStorage.getItem(CP_KEY) || '[]'); } catch(e){ custpays = []; }
+function saveCP(){ try { localStorage.setItem(CP_KEY, JSON.stringify(custpays)); } catch(e){} }
+
+function cpLookup(){
+  const code = document.getElementById('cpSearch').value.trim();
+  if(!code){ document.getElementById('cpResult').innerHTML=''; return; }
+  const matches = {};
+  orders.forEach(o => {
+    const codes = o.codes || [];
+    const cnt = codes.filter(c => c === code).length;
+    if(cnt > 0){
+      const cust = o.customer || '散客';
+      if(!matches[cust]) matches[cust] = { count: 0, amount: 0 };
+      matches[cust].count += cnt;
+      matches[cust].amount += (Number(o.price)||0) * cnt;
+    }
+  });
+  const keys = Object.keys(matches);
+  if(keys.length === 0){
+    document.getElementById('cpResult').innerHTML = '<div style="padding:8px;color:#999;font-size:12px">没有客户买过商品 ' + code + '</div>';
+    return;
+  }
+  let h = '<div style="background:#f0f5ff;border-radius:6px;padding:8px;font-size:12px">';
+  h += '<div style="font-weight:700;margin-bottom:4px">商品 ' + code + ' 买客：</div>';
+  keys.forEach(k => {
+    h += '<div style="padding:3px 0;border-bottom:1px solid #d6e4ff;display:flex;justify-content:space-between">';
+    h += '<span>' + k + ' ×' + matches[k].count + '单</span>';
+    h += '<span style="color:#1f6feb;font-weight:700">' + matches[k].amount.toFixed(2) + '元</span>';
+    h += '</div>';
+  });
+  h += '</div>';
+  document.getElementById('cpResult').innerHTML = h;
+}
+
+function cpAdd(){
+  const cust = document.getElementById('cpCust').value.trim();
+  const amt = parseFloat(document.getElementById('cpAmt').value) || 0;
+  const note = document.getElementById('cpNote').value.trim();
+  const code = document.getElementById('cpSearch').value.trim();
+  if(!cust){ alert('请填客户名'); return; }
+  if(amt <= 0){ alert('请填赔付金额'); return; }
+  custpays.unshift({ customer: cust, product: code, amount: amt, note: note, time: new Date().toLocaleString('zh-CN') });
+  saveCP();
+  document.getElementById('cpAmt').value = '';
+  document.getElementById('cpNote').value = '';
+  renderCP();
+}
+
+function cpDelete(idx){
+  if(!confirm('删除这条赔付？')) return;
+  custpays.splice(idx, 1);
+  saveCP();
+  renderCP();
+}
+
+function renderCP(){
+  const tbody = document.getElementById('tbody-cp');
+  if(!tbody) return;
+  tbody.innerHTML = custpays.map((p,i) =>
+    '<tr><td>' + esc(p.customer) + '</td><td>' + esc(p.product||'-') + '</td><td style="color:#cf1322;font-weight:700">-'+Number(p.amount).toFixed(2)+'</td><td>' + esc(p.note||'') + '</td><td style="font-size:10px;color:#999">' + esc(p.time||'') + '</td><td><button onclick="cpDelete('+i+')" style="border:none;background:none;color:#cf1322">删</button></td></tr>'
+  ).join('') || '<tr><td colspan="6" style="color:#999">暂无记录</td></tr>';
+
+  // 客户汇总
+  const custBuy = {};
+  orders.forEach(o => {
+    const c = o.customer || '散客';
+    if(!custBuy[c]) custBuy[c] = 0;
+    custBuy[c] += Number(o.amount)||0;
+  });
+  const custPaid = {};
+  custpays.forEach(p => {
+    if(!custPaid[p.customer]) custPaid[p.customer] = 0;
+    custPaid[p.customer] += Number(p.amount)||0;
+  });
+  const allCusts = new Set([...Object.keys(custBuy), ...Object.keys(custPaid)]);
+  const sumTbody = document.getElementById('tbody-cpsum');
+  if(sumTbody){
+    sumTbody.innerHTML = [...allCusts].map(c => {
+      const bought = custBuy[c]||0;
+      const paid = custPaid[c]||0;
+      const net = bought - paid;
+      const color = net < 0 ? '#cf1322' : '#1a7f37';
+      return '<tr><td>' + esc(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#cf1322">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:700">'+net.toFixed(2)+'</td></tr>';
+    }).join('') || '<tr><td colspan="4" style="color:#999">暂无数据</td></tr>';
+  }
+}
+
+// 股东分账格式：每行 "编号 金额"，如 "02 10.00"
   const splitFormat = lines.filter(l => !/^合计/.test(l));
   if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
     var custName = document.getElementById('customerName').value.trim() || '散客';
@@ -1229,6 +1355,7 @@ function renderAll(){
   }
   renderPaySide();
   renderSplitSide();
+  renderCP();
 
   const custRows = Object.keys(custMap).map(name => ({
     name,
