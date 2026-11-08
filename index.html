@@ -420,21 +420,41 @@ function addPay(){
 function showAutoPay(){
   savePayMult();
   const prod = document.getElementById('autoPayProduct').value;
-  if(!prod){ document.getElementById('autoPayResult').textContent = ''; return; }
-  // 该产品自己的销售额
+  if(!prod){ document.getElementById('autoPayResult').innerHTML = ''; return; }
+  // 该产品自己的销售额 + 按客户统计
   let prodSales = 0;
+  const custMap = {};
   orders.forEach(o => {
     const codes = o.codes || [];
     const times = codes.filter(c => c === prod).length;
-    prodSales += (Number(o.price)||0) * times;
+    if(times > 0){
+      const amt = (Number(o.price)||0) * times;
+      prodSales += amt;
+      const cust = o.customer || '散客';
+      if(!custMap[cust]) custMap[cust] = 0;
+      custMap[cust] += amt;
+    }
   });
   // 总销售额
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * payMult;
   const profit = totalSales - comp;
   const color = profit >= 0 ? '#0a0' : '#cf1322';
-  document.getElementById('autoPayResult').innerHTML =
-    `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
+  let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总销售 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${color};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
+  // 显示哪些客户买了这个产品
+  const custKeys = Object.keys(custMap);
+  if(custKeys.length > 0){
+    h += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #ddd">';
+    h += '<div style="font-weight:700;margin-bottom:4px">需赔付客户：</div>';
+    custKeys.forEach(k => {
+      h += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px">';
+      h += '<span>' + esc(k) + '</span>';
+      h += '<span style="color:#cf1322;font-weight:700">' + (custMap[k]*payMult).toFixed(2) + '元</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  document.getElementById('autoPayResult').innerHTML = h;
 }
 function autoPay(){
   savePayMult();
@@ -1394,7 +1414,7 @@ function renderAll(){
     chipRow.innerHTML = mergedRows.map(r => {
       const on = (r.name === selected) ? ' on' : '';
       const cnt = r.orders > 0 ? `${r.orders}单` : '新';
-      return `<span class="chip${on}" style="position:relative">${esc(r.name)}<span class="cnt">${cnt}</span><span onclick="event.stopPropagation();removeRoster('${esc(r.name)}')" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#e74c3c;color:#fff;font-size:10px;line-height:16px;text-align:center;cursor:pointer">×</span></span>`;
+      return `<span class="chip${on}" style="position:relative;cursor:pointer" onclick="selectCustomer('${esc(r.name)}')">${esc(r.name)}<span class="cnt">${cnt}</span><span onclick="event.stopPropagation();removeRoster('${esc(r.name)}')" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#e74c3c;color:#fff;font-size:10px;line-height:16px;text-align:center;cursor:pointer">×</span></span>`;
     }).join('');
   }
 
