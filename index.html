@@ -268,7 +268,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v14.4';
+var APP_VER = 'v14.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2051,16 +2051,23 @@ function renderOrdersList(){
     h += `</div></div>`;
     h += `<div id="od_${gi}" style="display:none;padding:6px 8px">`;
     g.orders.forEach(({o, idx}) => {
-      const codes = (o.codes||[]).join(' ');
       const wd = calcOrderWinDetail(o);
       h += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5">`;
-      h += `<div style="display:flex;justify-content:space-between"><span style="color:#666">${esc(codes.substring(0,40))}</span><span style="color:#cf1322;font-weight:700">${Number(o.amount).toFixed(2)}</span></div>`;
+      // Show original lines
+      const rawLines = (o.raw||'').split('; ').filter(Boolean);
+      if(rawLines.length){
+        rawLines.forEach(rl => {
+          h += `<div style="color:#666;margin-bottom:1px">${esc(rl)}</div>`;
+        });
+      } else {
+        h += `<div style="color:#666">${esc((o.codes||[]).join(' '))}</div>`;
+      }
       if(wd.lines.length){
         wd.lines.forEach(l => {
           h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
         });
       }
-      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;margin-top:2px"><span style="font-size:10px;color:#999">${esc((o.createdAt||'').substring(5))} 合计:${Number(o.amount).toFixed(2)}</span><button onclick="delOrder(${idx})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:1px 6px;font-size:10px">删</button></div>`;
       h += `</div>`;
     });
     h += `</div></div>`;
@@ -2077,7 +2084,8 @@ function copyCustOrders(cust){
       totalBet += Number(o.amount)||0;
       const wd = calcOrderWinDetail(o);
       totalWin += wd.total;
-      lines.push((o.codes||[]).join(' ') + ' = ' + Number(o.amount).toFixed(2));
+      const rawLines = (o.raw||'').split('; ').filter(Boolean);
+      rawLines.forEach(rl => lines.push(rl));
       wd.lines.forEach(l => lines.push('  命中: ' + l));
     }
   });
