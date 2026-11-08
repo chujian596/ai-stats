@@ -386,10 +386,13 @@ function delOrder(idx){
 // 赔付记录
 const PAY_KEY = sk('product_stats_pay_v1');
 const PAY_MULT_KEY = sk('product_stats_pay_mult_v1');
+const PAY_MULT_SINGLE_KEY = sk('product_stats_pay_mult_single_v1');
 let pays = [];
 let payMult = 1;
+let payMultSingle = 1;
 try { pays = JSON.parse(localStorage.getItem(PAY_KEY) || '[]'); } catch(e){ pays = []; }
 try { payMult = parseFloat(localStorage.getItem(PAY_MULT_KEY) || '1') || 1; } catch(e){ payMult = 1; }
+try { payMultSingle = parseFloat(localStorage.getItem(PAY_MULT_SINGLE_KEY) || '1') || 1; } catch(e){ payMultSingle = 1; }
 function savePays(){ try { localStorage.setItem(PAY_KEY, JSON.stringify(pays)); } catch(e){} }
 function savePayMult(){ payMult = parseFloat(document.getElementById('payMult').value) || 1; try { localStorage.setItem(PAY_MULT_KEY, payMult); } catch(e){} }
 function addPay(){
@@ -532,6 +535,7 @@ function renderPaySide(){
   products.filter(p => p.single).forEach(p => { h += `<option value="${esc(p.code)}"${savedSel===p.code+'(单)'?' selected':''}>${esc(p.code)}(单)</option>`; });
   h += '</select>';
   h += `<span style="font-size:11px">倍数</span><input id="sidePayMult" type="number" step="0.5" value="${savedMult}" onchange="payMult=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_KEY,payMult);}catch(e){renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
+  h += `<span style="font-size:11px;color:#999">单品倍数</span><input id="sidePayMultSingle" type="number" step="0.5" value="${payMultSingle}" onchange="payMultSingle=parseFloat(this.value)||1;try{localStorage.setItem(PAY_MULT_SINGLE_KEY,payMultSingle);}catch(e){renderSideCustPay();}" style="width:40px;border:1px solid #ddd;border-radius:4px;padding:5px;font-size:12px">`;
   h += '</div>';
   h += '<button onclick="sidePayCalc()" style="width:100%;border:none;background:#1f6feb;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700;margin-bottom:3px">按倍数记赔付</button>';
   h += '<div id="sidePayResult" style="font-size:10px;min-height:14px;color:#cf1322"></div>';
@@ -560,8 +564,13 @@ function renderSideCustPay(){
   if(!box) return;
   const prodSel = document.getElementById('sidePayProduct');
   const multInput = document.getElementById('sidePayMult');
-  const prod = prodSel ? prodSel.value : '';
-  const mult = multInput ? (parseFloat(multInput.value)||1) : payMult;
+  const multSingleInput = document.getElementById('sidePayMultSingle');
+  const rawProd = prodSel ? prodSel.value : '';
+  const isSingle = rawProd.endsWith('(单)');
+  const prod = rawProd.replace('(单)','');
+  const mult = isSingle
+    ? (multSingleInput ? (parseFloat(multSingleInput.value)||1) : payMultSingle)
+    : (multInput ? (parseFloat(multInput.value)||1) : payMult);
   if(!prod){
     box.innerHTML = '<div style="color:#999;padding:4px">选上面产品号后，这里显示要赔给哪些客户</div>';
     return;
@@ -626,10 +635,15 @@ function renderSideCustPay(){
   box.innerHTML = h;
 }
 function sidePayCalc(){
-  const prod = document.getElementById('sidePayProduct').value;
-  if(!prod){ alert('选产品'); return; }
-  payMult = parseFloat(document.getElementById('sidePayMult').value) || 1;
-  try { localStorage.setItem(PAY_MULT_KEY, payMult); } catch(e){}
+  const rawProd = document.getElementById('sidePayProduct').value;
+  if(!rawProd){ alert('选产品'); return; }
+  const isSingle = rawProd.endsWith('(单)');
+  const prod = rawProd.replace('(单)','');
+  const mult = isSingle
+    ? (parseFloat(document.getElementById('sidePayMultSingle').value)||1)
+    : (parseFloat(document.getElementById('sidePayMult').value)||1);
+  if(isSingle){ payMultSingle = mult; try { localStorage.setItem(PAY_MULT_SINGLE_KEY, payMultSingle); } catch(e){} }
+  else { payMult = mult; try { localStorage.setItem(PAY_MULT_KEY, payMult); } catch(e){} }
   let prodSales = 0;
   orders.forEach(o => {
     const codes = o.codes || [];
@@ -637,10 +651,10 @@ function sidePayCalc(){
     prodSales += (Number(o.price)||0) * times;
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
-  const comp = prodSales * payMult;
+  const comp = prodSales * mult;
   const profit = totalSales - comp;
-  if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${payMult} = 赔${comp.toFixed(2)}\n总销售${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
-    pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
+  if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总销售${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
+    pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${mult}`, time: new Date().toLocaleString('zh-CN') });
     savePays();
     renderAll();
   }
