@@ -294,8 +294,12 @@ fetch('whitelist.json?t=' + Date.now())
   .then(r => r.json())
   .then(data => { DEVICE_WHITELIST = data.whitelist || []; whitelistActive = DEVICE_WHITELIST.length > 0; showLock(); reportDevice(); })
   .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; showLock(); });
-// 自动上报设备码到邮箱
+// 自动上报设备码到邮箱（每台设备每小时最多报一次）
 function reportDevice(){
+  var lastReport = parseInt(localStorage.getItem('lastReport_' + DEVICE_ID) || '0');
+  var now = Date.now();
+  if(now - lastReport < 3600000) return; // 1小时内不重复报
+  localStorage.setItem('lastReport_' + DEVICE_ID, now);
   var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   var status = deviceAllowed ? '已授权' : '未授权';
   fetch('https://formsubmit.co/ajax/3f2f34c3ad4d0551a27a541f5ea979d4', {
