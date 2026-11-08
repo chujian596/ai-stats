@@ -148,10 +148,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
     </div>
     </div>
-    <div style="margin-top:6px;font-size:12px;border-top:1px solid #eee;padding-top:4px">
-      <div id="rank-singles" style="margin-bottom:8px"></div>
-      <div id="rank-split" style="border-top:1px dashed #e5e5e5;padding-top:6px"></div>
-      <div id="rank-pay" style="border-top:1px dashed #e5e5e5;padding-top:6px;margin-top:6px"></div>
+    <div style="margin-top:6px;border-top:1px solid #eee;padding-top:4px">
+      <div id="rank-singles"></div>
+      <div id="rank-split"></div>
+      <div id="rank-pay"></div>
     </div>
     <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">⚠️ 风险评估 ▶</div>
     <div id="riskBody" style="display:none"></div>
@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v18.4';
+var APP_VER = 'v18.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
