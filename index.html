@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v16.8';
+var APP_VER = 'v16.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1180,7 +1180,7 @@ function calcSplit(){
     if(kept > maxKept) maxKept = kept;
   });
   const worstPayout = maxKept * payMult;
-  const worstNet = total - worstPayout + rebate;
+  const worstNet = (total - partner) - worstPayout + rebate;
   document.getElementById('splitSummary').innerHTML =
     `<div style="line-height:2">` +
     `<div>总单金额：<b>${total.toFixed(2)}</b> | 阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
@@ -2270,7 +2270,7 @@ function renderRisk(){
   const cappedMaxBet = splitTakeAll > 0 ? Math.min(numBets[sorted[0]]||0, splitTakeAll) : (numBets[sorted[0]]||0);
   const afterFlyPayout = cappedMaxBet * payMult;
   const flyRebate = currentFly * 0.03;
-  const afterFlyNet = totalSales - afterFlyPayout + flyRebate;
+  const afterFlyNet = (totalSales - currentFly) - afterFlyPayout + flyRebate;
   const breakevenThreshold = totalSales / payMult;
   h += `<div style="margin-top:6px;padding:8px;background:#faf5ff;border-radius:8px;font-size:11px">`;
   h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:4px">🔗 飞单阈值（调了实时生效）</div>`;
