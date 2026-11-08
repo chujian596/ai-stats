@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v16.7';
+var APP_VER = 'v16.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1020,8 +1020,8 @@ function updateTitles(){
   if(rp && rp.firstChild && rp.firstChild.style && rp.firstChild.style.fontWeight) rp.firstChild.textContent = labels.pay;
 }
 const SPLIT_KEY = sk('product_stats_split_v1');
-let splitTakeAll = 0;
-try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '0') || 0; } catch(e){ splitTakeAll = 0; }
+let splitTakeAll = 100;
+try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100; } catch(e){ splitTakeAll = 100; }
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
 function getSplitSales(){
   const sales = {};
@@ -1036,8 +1036,12 @@ function getSplitSales(){
 function renderSplit(){
   const tbody = document.getElementById('tbody-split');
   if(!tbody) return;
-  // 先同步输入框的值
-  splitTakeAll = parseFloat(document.getElementById('splitTakeAll').value) || 0;
+  // 同步输入框的值（如果存在且非空才覆盖）
+  const stInput = document.getElementById('splitTakeAll');
+  if(stInput && stInput.value !== ''){ splitTakeAll = parseFloat(stInput.value) || 0; }
+  const riInput = document.getElementById('riskThresholdInput');
+  if(riInput && riInput.value !== ''){ splitTakeAll = parseFloat(riInput.value) || 0; }
+  if(stInput) stInput.value = splitTakeAll;
   saveSplitAll();
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
@@ -1161,7 +1165,8 @@ function toggleSplit(){
   if(splitVisible) calcSplit();
 }
 function calcSplit(){
-  splitTakeAll = parseFloat(document.getElementById('splitTakeAll').value) || 0;
+  const stInput = document.getElementById('splitTakeAll');
+  if(stInput && stInput.value !== ''){ splitTakeAll = parseFloat(stInput.value) || 0; }
   saveSplitAll();
   const sales = getSplitSales();
   const keys = Object.keys(sales);
