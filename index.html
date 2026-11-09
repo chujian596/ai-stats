@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v24.2';
+var APP_VER = 'v24.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1790,7 +1790,7 @@ function parseLine(text){
   }
   // "03.04.06.05.49复二" 或 "03 04 06 05 49 复二"
   codeText = codeText.replace(/((?:\d{2}[.、\s])+\d{2})\s*复([二三])/g, (m, numStr, k) => {
-    const nums = numStr.split(/[.、\s]/).filter(x=>/^\d{2}$/.test(x));
+    const nums = numStr.split(/[.、\s]/).filter(x=>/^\d{2}$/.test(x)).sort();
     const kNum = k === '二' ? 2 : 3;
     const prod = k === '二' ? '二中二' : '三中三';
     const combos = comb(nums, kNum);
@@ -1982,8 +1982,16 @@ function handleSave(){
       codeAmts[c] = (codeAmts[c]||0) + unit;
     });
     totalAmount += amount;
-    const modeTxt = p.isPer ? '×' : '=';
-    results.push(`${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`);
+    // 格式化显示：复式组合折叠显示
+    let display;
+    if(p.codes[0] && p.codes[0].indexOf(':') >= 0){
+      const prod = p.codes[0].split(':')[0];
+      display = `${prod}(${p.codes.length}组) 每组${p.price}元 = ${amount.toFixed(2)}元`;
+    } else {
+      const modeTxt = p.isPer ? '×' : '=';
+      display = `${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`;
+    }
+    results.push(display);
   });
   orders.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
