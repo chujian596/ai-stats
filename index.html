@@ -297,7 +297,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.9';
+var APP_VER = 'v32.0';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -958,7 +958,7 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 股东分账') + '</div>';
+  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 飞单统计') + '</div>';
   h += '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:15px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0">`;
@@ -1086,7 +1086,7 @@ function sidePayCalc(){
 
 // 板块名称自定义
 const LABEL_KEY = sk('product_stats_labels_v1');
-var labels = { singles: '📦 单品累计（按金额排序）', pay: '💸 赔付/利润', split: '📊 股东分账', mainTitle: 'AI云统计系统', bundleBtn: '套餐模式', singleBtn: '单品模式', prodBtn: '选特号' };
+var labels = { singles: '📦 单品累计（按金额排序）', pay: '💸 赔付/利润', split: '📊 飞单统计', mainTitle: 'AI云统计系统', bundleBtn: '套餐模式', singleBtn: '单品模式', prodBtn: '选特号' };
 try { Object.assign(labels, JSON.parse(localStorage.getItem(LABEL_KEY)||'{}')); } catch(e){}
 // 强制更新系统名
 if(labels.mainTitle === 'AI数据统计系统'){ labels.mainTitle = 'AI云统计系统'; saveLabels(); }
