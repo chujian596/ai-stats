@@ -120,7 +120,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <button class="tab" id="tab-btn-cust" onclick="switchTab('cust')">客户统计</button>
     <button class="tab" id="tab-btn-orders" onclick="switchTab('orders')">订单记录</button>
     <button class="tab" id="tab-btn-pay" onclick="switchTab('pay')">盈亏</button>
-    <button class="tab" id="tab-btn-split" onclick="switchTab('split')">飞单</button>
+    <button class="tab" id="tab-btn-split" onclick="switchTab('split')" style="display:none">飞单</button>
     <!-- <button class="tab" id="tab-btn-settings" onclick="switchTab('settings')">产品设置</button> -->
   </div>
 
@@ -337,7 +337,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.5';
+var APP_VER = 'v36.6';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
