@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v22.1';
+var APP_VER = 'v22.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1024,6 +1024,8 @@ let splitTakeAll = 100;
 try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100; } catch(e){ splitTakeAll = 100; }
 let pteFlyTakeAll = 0;
 try { pteFlyTakeAll = parseFloat(localStorage.getItem('pteFlyTakeAll') || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
+let lxFlyAmt = 0;
+try { lxFlyAmt = parseFloat(localStorage.getItem('lxFlyAmt') || '0') || 0; } catch(e){ lxFlyAmt = 0; }
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
 function getSplitSales(){
   const sales = {};
@@ -2293,6 +2295,8 @@ function renderRisk(){
       }
     });
   });
+  // 连肖飞单：飞出去的注码按2连4倍算赔付扣除
+  if(lxFlyAmt > 0){ lxPayout = Math.max(0, lxPayout - lxFlyAmt * 4); }
   const totalOtherPayout = ptePayout + lxPayout;
   const worstNum = sorted[0];
   const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : (numBets[worstNum]||0);
@@ -2479,6 +2483,7 @@ function renderRisk(){
   h += `<div style="font-weight:700;color:#7c3aed;margin-bottom:6px;font-size:15px">🔗 飞单阈值（调了实时生效）</div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>特号每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>平特每肖上限</span><input type="number" id="pteFlyInput" value="${pteFlyTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="pteFlyTakeAll=parseFloat(document.getElementById('pteFlyInput').value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};renderRisk()" style="border:none;background:#e67e22;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
+  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>连肖飞单</span><input type="number" id="lxFlyInput" value="${lxFlyAmt}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元注</span><button onclick="lxFlyAmt=parseFloat(document.getElementById('lxFlyInput').value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:none;background:#0891b2;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
   h += `<div style="display:flex;gap:6px">`;
   // 真正计算：给定阈值T，算最坏净盈亏
   function worstAt(T){
@@ -2519,6 +2524,9 @@ function renderRisk(){
   h += `<div style="display:flex;justify-content:space-between"><span>飞出去（特号那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
   if(pteFlyAmt > 0){
     h += `<div style="display:flex;justify-content:space-between"><span>飞出去（平特那边赔）</span><b style="color:#cf1322">${pteFlyAmt.toFixed(0)}</b></div>`;
+  }
+  if(lxFlyAmt > 0){
+    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（连肖那边赔）</span><b style="color:#cf1322">${lxFlyAmt.toFixed(0)}</b></div>`;
   }
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCash.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 特号赔付</span><span>${specialPayout.toFixed(0)}</span></div>`;
