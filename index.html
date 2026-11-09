@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v20.3';
+var APP_VER = 'v20.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1894,13 +1894,13 @@ function handleSave(){
     saveRoster();
   }
   document.getElementById('input').value = '';
-  let msg = '本次已保存：' + results.join('；');
+  let msg = '本次已保存：' + results.join('；') + `；合计<span style="color:#7c3aed;font-size:18px;font-weight:700">${totalAmount.toFixed(2)}元</span>`;
   if(notes.length) msg += '\n⚠ ' + notes.join('\n⚠ ');
   if(!storageOK){
     msg += '\n⚠ 当前浏览器不允许本地保存，刷新后数据会丢失，已自动下载备份JSON，请收好！';
     try { exportBackup(); } catch(e){}
   }
-  document.getElementById('saveMsg').textContent = msg;
+  document.getElementById('saveMsg').innerHTML = msg.replace(/\n/g,'<br>');
   document.getElementById('input').value = '';
   renderAll();
   switchTab('rank');
