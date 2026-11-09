@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v33.6';
+var APP_VER = 'v33.7';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2321,7 +2321,7 @@ function handleSave(){
     ln = ln.replace(/^新澳/, '').replace(/[、，,]\s*$/, '').trim();
     if(/^(共|合计)/.test(ln)) continue;
     if(!/\d/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
-    if(/^(各|个)\s*[0-9]/.test(ln) && mergedLines.length > 0){
+    if(/^(各|个)(?:数|号|个|件|样|款|肖|组)?\s*[0-9]/.test(ln) && mergedLines.length > 0){
       mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + ln;
     } else {
       mergedLines.push(ln);
@@ -2714,7 +2714,7 @@ function renderOrdersList(){
     h += `<div onclick="var e=document.getElementById('od_${gi}');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;background:#f8f9fa;cursor:pointer">`;
     h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
     h += `<span style="font-weight:700;font-size:14px">${maskName(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></span>`;
-    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
+    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
     h += `</div>`;
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
     h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
@@ -2739,7 +2739,7 @@ function renderOrdersList(){
           h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
         });
       }
-      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:15px;font-weight:700;color:#7c3aed">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="delOrder(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:6px;padding:6px 14px;font-size:14px">删除</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:15px;font-weight:700;color:#7c3aed">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="delOrder(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
       h += `</div>`;
     });
     h += `</div></div>`;
