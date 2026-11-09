@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.2';
+var APP_VER = 'v36.3';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1194,45 +1194,101 @@ function renderSideCustPay(){
   if(!box) return;
   const multInput = document.getElementById('sidePayMult');
   const multSingleInput = document.getElementById('sidePayMultSingle');
-  const rawProd = sidePaySel;
-  if(!rawProd){
-    box.innerHTML = '<div style="color:#999;padding:4px">输入吃码阀值，自动更新（飞单表格）</div>';
-    return;
-  }
-  const prods = rawProd.split(',');
-  const custMap = {};
-  prods.forEach(raw => {
-    const isSingle = raw.endsWith('(单)');
-    const prod = raw.replace('(单)','');
+  let h = '<div style="margin-top:6px;font-size:15px"></div>';
+  // 开奖后：自动显示所有中奖产品的客户赔付
+  if(lastDraw && lastDraw.specialNum){
+    const regular = lastDraw.regularNums || [];
+    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+    // 收集所有中奖code及其倍数和客户
+    const winCodes = []; // {code, mult, custMap}
     orders.forEach(o => {
-      const codes = o.codes || [];
-      const times = codes.filter(c => c === prod).length;
-      if(times > 0){
-        const amt = codeSalesForOrder(o, prod);
-        const cust = o.customer || '散客';
-        if(!custMap[cust]) custMap[cust] = 0;
-        custMap[cust] += amt;
-      }
+      (o.codes||[]).forEach(c => {
+        if(typeof c !== 'string') return;
+        let mult = 0;
+        if(/^\d{2}$/.test(c)){
+          if(Number(c) === Number(lastDraw.specialNum)) mult = payMult;
+        } else if(c.startsWith('平特')){
+          const z = c.replace('平特','');
+          if(drawZ.has(z)) mult = (z==='马'?1.8:payMultSingle);
+        } else if(c.startsWith('连肖')){
+          const z = c.replace('连肖','');
+          if(z.split('').every(zz => drawZ.has(zz))) mult = 4;
+        } else if(c.indexOf('二中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) mult = 60;
+        } else if(c.indexOf('三中三:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) mult = 600;
+        } else if(c.indexOf('三中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) mult = 20;
+        }
+        if(mult > 0){
+          const amt = codeSalesForOrder(o, c);
+          const cust = o.customer || '散客';
+          let found = winCodes.find(w => w.code === c);
+          if(!found){ found = {code:c, mult:mult, custMap:{}}; winCodes.push(found); }
+          found.custMap[cust] = (found.custMap[cust]||0) + amt;
+        }
+      });
     });
-  });
-  const keys = Object.keys(custMap);
-  h = '<div style="margin-top:6px;font-size:15px"></div>';
-  if(keys.length === 0){
-    h = '<div style="color:#999;padding:8px;font-size:14px">商品 ' + prod + ' 无人购买，无需赔付</div>';
+    if(winCodes.length === 0){
+      h = '<div style="color:#999;padding:8px;font-size:14px">本期无中奖产品</div>';
+    } else {
+      winCodes.forEach(wc => {
+        h += '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:6px;padding:10px;margin-top:4px">';
+        h += '<div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#cf1322">' + esc(wc.code) + '（×' + wc.mult + '倍）</div>';
+        Object.entries(wc.custMap).forEach(([cust, amt]) => {
+          const payAmt = amt * wc.mult;
+          h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #ffccc7">';
+          h += '<span style="font-weight:600;font-size:15px">' + esc(cust) + '</span>';
+          h += '<span style="display:flex;align-items:center;gap:8px">';
+          h += '<span style="color:#cf1322;font-weight:700;font-size:15px">' + payAmt.toFixed(2) + '</span>';
+          h += '<button onclick="cpQuickPay(\'' + esc(cust) + '\',\'' + wc.code.replace(/'/g,"\\'") + '\',' + payAmt + ')" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:4px 10px;font-size:13px;font-weight:700">赔</button>';
+          h += '</span>';
+          h += '</div>';
+        });
+        h += '</div>';
+      });
+    }
   } else {
-    h = '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:6px;padding:10px;margin-top:4px">';
-    h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:#cf1322">需赔付客户（' + prod + ' ×' + mult + '倍）</div>';
-    keys.forEach(k => {
-      const payAmt = custMap[k] * mult;
-      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #ffccc7">';
-      h += '<span style="font-weight:600;font-size:16px">' + esc(k) + '</span>';
-      h += '<span style="display:flex;align-items:center;gap:8px">';
-      h += '<span style="color:#cf1322;font-weight:700;font-size:16px">' + payAmt.toFixed(2) + '</span>';
-      h += '<button onclick="cpQuickPay(\'' + esc(k) + '\',\'' + prod + '\',' + payAmt + ')" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:4px 12px;font-size:14px;font-weight:700">赔</button>';
-      h += '</span>';
-      h += '</div>';
+    // 未开奖：按选中产品显示
+    const rawProd = sidePaySel;
+    if(!rawProd){
+      box.innerHTML = '<div style="color:#999;padding:4px">等待开奖后自动显示需赔付客户</div>';
+      return;
+    }
+    const prods = rawProd.split(',');
+    const custMap = {};
+    prods.forEach(raw => {
+      const prod = raw.replace('(单)','');
+      orders.forEach(o => {
+        const codes = o.codes || [];
+        const times = codes.filter(c => c === prod).length;
+        if(times > 0){
+          const amt = codeSalesForOrder(o, prod);
+          const cust = o.customer || '散客';
+          if(!custMap[cust]) custMap[cust] = 0;
+          custMap[cust] += amt;
+        }
+      });
     });
-    h += '</div>';
+    const keys = Object.keys(custMap);
+    if(keys.length === 0){
+      h = '<div style="color:#999;padding:8px;font-size:14px">商品 ' + rawProd + ' 无人购买</div>';
+    } else {
+      h = '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:6px;padding:10px;margin-top:4px">';
+      h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:#cf1322">需赔付客户</div>';
+      keys.forEach(k => {
+        const payAmt = custMap[k] * payMult;
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #ffccc7">';
+        h += '<span style="font-weight:600;font-size:16px">' + esc(k) + '</span>';
+        h += '<span style="color:#cf1322;font-weight:700;font-size:16px">' + payAmt.toFixed(2) + '</span>';
+        h += '</div>';
+      });
+      h += '</div>';
+    }
   }
   // 客户盈亏小结
   const custBuy = {};
