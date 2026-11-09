@@ -286,7 +286,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v29.9';
+var APP_VER = 'v30.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3681,7 +3681,7 @@ function applyTheme(){
   if(isDark){
     darkCss = `
       section, main, .input, textarea, pre {
-        background: #1e1e30 !important;
+        background: rgba(42,42,62,.85) !important;
       }
       div[style*="background"], button[style*="background"], input[style*="background"] {
         /* light backgrounds → dark */
@@ -3705,14 +3705,14 @@ function applyTheme(){
       button[style*="background-color:#fff"], button[style*="background-color:#f5f5f5"],
       input[style*="background:#fff"], input[style*="background:#fafbfc"],
       input[style*="background-color:#fff"], input[style*="background-color:#fafbfc"] {
-        background: #2a2a40 !important; background-color: #2a2a40 !important;
+        background: #2a2a40 !important; background-color: rgba(42,42,62,.85) !important;
         color: #e8e8e8 !important;
       }
-      input, textarea, select { background:#2a2a40 !important; color:#e8e8e8 !important; border-color:#444 !important; }
-      .tab { background:#2a2a40 !important; color:#aaa !important; }
-      .btn:not(.primary):not(.danger) { background:#2a2a40 !important; color:#e8e8e8 !important; border-color:#444 !important; }
+      input, textarea, select { background:rgba(42,42,62,.85) !important; color:#e8e8e8 !important; border-color:#444 !important; }
+      .tab { background:rgba(42,42,62,.85) !important; color:#aaa !important; }
+      .btn:not(.primary):not(.danger) { background:rgba(42,42,62,.85) !important; color:#e8e8e8 !important; border-color:#444 !important; }
       .btn.danger { background:#3a2020 !important; color:#ff6b6b !important; border-color:#666 !important; }
-      .chip { background:#2a2a40 !important; color:#aaa !important; border-color:#555 !important; }
+      .chip { background:rgba(42,42,62,.85) !important; color:#aaa !important; border-color:#555 !important; }
       /* text colors */
       [style*="color:#000"], [style*="color:#333"], [style*="color:#1f2329"],
       [style*="color:#666"], [style*="color:#999"], [style*="color:#888"],
