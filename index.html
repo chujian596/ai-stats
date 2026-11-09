@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v34.1';
+var APP_VER = 'v34.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3180,8 +3180,51 @@ function renderRisk(){
   h += `<div style="flex:1;background:#f0fdf4;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">自留</div><b style="font-size:16px;color:#16a34a">${keptCash.toFixed(0)}</b></div>`;
   h += `<div style="flex:1;background:${worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">最坏</div><b style="font-size:16px;color:${worstNet<0?'#cf1322':'#16a34a'}">${worstNet<0?'':''}${worstNet.toFixed(0)}</b></div>`;
   h += `</div>`;
+  // 已开奖：显示实际结果
+  if(lastDraw && lastDraw.specialNum){
+    const dn = lastDraw.specialNum;
+    const dz = NUM2ZODIAC[dn];
+    const drawZSet = new Set([...(lastDraw.regularNums||[]), dn].map(n=>NUM2ZODIAC[n]).filter(Boolean));
+    // 特号实际赔付
+    const keptSpecBet = splitTakeAll > 0 ? Math.min(numBets[dn]||0, splitTakeAll) : (numBets[dn]||0);
+    const actualSpecPayout = keptSpecBet * payMult;
+    // 平特实际赔付
+    let actualPtePayout = 0;
+    Object.entries(pteBetByZod).forEach(([z,amt]) => {
+      if(drawZSet.has(z)){
+        const kept = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : amt;
+        const mult = (z === '马') ? 1.8 : payMultSingle;
+        actualPtePayout += kept * mult;
+      }
+    });
+    // 连肖实际赔付
+    let actualLxPayout = 0;
+    orders.forEach(o => {
+      (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && c.startsWith('连肖')){
+          const zod = c.replace('连肖','');
+          if(zod.split('').every(z => drawZSet.has(z))){
+            const n = zod.length;
+            let odds = n===2?4:n===3?10:30;
+            if(zod.includes('马')) odds -= 0.5;
+            actualLxPayout += codeSalesForOrder(o, c) * odds;
+          }
+        }
+      });
+    });
+    if(lxFlyAmt > 0){ actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * 4); }
+    const actualNet = keptCash - actualSpecPayout - actualPtePayout - actualLxPayout;
+    h += `<div style="margin:6px 0;padding:12px;background:${actualNet>=0?'#f0fdf4':'#fef2f2'};border-radius:8px;font-size:15px;line-height:1.8;border:2px solid ${actualNet>=0?'#16a34a':'#cf1322'}">`;
+    h += `<div style="font-weight:700;font-size:16px;margin-bottom:4px">🎯 已开奖：特${String(dn).padStart(2,'0')} ${dz}</div>`;
+    h += `<div>特号赔付：${keptSpecBet.toFixed(0)}×${payMult}=<b style="color:#cf1322">${actualSpecPayout.toFixed(0)}</b></div>`;
+    if(actualPtePayout > 0) h += `<div>平特赔付：<b style="color:#cf1322">${actualPtePayout.toFixed(0)}</b></div>`;
+    if(actualLxPayout > 0) h += `<div>连肖赔付：<b style="color:#cf1322">${actualLxPayout.toFixed(0)}</b></div>`;
+    h += `<div style="border-top:1px dashed #ccc;margin-top:4px;padding-top:4px">自留现金：${keptCash.toFixed(0)}</div>`;
+    h += `<div style="font-weight:700;font-size:18px">实际净盈亏：<b style="color:${actualNet>=0?'#16a34a':'#cf1322'}">${actualNet>=0?'+':''}${actualNet.toFixed(0)}</b></div>`;
+    h += `</div>`;
+  }
   h += `<div style="margin:6px 0;padding:10px;background:${worstNet<-1000?'#fef2f2':worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:15px;line-height:1.6">`;
-  h += `<div style="font-weight:700;margin-bottom:4px;font-size:16px">📊 持仓分析${splitTakeAll>0?'（飞单后）':''}</div>`;
+  h += `<div style="font-weight:700;margin-bottom:4px;font-size:16px">📊 持仓分析${splitTakeAll>0?'（飞单后）':''}${lastDraw&&lastDraw.specialNum?'（开奖前预测）':''}</div>`;
   // 计算平特总销售
   let pteTotalSales = 0;
   orders.forEach(o => {
