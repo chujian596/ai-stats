@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v23.1';
+var APP_VER = 'v23.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2498,7 +2498,7 @@ function renderRisk(){
       h += `</div>`;
       if(hedgeBet > 0){
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button></div>`;
+        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button>${lxFlyAmt>0?`<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:4px">撤销</button>`:''}</div>`;
         h += `<div>· 全中：<b style="color:${allHitNet<0?'#cf1322':'#16a34a'}">${allHitNet.toFixed(0)}</b></div>`;
         h += `<div>· 大的中：<b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
         const bestPartialNet = pteTotal - smallestPte - hedgeBet;
