@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v24.6';
+var APP_VER = 'v24.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1901,12 +1901,17 @@ function handleSave(){
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
   for(let i = 0; i < lines.length; i++){
-    if(/^(共|合计)/.test(lines[i])) continue; // 跳过合计行
-    if(!/\d/.test(lines[i])) continue; // 跳过没有数字的行（客户名等）
-    if(/^(各|个)\s*[0-9]/.test(lines[i]) && mergedLines.length > 0){
-      mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + lines[i];
+    let ln = lines[i];
+    // 提前转换数字简写产品名：3中3→三中三，2中2→二中二
+    ln = ln.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
+    // 斜杠当价格分隔符
+    ln = ln.replace(/\//g, ' ');
+    if(/^(共|合计)/.test(ln)) continue; // 跳过合计行
+    if(!/\d/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue; // 跳过没有数字的行
+    if(/^(各|个)\s*[0-9]/.test(ln) && mergedLines.length > 0){
+      mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + ln;
     } else {
-      mergedLines.push(lines[i]);
+      mergedLines.push(ln);
     }
   }
 
