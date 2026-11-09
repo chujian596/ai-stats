@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.7';
+var APP_VER = 'v32.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -489,7 +489,7 @@ function autoPayout(){
     msg += (net >= 0 ? '盈利：' : '亏损：') + Math.abs(net).toFixed(2);
     // 自定义弹窗，标题"排行榜"
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;padding:20px';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
       + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">排行榜</div>'
       + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
@@ -2156,7 +2156,7 @@ function handleSave(){
       const price = parseFloat(txMatch[2]);
       const numCount = zods.length * 4;
       const ov = document.createElement('div');
-      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;padding:20px';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
       ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
         + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">请选择注单方式</div>'
         + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">特肖' + zods + ' ' + price + '元</div>'
@@ -2217,7 +2217,7 @@ function handleSave(){
           } else {
           const numCount = prodDef.links.length;
           const ov = document.createElement('div');
-          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;padding:20px';
+          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
           ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
             + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">请选择注单方式</div>'
             + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + canonical + ' ' + price + '元（' + numCount + '个号）</div>'
@@ -3718,7 +3718,7 @@ renderAll();
 
 function myAlert(msg){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;padding:20px';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
@@ -3731,7 +3731,7 @@ function myAlert(msg){
 
 function myConfirm(msg, cb){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;padding:20px';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6">' + msg.replace(/\n/g,'<br>') + '</div>'
