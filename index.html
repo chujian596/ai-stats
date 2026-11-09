@@ -131,7 +131,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">排行榜 ▶</div>
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">排行榜</div>
     <div id="rankTableBody" style="display:none">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
@@ -153,7 +153,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div id="rank-split"></div>
       <div id="rank-pay"></div>
     </div>
-    <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">⚠️ 风险评估 ▶</div>
+    <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">风险评估</div>
     <div id="riskBody" style="display:none"></div>
   </section>
 
@@ -287,7 +287,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v30.6';
+var APP_VER = 'v30.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -827,7 +827,7 @@ function renderPaySide(){
   const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   // 盈利统计（折叠，默认关闭）
-  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">盈利统计 ▶</div>';
+  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">盈利统计</div>';
   h += '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   h += `<span>总单 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
@@ -864,7 +864,7 @@ function renderPaySide(){
   }
   h += '</div>'; // close profitBody
 
-  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">手动赔付 ▶</div>';
+  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">手动赔付</div>';
   h += '<div id="payCtrl" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   var btnLabel = sidePaySel || (labels.prodBtn||'选产品');
