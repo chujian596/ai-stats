@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v25.0';
+var APP_VER = 'v25.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1719,6 +1719,12 @@ function parseLine(text){
   if(text.indexOf('三中三') >= 0){
     text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
   }
+  // 保护冒号格式代码不被价格提取吃掉：用占位符替换
+  const protectedCodes = [];
+  text = text.replace(/(二中二|三中三|三中二):(\d{2}(?:,\d{2})+)/g, (m) => {
+    protectedCodes.push(m);
+    return '『P' + (protectedCodes.length - 1) + '』';
+  });
   // 去掉"新澳"等前缀
   text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
@@ -1737,6 +1743,8 @@ function parseLine(text){
     codeText = text.slice(0, text.length - mTotal[0].length).trim();
   }
   if(!(price > 0)) throw new Error('价格必须大于0');
+  // 恢复保护的冒号格式代码
+  codeText = codeText.replace(/『P(\d+)』/g, (m, idx) => protectedCodes[parseInt(idx)]);
   const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
@@ -2010,7 +2018,7 @@ function handleSave(){
           prod.links.forEach(l => expanded.push(l));
         } else {
           expanded.push(c);
-          if(!/^\d{1,2}$/.test(c) && !(prod && prod.single)){
+          if(!/^\d{1,2}$/.test(c) && c.indexOf(':') < 0 && !(prod && prod.single)){
             notes.push('「' + c + '」在套餐模式但没勾选子型号，按1件记录');
           }
         }
