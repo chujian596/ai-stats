@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v24.3';
+var APP_VER = 'v24.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1711,6 +1711,10 @@ function parseLine(text){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
+  // 先转换破折号组合：18-20-35 → 三中三:18,20,35
+  text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
+  // 去掉"新澳"等前缀
+  text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
   const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|个)\\s*' + numRe + unitRe + '\\s*$'));
@@ -1932,11 +1936,22 @@ function handleSave(){
   }
 
   const parsed = [], errors = [];
+  let lastPrice = null, lastIsPer = false;
   mergedLines.forEach((line, i) => {
     try {
       const r = parseLine(line);
-      if(r) parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer });
+      if(r){
+        parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer });
+        lastPrice = r.price; lastIsPer = r.isPer;
+      }
     } catch(e) {
+      // 如果本行没价格但上一行有价格，用继承价格重试
+      if(lastPrice !== null && /没找到价格/.test(e.message)){
+        try {
+          const r = parseLine(line + ' 各' + lastPrice);
+          if(r){ parsed.push({ raw: line, codes: r.codes, price: lastPrice, isPer: true }); return; }
+        } catch(e2){}
+      }
       errors.push(`第${i+1}行：${e.message}`);
     }
   });
