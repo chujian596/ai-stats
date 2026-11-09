@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v22.4';
+var APP_VER = 'v22.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2451,10 +2451,12 @@ function renderRisk(){
     h += `</table>`;
     h += `<div style="font-size:11px;color:#999;margin-top:4px">平特赔=该肖出现就赔 · 特号最坏=开到该肖内下注最大那个号</div>`;
     h += `</div>`;
-    if(pteEntries.length >= 2){
-      const pteTotal = pteEntries.reduce((s,[,a])=>s+a,0);
+    // 对冲分析用自留平特金额（扣飞单后）
+    const keptPteEntries = pteEntries.map(([z,a])=>[z, pteFlyTakeAll > 0 ? Math.min(a, pteFlyTakeAll) : a]).filter(([,a])=>a > 0);
+    if(keptPteEntries.length >= 2){
+      const pteTotal = keptPteEntries.reduce((s,[,a])=>s+a,0);
       // 连肖最多4个，超过4个只取赔付最大的4个
-      let hedgeZodiacs = pteEntries.map(([z,a])=>({z, amt:a, payout: a*(z==='马'?1.8:2)})).sort((a,b)=>b.payout-a.payout);
+      let hedgeZodiacs = keptPteEntries.map(([z,a])=>({z, amt:a, payout: a*(z==='马'?1.8:2)})).sort((a,b)=>b.payout-a.payout);
       const totalCount = hedgeZodiacs.length;
       let noteStr = '';
       if(hedgeZodiacs.length > 4){
@@ -2468,7 +2470,7 @@ function renderRisk(){
       const lianMult = nZodiac===2 ? 4 : nZodiac===3 ? 10 : 30;
       const odds = hasHorse ? lianMult - 0.5 : lianMult;
       const hedgeBet = Math.round(smallestPte / odds);
-      const allPteWorst = pteEntries.reduce((s,[z,a])=>s+a*(z==='马'?1.8:2),0);
+      const allPteWorst = keptPteEntries.reduce((s,[z,a])=>s+a*(z==='马'?1.8:2),0);
       const worstNoHedge = pteTotal - allPteWorst;
       const worstProperPayout = worstPte - smallestPte;
       const allHitNet = pteTotal - worstPte + hedgeBet*(odds-1);
@@ -2488,7 +2490,7 @@ function renderRisk(){
       h += `</div>`;
       if(hedgeBet > 0){
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-        h += `<div>打连肖${lianName}（${odds}倍）注码<b style="color:#f59e0b">${hedgeBet}元</b> <span style="color:#999;font-size:11px">命中${hitProb}</span> <button onclick="lxFlyAmt=${hedgeBet};try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:1px solid #f59e0b;color:#f59e0b;background:#fff;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:6px">采用</button></div>`;
+        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button></div>`;
         h += `<div>· 全中：<b style="color:${allHitNet<0?'#cf1322':'#16a34a'}">${allHitNet.toFixed(0)}</b></div>`;
         h += `<div>· 差一个没中：<b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
         h += `<div>· 都不中：<b style="color:#16a34a">+${noneNet.toFixed(0)}</b></div>`;
