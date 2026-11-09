@@ -286,7 +286,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v30.0';
+var APP_VER = 'v30.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3680,52 +3680,47 @@ function applyTheme(){
   let darkCss = '';
   if(isDark){
     darkCss = `
-      section, main, .input, textarea, pre {
-        background: rgba(42,42,62,.85) !important;
+      * {
+        text-shadow: none !important;
       }
-      div[style*="background"], button[style*="background"], input[style*="background"] {
-        /* light backgrounds → dark */
+      div, section, main, article, aside, header, footer, nav {
+        background-color: transparent !important;
       }
-      div[style*="background:#fff"], div[style*="background:white"],
-      div[style*="background:#fafafa"], div[style*="background:#fefefe"],
-      div[style*="background:#f9fafb"], div[style*="background:#f5f5f5"],
-      div[style*="background:#f8f9fa"], div[style*="background:#f0f0f0"],
-      div[style*="background:#f3e8ff"], div[style*="background:#f0fff0"],
-      div[style*="background:#e8ffe8"], div[style*="background:#f0fdf4"],
-      div[style*="background:#fafbfc"], div[style*="background:#f7f7f7"],
-      div[style*="background:#fef2f2"], div[style*="background:#fff2f0"],
-      div[style*="background:#eee"], div[style*="background:#e6e9ef"],
-      div[style*="background-color:#fff"], div[style*="background-color:white"],
-      div[style*="background-color:#fafafa"], div[style*="background-color:#f5f5f5"],
-      div[style*="background-color:#f8f9fa"], div[style*="background-color:#f0f0f0"],
-      button[style*="background:#fff"], button[style*="background:white"],
-      button[style*="background:#f5f5f5"], button[style*="background:#f3e8ff"],
-      button[style*="background:#f7f7f7"], button[style*="background:#fff2f0"],
-      button[style*="background:#fafbfc"], button[style*="background:#fafafa"],
-      button[style*="background-color:#fff"], button[style*="background-color:#f5f5f5"],
-      input[style*="background:#fff"], input[style*="background:#fafbfc"],
-      input[style*="background-color:#fff"], input[style*="background-color:#fafbfc"] {
-        background: #2a2a40 !important; background-color: rgba(42,42,62,.85) !important;
-        color: #e8e8e8 !important;
+      div[style*="background"], section[style*="background"],
+      button[style*="background"], input[style*="background"] {
+        background-color: rgba(30,30,50,.6) !important;
+        background: rgba(30,30,50,.6) !important;
       }
-      input, textarea, select { background:rgba(42,42,62,.85) !important; color:#e8e8e8 !important; border-color:#444 !important; }
-      .tab { background:rgba(42,42,62,.85) !important; color:#aaa !important; }
-      .btn:not(.primary):not(.danger) { background:rgba(42,42,62,.85) !important; color:#e8e8e8 !important; border-color:#444 !important; }
-      .btn.danger { background:#3a2020 !important; color:#ff6b6b !important; border-color:#666 !important; }
-      .chip { background:rgba(42,42,62,.85) !important; color:#aaa !important; border-color:#555 !important; }
-      /* text colors */
-      [style*="color:#000"], [style*="color:#333"], [style*="color:#1f2329"],
-      [style*="color:#666"], [style*="color:#999"], [style*="color:#888"],
-      [style*="color:#aaa"], [style*="color:#555"], [style*="color:#444"],
-      [style*="color:#222"], [style*="color:#111"], [style*="color:#b0b0b0"],
-      [style*="color:#c0c0c0"], [style*="color:#1f2329"] {
-        color:#ccc !important;
+      /* 保留彩色按钮 */
+      button[style*="background:#3b82f6"], button[style*="background:#f97316"],
+      button[style*="background:#7c3aed"], button[style*="background:#ef4444"],
+      button[style*="background:#22c55e"], button[style*="background:#eab308"],
+      button[style*="background:#06b6d4"], button[style*="background:#ec4899"],
+      button[style*="background-color:#3b82f6"], button[style*="background-color:#f97316"],
+      button[style*="background-color:#7c3aed"], button[style*="background-color:#ef4444"],
+      button[style*="background-color:#22c55e"], button[style*="background-color:#eab308"],
+      button[style*="background-color:#06b6d4"], button[style*="background-color:#ec4899"] {
+        background: var(--themeColor, #7c3aed) !important;
+        background-color: var(--themeColor, #7c3aed) !important;
+        color: #fff !important;
       }
-      [style*="opacity:0.5"], [style*="opacity:0.6"], [style*="opacity:0.7"] { opacity: 0.85 !important; }
-      [style*="color:#cf1322"], [style*="color:red"], [style*="color:#f00"] { color:#ff6b6b !important; }
+      input, textarea, select {
+        background: #2a2a44 !important; color: #eee !important;
+        border-color: #555 !important;
+      }
+      .tab { background:#2a2a44 !important; color:#aaa !important; }
+      .btn:not(.primary):not(.danger) {
+        background:#2a2a44 !important; color:#eee !important; border-color:#555 !important;
+      }
+      .chip { background:#2a2a44 !important; color:#aaa !important; border-color:#555 !important; }
+      /* 所有文字统一提亮 */
+      div, span, p, td, th, label, h1, h2, h3, h4, button, input {
+        color: #e0e0e0 !important;
+      }
+      /* 保留红绿色 */
+      [style*="color:#cf1322"], [style*="color:#e74c3c"], [style*="color:red"] { color:#ff6b6b !important; }
+      [style*="color:#16a34a"], [style*="color:#059669"], [style*="color:#22c55e"], [style*="color:green"] { color:#4ade80 !important; }
       [style*="color:#fa8c16"], [style*="color:#ea580c"] { color:#ffb366 !important; }
-      [style*="color:#16a34a"], [style*="color:#059669"], [style*="color:green"],
-      [style*="color:#22c55e"] { color:#4ade80 !important; }
     `;
   }
   st.textContent = `
