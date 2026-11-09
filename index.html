@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v22.8';
+var APP_VER = 'v22.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1026,6 +1026,8 @@ let pteFlyTakeAll = 0;
 try { pteFlyTakeAll = parseFloat(localStorage.getItem('pteFlyTakeAll') || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
 let lxFlyAmt = 0;
 try { lxFlyAmt = parseFloat(localStorage.getItem('lxFlyAmt') || '0') || 0; } catch(e){ lxFlyAmt = 0; }
+let lxFlyName = '';
+try { lxFlyName = localStorage.getItem('lxFlyName') || ''; } catch(e){ lxFlyName = ''; }
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
 function getSplitSales(){
   const sales = {};
@@ -1236,7 +1238,7 @@ function copySplit(){
   });
   // 连肖飞单
   if(lxFlyAmt > 0){
-    lines.push(`连肖飞单 ${lxFlyAmt.toFixed(2)}`);
+    lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`);
     partner += lxFlyAmt;
   }
   const text = lines.join('\n') + '\n合计：' + partner.toFixed(2);
@@ -2493,7 +2495,7 @@ function renderRisk(){
       h += `</div>`;
       if(hedgeBet > 0){
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button></div>`;
+        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button></div>`;
         h += `<div>· 全中：<b style="color:${allHitNet<0?'#cf1322':'#16a34a'}">${allHitNet.toFixed(0)}</b></div>`;
         h += `<div>· 大的中：<b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
         const bestPartialNet = pteTotal - smallestPte - hedgeBet;
@@ -2562,7 +2564,7 @@ function renderRisk(){
     const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
     if(extra > 0){ h += `<div>平特 ${z}　${extra.toFixed(0)}</div>`; flyTotal += extra; }
   });
-  if(lxFlyAmt > 0){ h += `<div>连肖飞单　${lxFlyAmt.toFixed(0)}</div>`; flyTotal += lxFlyAmt; }
+  if(lxFlyAmt > 0){ h += `<div>连肖${lxFlyName||''}　${lxFlyAmt.toFixed(0)}</div>`; flyTotal += lxFlyAmt; }
   if(flyTotal === 0){ h += `<div style="color:#999">无飞单</div>`; }
   else { h += `<div style="border-top:1px solid #ddd;margin-top:4px;padding-top:4px;font-weight:700">合计　${flyTotal.toFixed(0)}</div>`; }
   h += `</div>`;
