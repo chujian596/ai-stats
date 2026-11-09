@@ -285,7 +285,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.0';
+var APP_VER = 'v31.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -941,7 +941,7 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 股东分账') + ' ▶</div>';
+  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">' + (labels.split || '📊 股东分账') + '</div>';
   h += '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:15px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0">`;
@@ -3407,7 +3407,7 @@ function renderAll(){
     const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
     if(lianCodes.length > 0) hasData = true;
     const collapsed = true;
-    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer"><span>平特肖 ${collapsed?'▶':'▼'}</span></div>`;
+    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer"><span>平特肖 ${collapsed?'':'▼'}</span></div>`;
     sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
@@ -3692,6 +3692,7 @@ function applyTheme(){
       
       /* 大按钮（自动结算/保存等）不要紫色，改深灰 */
       button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"],
+      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"],
       .btn.primary, .tab.active {
         background: #3d3d3d !important;
         background-color: #3d3d3d !important;
@@ -3740,10 +3741,15 @@ function applyTheme(){
         background: ${color}22 !important;
         color: ${color} !important;
       }
-      /* 顶部header不要深紫，用浅紫 */
+      /* 顶部header用浅灰 */
       header {
-        background: ${color}15 !important;
-        color: ${color} !important;
+        background: #f0f0f0 !important;
+        color: #333 !important;
+      }
+      /* 紫色标签改灰色 */
+      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"] {
+        background: #e0e0e0 !important;
+        color: #333 !important;
       }
     `;
   }
