@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v22.9';
+var APP_VER = 'v23.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2484,6 +2484,8 @@ function renderRisk(){
       const worstWithHedge = Math.min(allHitNet, worstProperNet, noneNet);
       const hitProb = nZodiac===2 ? '~20%' : nZodiac===3 ? '~10%' : '~4%';
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
+      // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
+      if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem('lxFlyName', lxFlyName)}catch(e){} }
       h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f59e0b;color:#fff;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">🧮 连肖对冲 ▼</div>`;
       h += `<div id="riskHedgeBox" style="background:#fffbeb;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
