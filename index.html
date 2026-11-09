@@ -262,19 +262,19 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
   <!-- 设置弹窗 -->
   <div id="settingsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeSettings()">
-    <div style="background:#1C1C1E;border-radius:20px 20px 0 0;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 34px;color:#fff">
+    <div style="background:var(--modalBg,#1C1C1E);border-radius:20px 20px 0 0;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 34px;color:var(--modalText,#fff)">
       <div style="width:36px;height:4px;background:#48484A;border-radius:2px;margin:0 auto 20px"></div>
       <div style="font-size:17px;font-weight:600;margin-bottom:20px;text-align:center">设置</div>
-      <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">外观</div>
+      <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">外观</div>
       <div id="bgStyles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
-      <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">字体大小</div>
-      <div style="display:flex;gap:0;margin-bottom:24px;background:#2C2C2E;border-radius:10px;padding:3px">
+      <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">字体大小</div>
+      <div style="display:flex;gap:0;margin-bottom:24px;background:var(--modalSeg,#2C2C2E);border-radius:10px;padding:3px">
         <button id="fs-small" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:15px;border-radius:8px" onclick="setFontSize(15)">小</button>
         <button id="fs-mid" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:17px;border-radius:8px" onclick="setFontSize(17)">中</button>
         <button id="fs-big" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:19px;border-radius:8px" onclick="setFontSize(19)">大</button>
       </div>
-      <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#3a3a3c;color:#fff;font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
-      <button onclick="resetTheme()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#2C2C2E;color:#FF453A;font-size:16px">恢复默认</button>
+      <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
+      <button onclick="resetTheme()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalSeg,#2C2C2E);color:#FF453A;font-size:16px">恢复默认</button>
     </div>
   </div>
 </main>
@@ -285,7 +285,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.1';
+var APP_VER = 'v31.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3661,9 +3661,15 @@ const BGS = [
 function applyTheme(){
   const t = JSON.parse(localStorage.getItem('app_theme')||'{}');
   const color = t.color || '#7c3aed';
-  const bg = t.bg || BGS[0].css;
+  const bg = t.bg || BGS[1].css;
   document.body.style.background = bg;
   document.documentElement.style.setProperty('--themeColor', color);
+  document.documentElement.style.setProperty('--modalBg', isDark ? '#1C1C1E' : '#ffffff');
+  document.documentElement.style.setProperty('--modalText', isDark ? '#fff' : '#1a1a1a');
+  document.documentElement.style.setProperty('--modalSeg', isDark ? '#2C2C2E' : '#f0f0f0');
+  document.documentElement.style.setProperty('--modalLabel', isDark ? '#8E8E93' : '#666');
+  document.documentElement.style.setProperty('--modalBtn', isDark ? '#3a3a3c' : '#333');
+  document.documentElement.style.setProperty('--modalBtnText', isDark ? '#fff' : '#fff');
   document.body.style.backgroundAttachment = 'fixed';
   document.documentElement.style.setProperty('--primary', color);
   let st = document.getElementById('themeOverride');
@@ -3784,13 +3790,15 @@ function openSettings(){
   const fs = cur.fontSize || 17;
   [['fs-small',15],['fs-mid',17],['fs-big',19]].forEach(([id,val])=>{
     const el = document.getElementById(id);
+    const curBg = JSON.parse(localStorage.getItem('app_theme')||'{}').bg || BGS[1].css;
+    const darkMode = BGS.find(b=>b.css===curBg)?.dark;
     if(fs === val){
-      el.style.background = '#fff';
-      el.style.color = '#000';
+      el.style.background = darkMode ? '#fff' : '#000';
+      el.style.color = darkMode ? '#000' : '#fff';
       el.style.fontWeight = '600';
     } else {
       el.style.background = 'transparent';
-      el.style.color = '#8E8E93';
+      el.style.color = darkMode ? '#8E8E93' : '#999';
       el.style.fontWeight = '400';
     }
   });
