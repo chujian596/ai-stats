@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v27.4';
+var APP_VER = 'v27.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2044,7 +2044,7 @@ function handleSave(){
   let text = document.getElementById('input').value;
   // 检测特肖多肖：弹窗选择各肖还是各数
   if(!_texiaoChoice){
-    const txMatch = text.match(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*([0-9]+(?:\.[0-9]+)?)/);
+    const txMatch = text.match(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*([0-9]+(?:\.[0-9]+)?)/);
     if(txMatch){
       const zods = txMatch[1];
       const price = parseFloat(txMatch[2]);
