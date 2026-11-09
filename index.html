@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.1';
+var APP_VER = 'v36.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1439,6 +1439,29 @@ function sideSplitCopy(){
     const extra = Math.max(0, sales[k] - splitTakeAll);
     if(extra > 0){ lines.push(`${k} ${extra.toFixed(2)}`); partner += extra; }
   });
+  // 平特飞单
+  const pteMap = {};
+  orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && c.startsWith('平特')){
+      const z = c.replace('平特','');
+      pteMap[z] = (pteMap[z]||0) + codeSalesForOrder(o, c);
+    }
+  });});
+  Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
+    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+    if(extra > 0){ lines.push(`平特${z} ${extra.toFixed(2)}`); partner += extra; }
+  });
+  // 连肖飞单
+  if(lxFlyAmt > 0){ lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`); partner += lxFlyAmt; }
+  // 二中二三中三飞单
+  let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+  if(emOn){ orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+      const amt = codeSalesForOrder(o, c);
+      lines.push(c.replace(':',' ') + ' ' + amt.toFixed(2));
+      partner += amt;
+    }
+  });});}
   lines.push(`合计 ${partner.toFixed(2)}`);
   const txt = lines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
@@ -1454,12 +1477,7 @@ function sideSplitCalc(){
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
   document.getElementById('sideSplitSummary').innerHTML =
     `总单金额 <b style="font-size:16px">${total.toFixed(2)}</b> | 阈值 <b style="font-size:16px">${splitTakeAll.toFixed(0)}</b> | 飞单总金额 <b style="color:#cf1322;font-size:16px">${partner.toFixed(2)}</b>`;
-  let rows = '';
-  keys.forEach(k => {
-    const extra = Math.max(0, sales[k] - splitTakeAll);
-    if(extra > 0) rows += `<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f5f5f5"><span style="font-weight:700;font-size:16px">${esc(k)}</span><span style="color:#cf1322;font-weight:700;font-size:16px">${extra.toFixed(2)}</span></div>`;
-  });
-  document.getElementById('sideSplitResult').innerHTML = rows || '<div style="padding:8px;text-align:center;color:#999">无超出阈值产品</div>';
+  document.getElementById('sideSplitResult').innerHTML = '';
   const st = document.getElementById('splitTakeAll');
   if(st) st.value = splitTakeAll;
   renderSplit();
