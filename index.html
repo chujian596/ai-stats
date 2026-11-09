@@ -297,7 +297,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.7';
+var APP_VER = 'v31.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3772,6 +3772,13 @@ function applyTheme(){
       /* 紫色标签改灰色 */
       span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"] {
         background: #e0e0e0 !important;
+        color: #333 !important;
+      }
+      /* 关键修复：浅色模式下所有白色/浅色文字强制改深色，否则白底白字看不见 */
+      [style*="color:#fff"], [style*="color:white"],
+      [style*="color:#FFF"], [style*="color:White"],
+      [style*="color:rgba(255,255,255"], [style*="color: rgba(255, 255, 255"],
+      [style*="color: rgb(255, 255, 255)"] {
         color: #333 !important;
       }
     `;
