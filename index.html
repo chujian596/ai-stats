@@ -265,9 +265,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div style="background:#1C1C1E;border-radius:20px 20px 0 0;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 34px;color:#fff">
       <div style="width:36px;height:4px;background:#48484A;border-radius:2px;margin:0 auto 20px"></div>
       <div style="font-size:17px;font-weight:600;margin-bottom:20px;text-align:center">设置</div>
-      <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">主题颜色</div>
-      <div id="themeColors" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px;padding:4px"></div>
-      <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">背景风格</div>
+      <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">外观</div>
       <div id="bgStyles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
       <div style="font-size:13px;color:#8E8E93;margin-bottom:10px;margin-left:4px">字体大小</div>
       <div style="display:flex;gap:0;margin-bottom:24px;background:#2C2C2E;border-radius:10px;padding:3px">
@@ -275,7 +273,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <button id="fs-mid" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:17px;border-radius:8px" onclick="setFontSize(17)">中</button>
         <button id="fs-big" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:19px;border-radius:8px" onclick="setFontSize(19)">大</button>
       </div>
-      <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--themeColor,#7c3aed);color:#fff;font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
+      <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#3a3a3c;color:#fff;font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
       <button onclick="resetTheme()" style="width:100%;padding:14px;border:none;border-radius:12px;background:#2C2C2E;color:#FF453A;font-size:16px">恢复默认</button>
     </div>
   </div>
@@ -287,7 +285,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v30.7';
+var APP_VER = 'v31.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3650,22 +3648,14 @@ function clearOrders(){
 
 // ===== 设置/主题 =====
 const THEMES = [
-  {name:'紫', color:'#7c3aed'},
-  {name:'蓝', color:'#2563eb'},
-  {name:'绿', color:'#059669'},
-  {name:'红', color:'#dc2626'},
-  {name:'橙', color:'#ea580c'},
-  {name:'粉', color:'#db2777'},
-  {name:'青', color:'#0891b2'},
   {name:'黑', color:'#333333'},
+  {name:'白', color:'#666666'},
+  {name:'灰', color:'#555555'},
 ];
 const BGS = [
-  {name:'深蓝', css:'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)', dark:true},
-  {name:'深灰', css:'linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#1a1a1a 100%)', dark:true},
-  {name:'纯黑', css:'#0a0a0a', dark:true},
-  {name:'暗绿', css:'linear-gradient(135deg,#0d1f0d 0%,#1a2f1a 50%,#0d1f0d 100%)', dark:true},
-  {name:'暗紫', css:'linear-gradient(135deg,#1a0a2e 0%,#2d1b4e 50%,#1a0a2e 100%)', dark:true},
-  {name:'浅白', css:'linear-gradient(135deg,#f5f5f5 0%,#e8e8e8 100%)', dark:false},
+  {name:'黑色', css:'#1a1a1a', dark:true},
+  {name:'白色', css:'#f5f5f5', dark:false},
+  {name:'灰色', css:'#2d2d2d', dark:true},
 ];
 
 function applyTheme(){
@@ -3769,37 +3759,22 @@ function applyTheme(){
 function openSettings(){
   document.getElementById('settingsModal').style.display='flex';
   const cur = JSON.parse(localStorage.getItem('app_theme')||'{}');
-  const tc = document.getElementById('themeColors');
-  tc.innerHTML='';
-  THEMES.forEach(t=>{
-    const b = document.createElement('button');
-    const selected = cur.color === t.color;
-    b.style.cssText = `width:44px;height:44px;border-radius:50%;border:${selected?'3px solid #fff':'3px solid transparent'};background:${t.color};color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer`;
-    b.textContent = selected ? '✓' : t.name;
-    b.onclick = ()=>{
-      cur.color = t.color;
-      localStorage.setItem('app_theme', JSON.stringify(cur));
-      applyTheme();
-      openSettings();
-    };
-    tc.appendChild(b);
-  });
   const bs = document.getElementById('bgStyles');
   bs.innerHTML='';
   BGS.forEach((b,i)=>{
     const btn = document.createElement('button');
     const selected = cur.bg === b.css || (!cur.bg && i===0);
-    btn.style.cssText = `padding:12px 4px;border-radius:10px;border:${selected?'2px solid #fff':'2px solid transparent'};background:${b.css};color:#fff;font-size:13px;font-weight:500`;
+    btn.style.cssText = `padding:14px 4px;border-radius:10px;border:${selected?'2px solid #fff':'2px solid transparent'};background:${b.css};color:#fff;font-size:14px;font-weight:500`;
     btn.textContent = b.name;
     btn.onclick = ()=>{
       cur.bg = b.css;
+      cur.color = '#333333';
       localStorage.setItem('app_theme', JSON.stringify(cur));
       applyTheme();
       openSettings();
     };
     bs.appendChild(btn);
   });
-  // 字体大小选中态
   const fs = cur.fontSize || 17;
   [['fs-small',15],['fs-mid',17],['fs-big',19]].forEach(([id,val])=>{
     const el = document.getElementById(id);
