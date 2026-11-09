@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v27.2';
+var APP_VER = 'v27.3';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1900,8 +1900,8 @@ function parseLine(text){
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
   codeText = codeText.replace(/平特/g, '『PT』');
-  // 1. "特肖X"→X, "特X"→X
-  codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1');
+  // 1. "特肖X"→"X数"（特肖=特码买该肖全部号码），"特X"→"X数"
+  codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1数');
   // 1.5 "虎平"→"平特虎"（生肖+平，如虎平1000）
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])平/g, '平特$1');
   // 2. "平X"→"平特X"（单独的平+生肖）
@@ -1946,6 +1946,12 @@ function parseLine(text){
     }
     return nums.join(' ') + ' ';
   });
+  // 检查裸生肖序列：没有产品名的多个生肖（如"虎龙兔50"没写平特/连肖/特肖）
+  const cleanedZod = codeText.replace(/平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g, '').replace(/连肖[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g, '');
+  const stillBare = cleanedZod.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}/g);
+  if(stillBare && stillBare.length > 0){
+    throw new Error('订单编辑不清楚，请重新编辑：' + stillBare.join('、'));
+  }
   // 二中二/三中三识别：数字在前或产品名在前
   // 复式展开：03.04.06.05.49复二 → 展开成所有两两组合
   function comb(arr, k){
