@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v22.6';
+var APP_VER = 'v22.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2481,7 +2481,7 @@ function renderRisk(){
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
       h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f59e0b;color:#fff;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">🧮 连肖对冲 ▼</div>`;
       h += `<div id="riskHedgeBox" style="background:#fffbeb;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
-      const pteListStr = pteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
+      const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
       h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
       if(noteStr) h += `<div style="color:#999;font-size:11px">${noteStr}</div>`;
       h += `<div style="margin-top:4px">收<b>${pteTotal.toFixed(0)}</b> 全中赔<b style="color:#cf1322">${allPteWorst.toFixed(0)}</b></div>`;
@@ -2492,7 +2492,9 @@ function renderRisk(){
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
         h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button></div>`;
         h += `<div>· 全中：<b style="color:${allHitNet<0?'#cf1322':'#16a34a'}">${allHitNet.toFixed(0)}</b></div>`;
-        h += `<div>· 差一个没中：<b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
+        h += `<div>· 大的中：<b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
+        const bestPartialNet = pteTotal - smallestPte - hedgeBet;
+        h += `<div>· 小的中：<b style="color:${bestPartialNet<0?'#cf1322':'#16a34a'}">${bestPartialNet>=0?'+':''}${bestPartialNet.toFixed(0)}</b></div>`;
         h += `<div>· 都不中：<b style="color:#16a34a">+${noneNet.toFixed(0)}</b></div>`;
         h += `</div>`;
       }
