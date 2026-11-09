@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v28.1';
+var APP_VER = 'v28.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2066,35 +2066,80 @@ function handleSave(){
       return;
     }
   }
-  // 检测波色单双：弹窗选择总额还是各号
-  let _waveChoice = window._waveChoice || null;
-  if(!_waveChoice){
-    const waveMatch = text.match(/(红波单|红波双|绿波单|绿波双|蓝波单|蓝波双|红波|蓝波|绿波|合数单|合数双|单数|双数)\s*(?:各)?\s*([0-9]+(?:\.[0-9]+)?)/);
-    if(waveMatch){
-      const product = waveMatch[1];
-      const price = parseFloat(waveMatch[2]);
-      // 查产品对应号码数
-      const prodDef = getProducts().find(p => p.code === product);
-      const numCount = prodDef && prodDef.links ? prodDef.links.length : 0;
-      if(numCount > 1){
-        const ov = document.createElement('div');
-        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-        ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-          + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">请选择注单方式</div>'
-          + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + product + ' ' + price + '元（' + numCount + '个号）</div>'
-          + '<div style="border-top:1px solid #eee">'
-          + '<button id="wvA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">总额' + price + '（摊到' + numCount + '号，每个' + (price/numCount).toFixed(1) + '元）</button>'
-          + '<button id="wvB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
-          + '<button id="wvC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
-          + '</div></div>';
-        document.body.appendChild(ov);
-        ov.querySelector('#wvA').onclick = () => { ov.remove(); window._waveChoice='total'; handleSave(); };
-        ov.querySelector('#wvB').onclick = () => { ov.remove(); window._waveChoice='perNum'; handleSave(); };
-        ov.querySelector('#wvC').onclick = () => { ov.remove(); window._waveChoice=null; };
-        return;
+  // 波色单双大小归一化：不管顺序怎么写都转成标准产品名
+  // 提取波色/单双/大小组件，重排为 波色+单双+大小
+  (function(){
+    const waveM = text.match(/红波|蓝波|绿波/);
+    let wave = waveM ? waveM[0] : null;
+    // 裸红绿蓝也算波色
+    if(!wave){
+      const bare = text.match(/(红|蓝|绿)波?/);
+      if(bare && (bare[1]==='红'||bare[1]==='蓝'||bare[1]==='绿')) wave = bare[1]+'波';
+    }
+    const sdM = text.match(/单数|双数|单|双/);
+    let sd = null;
+    if(sdM){ sd = sdM[0].replace('数',''); }
+    const dxM = text.match(/大数|小数|大|小/);
+    let dx = null;
+    if(dxM){ dx = dxM[0].replace('数',''); }
+    // 合数单/合数双 特殊处理
+    if(text.includes('合数单')){ wave=null; sd='合数单'; dx=null; }
+    else if(text.includes('合数双')){ wave=null; sd='合数双'; dx=null; }
+    // 单数/双数单独（无波色）
+    if(!wave && sd && (sd==='单'||sd==='双')){
+      // 检查是否就是"单数"或"双数"产品
+      if(text.match(/^[\s]*(单数|双数)/)) sd = sd+'数';
+    }
+    if(wave || sd || dx){
+      let canonical = '';
+      if(wave) canonical += wave;
+      if(sd && !sd.startsWith('合数')) canonical += sd;
+      else if(sd) canonical = sd;
+      if(dx && !sd.startsWith('合数')) canonical += dx;
+      // 查产品是否存在
+      const prodDef = getProducts().find(p => p.code === canonical);
+      if(prodDef && prodDef.links && prodDef.links.length > 1){
+        // 替换原文中的产品名为标准名
+        // 找到价格
+        const priceM = text.match(/([0-9]+(?:\.[0-9]+)?)/);
+        const price = priceM ? parseFloat(priceM[1]) : 0;
+        if(price > 0 && !window._waveChoice){
+          const numCount = prodDef.links.length;
+          const ov = document.createElement('div');
+          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+          ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+            + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center">请选择注单方式</div>'
+            + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + canonical + ' ' + price + '元（' + numCount + '个号）</div>'
+            + '<div style="border-top:1px solid #eee">'
+            + '<button id="wvA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">总额' + price + '（摊到' + numCount + '号，每个' + (price/numCount).toFixed(1) + '元）</button>'
+            + '<button id="wvB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
+            + '<button id="wvC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+            + '</div></div>';
+          document.body.appendChild(ov);
+          ov.querySelector('#wvA').onclick = () => { ov.remove(); window._waveChoice='total'; window._waveCanonical=canonical; handleSave(); };
+          ov.querySelector('#wvB').onclick = () => { ov.remove(); window._waveChoice='perNum'; window._waveCanonical=canonical; window._waveLastPerNum=true; handleSave(); };
+          ov.querySelector('#wvC').onclick = () => { ov.remove(); window._waveChoice=null; };
+          return;
+        }
+        // 已经选了，替换文本中的产品名
+        if(window._waveChoice && window._waveCanonical){
+          // 把识别到的组件替换成标准名
+          text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双|各)+/g, function(m){
+            // 保留"各"
+            if(m==='各') return m;
+            return window._waveCanonical;
+          });
+          window._waveChoice = null;
+          const wc = window._waveCanonical;
+          window._waveCanonical = null;
+          if(window._waveLastPerNum){
+            text = text.replace(wc, wc+'各');
+            window._waveLastPerNum = false;
+          }
+        }
       }
     }
-  }
+  })();
   // 先把常见中文金额转成阿拉伯数字（必须在过滤之前做）
   text = text.replace(/一百/g,'100').replace(/两百/g,'200').replace(/三百/g,'300');
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
@@ -2118,14 +2163,6 @@ function handleSave(){
         return allNums.join(' ') + '各' + p;
       }
     });
-  }
-  // 波色单双选择：perNum=各号，total=总额（不变）
-  if(window._waveChoice){
-    const wv = window._waveChoice;
-    window._waveChoice = null;
-    if(wv === 'perNum'){
-      text = text.replace(/(红波单|红波双|绿波单|绿波双|蓝波单|蓝波双|红波|蓝波|绿波|合数单|合数双|单数|双数)\s*([0-9]+)/g, '$1各$2');
-    }
   }
   // 智能拆分：只有一行里写多个"各X"才按锚点拆；有多行时按换行拆
   const anchorRe = /(?:各(?:数|号|个|件|样|款|肖)?|个)\s*(?:[0-9]+(?:\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)\s*(?:元|米|块|钱|块钱|圆)?/g;
