@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v35.5';
+var APP_VER = 'v35.6';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1425,15 +1425,28 @@ function calcSplit(){
       }
     });
   });
-  document.getElementById('splitSummary').innerHTML =
-    `<div style="line-height:2">` +
+  let splitHtml = `<div style="line-height:2">` +
     `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b> = <b>${(total+pteLxTotal).toFixed(2)}</b></div>` +
     `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号（仅特号飞单）</div>` +
-    `<div>飞单出去：<b style="color:#cf1322">${partner.toFixed(2)}</b>（那边接的，开了那边赔）</div>` +
-    `<div>反水收入(3%)：<b style="color:#16a34a">+${rebate.toFixed(2)}</b>（不管开什么号都赚）</div>` +
-    `<div>自留最高赔付：<b>${worstPayout.toFixed(0)}</b>（自留号开出来你赔的）</div>` +
-    `<div>最坏净盈亏：<b style="color:${worstNet>=0?'#16a34a':'#cf1322'}">${worstNet>=0?'+':''}${worstNet.toFixed(0)}</b></div>` +
-    `</div>`;
+    `<div>飞单出去：<b style="color:#cf1322">${partner.toFixed(2)}</b>（那边接的，开了那边赔）</div>`;
+  if(lastDraw && lastDraw.specialNum){
+    // 开奖后显示实际
+    const keptAmt = Math.min(sales[lastDraw.specialNum]||0, splitTakeAll);
+    const keptPayout = keptAmt * payMult;
+    const flyAmt = Math.max(0, (sales[lastDraw.specialNum]||0) - splitTakeAll);
+    const flyPayout = flyAmt * payMult;
+    const realNet = (total - partner) - keptPayout;
+    splitHtml += `<div style="border-top:1px dashed #ccc;margin:6px 0"></div>`;
+    splitHtml += `<div style="font-weight:700">🎯已开奖：特${lastDraw.specialNum} ${NUM2ZODIAC[lastDraw.specialNum]||''}</div>`;
+    splitHtml += `<div>自留赔付：${keptAmt}×${payMult}=<b style="color:#cf1322">${keptPayout.toFixed(0)}</b></div>`;
+    if(flyAmt > 0) splitHtml += `<div>飞出去赔付（上家赔）：${flyAmt}×${payMult}=<b style="color:#666">${flyPayout.toFixed(0)}</b></div>`;
+    splitHtml += `<div style="font-size:16px;font-weight:700">实际净盈亏：<b style="color:${realNet>=0?'#16a34a':'#cf1322'}">${realNet>=0?'+':''}${realNet.toFixed(0)}</b></div>`;
+  } else {
+    splitHtml += `<div>自留最高赔付：<b>${worstPayout.toFixed(0)}</b>（自留号开出来你赔的）</div>` +
+    `<div>最坏净盈亏：<b style="color:${worstNet>=0?'#16a34a':'#cf1322'}">${worstNet>=0?'+':''}${worstNet.toFixed(0)}</b></div>`;
+  }
+  splitHtml += `</div>`;
+  document.getElementById('splitSummary').innerHTML = splitHtml;
 }
 function copySplit(){
   calcSplit();
