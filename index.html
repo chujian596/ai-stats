@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v25.1';
+var APP_VER = 'v25.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1255,6 +1255,23 @@ function copySplit(){
   if(lxFlyAmt > 0){
     lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`);
     partner += lxFlyAmt;
+  }
+  // 二中二/三中三飞单（开关打开时全部飞走）
+  let emFlyOn = true;
+  try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){ emFlyOn = true; }
+  if(emFlyOn){
+    const emMap = {};
+    orders.forEach(o => {
+      (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+          emMap[c] = (emMap[c]||0) + codeSalesForOrder(o, c);
+        }
+      });
+    });
+    Object.entries(emMap).forEach(([c, amt]) => {
+      lines.push(`${c} ${amt.toFixed(2)}`);
+      partner += amt;
+    });
   }
   const text = lines.join('\n') + '\n合计：' + partner.toFixed(2);
   navigator.clipboard.writeText(text).then(() => {
