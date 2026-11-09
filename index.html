@@ -286,7 +286,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v29.3';
+var APP_VER = 'v29.4';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3677,12 +3677,13 @@ function applyTheme(){
   let st = document.getElementById('themeOverride');
   if(!st){ st = document.createElement('style'); st.id='themeOverride'; document.head.appendChild(st); }
   st.textContent = `
-    .btn.primary,.tab.active,.chip.on,
-    div[style*="#7c3aed"],button[style*="#7c3aed"] {
+    .btn.primary,.tab.active,.chip.on {
       background: ${color} !important; border-color: ${color} !important;
     }
-    .last,div[style*="color:#7c3aed"],button[style*="color:#7c3aed"],
-    input[style*="color:#7c3aed"] { color: ${color} !important; }
+    div[style*="background:#7c3aed"],button[style*="background:#7c3aed"] {
+      background: ${color} !important;
+    }
+    .last { color: ${color} !important; }
   `;
   const fs = t.fontSize || 17;
   document.body.style.fontSize = fs+'px';
