@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v28.4';
+var APP_VER = 'v28.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2095,7 +2095,7 @@ function handleSave(){
       if(wave) canonical += wave;
       if(sd && !sd.startsWith('合数')) canonical += sd;
       else if(sd) canonical = sd;
-      if(dx && !sd.startsWith('合数')) canonical += dx;
+      if(dx && !(sd && sd.startsWith('合数'))) canonical += dx;
       // 查产品是否存在
       const prodDef = getProducts().find(p => p.code === canonical);
       if(prodDef && prodDef.links && prodDef.links.length > 1){
