@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.9';
+var APP_VER = 'v27.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2668,11 +2668,11 @@ function renderOrdersList(){
             const cn = c.split(':')[1].split(',');
             if(cn.every(n => allDrawNums.has(Number(n)))) anyHit = true;
           });
-          upR += `<div style="color:${anyHit?'#cf1322':'#d97706'};${anyHit?'font-weight:700':''}">${sn.join('.')}复${k===2?'二':'三'} ${amt}${anyHit?' ←命中':''}</div>`;
+          upR += `<div style="color:${anyHit?'#cf1322':'#333'};${anyHit?'font-weight:700':''}">${sn.join('.')}复${k===2?'二':'三'} ${amt}${anyHit?' ←命中':''}</div>`;
           group.forEach(([c]) => usedD.add(c));
         } else {
           const hit = nums.every(n => allDrawNums.has(Number(n)));
-          upR += `<div style="color:${hit?'#cf1322':'#d97706'};${hit?'font-weight:700':''}">${code.replace(':','')} ${amt.toFixed(0)}${hit?' ←命中':''}</div>`;
+          upR += `<div style="color:${hit?'#cf1322':'#333'};${hit?'font-weight:700':''}">${code.replace(':','')} ${amt.toFixed(0)}${hit?' ←命中':''}</div>`;
           usedD.add(code);
         }
       });
