@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.7';
+var APP_VER = 'v26.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2612,9 +2612,14 @@ function renderOrdersList(){
   let upL = '', upM = '', upR = '';
   try {
     const salesD = getSplitSales();
+    const drawZodsD = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)) : new Set();
+    const allDrawNums = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum]) : new Set();
     Object.keys(salesD).sort().forEach(k => {
       const extra = Math.max(0, salesD[k] - splitTakeAll);
-      if(extra > 0) upL += `<div>特码${k} ${extra.toFixed(0)}</div>`;
+      if(extra > 0){
+        const hit = lastDraw && Number(k) === lastDraw.specialNum;
+        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${extra.toFixed(0)}${hit?' ←命中':''}</div>`;
+      }
     });
     if(!upL) upL = '<div style="color:#bbb">—</div>';
     const pteD = {};
@@ -2626,9 +2631,16 @@ function renderOrdersList(){
     });});
     Object.entries(pteD).forEach(([z, amt]) => {
       const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
-      if(extra > 0) upM += `<div>平特${z} ${extra.toFixed(0)}</div>`;
+      if(extra > 0){
+        const hit = drawZodsD.has(z);
+        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${extra.toFixed(0)}${hit?' ←命中':''}</div>`;
+      }
     });
-    if(lxFlyAmt > 0) upM += `<div>连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}</div>`;
+    if(lxFlyAmt > 0){
+      const lz = (lxFlyName||'').replace(/[0-9连]+$/,'');
+      const lxHit = lz.split('').every(z => drawZodsD.has(z));
+      upM += `<div style="${lxHit?'color:#cf1322;font-weight:700':''}">连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}${lxHit?' ←命中':''}</div>`;
+    }
     if(!upM) upM = '<div style="color:#bbb">—</div>';
     let emOnD = true; try { emOnD = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
     if(emOnD){
@@ -2650,10 +2662,17 @@ function renderOrdersList(){
         const sn = [...allN].sort();
         function comb(n,kk){ let r=1; for(let j=0;j<kk;j++){r=r*(n-j)/(j+1);} return Math.round(r); }
         if(group.length >= 3 && group.length === comb(sn.length,k) && sn.length > k){
-          upR += `<div style="color:#d97706">${sn.join('.')}复${k===2?'二':'三'} ${amt}</div>`;
+          // 复式：检查是否有组合命中
+          let anyHit = false;
+          group.forEach(([c]) => {
+            const cn = c.split(':')[1].split(',');
+            if(cn.every(n => allDrawNums.has(Number(n)))) anyHit = true;
+          });
+          upR += `<div style="color:${anyHit?'#cf1322':'#d97706'};${anyHit?'font-weight:700':''}">${sn.join('.')}复${k===2?'二':'三'} ${amt}${anyHit?' ←命中':''}</div>`;
           group.forEach(([c]) => usedD.add(c));
         } else {
-          upR += `<div style="color:#d97706">${code.replace(':','')} ${amt.toFixed(0)}</div>`;
+          const hit = nums.every(n => allDrawNums.has(Number(n)));
+          upR += `<div style="color:${hit?'#cf1322':'#d97706'};${hit?'font-weight:700':''}">${code.replace(':','')} ${amt.toFixed(0)}${hit?' ←命中':''}</div>`;
           usedD.add(code);
         }
       });
