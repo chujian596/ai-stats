@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v34.4';
+var APP_VER = 'v34.5';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3287,11 +3287,14 @@ function renderRisk(){
     h += `<div id="riskPteTable">`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
     h += `<tr style="color:#7c3aed"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留赔</th></tr>`;
+    const drawZSet = (lastDraw && lastDraw.specialNum) ? new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean)) : null;
     pteEntries.forEach(([z,amt]) => {
       const mult = z==='马' ? 1.8 : payMultSingle;
       const kept = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : amt;
       const fly = Math.max(0, amt - kept);
-      h += `<tr style="border-bottom:1px solid #f5f5f5"><td style="padding:3px">${z}</td><td style="text-align:right;padding:3px">${amt.toFixed(0)}</td><td style="text-align:right;padding:3px;color:${fly>0?'#cf1322':'#999'}">${fly>0?fly.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:#cf1322">${(kept*mult).toFixed(0)}</td></tr>`;
+      const hit = drawZSet && drawZSet.has(z);
+      const rowBg = hit ? 'background:#d4edda;' : '';
+      h += `<tr style="border-bottom:1px solid #f5f5f5;${rowBg}"><td style="padding:3px">${z}${hit?' ✓':''}</td><td style="text-align:right;padding:3px">${amt.toFixed(0)}</td><td style="text-align:right;padding:3px;color:${fly>0?'#cf1322':'#999'}">${fly>0?fly.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:${hit?'#155724':'#cf1322'};font-weight:${hit?'700':'400'}">${(kept*mult).toFixed(0)}${hit?' ←赔':''}</td></tr>`;
     });
     h += `</table>`;
     h += `</div>`;
@@ -3318,8 +3321,11 @@ function renderRisk(){
       zodRows.push({z, ptePayoutZ, specPayout, maxSpecNum, totalPayout, net});
     });
     zodRows.sort((a,b)=>a.net-b.net);
+    const actualDrawZ = (lastDraw && lastDraw.specialNum) ? NUM2ZODIAC[lastDraw.specialNum] : null;
     zodRows.forEach(r => {
-      h += `<tr style="border-bottom:1px solid #f5f5f5"><td style="padding:3px">${r.z}${r.maxSpecNum?` <span style="color:#999;font-size:11px">(${String(r.maxSpecNum).padStart(2,'0')})</span>`:''}</td><td style="text-align:right;padding:3px">${r.ptePayoutZ.toFixed(0)}</td><td style="text-align:right;padding:3px">${r.specPayout>0?r.specPayout.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:#cf1322">${r.totalPayout.toFixed(0)}</td><td style="text-align:right;padding:3px;color:${r.net>=0?'#16a34a':'#cf1322'}">${r.net>=0?'+':''}${r.net.toFixed(0)}</td></tr>`;
+      const isDrawZ = actualDrawZ === r.z;
+      const rowBg = isDrawZ ? 'background:#d4edda;' : '';
+      h += `<tr style="border-bottom:1px solid #f5f5f5;${rowBg}"><td style="padding:3px">${r.z}${r.maxSpecNum?` <span style="color:#999;font-size:11px">(${String(r.maxSpecNum).padStart(2,'0')})</span>`:''}${isDrawZ?' ✓开奖':''}</td><td style="text-align:right;padding:3px">${r.ptePayoutZ.toFixed(0)}</td><td style="text-align:right;padding:3px">${r.specPayout>0?r.specPayout.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:${isDrawZ?'#155724':'#cf1322'};font-weight:${isDrawZ?'700':'400'}">${r.totalPayout.toFixed(0)}${isDrawZ?' ←实际':''}</td><td style="text-align:right;padding:3px;color:${isDrawZ?(r.net>=0?'#155724':'#721c24'):(r.net>=0?'#16a34a':'#cf1322')};font-weight:${isDrawZ?'700':'400'}">${r.net>=0?'+':''}${r.net.toFixed(0)}${isDrawZ?' ←':''}</td></tr>`;
     });
     h += `</table>`;
     h += `<div style="font-size:11px;color:#999;margin-top:4px">平特赔=该肖出现就赔 · 特号最坏=开到该肖内下注最大那个号</div>`;
