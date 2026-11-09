@@ -286,7 +286,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v29.8';
+var APP_VER = 'v29.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3680,45 +3680,50 @@ function applyTheme(){
   let darkCss = '';
   if(isDark){
     darkCss = `
-      section, .card, .input, textarea, pre {
+      section, main, .input, textarea, pre {
         background: #1e1e30 !important;
       }
+      div[style*="background"], button[style*="background"], input[style*="background"] {
+        /* light backgrounds → dark */
+      }
       div[style*="background:#fff"], div[style*="background:white"],
-      div[style*="background:#f5f5f5"], div[style*="background:#f8f9fa"],
-      div[style*="background:#f0f0f0"], div[style*="background:#f3e8ff"],
-      div[style*="background:#f0fff0"], div[style*="background:#e8ffe8"],
-      div[style*="background:#f0fdf4"], div[style*="background:#fafbfc"],
-      div[style*="background:#f7f7f7"], div[style*="background:#fef2f2"],
-      div[style*="background:#fff2f0"], div[style*="background:#f0f"],
+      div[style*="background:#fafafa"], div[style*="background:#fefefe"],
+      div[style*="background:#f9fafb"], div[style*="background:#f5f5f5"],
+      div[style*="background:#f8f9fa"], div[style*="background:#f0f0f0"],
+      div[style*="background:#f3e8ff"], div[style*="background:#f0fff0"],
+      div[style*="background:#e8ffe8"], div[style*="background:#f0fdf4"],
+      div[style*="background:#fafbfc"], div[style*="background:#f7f7f7"],
+      div[style*="background:#fef2f2"], div[style*="background:#fff2f0"],
       div[style*="background:#eee"], div[style*="background:#e6e9ef"],
+      div[style*="background-color:#fff"], div[style*="background-color:white"],
+      div[style*="background-color:#fafafa"], div[style*="background-color:#f5f5f5"],
+      div[style*="background-color:#f8f9fa"], div[style*="background-color:#f0f0f0"],
       button[style*="background:#fff"], button[style*="background:white"],
       button[style*="background:#f5f5f5"], button[style*="background:#f3e8ff"],
       button[style*="background:#f7f7f7"], button[style*="background:#fff2f0"],
-      button[style*="background:#fafbfc"] {
-        background: #2a2a40 !important; color: #e8e8e8 !important;
+      button[style*="background:#fafbfc"], button[style*="background:#fafafa"],
+      button[style*="background-color:#fff"], button[style*="background-color:#f5f5f5"],
+      input[style*="background:#fff"], input[style*="background:#fafbfc"],
+      input[style*="background-color:#fff"], input[style*="background-color:#fafbfc"] {
+        background: #2a2a40 !important; background-color: #2a2a40 !important;
+        color: #e8e8e8 !important;
       }
       input, textarea, select { background:#2a2a40 !important; color:#e8e8e8 !important; border-color:#444 !important; }
       .tab { background:#2a2a40 !important; color:#aaa !important; }
       .btn:not(.primary):not(.danger) { background:#2a2a40 !important; color:#e8e8e8 !important; border-color:#444 !important; }
       .btn.danger { background:#3a2020 !important; color:#ff6b6b !important; border-color:#666 !important; }
       .chip { background:#2a2a40 !important; color:#aaa !important; border-color:#555 !important; }
-      div[style*="border:1px solid #7c3aed"], div[style*="border-color:#7c3aed"] {
-        border-color: ${color} !important;
-      }
+      /* text colors */
       [style*="color:#000"], [style*="color:#333"], [style*="color:#1f2329"],
       [style*="color:#666"], [style*="color:#999"], [style*="color:#888"],
       [style*="color:#aaa"], [style*="color:#555"], [style*="color:#444"],
       [style*="color:#222"], [style*="color:#111"], [style*="color:#b0b0b0"],
-      [style*="color:#c0c0c0"] {
+      [style*="color:#c0c0c0"], [style*="color:#1f2329"] {
         color:#ccc !important;
       }
-      [style*="opacity:0.5"], [style*="opacity:0.6"], [style*="opacity:0.7"] {
-        opacity: 0.85 !important;
-      }
-      [style*="color:#cf1322"], [style*="color:red"], [style*="color:#f00"],
-      [style*="color:#e74c3c"] { color:#ff6b6b !important; }
+      [style*="opacity:0.5"], [style*="opacity:0.6"], [style*="opacity:0.7"] { opacity: 0.85 !important; }
+      [style*="color:#cf1322"], [style*="color:red"], [style*="color:#f00"] { color:#ff6b6b !important; }
       [style*="color:#fa8c16"], [style*="color:#ea580c"] { color:#ffb366 !important; }
-      [style*="color:#000000"] { color:#e8e8e8 !important; }
       [style*="color:#16a34a"], [style*="color:#059669"], [style*="color:green"],
       [style*="color:#22c55e"] { color:#4ade80 !important; }
     `;
