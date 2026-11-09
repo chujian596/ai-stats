@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.9';
+var APP_VER = 'v33.0';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2867,7 +2867,7 @@ function renderOrdersList(){
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)) cpEm += codeSalesForOrder(o, c);
     });});
   } catch(e){}
-  window._upCopy = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n命中额:${flyBackTotal.toFixed(0)}` : '') + `\n总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}` + `\n结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}`;
+  window._upCopy = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n命中额:${flyBackTotal.toFixed(0)}` : '') + (lastDraw ? `\n总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}\n结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}` : '\n未开奖，结算待定');
   h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fffbeb">`;
   h += `<div onclick="var e=document.getElementById('upDetail');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
@@ -2876,7 +2876,7 @@ function renderOrdersList(){
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走 <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
-  h += `<span>结算 <b style="color:#16a34a">-${Math.abs(flyOutTotal-flyBackTotal).toFixed(0)}</b></span>`;
+  h += `<span>结算 <b style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'-'+Math.abs(flyOutTotal-flyBackTotal).toFixed(0):'待开奖'}</b></span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
   h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #fde68a"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
@@ -2983,7 +2983,7 @@ function renderOrdersList(){
   h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
-  h += `<div style="color:#16a34a">结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
+  h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:-'+(flyOutTotal-flyBackTotal).toFixed(0):'未开奖，结算待定'}</div>`;
   h += `</div></div></div>`;
   box.innerHTML = h;
 }
