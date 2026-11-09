@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v35.0';
+var APP_VER = 'v35.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3340,32 +3340,44 @@ function renderRisk(){
       h += `<div>不对冲最差：<b style="color:${worstNoHedge<0?'#cf1322':'#16a34a'}">${worstNoHedge.toFixed(0)}</b></div>`;
       h += `</div>`;
       if(hedgeBet > 0){
+        // 用户已下的连肖单 vs 系统推荐
+        const myBet = lxFlyAmt > 0 ? lxFlyAmt : 0;
+        const myName = lxFlyName || '';
+        const myOdds = odds; // 简化：用当前推荐赔率
+        // 如果用户已下注，用实际下注金额算净盈亏
+        const effBet = myBet > 0 ? myBet : hedgeBet;
+        const effName = myBet > 0 ? myName : lianName;
+        const effAllHitNet = pteTotal - worstPte + effBet*(myOdds-1);
+        const effWorstProperNet = pteTotal - worstProperPayout - effBet;
+        const effBestPartialNet = pteTotal - smallestPte - effBet;
+        const effNoneNet = pteTotal - effBet;
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-        h += `<div>评估连肖注单 ${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">下注</button>${lxFlyAmt>0?`<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:4px">撤销</button>`:''}</div>`;
-        const bestPartialNet = pteTotal - smallestPte - hedgeBet;
+        if(myBet > 0){
+          h += `<div style="background:#e6f4ea;padding:6px 8px;border-radius:6px;margin-bottom:4px">✅ 你已下注：<b>${myName}</b> / <b>${myBet}元</b>（${myOdds}倍）<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:6px">撤销</button></div>`;
+        } else {
+          h += `<div>💡 系统推荐：${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">按推荐下注</button></div>`;
+        }
         // 开奖后判断实际是哪种情况
         let actualCase = null;
         if(lastDraw && lastDraw.specialNum){
           const dzs = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
           const hitCount = hedgeZodiacs.filter(x => dzs.has(x.z)).length;
           const hitNames = hedgeZodiacs.filter(x => dzs.has(x.z)).map(x=>x.z).join('');
-          if(hitCount === hedgeZodiacs.length) actualCase = {label:'全中', net:allHitNet, names:hitNames};
-          else if(hitCount === 0) actualCase = {label:'都不中', net:noneNet, names:'无'};
+          if(hitCount === hedgeZodiacs.length) actualCase = {label:'全中', net:effAllHitNet, names:hitNames};
+          else if(hitCount === 0) actualCase = {label:'都不中', net:effNoneNet, names:'无'};
           else if(hitCount === 1) {
-            // 中了最大那个还是最小那个
             const hitZ = hedgeZodiacs.find(x => dzs.has(x.z));
-            if(hitZ === hedgeZodiacs[hedgeZodiacs.length-1]) actualCase = {label:'小的中', net:bestPartialNet, names:hitZ.z};
-            else actualCase = {label:'大的中', net:worstProperNet, names:hitZ.z};
+            if(hitZ === hedgeZodiacs[hedgeZodiacs.length-1]) actualCase = {label:'小的中', net:effBestPartialNet, names:hitZ.z};
+            else actualCase = {label:'大的中', net:effWorstProperNet, names:hitZ.z};
           } else {
-            // 中了部分但不是全部
-            actualCase = {label:`中${hitCount}个(${hitNames})`, net:worstProperNet, names:hitNames};
+            actualCase = {label:`中${hitCount}个(${hitNames})`, net:effWorstProperNet, names:hitNames};
           }
         }
         const cases = [
-          {label:'全中', net:allHitNet},
-          {label:'大的中', net:worstProperNet},
-          {label:'小的中', net:bestPartialNet},
-          {label:'都不中', net:noneNet}
+          {label:'全中', net:effAllHitNet},
+          {label:'大的中', net:effWorstProperNet},
+          {label:'小的中', net:effBestPartialNet},
+          {label:'都不中', net:effNoneNet}
         ];
         cases.forEach(c => {
           const isActual = actualCase && actualCase.label === c.label;
