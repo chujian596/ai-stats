@@ -55,16 +55,16 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </style>
 </head>
 <body>
-<div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#1a1a2e,#0f3460);z-index:9999;padding:20px;box-sizing:border-box">
+<div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;padding:20px;box-sizing:border-box">
   <div style="max-width:320px;margin:0 auto;text-align:center;position:fixed;top:25%;left:0;right:0;padding:0 20px;box-sizing:border-box">
-    <div style="font-size:17px;font-weight:700;margin-bottom:20px">🔐 会员验证</div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:20px;color:#1a1a1a">🔐 会员验证</div>
     <div id="lockMsg" style="font-size:17px;color:#666;margin-bottom:10px"></div>
     <div id="lockPwdWrap">
       <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:17px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
       <button onclick="unlock()" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:12px;font-size:16px;font-weight:700">进入</button>
     </div>
   </div>
-  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
+  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#e0e0e0;color:#333;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
 </div>
 <header>
   <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span id="verSpan" style="font-size:10px;opacity:0.7"></span></div>
@@ -283,6 +283,52 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </main>
 
 <script>
+// === IndexedDB自动备份（比localStorage更持久，清缓存不丢） ===
+let _db = null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('aiStatsBackup',1);
+    r.onupgradeneeded = e => { e.target.result.createObjectStore('kv'); };
+    r.onsuccess = e => { _db = e.target.result; res(); };
+    r.onerror = e => rej(e);
+  });
+}
+async function dbSet(k,v){
+  if(!_db) await openDB();
+  return new Promise((res,rej)=>{
+    const tx = _db.transaction('kv','readwrite');
+    tx.objectStore('kv').put(JSON.stringify(v),k);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function dbGet(k){
+  if(!_db) await openDB();
+  return new Promise((res,rej)=>{
+    const rq = _db.transaction('kv').objectStore('kv').get(k);
+    rq.onsuccess = () => res(rq.result ? JSON.parse(rq.result) : null);
+    rq.onerror = rej;
+  });
+}
+// 每次保存订单后自动备份到IndexedDB
+async function autoBackup(){
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    try { data[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ data[k] = localStorage.getItem(k); }
+  }
+  await dbSet('allData', data);
+}
+// 启动时检查：如果localStorage空了但IndexedDB有备份，自动恢复
+async function restoreIfNeeded(){
+  const backup = await dbGet('allData');
+  if(backup && localStorage.length < 3){
+    Object.keys(backup).forEach(k => {
+      try { localStorage.setItem(k, typeof backup[k]==='string' ? backup[k] : JSON.stringify(backup[k])); } catch(e){}
+    });
+    location.reload();
+  }
+}
+
 // 强制注销所有旧Service Worker，防止缓存旧版
 if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(function(regs){
@@ -297,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.0';
+var APP_VER = 'v32.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -494,7 +540,8 @@ function autoPayout(){
         upCum += (flyOut0 - flyBack0); // 正=你赚
         localStorage.setItem('upCum', upCum.toFixed(2));
       } catch(e){}
-      renderAll();
+      restoreIfNeeded();
+renderAll();
       var pc = document.getElementById('payCtrl'); if(pc) pc.style.display=''; var pb = document.getElementById('profitBody'); if(pb) pb.style.display='';
     };
   }
@@ -561,7 +608,7 @@ function showLock(){
   } else {
     timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/86400000) + '</b> 天';
   }
-  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#7c3aed;font-size:14px">' + DEVICE_ID + '</b></span>';
+  document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
   var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
   if(!deviceAllowed){
@@ -622,7 +669,7 @@ setInterval(function(){
   var txt = d + '天 ' + h + '时 ' + m + '分 ' + s + '秒';
   var el = document.getElementById('lockMsg');
   if(el && document.getElementById('lockScreen').style.display !== 'none'){
-    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#7c3aed;font-size:14px">' + DEVICE_ID + '</b></span>';
+    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   }
   var mem = document.getElementById('memInfo');
   if(mem) mem.textContent = '会员剩' + d + '天' + h + '时' + m + '分';
@@ -671,7 +718,8 @@ function delOrder(idx){
   if(!confirm('删除这笔订单？金额会同步扣减')) return;
   orders.splice(idx, 1);
   saveOrders();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 
 // 赔付记录
@@ -738,7 +786,8 @@ function addPay(){
   savePays();
   document.getElementById('payAmount').value = '';
   document.getElementById('payNote').value = '';
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function showAutoPay(){
   savePayMult();
@@ -793,20 +842,23 @@ function autoPay(){
   const comp = prodSales * payMult;
   pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
   savePays();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
   showAutoPay();
 }
 function delPay(idx){
   if(!confirm('删除这笔赔付？')) return;
   pays.splice(idx, 1);
   savePays();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function clearPays(){
   if(!confirm('清空所有赔付记录？赔付金额归零')) return;
   pays = [];
   savePays();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function renderPays(){
   const tbody = document.getElementById('tbody-pay');
@@ -1080,7 +1132,8 @@ function sidePayCalc(){
   if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总单金额${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
     pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${mult}`, time: new Date().toLocaleString('zh-CN') });
     savePays();
-    renderAll();
+    restoreIfNeeded();
+renderAll();
   }
 }
 
@@ -1571,17 +1624,20 @@ function pickProd(v, type){
 }
 function editBundleLabel(){
   var n = prompt('套餐按钮文字:', labels.bundleBtn || '套餐模式');
-  if(n !== null){ labels.bundleBtn = n.trim() || '套餐模式'; saveLabels(); renderAll(); }
+  if(n !== null){ labels.bundleBtn = n.trim() || '套餐模式'; saveLabels(); restoreIfNeeded();
+renderAll(); }
 }
 function editSingleLabel(){
   var n = prompt('单品按钮文字:', labels.singleBtn || '单品模式');
-  if(n !== null){ labels.singleBtn = n.trim() || '单品模式'; saveLabels(); renderAll(); }
+  if(n !== null){ labels.singleBtn = n.trim() || '单品模式'; saveLabels(); restoreIfNeeded();
+renderAll(); }
 }
 function setMode(m){
   mode = m;
   try { localStorage.setItem(PKEY + '_mode', m); } catch(e){}
   updateModeBtns();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function updateModeBtns(){
   var bb = document.getElementById('mode-btn-bundle');
@@ -1613,7 +1669,8 @@ function toggleLink(code, link){
   const i = p.links.indexOf(link);
   if(i >= 0) p.links.splice(i, 1); else p.links.push(link);
   saveProducts();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function addProduct(){
   const v = document.getElementById('newProductCode').value.trim();
@@ -1622,15 +1679,18 @@ function addProduct(){
   products.push({ code: v, name: '', color: '', links: [], custom: true });
   saveProducts();
   document.getElementById('newProductCode').value = '';
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function setProductColor(code, color){
   const p = products.find(x => x.code === code);
-  if(p){ p.color = (color === 'none' ? '' : color); p.custom = true; saveProducts(); renderAll(); }
+  if(p){ p.color = (color === 'none' ? '' : color); p.custom = true; saveProducts(); restoreIfNeeded();
+renderAll(); }
 }
 function renameProduct(code, name){
   const p = products.find(x => x.code === code);
-  if(p){ p.name = String(name).trim(); saveProducts(); renderAll(); }
+  if(p){ p.name = String(name).trim(); saveProducts(); restoreIfNeeded();
+renderAll(); }
 }
 function removeProduct(code){
   const isBundle = products.some(p => p.code === code && (p.custom || (p.links||[]).length > 0 || !/^\d{2}$/.test(p.code)));
@@ -1641,19 +1701,24 @@ function removeProduct(code){
   if(!confirm('删除主产品「' + code + '」？\n（历史订单不会删，但这个套餐以后不再展开）')) return;
   products = products.filter(p => !(p.code === code && (p.custom || (p.links||[]).length > 0 || !/^\d{2}$/.test(p.code))));
   saveProducts();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function renameCode(oldCode, newCode){
   newCode = String(newCode).trim();
-  if(!newCode || newCode === oldCode){ renderAll(); return; }
-  if(newCode.length > 12){ myAlert('名字太长（12字内）'); renderAll(); return; }
+  if(!newCode || newCode === oldCode){ restoreIfNeeded();
+renderAll(); return; }
+  if(newCode.length > 12){ myAlert('名字太长（12字内）'); restoreIfNeeded();
+renderAll(); return; }
   const p = products.find(x => x.code === oldCode);
-  if(!p){ renderAll(); return; }
+  if(!p){ restoreIfNeeded();
+renderAll(); return; }
   p.code = newCode;
   orders.forEach(o => { o.codes = (o.codes || []).map(c => c === oldCode ? newCode : c); });
   saveProducts();
   saveOrders();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function renderSettings(){
   // 标题输入框不在这里重置，避免覆盖用户正在输入的内容
@@ -1708,7 +1773,8 @@ function renameSingleByIdx(idx, newCode){
   if(!newCode || newCode === p.code) return;
   if(products.find(x => x.single && x.code === newCode)){ myAlert('单品「' + newCode + '」已存在'); return; }
   p.code = newCode;
-  saveProducts(); renderSettings(); renderAll();
+  saveProducts(); renderSettings(); restoreIfNeeded();
+renderAll();
 }
 let _uidSeq = Date.now();
 function addSingle(){
@@ -1717,7 +1783,8 @@ function addSingle(){
   // 允许和套餐同名，但同通道不重复
   if(products.find(p => p.code === name && p.single)){ myAlert('单品「' + name + '」已存在'); return; }
   products.push({ code: name, name: '', color: '', links: [], custom: true, single: true, _uid: 's' + (_uidSeq++) });
-  saveProducts(); renderSettings(); renderAll();
+  saveProducts(); renderSettings(); restoreIfNeeded();
+renderAll();
   document.getElementById('newSingleName').value = '';
 }
 function deleteSingle(code, uid){
@@ -1726,7 +1793,8 @@ function deleteSingle(code, uid){
   if(uid) i = products.findIndex(p => p.code === code && p.single && p._uid === uid);
   if(i < 0) i = products.findIndex(p => p.code === code && p.single);
   if(i >= 0) products.splice(i, 1);
-  saveProducts(); renderSettings(); renderAll();
+  saveProducts(); renderSettings(); restoreIfNeeded();
+renderAll();
 }
 function saveCustomerRoster(){
   const name = document.getElementById('customerName').value.trim();
@@ -1734,13 +1802,15 @@ function saveCustomerRoster(){
   if(roster.includes(name)){ myAlert('「' + name + '」已经在客户名单里了'); return; }
   roster.push(name);
   saveRoster();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function removeRoster(name){
   if(!confirm('删除？')) return;
   roster = roster.filter(n => n !== name);
   saveRoster();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function esc(s){
   return String(s == null ? '' : s)
@@ -1811,7 +1881,8 @@ function cpQuickPay(cust, code, amt){
   savePays();
   cpLookup();
   renderCP();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 
 function cpAdd(){
@@ -2265,7 +2336,8 @@ function handleSave(){
       splitDetail.push(code);
     });
     saveOrders();
-    renderAll();
+    restoreIfNeeded();
+renderAll();
     document.getElementById('input').value = '';
     // 显示蓝色摘要
     var total = splitFormat.reduce((s,l) => s + parseFloat(l.split(/\s+/)[1]), 0);
@@ -2397,7 +2469,8 @@ function handleSave(){
   }
   document.getElementById('saveMsg').innerHTML = msg.replace(/\n/g,'<br>');
   document.getElementById('input').value = '';
-  renderAll();
+  restoreIfNeeded();
+renderAll();
   switchTab('rank');
   // 保存后自动展开平特肖列表
   setTimeout(() => {
@@ -2434,7 +2507,8 @@ function clearInput(){
 function selectCustomer(name){
   document.getElementById('customerName').value = name;
   updateCustLabel();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
   document.getElementById('custBox').style.display = 'none';
   document.getElementById('input').focus();
 }
@@ -2488,7 +2562,8 @@ function clearProduct(code){
     saveProducts();
   }
   saveOrders();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function resetSubs(){
   if(!confirm('重置子产品为 01-49 完整列表？\n（之前隐藏/删除的编号会全部恢复，自定义加的编号保留）')) return;
@@ -2508,7 +2583,8 @@ function addSub(){
   } catch(e){}
   inp.value = '';
   saveProducts();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function hideSub(code){
   if(!confirm('把编号 ' + code + ' 从子产品里去掉？\n（累计记录保留，但以后录单不再认这个号）')) return;
@@ -2519,7 +2595,8 @@ function hideSub(code){
   } catch(e){}
   products = products.filter(p => p.code !== code);
   saveProducts();
-  renderAll();
+  restoreIfNeeded();
+renderAll();
 }
 function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); } catch(e){} }
 try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
@@ -3612,7 +3689,8 @@ function importBackup(ev){
       if(newRoster){ roster = newRoster; saveRoster(); }
       if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
       saveOrders();
-      renderAll();
+      restoreIfNeeded();
+renderAll();
       myAlert('导入成功');
     } catch(err) {
       myAlert('导入失败：' + err.message);
@@ -3659,7 +3737,8 @@ function clearOrders(){
   try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}
   try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
   try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
-  renderAll();
+  restoreIfNeeded();
+renderAll();
   });
 }
 
@@ -3858,6 +3937,7 @@ function clearAll(){
 
 updateModeBtns();
 applyTheme();
+restoreIfNeeded();
 renderAll();
 document.getElementById('shopLabel').textContent = shopNames[shop];
 var left2 = lockData.expire - Date.now();
