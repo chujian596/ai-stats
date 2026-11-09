@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.8';
+var APP_VER = 'v26.9';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2684,8 +2684,29 @@ function renderOrdersList(){
   h += `<div style="flex:1">${upM}</div>`;
   h += `<div style="flex:1">${upR}</div>`;
   h += `</div>`;
+  // 分类总额
+  let spOut = 0, zdOut = 0, emOut2 = 0;
+  try {
+    const sD = getSplitSales();
+    Object.keys(sD).forEach(k => spOut += Math.max(0, sD[k] - splitTakeAll));
+    const pD = {};
+    orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('平特')){
+        const z = c.replace('平特','');
+        pD[z] = (pD[z]||0) + codeSalesForOrder(o, c);
+      }
+    });});
+    Object.values(pD).forEach(a => zdOut += Math.max(0, a - pteFlyTakeAll));
+    zdOut += lxFlyAmt;
+    let emOnX = true; try { emOnX = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    if(emOnX) orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+        emOut2 += codeSalesForOrder(o, c);
+      }
+    });});
+  } catch(e){}
   h += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-size:12px;font-weight:700">`;
-  h += `<div>合计总单:${flyOutTotal.toFixed(0)}</div>`;
+  h += `<div>特号${spOut.toFixed(0)} + 平肖${zdOut.toFixed(0)} + 二中二三中三${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
   h += `<div style="color:#16a34a">结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
