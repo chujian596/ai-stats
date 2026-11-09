@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.6';
+var APP_VER = 'v26.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2608,7 +2608,63 @@ function renderOrdersList(){
   h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #fde68a"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
   h += `</div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #fde68a">`;
-  upCopyLines.forEach(line => { h += `<div style="font-size:12px;color:#666;padding:2px 0">${esc(line)}</div>`; });
+  // 三栏：左特码 中肖 右二中二三中三
+  let upL = '', upM = '', upR = '';
+  try {
+    const salesD = getSplitSales();
+    Object.keys(salesD).sort().forEach(k => {
+      const extra = Math.max(0, salesD[k] - splitTakeAll);
+      if(extra > 0) upL += `<div>特码${k} ${extra.toFixed(0)}</div>`;
+    });
+    if(!upL) upL = '<div style="color:#bbb">—</div>';
+    const pteD = {};
+    orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('平特')){
+        const z = c.replace('平特','');
+        pteD[z] = (pteD[z]||0) + codeSalesForOrder(o, c);
+      }
+    });});
+    Object.entries(pteD).forEach(([z, amt]) => {
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      if(extra > 0) upM += `<div>平特${z} ${extra.toFixed(0)}</div>`;
+    });
+    if(lxFlyAmt > 0) upM += `<div>连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}</div>`;
+    if(!upM) upM = '<div style="color:#bbb">—</div>';
+    let emOnD = true; try { emOnD = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    if(emOnD){
+      const emD = {};
+      orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+          emD[c] = (emD[c]||0) + codeSalesForOrder(o, c);
+        }
+      });});
+      const usedD = new Set();
+      Object.entries(emD).forEach(([code, amt]) => {
+        if(usedD.has(code)) return;
+        const prod = code.split(':')[0];
+        const nums = code.split(':')[1].split(',');
+        const k = nums.length;
+        const group = Object.entries(emD).filter(([c,a]) => !usedD.has(c) && c.startsWith(prod+':') && a === amt);
+        const allN = new Set();
+        group.forEach(([c]) => c.split(':')[1].split(',').forEach(n => allN.add(n)));
+        const sn = [...allN].sort();
+        function comb(n,kk){ let r=1; for(let j=0;j<kk;j++){r=r*(n-j)/(j+1);} return Math.round(r); }
+        if(group.length >= 3 && group.length === comb(sn.length,k) && sn.length > k){
+          upR += `<div style="color:#d97706">${sn.join('.')}复${k===2?'二':'三'} ${amt}</div>`;
+          group.forEach(([c]) => usedD.add(c));
+        } else {
+          upR += `<div style="color:#d97706">${code.replace(':','')} ${amt.toFixed(0)}</div>`;
+          usedD.add(code);
+        }
+      });
+    }
+    if(!upR) upR = '<div style="color:#bbb">—</div>';
+  } catch(e){}
+  h += `<div style="display:flex;gap:8px;font-size:11px;line-height:1.6">`;
+  h += `<div style="flex:1">${upL}</div>`;
+  h += `<div style="flex:1">${upM}</div>`;
+  h += `<div style="flex:1">${upR}</div>`;
+  h += `</div>`;
   h += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-size:12px;font-weight:700">`;
   h += `<div>合计总单:${flyOutTotal.toFixed(0)}</div>`;
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
