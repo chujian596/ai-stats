@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.1';
+var APP_VER = 'v26.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2553,15 +2553,19 @@ function renderOrdersList(){
     }
   } catch(e){}
   window._upCopy = upCopyLines.join('\n') + `\n合计飞走 ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n上期开奖特${String(lastDraw.specialNum).padStart(2,'0')} 上家赔 ${flyBackTotal.toFixed(0)}` : '') + `\n${flyNet>=0?'上家欠你':'你赚'} ${Math.abs(flyNet).toFixed(0)}`;
-  h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;padding:8px;background:#fffbeb">`;
+  h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fffbeb">`;
+  h += `<div onclick="var e=document.getElementById('upDetail');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
-  h += `<span style="font-weight:700;font-size:14px;color:#d97706">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
-  h += `<button onclick="copyUpstream()" style="border:1px solid #d97706;background:#fff;color:#d97706;border-radius:4px;padding:2px 8px;font-size:11px">复制清单</button>`;
+  h += `<span style="font-weight:700;font-size:14px;color:#d97706">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span> ▼</span>`;
+  h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #d97706;background:#fff;color:#d97706;border-radius:4px;padding:2px 8px;font-size:11px">复制清单</button>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走 <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
   h += `<span>上家赔 <b style="color:#cf1322">${flyBackTotal.toFixed(0)}</b></span>`;
   h += `<span>${flyNet>=0?'上家欠你':'你赚'} <b style="color:${flyNet>=0?'#cf1322':'#16a34a'}">${Math.abs(flyNet).toFixed(0)}</b></span>`;
+  h += `</div></div>`;
+  h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #fde68a">`;
+  upCopyLines.forEach(line => { h += `<div style="font-size:12px;color:#666;padding:2px 0">${esc(line)}</div>`; });
   h += `</div></div>`;
   box.innerHTML = h;
 }
