@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v20.1';
+var APP_VER = 'v20.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2313,9 +2313,8 @@ function renderRisk(){
   h += `<span style="color:#e67e22">赚${(winNums/49*100).toFixed(0)}% (+${winMin.toFixed(0)}起)</span>`;
   h += `<span style="color:#16a34a">白赚${(zeroCnt/49*100).toFixed(0)}% (+${keptCash.toFixed(0)})</span>`;
   h += `</div>`;
-  h += `<div style="margin-top:4px">最坏：开${String(worstNum).padStart(2,'0')}号${worstNet<0?'亏':'赚'}<b style="color:${worstNet<0?'#cf1322':'#16a34a'}">${Math.abs(worstNet).toFixed(0)}</b> <span style="color:#999;font-size:11px">(${riskPct.toFixed(0)}%)</span></div>`;
-  h += `<div>最好：开零额号赚<b style="color:#16a34a">+${keptCash.toFixed(0)}</b> <span style="color:#999;font-size:11px">(100%)</span></div>`;
-  h += `<div style="margin-top:4px;padding:6px;background:#f8f9fa;border-radius:6px;display:flex;justify-content:space-between"><span>风险:回报</span><b style="color:${riskPct<=30?'#16a34a':'#cf1322'}">${riskPct.toFixed(0)}% : 100%</b></div>`;
+  h += `<div style="margin-top:4px">最坏：开${String(worstNum).padStart(2,'0')}号亏<b style="color:#cf1322">${Math.abs(worstNet).toFixed(0)}</b> <span style="color:#999;font-size:11px">(${loseNums}个号会亏，占${(loseNums/49*100).toFixed(0)}%)</span></div>`;
+  h += `<div>最好：开零号赚<b style="color:#16a34a">+${keptCash.toFixed(0)}</b> <span style="color:#999;font-size:11px">(${zeroCnt}个号全收，占${(zeroCnt/49*100).toFixed(0)}%)</span></div>`;
   h += `<div>平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>/期</div>`;
   h += `<div>集中度：top5号占<b>${concPct}%</b>${concPct>60?'（过度集中）':''}</div>`;
   h += `<div style="margin-top:4px;font-weight:700;color:${worstNet>=0?'#16a34a':riskPct<=10?'#16a34a':riskPct<=30?'#e67e22':'#cf1322'}">➡ ${verdict}</div>`;
