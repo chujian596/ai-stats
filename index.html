@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.6';
+var APP_VER = 'v32.7';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1660,7 +1660,7 @@ function colorBadge(code){
   const bg = {red:'#e64545', blue:'#2563eb', green:'#23a55a'}[(p && p.color)] || '#eef0f3';
   const fg = p && p.color ? '#fff' : '#444';
   const name = p && p.name ? ' ' + esc(p.name) : '';
-  return `<span class="cb" style="display:inline-block;padding:0px 4px;border-radius:3px;background:${bg};color:${fg};font-weight:700;font-size:11px;line-height:1.3;white-space:nowrap">${esc(code)}${name}</span>`;
+  return `<span class="cb" style="display:inline-block;padding:2px 6px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap">${esc(code)}${name}</span>`;
 }
 function toggleLink(code, link){
   const p = products.find(x => x.code === code);
