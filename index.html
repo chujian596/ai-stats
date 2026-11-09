@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.3';
+var APP_VER = 'v32.4';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3582,7 +3582,7 @@ function renderAll(){
     chipRow.innerHTML = mergedRows.map(r => {
       const on = (r.name === selected) ? ' on' : '';
       const cnt = r.orders > 0 ? `${r.orders}单` : '新';
-      return `<span class="chip${on}" style="position:relative;cursor:pointer" onclick="selectCustomer('${esc(r.name)}')">${esc(r.name)}<span class="cnt">${cnt}</span><span onclick="event.stopPropagation();removeRoster('${esc(r.name)}')" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#e74c3c;color:#fff;font-size:10px;line-height:16px;text-align:center;cursor:pointer">×</span></span>`;
+      return `<span class="chip${on}" style="cursor:pointer;user-select:none;-webkit-user-select:none" onclick="selectCustomer('${esc(r.name)}')" oncontextmenu="event.preventDefault();if(confirm('删除客户 ${esc(r.name)}？'))removeRoster('${esc(r.name)}')">${esc(r.name)}<span class="cnt">${cnt}</span></span>`;
     }).join('');
   }
 
