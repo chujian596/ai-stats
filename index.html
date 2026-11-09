@@ -95,7 +95,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
     <datalist id="customerList"></datalist>
     <div id="chipRow"></div>
-    <button type="button" style="border:none;background:none;color:#7c3aed;font-size:17px;padding:6px 0;font-weight:600" onclick="saveCustomerRoster()">＋ 把当前名字存为客户名单</button>
+    <button type="button" style="width:100%;border:1px solid #ccc;background:#f5f5f5;color:#333;border-radius:8px;padding:12px;font-size:16px;font-weight:600;margin-top:6px" onclick="saveCustomerRoster()">保存名单</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;display:none">
       <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #7c3aed;background:#7c3aed;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.2';
+var APP_VER = 'v32.3';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
