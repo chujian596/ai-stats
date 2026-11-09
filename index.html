@@ -283,12 +283,21 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </main>
 
 <script>
+// 强制注销所有旧Service Worker，防止缓存旧版
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){ r.unregister(); });
+  });
+}
+caches && caches.keys && caches.keys().then(function(keys){
+  keys.forEach(function(k){ caches.delete(k); });
+});
 // 会员锁 - 每次打开都显示验证页
 var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.3';
+var APP_VER = 'v31.4';
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
