@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v23.0';
+var APP_VER = 'v23.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2290,7 +2290,6 @@ function renderRisk(){
   for(let i=1;i<=49;i++){
     currentFly += Math.max(0, (numBets[i]||0) - splitTakeAll);
   }
-  const keptCash = totalSales - currentFly;
   // 平特+连肖总赔付风险（含平特飞单）
   let ptePayout = 0, lxPayout = 0, pteFlyAmt = 0;
   const pteBetByZod = {};
@@ -2321,6 +2320,8 @@ function renderRisk(){
   });
   // 连肖飞单：飞出去的注码按2连4倍算赔付扣除
   if(lxFlyAmt > 0){ lxPayout = Math.max(0, lxPayout - lxFlyAmt * 4); }
+  // 自留现金 = 总收 - 特号飞 - 平特飞 - 连肖自己下注
+  const keptCash = totalSales - currentFly - pteFlyAmt - lxFlyAmt;
   const totalOtherPayout = ptePayout + lxPayout;
   const worstNum = sorted[0];
   const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : (numBets[worstNum]||0);
