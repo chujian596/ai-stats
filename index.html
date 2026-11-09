@@ -286,7 +286,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v29.1';
+var APP_VER = 'v29.2';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3496,6 +3496,7 @@ function renderAll(){
   renderOrdersList();
   renderPays();
   renderSplit();
+  applyTheme();
   renderSettings();
   renderRisk();
 
@@ -3672,12 +3673,17 @@ function applyTheme(){
   const bg = t.bg || BGS[0].css;
   document.body.style.background = bg;
   document.body.style.backgroundAttachment = 'fixed';
-  // 替换所有 #7c3aed 为新颜色（通过遍历style）
-  const all = document.querySelectorAll('*');
   document.documentElement.style.setProperty('--primary', color);
-  // 直接改body和关键元素
-  document.querySelectorAll('.btn.primary,.tab.active,.chip.on').forEach(el=>{el.style.background=color;el.style.borderColor=color;});
-  document.querySelectorAll('.btn:not(.primary):not(.danger)').forEach(el=>{if(el.style.color==='rgb(124, 58, 237)'||el.style.color==='#7c3aed')el.style.color=color;});
+  let st = document.getElementById('themeOverride');
+  if(!st){ st = document.createElement('style'); st.id='themeOverride'; document.head.appendChild(st); }
+  st.textContent = `
+    .btn.primary,.tab.active,.chip.on,
+    div[style*="#7c3aed"],button[style*="#7c3aed"] {
+      background: ${color} !important; border-color: ${color} !important;
+    }
+    .last,div[style*="color:#7c3aed"],button[style*="color:#7c3aed"],
+    input[style*="color:#7c3aed"] { color: ${color} !important; }
+  `;
   const fs = t.fontSize || 17;
   document.body.style.fontSize = fs+'px';
 }
