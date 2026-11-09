@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v26.0';
+var APP_VER = 'v26.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2501,10 +2501,62 @@ function renderOrdersList(){
       });
     }
   } catch(e){}
-  const flyNet = flyBackTotal - flyOutTotal; // 正=上家欠你, 负=你赚飞单钱
+  const flyNet = flyBackTotal - flyOutTotal;
+  // 构建复制文本
+  let upCopyLines = [];
+  try {
+    const sales = getSplitSales();
+    Object.keys(sales).sort().forEach(k => {
+      const extra = Math.max(0, sales[k] - splitTakeAll);
+      if(extra > 0) upCopyLines.push(`特码${k} ${extra.toFixed(0)}`);
+    });
+    const pteMap2 = {};
+    orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('平特')){
+        const z = c.replace('平特','');
+        pteMap2[z] = (pteMap2[z]||0) + codeSalesForOrder(o, c);
+      }
+    });});
+    Object.entries(pteMap2).forEach(([z,amt]) => {
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      if(extra > 0) upCopyLines.push(`${z} ${extra.toFixed(0)}`);
+    });
+    if(lxFlyAmt > 0) upCopyLines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}`);
+    let emFlyOn3 = true;
+    try { emFlyOn3 = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    if(emFlyOn3){
+      const emMap2 = {};
+      orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+          emMap2[c] = (emMap2[c]||0) + codeSalesForOrder(o, c);
+        }
+      });});
+      const used2 = new Set();
+      Object.entries(emMap2).forEach(([code, amt]) => {
+        if(used2.has(code)) return;
+        const prod = code.split(':')[0];
+        const nums = code.split(':')[1].split(',');
+        const k = nums.length;
+        const group = Object.entries(emMap2).filter(([c,a]) => !used2.has(c) && c.startsWith(prod+':') && a === amt);
+        const allN = new Set();
+        group.forEach(([c]) => c.split(':')[1].split(',').forEach(n => allN.add(n)));
+        const sn = [...allN].sort();
+        function comb(n,kk){ let r=1; for(let j=0;j<kk;j++){r=r*(n-j)/(j+1);} return Math.round(r); }
+        if(group.length >= 3 && group.length === comb(sn.length,k) && sn.length > k){
+          upCopyLines.push(`${prod} ${sn.join('.')}复${k===2?'二':'三'}各组${amt}`);
+          group.forEach(([c]) => used2.add(c));
+        } else {
+          upCopyLines.push(`${code} ${amt.toFixed(0)}`);
+          used2.add(code);
+        }
+      });
+    }
+  } catch(e){}
+  window._upCopy = upCopyLines.join('\n') + `\n合计飞走 ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n上期开奖特${String(lastDraw.specialNum).padStart(2,'0')} 上家赔 ${flyBackTotal.toFixed(0)}` : '') + `\n${flyNet>=0?'上家欠你':'你赚'} ${Math.abs(flyNet).toFixed(0)}`;
   h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;padding:8px;background:#fffbeb">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-weight:700;font-size:14px;color:#d97706">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
+  h += `<button onclick="copyUpstream()" style="border:1px solid #d97706;background:#fff;color:#d97706;border-radius:4px;padding:2px 8px;font-size:11px">复制清单</button>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走 <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
@@ -2512,6 +2564,12 @@ function renderOrdersList(){
   h += `<span>${flyNet>=0?'上家欠你':'你赚'} <b style="color:${flyNet>=0?'#cf1322':'#16a34a'}">${Math.abs(flyNet).toFixed(0)}</b></span>`;
   h += `</div></div>`;
   box.innerHTML = h;
+}
+
+function copyUpstream(){
+  const text = window._upCopy || '';
+  if(!text){ myAlert('无内容'); return; }
+  navigator.clipboard.writeText(text).then(() => myAlert('已复制上家清单')).catch(() => myAlert(text));
 }
 
 function copyCustOrders(cust){
