@@ -287,7 +287,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v30.4';
+var APP_VER = 'v30.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -3683,51 +3683,52 @@ function applyTheme(){
   let lightCss = '';
   if(isDark){
     darkCss = `
-      /* 微信风格暗色：统一一套色 */
+      /* Chrome风格暗色：全中性色，不要饱和紫 */
       body { color-scheme: dark; }
+      header { background: #2d2d2d !important; }
       
-      /* 卡片/容器统一背景 */
+      /* 顶部标题栏不要紫色 */
+      header, [style*="background:#7c3aed"][style*="color:#fff"][style*="text-align:center"] {
+        background: #2d2d2d !important;
+      }
+      
+      /* 卡片统一Chrome色 #2d2d2d */
       div[style*="background"], section[style*="background"],
       button[style*="background"], input[style*="background"],
       .card, section {
-        background: #2C2C2C !important;
-        background-color: #2C2C2C !important;
+        background: #2d2d2d !important;
+        background-color: #2d2d2d !important;
       }
       
-      /* 保留彩色主题按钮 */
-      button[style*="background:#3b82f6"], button[style*="background:#f97316"],
-      button[style*="background:#7c3aed"], button[style*="background:#ef4444"],
-      button[style*="background:#22c55e"], button[style*="background:#eab308"],
-      button[style*="background:#06b6d4"], button[style*="background:#ec4899"],
-      button[style*="background-color:#3b82f6"], button[style*="background-color:#f97316"],
-      button[style*="background-color:#7c3aed"], button[style*="background-color:#ef4444"],
-      button[style*="background-color:#22c55e"], button[style*="background-color:#eab308"],
-      button[style*="background-color:#06b6d4"], button[style*="background-color:#ec4899"] {
-        background: var(--themeColor, #7c3aed) !important;
-        background-color: var(--themeColor, #7c3aed) !important;
+      /* 大按钮（自动结算/保存等）不要紫色，改深灰 */
+      button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"],
+      .btn.primary, .tab.active {
+        background: #3d3d3d !important;
+        background-color: #3d3d3d !important;
         color: #fff !important;
+        border: none !important;
       }
       
-      /* 输入框更深一点 */
+      /* 输入框更深 */
       input, textarea, select, .input {
-        background: #1F1F1F !important;
-        color: rgba(255,255,255,.8) !important;
+        background: #1f1f1f !important;
+        color: rgba(255,255,255,.85) !important;
         border-color: #444 !important;
       }
       
       /* tab和次要按钮 */
       .tab, .btn:not(.primary):not(.danger), .chip {
-        background: #1F1F1F !important;
-        color: rgba(255,255,255,.6) !important;
+        background: #3d3d3d !important;
+        color: rgba(255,255,255,.7) !important;
         border-color: #444 !important;
       }
       
-      /* 所有文字统一 */
+      /* 所有文字 */
       div, span, p, td, th, label, h1, h2, h3, h4 {
-        color: rgba(255,255,255,.8) !important;
+        color: rgba(255,255,255,.85) !important;
       }
       
-      /* 保留红绿色但调亮 */
+      /* 红绿色调亮 */
       [style*="color:#cf1322"], [style*="color:#e74c3c"], [style*="color:red"] { color:#ff6b6b !important; }
       [style*="color:#16a34a"], [style*="color:#059669"], [style*="color:#22c55e"], [style*="color:green"] { color:#4ade80 !important; }
       [style*="color:#fa8c16"], [style*="color:#ea580c"] { color:#ffb366 !important; }
@@ -3744,9 +3745,6 @@ function applyTheme(){
     `;
   }
   st.textContent = `
-    .btn.primary,.tab.active,.chip.on {
-      background: ${color} !important; border-color: ${color} !important; color:#fff !important;
-    }
     .last { color: ${color} !important; }
     ${darkCss}
     ${lightCss}
