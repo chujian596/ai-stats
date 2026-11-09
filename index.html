@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v33.0';
+var APP_VER = 'v33.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1657,10 +1657,11 @@ function saveProducts(){
 }
 function colorBadge(code){
   const p = products.find(x => x.code === code);
-  const bg = {red:'#fde8e8', blue:'#e8f0fd', green:'#e6f6ec'}[(p && p.color)] || '#f0f0f0';
-  const fg = {red:'#c53030', blue:'#2b6cb0', green:'#276749'}[(p && p.color)] || '#666';
+  const bg = {red:'#ffe0d6', blue:'#dbeafe', green:'#d4edda'}[(p && p.color)] || '#f0f0f0';
+  const fg = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#666';
+  const bd = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#ccc';
   const name = p && p.name ? ' ' + esc(p.name) : '';
-  return `<span class="cb" style="display:inline-block;padding:2px 6px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap">${esc(code)}${name}</span>`;
+  return `<span class="cb" style="display:inline-block;padding:2px 6px 2px 8px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;border-left:3px solid ${bd}">${esc(code)}${name}</span>`;
 }
 function toggleLink(code, link){
   const p = products.find(x => x.code === code);
