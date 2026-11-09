@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.3';
+var APP_VER = 'v36.4';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -982,12 +982,43 @@ function renderPays(){
     const opts = ['通用（不指定产品）', ...products.map(p => p.code)];
     sel.innerHTML = opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
   }
-  const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
-  document.getElementById('payTotal').textContent = total.toFixed(2);
+  let total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
+  // 开奖后实时计算总赔付（含所有中奖产品），不只看赔付记录
+  if(lastDraw && lastDraw.specialNum){
+    const regular = lastDraw.regularNums || [];
+    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+    let realTotal = 0;
+    orders.forEach(o => {
+      (o.codes||[]).forEach(c => {
+        if(typeof c !== 'string') return;
+        if(/^\d{2}$/.test(c)){
+          if(Number(c) === Number(lastDraw.specialNum)) realTotal += codeSalesForOrder(o, c) * payMult;
+        } else if(c.startsWith('平特')){
+          const z = c.replace('平特','');
+          if(drawZ.has(z)) realTotal += codeSalesForOrder(o, c) * (z==='马'?1.8:payMultSingle);
+        } else if(c.startsWith('连肖')){
+          const z = c.replace('连肖','');
+          if(z.split('').every(zz => drawZ.has(zz))) realTotal += codeSalesForOrder(o, c) * 4;
+        } else if(c.indexOf('二中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 60;
+        } else if(c.indexOf('三中三:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 600;
+        } else if(c.indexOf('三中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 20;
+        }
+      });
+    });
+    total = -realTotal; // 赔付是负数
+  }
+  document.getElementById('payTotal').textContent = Math.abs(total).toFixed(2);
   // 销售总额
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   document.getElementById('paySales').textContent = sales.toFixed(2);
-  document.getElementById('payNet').textContent = (sales - total).toFixed(2);
+  document.getElementById('payNet').textContent = (sales - Math.abs(total)).toFixed(2);
   tbody.innerHTML = pays.length ? pays.map((p,i) =>
     `<tr><td style="font-size:11px">${esc(p.product||'通用')}</td><td style="color:#cf1322;font-weight:700">-${Number(p.amount).toFixed(2)}</td><td style="font-size:11px">${esc(p.note)}</td><td style="font-size:10px">${esc(p.time)}</td><td><button onclick="delPay(${i})" style="border:none;background:#cf1322;color:#fff;border-radius:4px;padding:2px 6px;font-size:10px">删</button></td></tr>`
   ).join('') : '<tr><td colspan="5" style="color:#999">暂无赔付记录</td></tr>';
