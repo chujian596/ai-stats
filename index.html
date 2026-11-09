@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v21.6';
+var APP_VER = 'v21.7';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2498,6 +2498,7 @@ function renderRisk(){
   });
   h += `</div>`;
   h += `<div style="color:#666;font-size:12px;margin-top:6px;padding:6px;background:#fff;border-radius:6px">💡 AI推荐：按你可承受的亏损选阈值<br>当前最坏亏<b style="color:${worstNet<0?'#cf1322':'#16a34a'}">${worstNet.toFixed(0)}</b>（占总单${(worstNet/totalSales*100).toFixed(0)}%）</div>`;
+  h += `<button onclick="copySplit()" style="width:100%;margin-top:6px;padding:8px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700">📋 复制飞单清单</button>`;
   // 飞后残留
   h += `<div style="border-top:1px solid #e9d5ff;margin-top:8px;padding-top:8px">`;
   h += `<div style="display:flex;justify-content:space-between"><span>飞出去（那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
