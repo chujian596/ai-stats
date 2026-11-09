@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v19.3';
+var APP_VER = 'v19.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2339,8 +2339,46 @@ function renderRisk(){
     });
     h += `</table>`;
     h += `</div>`;
+    // 连肖对冲分析（仅≥2个肖时显示）
+    if(pteEntries.length >= 2){
+      const pteTotal = pteEntries.reduce((s,[,a])=>s+a,0);
+      const ptePayouts = pteEntries.map(([z,a])=>({z, payout: a*(z==='马'?1.8:2)}));
+      const worstPte = ptePayouts.reduce((s,x)=>s+x.payout,0);
+      const smallestPte = Math.min(...ptePayouts.map(x=>x.payout));
+      const nZodiac = pteEntries.length;
+      const hasHorse = pteEntries.some(([z])=>z==='马');
+      const lianMult = nZodiac===2 ? 4 : nZodiac===3 ? 10 : 30;
+      const odds = hasHorse ? lianMult - 0.5 : lianMult;
+      const hedgeBet = Math.round(smallestPte / odds);
+      const worstNoHedge = pteTotal - worstPte;
+      const worstProperPayout = worstPte - smallestPte;
+      const allHitNet = pteTotal - worstPte + hedgeBet*(odds-1);
+      const worstProperNet = pteTotal - worstProperPayout - hedgeBet;
+      const noneNet = pteTotal - hedgeBet;
+      const worstWithHedge = Math.min(allHitNet, worstProperNet, noneNet);
+      const hitProb = nZodiac===2 ? '~20%' : nZodiac===3 ? '~10%' : '~4%';
+      const lianName = pteEntries.map(([z])=>z).join('');
+      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f59e0b;color:#fff;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">🧮 连肖对冲分析 ▼</div>`;
+      h += `<div id="riskHedgeBox" style="background:#fffbeb;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
+      const pteListStr = pteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
+      h += `<div>你持有 <b>${nZodiac}个肖</b>：${pteListStr}</div>`;
+      h += `<div style="margin-top:4px">平特收 <b>${pteTotal.toFixed(0)}</b>，全中要赔 <b style="color:#cf1322">${worstPte.toFixed(0)}</b></div>`;
+      h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
+      h += `<div>不对冲最差：<b style="color:${worstNoHedge<0?'#cf1322':'#16a34a'}">${worstNoHedge.toFixed(0)}</b></div>`;
+      h += `</div>`;
+      if(hedgeBet > 0){
+        h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
+        h += `<div>如果打连肖${lianName}（${odds}倍）：</div>`;
+        h += `<div>建议注码：<b style="color:#f59e0b">${hedgeBet}元</b> <span style="color:#999;font-size:11px">命中率${hitProb}</span></div>`;
+        h += `<div>· 全中：净 <b style="color:${allHitNet<0?'#cf1322':'#16a34a'}">${allHitNet.toFixed(0)}</b></div>`;
+        h += `<div>· 差一个肖没中：净 <b style="color:${worstProperNet<0?'#cf1322':'#16a34a'}">${worstProperNet.toFixed(0)}</b></div>`;
+        h += `<div>· 都不中：净 <b style="color:#16a34a">+${noneNet.toFixed(0)}</b></div>`;
+        h += `<div style="margin-top:4px;color:#999;font-size:11px">最差从${worstNoHedge.toFixed(0)}压到${worstWithHedge.toFixed(0)}，打不打你定</div>`;
+        h += `</div>`;
+      }
+      h += `</div>`;
+    }
   }
-  // 飞单联动
   const specialPayout = worstKeptBet * payMult;
   const afterFlyPayout = specialPayout + ptePayout;
   const afterFlyNet = worstNet;
