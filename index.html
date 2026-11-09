@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v24.9';
+var APP_VER = 'v25.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1818,8 +1818,8 @@ function parseLine(text){
   codeText = codeText.replace(/(二中二|三中三|三中二)\s*(\d{2})\s+(\d{2})(?:\s+(\d{2}))?/g, (m, prod, n1, n2, n3) => {
     return ' ' + prod + ':' + n1 + ',' + n2 + (n3 ? ',' + n3 : '') + ' ';
   });
-  // 拆分并逐个识别
-  const parts = codeText.split(/[\s,，、;；.。]+/).filter(Boolean);
+  // 拆分并逐个识别（注意：不能按英文逗号拆分，因为二中二:03,04格式里逗号是号码分隔）
+  const parts = codeText.split(/[\s、;；.。]+/).filter(Boolean);
   const codes = [];
   for(const part of parts){
     let rest = part;
@@ -1952,7 +1952,13 @@ function handleSave(){
 
   const parsed = [], errors = [];
   let lastPrice = null, lastIsPer = false;
-  let pendingProduct = null; // 上一行是产品名（如"三中三"），后续数字行自动带上
+  let pendingProduct = null;
+  // 预扫描：从所有行里找一个默认价格（各组XX格式）
+  let defaultPrice = null;
+  for(const ln of mergedLines){
+    const mDef = ln.match(/各(?:组|数|号|个|肖)?\s*([0-9]+(?:\.[0-9]+)?)/);
+    if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
+  }
   mergedLines.forEach((line, i) => {
     const trimmed = line.trim();
     // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行
@@ -1960,7 +1966,7 @@ function handleSave(){
       pendingProduct = trimmed.replace(/[:：\s]*$/, '');
       return;
     }
-    // 如果有暂存产品名，且本行是数字组合（含横杠或空格分隔的两位数字），拼到前面
+    // 如果有暂存产品名，且本行是数字组合，拼到前面
     if(pendingProduct && /\d{2}/.test(trimmed)){
       line = pendingProduct + ' ' + line;
     }
@@ -1971,7 +1977,14 @@ function handleSave(){
         lastPrice = r.price; lastIsPer = r.isPer;
       }
     } catch(e) {
-      // 如果本行没价格但上一行有价格，用继承价格重试
+      // 优先用预扫描的默认价格
+      if(defaultPrice !== null && /没找到价格/.test(e.message)){
+        try {
+          const r = parseLine(line + ' 各' + defaultPrice);
+          if(r){ parsed.push({ raw: line, codes: r.codes, price: defaultPrice, isPer: true }); return; }
+        } catch(e2){}
+      }
+      // 其次用上一行价格
       if(lastPrice !== null && /没找到价格/.test(e.message)){
         try {
           const r = parseLine(line + ' 各' + lastPrice);
