@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v34.0';
+var APP_VER = 'v34.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -542,6 +542,7 @@ function autoPayout(){
       } catch(e){}
       restoreIfNeeded();
 renderAll();
+      if(typeof renderRisk==='function') renderRisk();
       var pc = document.getElementById('payCtrl'); if(pc) pc.style.display=''; var pb = document.getElementById('profitBody'); if(pb) pb.style.display='';
     };
   }
@@ -882,6 +883,7 @@ function renderPays(){
   renderPaySide();
   renderSplitSide();
   renderCP();
+  if(typeof renderRisk==='function') renderRisk();
 }
 
 // 主页面右侧赔付摘要（与「赔付」标签页同一份数据）
