@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v33.5';
+var APP_VER = 'v33.6';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2149,17 +2149,18 @@ let _texiaoChoice = null;
 function handleSave(){
   try {
   let text = document.getElementById('input').value;
-  // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"
+  // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
   text = text.split('\n').map(line => {
     line = line.trim();
+    if(!line) return ''; // 空行保留作分隔
     if(/^共\s*[0-9]/.test(line)) return ''; // 跳过汇总行
     // 裸生肖+各数+金额 → 自动加"特"
     if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}\s*各\s*数\s*[0-9]/.test(line)){
       line = '特' + line;
     }
     return line;
-  }).filter(Boolean).join(' ');
+  }).filter(l => l !== '').join('\n');
   document.getElementById('input').value = text;
   // 检测特肖多肖：弹窗选择各肖还是各数
   if(!_texiaoChoice){
