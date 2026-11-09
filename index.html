@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.0';
+var APP_VER = 'v36.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -852,19 +852,15 @@ function showAutoPay(){
   });
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * payMult;
-  const profit = totalSales - comp;
-  let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>赔付(${payMult}倍)：- ${comp.toFixed(2)} 元<br>总单金额 ${totalSales.toFixed(2)} - 赔付 = 剩余利润：<b style="color:${profit>=0?'#16a34a':'#cf1322'};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
-  // 开奖后显示平特/连肖/二中二三中三的赔付
+  let extraPayoutTotal = 0;
+  let extraLines = [];
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
     const allNums = new Set([...regular, lastDraw.specialNum]);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
-    let extraPayout = 0;
-    let extraLines = [];
     orders.forEach(o => {
       (o.codes||[]).forEach(c => {
-        if(typeof c !== 'string') return;
-        if(c === prod) return; // 已算过
+        if(typeof c !== 'string' || c === prod) return;
         let win = 0;
         if(c.startsWith('平特')){
           const z = c.replace('平特','');
@@ -882,19 +878,20 @@ function showAutoPay(){
           const nums = c.split(':')[1].split(',');
           if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 20;
         }
-        if(win > 0){
-          extraPayout += win;
-          extraLines.push(c + ' ' + win.toFixed(0));
-        }
+        if(win > 0){ extraPayoutTotal += win; extraLines.push(c + ' ' + win.toFixed(0)); }
       });
     });
-    if(extraLines.length > 0){
-      h += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #ddd">';
-      h += '<div style="font-weight:700;margin-bottom:4px">其他中奖赔付：</div>';
-      extraLines.forEach(l => { h += '<div style="font-size:12px">'+l+'</div>'; });
-      h += '<div style="font-weight:700;margin-top:4px">其他赔付合计：<span style="color:#cf1322">'+extraPayout.toFixed(2)+'</span></div>';
-      h += '</div>';
-    }
+  }
+  const totalComp = comp + extraPayoutTotal;
+  const profit = totalSales - totalComp;
+  let h = `${prod}卖了 ${prodSales.toFixed(2)} 元<br>特号赔付(${payMult}倍)：- ${comp.toFixed(2)} 元`;
+  if(extraPayoutTotal > 0) h += `<br>其他中奖赔付：- ${extraPayoutTotal.toFixed(2)} 元`;
+  h += `<br>总赔付：- ${totalComp.toFixed(2)} 元<br>总单金额 ${totalSales.toFixed(2)} - 总赔付 = 剩余利润：<b style="color:${profit>=0?'#16a34a':'#cf1322'};font-size:15px">${profit.toFixed(2)} 元</b>${profit<0?'（倒贴钱）':''}`;
+  if(extraLines.length > 0){
+    h += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #ddd">';
+    h += '<div style="font-weight:700;margin-bottom:4px">其他中奖明细：</div>';
+    extraLines.forEach(l => { h += '<div style="font-size:12px">'+l+'</div>'; });
+    h += '</div>';
   }
   const custKeys = Object.keys(custMap);
   if(custKeys.length > 0){
@@ -922,7 +919,40 @@ function autoPay(){
     prodSales += codeSalesForOrder(o, prod);
   });
   const comp = prodSales * payMult;
-  pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${payMult}`, time: new Date().toLocaleString('zh-CN') });
+  // 加上其他中奖赔付
+  let extraPayout = 0;
+  let extraNote = [];
+  if(lastDraw && lastDraw.specialNum){
+    const regular = lastDraw.regularNums || [];
+    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+    orders.forEach(o => {
+      (o.codes||[]).forEach(c => {
+        if(typeof c !== 'string' || c === prod) return;
+        let win = 0;
+        if(c.startsWith('平特')){
+          const z = c.replace('平特','');
+          if(drawZ.has(z)) win = codeSalesForOrder(o, c) * (z==='马'?1.8:payMultSingle);
+        } else if(c.startsWith('连肖')){
+          const z = c.replace('连肖','');
+          if(z.split('').every(zz => drawZ.has(zz))) win = codeSalesForOrder(o, c) * 4;
+        } else if(c.indexOf('二中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 60;
+        } else if(c.indexOf('三中三:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 600;
+        } else if(c.indexOf('三中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 20;
+        }
+        if(win > 0){ extraPayout += win; extraNote.push(c); }
+      });
+    });
+  }
+  const totalComp = comp + extraPayout;
+  const note = extraNote.length > 0 ? `${prod}×${payMult}+${extraNote.join(',')}` : `${prod}卖${prodSales.toFixed(2)}×${payMult}`;
+  pays.unshift({ product: prod, amount: totalComp, note: note, time: new Date().toLocaleString('zh-CN') });
   savePays();
   restoreIfNeeded();
 renderAll();
