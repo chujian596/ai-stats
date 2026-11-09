@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v24.4';
+var APP_VER = 'v24.5';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -1711,8 +1711,10 @@ function parseLine(text){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
-  // 先转换破折号组合：18-20-35 → 三中三:18,20,35
-  text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
+  // 只有文本里明确有三中三字样时，横杠组合才转三中三
+  if(text.indexOf('三中三') >= 0){
+    text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
+  }
   // 去掉"新澳"等前缀
   text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
@@ -2320,8 +2322,22 @@ function renderRisk(){
   const numBets = {}; // 01-49 -> total bet
   for(let i=1;i<=49;i++) numBets[i] = 0;
   let totalSales = 0;
+  let emFlySales = 0; // 二中二/三中三总金额（飞单开关开时不计入自留）
+  let emFlyOn = true;
+  try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){ emFlyOn = true; }
   orders.forEach(o => {
-    totalSales += Number(o.amount)||0;
+    const oAmt = Number(o.amount)||0;
+    // 计算本单中二中二/三中三/三中二的金额
+    let emAmt = 0;
+    const emSeen = {};
+    (o.codes||[]).forEach(c => {
+      if((c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) && !emSeen[c]){
+        emSeen[c] = true;
+        emAmt += codeSalesForOrder(o, c);
+      }
+    });
+    emFlySales += emAmt;
+    totalSales += (emFlyOn ? (oAmt - emAmt) : oAmt);
     const seen = {};
     (o.codes||[]).forEach(c => {
       if(seen[c]) return; seen[c] = true;
@@ -2592,6 +2608,8 @@ function renderRisk(){
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>特号每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>平特每肖上限</span><input type="number" id="pteFlyInput" value="${pteFlyTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="pteFlyTakeAll=parseFloat(document.getElementById('pteFlyInput').value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};renderRisk()" style="border:none;background:#e67e22;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>连肖飞单</span><input type="number" id="lxFlyInput" value="${lxFlyAmt}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元注</span><button onclick="lxFlyAmt=parseFloat(document.getElementById('lxFlyInput').value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};renderRisk()" style="border:none;background:#0891b2;color:#fff;border-radius:6px;padding:6px 16px;font-size:15px;font-weight:700">设</button></div>`;
+  // 二中二/三中三飞单开关（默认飞走，emFlyOn已在函数顶部声明）
+  h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px;background:${emFlyOn?'#fef3c7':'#f0fdf4'};border-radius:6px"><span style="font-size:14px">二中二/三中三</span><span style="font-size:13px;color:#666">${emFlyOn?'自动飞走':'自留计算'}</span><button onclick="emFlyOn=!emFlyOn;try{localStorage.setItem('emFlyOn',emFlyOn?'1':'0')}catch(e){};renderRisk()" style="border:none;background:${emFlyOn?'#d97706':'#16a34a'};color:#fff;border-radius:6px;padding:6px 16px;font-size:14px;font-weight:700;margin-left:auto">${emFlyOn?'飞走中':'已自留'}</button></div>`;
   h += `<div style="display:flex;gap:6px">`;
   // 真正计算：给定阈值T，算最坏净盈亏
   function worstAt(T){
