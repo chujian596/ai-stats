@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v25.9';
+var APP_VER = 'v26.0';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2440,11 +2440,16 @@ function renderOrdersList(){
   let flyOutTotal = 0, flyBackTotal = 0;
   try {
     const sales = getSplitSales();
+    // 特码飞单：飞走总额 = 所有号超阈值部分之和
+    Object.keys(sales).forEach(k => {
+      const extra = Math.max(0, sales[k] - splitTakeAll);
+      flyOutTotal += extra;
+    });
+    // 特码飞单中奖：只有开的那个号上家赔47倍
     if(lastDraw){
       const sp = lastDraw.specialNum;
       const spFly = Math.max(0, (sales[sp]||0) - splitTakeAll);
-      flyOutTotal += spFly;
-      flyBackTotal += spFly * 47; // 特号飞单中奖上家赔47倍
+      flyBackTotal += spFly * 47;
     }
     // 平特飞单
     if(lastDraw){
