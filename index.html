@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v35.9';
+var APP_VER = 'v36.0';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1468,10 +1468,28 @@ function calcSplit(){
       }
     });
   });
+  // 计算全部飞出去
+  let pteFlyAll = 0, lxFlyAll = 0, emFlyAll = 0;
+  const pteAggAll = {};
+  orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && c.startsWith('平特')){
+      const z = c.replace('平特','');
+      pteAggAll[z] = (pteAggAll[z]||0) + codeSalesForOrder(o, c);
+    }
+  });});
+  Object.values(pteAggAll).forEach(amt => { pteFlyAll += pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0; });
+  if(lxFlyAmt > 0) lxFlyAll = lxFlyAmt;
+  let emOnChk = true; try { emOnChk = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+  if(emOnChk){ orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+      emFlyAll += codeSalesForOrder(o, c);
+    }
+  });});}
+  const totalFly = partner + pteFlyAll + lxFlyAll + emFlyAll;
   let splitHtml = `<div style="line-height:2">` +
     `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b> = <b>${(total+pteLxTotal).toFixed(2)}</b></div>` +
-    `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号（仅特号飞单）</div>` +
-    `<div>飞单出去：<b style="color:#cf1322">${partner.toFixed(2)}</b>（那边接的，开了那边赔）</div>`;
+    `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
+    `<div>飞单出去：<b style="color:#cf1322">${totalFly.toFixed(2)}</b>（特号${partner.toFixed(0)}+平特${pteFlyAll.toFixed(0)}+连肖${lxFlyAll.toFixed(0)}+二中二三中三${emFlyAll.toFixed(0)}）</div>`;
   if(lastDraw && lastDraw.specialNum){
     // 开奖后显示实际
     const keptAmt = Math.min(sales[lastDraw.specialNum]||0, splitTakeAll);
