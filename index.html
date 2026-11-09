@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v35.1';
+var APP_VER = 'v35.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -486,7 +486,45 @@ function autoPayout(){
     msg += '命中赔付：\n' + results.join('\n') + '\n\n';
     msg += '总单金额：' + totalSales.toFixed(2) + '\n';
     msg += '合计赔付：' + totalPayout.toFixed(2) + '\n';
-    msg += (net >= 0 ? '盈利：' : '亏损：') + Math.abs(net).toFixed(2);
+    msg += (net >= 0 ? '毛盈利：' : '毛亏损：') + Math.abs(net).toFixed(2);
+    // 计算飞单后实际盈亏
+    let flyOutAmt = 0, flyBackAmt = 0;
+    try {
+      const sales0 = getSplitSales();
+      Object.keys(sales0).forEach(k => { flyOutAmt += Math.max(0, sales0[k] - splitTakeAll); });
+      flyBackAmt += Math.max(0, (sales0[specialNum]||0) - splitTakeAll) * payMult;
+      const pteAgg0 = {};
+      orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && c.startsWith('平特')){
+          const z = c.replace('平特','');
+          pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
+        }
+      });});
+      const drawZ0 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+      Object.entries(pteAgg0).forEach(([z, amt]) => {
+        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+        flyOutAmt += extra;
+        if(extra > 0 && drawZ0.has(z)) flyBackAmt += extra * (z==='马'?1.8:payMultSingle);
+      });
+      if(lxFlyAmt > 0){ flyOutAmt += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBackAmt += lxFlyAmt * 4; }
+      let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+      if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+          const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allN.has(Number(n)))){
+            if(c.indexOf('二中二:')===0) flyBackAmt += amt * 60;
+            else if(c.indexOf('三中三:')===0) flyBackAmt += amt * 600;
+            else flyBackAmt += amt * 20;
+          }
+        }
+      });});}
+    } catch(e){}
+    const realNet = net - flyOutAmt + flyBackAmt;
+    msg += '\n\n── 飞单后实际 ──\n';
+    msg += '飞出去：-' + flyOutAmt.toFixed(0) + '\n';
+    msg += '上家赔回：+' + flyBackAmt.toFixed(0) + '\n';
+    msg += (realNet >= 0 ? '实际盈利：' : '实际亏损：') + Math.abs(realNet).toFixed(2);
     // 自定义弹窗，标题"排行榜"
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
