@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v19.7';
+var APP_VER = 'v19.8';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2276,10 +2276,12 @@ function renderRisk(){
     const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
     ev += (keptCash - keptBet*payMult - ptePayout) / 49;
   });
+  const riskPct = keptCash > 0 ? Math.abs(worstNet)/keptCash*100 : 100;
   let verdict = '';
-  if(worstNet < -1000) verdict = '⚠️ 风险高：最坏亏超过1000，建议降低阈值飞更多';
-  else if(worstNet < 0) verdict = '⚡ 中等风险：最坏小亏，可接受';
-  else verdict = '✅ 风险可控：开任何号都不亏';
+  if(worstNet >= 0) verdict = '✅ 无风险：开任何号都赚';
+  else if(riskPct <= 10) verdict = '✅ 风险很小：最坏亏'+riskPct.toFixed(0)+'%';
+  else if(riskPct <= 30) verdict = '⚡ 中等风险：最坏亏'+riskPct.toFixed(0)+'%';
+  else verdict = '⚠️ 风险高：最坏亏'+riskPct.toFixed(0)+'%，建议飞更多';
   // 今日汇总条
   h += `<div style="display:flex;gap:4px;margin:6px 0">`;
   h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${totalSales.toFixed(0)}</b></div>`;
@@ -2300,7 +2302,7 @@ function renderRisk(){
   h += `<div>最好：开零额号赚<b style="color:#16a34a">+${keptCash.toFixed(0)}</b></div>`;
   h += `<div>平均期望：<b style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}</b>/期</div>`;
   h += `<div>集中度：top5号占<b>${concPct}%</b>${concPct>60?'（过度集中）':''}</div>`;
-  h += `<div style="margin-top:4px;font-weight:700;color:${worstNet<-1000?'#cf1322':worstNet<0?'#e67e22':'#16a34a'}">➡ ${verdict}</div>`;
+  h += `<div style="margin-top:4px;font-weight:700;color:${worstNet>=0?'#16a34a':riskPct<=10?'#16a34a':riskPct<=30?'#e67e22':'#cf1322'}">➡ ${verdict}</div>`;
   h += `</div>`;
   // 特号持仓表（可折叠）
   h += `<div onclick="var e=document.getElementById('riskSpecTable');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#7c3aed;color:#fff;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">特号持仓 ▼</div>`;
