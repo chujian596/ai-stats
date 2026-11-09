@@ -67,7 +67,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
 </div>
 <header>
-  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span style="font-size:10px;opacity:0.7">v31.5</span></div>
+  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span id="verSpan" style="font-size:10px;opacity:0.7"></span></div>
   <div id="memInfo" style="font-size:10px;opacity:0.8;text-align:right"></div>
 </header>
 <main>
@@ -297,7 +297,12 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v31.5';
+var APP_VER = 'v31.7';
+// 自动同步版本号到标题栏，杜绝硬编码
+document.addEventListener('DOMContentLoaded', function(){
+  var s = document.getElementById('verSpan');
+  if(s) s.textContent = APP_VER;
+});
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
@@ -3674,6 +3679,7 @@ function applyTheme(){
   const t = JSON.parse(localStorage.getItem('app_theme')||'{}');
   const color = t.color || '#7c3aed';
   const bg = t.bg || BGS[1].css;
+  const isDark = BGS.find(b=>b.css===bg)?.dark;
   document.body.style.background = bg;
   document.documentElement.style.setProperty('--themeColor', color);
   document.documentElement.style.setProperty('--modalBg', isDark ? '#1C1C1E' : '#ffffff');
@@ -3686,7 +3692,6 @@ function applyTheme(){
   document.documentElement.style.setProperty('--primary', color);
   let st = document.getElementById('themeOverride');
   if(!st){ st = document.createElement('style'); st.id='themeOverride'; document.head.appendChild(st); }
-  const isDark = BGS.find(b=>b.css===bg)?.dark;
   let darkCss = '';
   let lightCss = '';
   if(isDark){
