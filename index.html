@@ -267,7 +267,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v27.0';
+var APP_VER = 'v27.1';
 fetch('version.txt?t=' + Date.now())
   .then(r => r.text())
   .then(v => {
@@ -2592,7 +2592,25 @@ function renderOrdersList(){
       });
     }
   } catch(e){}
-  window._upCopy = upCopyLines.join('\n') + `\n合计总单:${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n命中额:${flyBackTotal.toFixed(0)}` : '') + `\n总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}` + `\n结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}`;
+  // 分类金额用于复制
+  let cpSp = 0, cpZd = 0, cpEm = 0;
+  try {
+    const sD = getSplitSales();
+    Object.keys(sD).forEach(k => cpSp += Math.max(0, sD[k] - splitTakeAll));
+    const pD = {};
+    orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('平特')){
+        const z = c.replace('平特',''); pD[z] = (pD[z]||0) + codeSalesForOrder(o, c);
+      }
+    });});
+    Object.values(pD).forEach(a => cpZd += Math.max(0, a - pteFlyTakeAll));
+    cpZd += lxFlyAmt;
+    let eOn = true; try { eOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    if(eOn) orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)) cpEm += codeSalesForOrder(o, c);
+    });});
+  } catch(e){}
+  window._upCopy = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n命中额:${flyBackTotal.toFixed(0)}` : '') + `\n总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}` + `\n结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}`;
   h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fffbeb">`;
   h += `<div onclick="var e=document.getElementById('upDetail');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
@@ -2706,7 +2724,7 @@ function renderOrdersList(){
     });});
   } catch(e){}
   h += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-size:12px;font-weight:700">`;
-  h += `<div>特号${spOut.toFixed(0)} + 平肖${zdOut.toFixed(0)} + 二中二三中三${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
+  h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
   h += `<div style="color:#16a34a">结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
