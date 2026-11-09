@@ -343,7 +343,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v32.4';
+var APP_VER = 'v32.5';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2495,6 +2495,16 @@ function toggleCust(){
   const b = document.getElementById('custBox');
   b.style.display = b.style.display === 'none' ? 'block' : 'none';
 }
+// 点击外部关闭客户选择框
+document.addEventListener('click', function(e){
+  const box = document.getElementById('custBox');
+  const btn = e.target.closest('button');
+  if(box && box.style.display === 'block'){
+    if(!box.contains(e.target) && !(btn && btn.textContent.indexOf('客户') >= 0)){
+      box.style.display = 'none';
+    }
+  }
+});
 function updateCustLabel(){
   const v = document.getElementById('customerName').value.trim() || '散客';
   document.getElementById('custLabel').textContent = v;
@@ -2505,9 +2515,14 @@ function clearInput(){
 }
 
 function selectCustomer(name){
-  document.getElementById('customerName').value = name;
+  const cur = document.getElementById('customerName').value.trim();
+  if(cur === name){
+    document.getElementById('customerName').value = '';
+  } else {
+    document.getElementById('customerName').value = name;
+  }
   updateCustLabel();
-  restoreIfNeeded();
+  autoBackup();
 renderAll();
   document.getElementById('custBox').style.display = 'none';
   document.getElementById('input').focus();
