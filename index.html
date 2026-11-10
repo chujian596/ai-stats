@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.9';
+var APP_VER = 'v48.0';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1874,18 +1874,20 @@ function sideSplitCalc(){
     `总单 <b>${total.toFixed(0)}</b> | 应飞总额 <b style="color:#cf1322">${_r.totalFly.toFixed(0)}</b><br>已飞 ${_r.already.toFixed(0)} | 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b>`;
   // 明细表
   let h = '<div style="font-size:14px">';
-  h += '<div style="display:flex;justify-content:space-between;padding:8px 6px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0"><span>项目</span><span>应飞 / 已飞 / 本轮</span></div>';
+  h += '<div style="display:flex;align-items:center;padding:8px 4px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0">';
+  h += '<span style="flex:1">项目</span>';
+  h += '<span style="width:60px;text-align:right">应飞</span>';
+  h += '<span style="width:60px;text-align:right">已飞</span>';
+  h += '<span style="width:60px;text-align:right">本轮</span>';
+  h += '</div>';
   _r.lines.forEach(l => {
     const autoTag = l.auto ? ' <span style="color:#999;font-size:11px">(即飞)</span>' : '';
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 6px;border-bottom:1px solid #eee">`;
-    h += `<span style="font-size:15px;font-weight:500">${l.code}${autoTag}</span>`;
-    h += `<span style="font-size:15px;white-space:nowrap">`;
-    h += `<span style="color:#333">${l.full.toFixed(0)}</span>`;
-    h += ` <span style="color:#999">/</span> `;
-    h += `<span style="color:#666">${l.done.toFixed(0)}</span>`;
-    h += ` <span style="color:#999">/</span> `;
-    h += `<span style="color:#cf1322;font-weight:700;font-size:16px">${l.amt.toFixed(0)}</span>`;
-    h += `</span></div>`;
+    h += `<div style="display:flex;align-items:center;padding:10px 4px;border-bottom:1px solid #eee">`;
+    h += `<span style="flex:1;font-size:15px;font-weight:500">${l.code}${autoTag}</span>`;
+    h += `<span style="width:60px;text-align:right;font-size:15px;color:#333">${l.full.toFixed(0)}</span>`;
+    h += `<span style="width:60px;text-align:right;font-size:15px;color:#666">${l.done.toFixed(0)}</span>`;
+    h += `<span style="width:60px;text-align:right;font-size:16px;color:#cf1322;font-weight:700">${l.amt.toFixed(0)}</span>`;
+    h += `</div>`;
   });
   if(_r.lines.length === 0) h += '<div style="padding:16px;color:#999;text-align:center">暂无飞单项目</div>';
   h += '</div>';
