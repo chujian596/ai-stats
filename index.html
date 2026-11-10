@@ -329,7 +329,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v40.7';
+var APP_VER = 'v40.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1290,7 +1290,7 @@ function renderSideCustPay(){
         h += '<div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#cf1322">' + esc(wc.code) + '（×' + wc.mult + '倍）</div>';
         Object.entries(wc.custMap).forEach(([cust, amt]) => {
           const payAmt = amt * wc.mult;
-          h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #ffccc7">';
+          h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0">';
           h += '<span style="font-weight:600;font-size:15px">' + esc(cust) + '</span>';
           h += '<span style="display:flex;align-items:center;gap:8px">';
           h += '<span style="color:#cf1322;font-weight:700;font-size:15px">' + payAmt.toFixed(2) + '</span>';
@@ -1330,7 +1330,7 @@ function renderSideCustPay(){
       h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:#cf1322">需赔付客户</div>';
       keys.forEach(k => {
         const payAmt = custMap[k] * payMult;
-        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #ffccc7">';
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0">';
         h += '<span style="font-weight:600;font-size:16px">' + esc(k) + '</span>';
         h += '<span style="color:#cf1322;font-weight:700;font-size:16px">' + payAmt.toFixed(2) + '</span>';
         h += '</div>';
@@ -1365,13 +1365,13 @@ function renderSideCustPay(){
       const net = bought - paid;
       h += '<div style="display:flex;justify-content:space-between;padding:5px 0">';
       h += '<span style="font-size:15px">' + maskName(c) + '</span>';
-      h += '<span style="color:#cf1322;font-weight:700;font-size:15px">' + (net >= 0 ? '赚' : '亏') + Math.abs(net).toFixed(2) + '</span>';
+      h += '<span style="color:' + (net >= 0 ? '#166534' : '#cf1322') + ';font-weight:600;font-size:14px">' + (net >= 0 ? '+' : '') + net.toFixed(2) + '</span>';
       h += '</div>';
     });
-    h += '<div style="border-top:2px solid #cf1322;margin-top:6px;padding-top:6px">';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px">累计应收</span><span style="color:#cf1322;font-weight:800;font-size:16px">' + totalBuy.toFixed(2) + '</span></div>';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px">累计已赔</span><span style="color:#cf1322;font-weight:800;font-size:16px">' + totalPaid.toFixed(2) + '</span></div>';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #ddd;margin-top:3px"><span style="font-size:14px;font-weight:700">实际净收</span><span style="color:#cf1322;font-weight:800;font-size:18px">' + (totalBuy-totalPaid).toFixed(2) + '</span></div>';
+    h += '<div style="border-top:1px solid #ddd;margin-top:6px;padding-top:6px">';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">累计应收</span><span style="color:#1a1a1a;font-weight:700;font-size:15px">' + totalBuy.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">累计已赔</span><span style="color:#1a1a1a;font-weight:700;font-size:15px">' + totalPaid.toFixed(2) + '</span></div>';
+    var netVal = totalBuy-totalPaid; h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid #ddd;margin-top:3px"><span style="font-size:14px;font-weight:700">实际净收</span><span style="color:' + (netVal>=0?'#166534':'#cf1322') + ';font-weight:700;font-size:16px">' + netVal.toFixed(2) + '</span></div>';
     h += '</div>';
     h += '</div>';
   }
@@ -1463,7 +1463,7 @@ function renderSplit(){
     tbody.innerHTML = keys.map(k => {
       const extra = Math.max(0, sales[k] - splitTakeAll);
       if(extra <= 0) return '';
-      return `<div style="background:#fff;display:flex;justify-content:space-between;padding:4px 8px"><span style="font-weight:700">${esc(k)}</span><span style="color:#cf1322;font-weight:700">${extra.toFixed(0)}</span></div>`;
+      return `<div style="background:#fff;display:flex;justify-content:space-between;padding:4px 8px"><span style="font-weight:600">${esc(k)}</span><span style="color:#333;font-weight:600">${extra.toFixed(0)}</span></div>`;
     }).join('');
   }
   calcSplit();
@@ -1495,14 +1495,14 @@ function renderAutoCustPay(){
     box.innerHTML = '<div style="color:#999;padding:8px">商品 ' + prod + ' 暂无客户购买记录</div>';
     return;
   }
-  let h = '<div style="background:#fff5f5;border:1px solid #ffccc7;border-radius:6px;padding:8px;margin-bottom:8px">';
+  let h = '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:10px">';
   h += '<div style="font-weight:700;margin-bottom:6px">商品 ' + prod + '（赔付' + payMult + '倍）</div>';
   keys.forEach(k => {
     const payAmt = custMap[k] * payMult;
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #ffccc7">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0">';
     h += '<span style="font-weight:600">' + esc(k) + '</span>';
     h += '<span style="display:flex;align-items:center;gap:8px">';
-    h += '<span style="color:#cf1322;font-weight:700">' + payAmt.toFixed(2) + '元</span>';
+    h += '<span style="color:#333;font-weight:700">' + payAmt.toFixed(2) + '元</span>';
         h += '</span>';
     h += '</div>';
   });
@@ -1527,8 +1527,8 @@ function renderAutoCustPay(){
     const bought = custBuy[c]||0;
     const paid = custPaid[c]||0;
     const net = bought - paid;
-    const color = net < 0 ? '#cf1322' : '#cf1322';
-    h += '<tr><td>' + maskName(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#cf1322">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:700">'+net.toFixed(2)+'</td></tr>';
+    const color = net < 0 ? '#cf1322' : '#166534';
+    h += '<tr><td>' + maskName(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#666">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:600">'+net.toFixed(2)+'</td></tr>';
   });
   h += '</tbody></table>';
   box.innerHTML = h;
@@ -2248,7 +2248,7 @@ function cpLookup(){
     h += '<div style="display:flex;justify-content:space-between;align-items:center">';
     h += '<span style="font-weight:700">' + esc(k) + ' ×' + matches[k].count + '</span>';
     h += '<span style="display:flex;align-items:center;gap:6px">';
-    h += '<span style="color:#cf1322;font-weight:700">' + payAmt.toFixed(2) + '元</span>';
+    h += '<span style="color:#333;font-weight:700">' + payAmt.toFixed(2) + '元</span>';
         h += '</span>';
     h += '</div>';
     h += '<div style="color:#666;font-size:11px;margin-top:2px;line-height:1.5">';
@@ -2316,7 +2316,7 @@ function renderCP(){
       const bought = custBuy[c]||0;
       const paid = custPaid[c]||0;
       const net = bought - paid;
-      const color = net < 0 ? '#cf1322' : '#cf1322';
+      const color = net < 0 ? '#cf1322' : '#166534';
       return '<tr><td>' + maskName(c) + '</td><td>' + bought.toFixed(2) + '</td><td style="color:#cf1322">-'+paid.toFixed(2)+'</td><td style="color:'+color+';font-weight:700">'+net.toFixed(2)+'</td></tr>';
     }).join('') || '<tr><td colspan="4" style="color:#999">暂无数据</td></tr>';
   }
