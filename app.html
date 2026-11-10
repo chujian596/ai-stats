@@ -340,19 +340,25 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         4. 点客户名可展开/收起明细
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">五、飞单统计</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">五、飞单统计（分批飞单）</div>
       <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
-        1. 顶部"飞单统计"查看持仓和风险<br>
-        2. 飞单阈值=0表示全飞（不留）<br>
-        3. 阈值越大，自留越多
+        1. 阈值=每个号码最多自留多少，超了才飞<br>
+        2. 阈值=0表示全飞（不留）<br>
+        3. <b style="color:#fff">分批飞单：</b><br>
+        &nbsp;&nbsp;- 快截止时：复制本轮→发上家→点"确认本轮飞单"<br>
+        &nbsp;&nbsp;- 后面又来新单：再打开飞单统计，只算新增部分<br>
+        &nbsp;&nbsp;- 新一期开始：点"重置已飞"清零<br>
+        &nbsp;&nbsp;- 页面显示：应飞总额/已飞累计/本轮应飞
       </div>
 
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">六、注意事项</div>
       <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
         1. 无法识别的订单会整笔报错，不会只存一部分<br>
-        2. 数据存在本机，换手机需重新录入<br>
-        3. 每天点"今日归档"切换账单日<br>
-        4. 版本号在左上角，如有更新提示刷新
+        2. 保存后每行显示产品类型（特号/平特/连肖），方便核对<br>
+        3. 开奖：输入"开"+7个号码自动结算<br>
+        4. 历史订单里"撤单"=删除该客户全部订单<br>
+        5. 数据存在本机，换手机需重新录入<br>
+        6. 每天点"今日归档"切换账单日
       </div>
 
       <button onclick="closeHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-top:20px">知道了</button>
@@ -421,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.0';
+var APP_VER = 'v47.1';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
