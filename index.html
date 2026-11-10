@@ -3124,17 +3124,17 @@ function renderOrdersList(){
       const rawLines = (o.raw||'').split('; ').filter(Boolean);
       if(rawLines.length){
         rawLines.forEach(rl => {
-          h += `<div style="color:#666;margin-bottom:1px">${esc(rl)}</div>`;
+          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${esc(rl)}</div>`;
         });
       } else {
-        h += `<div style="color:#666">${esc((o.codes||[]).join(' '))}</div>`;
+        h += `<div style="color:#333;font-size:13px">${esc((o.codes||[]).join(' '))}</div>`;
       }
       if(wd.lines.length){
         wd.lines.forEach(l => {
           h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
         });
       }
-      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:15px;font-weight:700;color:#7c3aed">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="delOrder(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="delOrder(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
       h += `</div>`;
     });
     h += `</div></div>`;
