@@ -1870,13 +1870,21 @@ function sideSplitCalc(){
   document.getElementById('sideSplitSummary').innerHTML =
     `总单 <b>${total.toFixed(0)}</b> | 应飞总额 <b style="color:#cf1322">${_r.totalFly.toFixed(0)}</b><br>已飞 ${_r.already.toFixed(0)} | 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b>`;
   // 明细表
-  let h = '<div style="font-size:12px">';
-  h += '<div style="display:flex;justify-content:space-between;padding:4px 6px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0"><span>项目</span><span>应飞/已飞/本轮</span></div>';
+  let h = '<div style="font-size:14px">';
+  h += '<div style="display:flex;justify-content:space-between;padding:8px 6px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0"><span>项目</span><span>应飞 / 已飞 / 本轮</span></div>';
   _r.lines.forEach(l => {
-    const autoTag = l.auto ? ' <span style="color:#999;font-size:10px">(即飞)</span>' : '';
-    h += `<div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px solid #eee"><span style="font-size:12px">${l.code}${autoTag}</span><span style="font-size:12px">${l.full.toFixed(0)}/${l.done.toFixed(0)}/<b style="color:#cf1322">${l.amt.toFixed(0)}</b></span></div>`;
+    const autoTag = l.auto ? ' <span style="color:#999;font-size:11px">(即飞)</span>' : '';
+    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 6px;border-bottom:1px solid #eee">`;
+    h += `<span style="font-size:15px;font-weight:500">${l.code}${autoTag}</span>`;
+    h += `<span style="font-size:15px;white-space:nowrap">`;
+    h += `<span style="color:#333">${l.full.toFixed(0)}</span>`;
+    h += ` <span style="color:#999">/</span> `;
+    h += `<span style="color:#666">${l.done.toFixed(0)}</span>`;
+    h += ` <span style="color:#999">/</span> `;
+    h += `<span style="color:#cf1322;font-weight:700;font-size:16px">${l.amt.toFixed(0)}</span>`;
+    h += `</span></div>`;
   });
-  if(_r.lines.length === 0) h += '<div style="padding:8px;color:#999;text-align:center">暂无飞单项目</div>';
+  if(_r.lines.length === 0) h += '<div style="padding:16px;color:#999;text-align:center">暂无飞单项目</div>';
   h += '</div>';
   document.getElementById('sideSplitResult').innerHTML = h;
   const st = document.getElementById('splitTakeAll');
