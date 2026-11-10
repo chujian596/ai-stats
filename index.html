@@ -131,8 +131,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-rank" class="card tab-panel">
-    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;margin-bottom:6px;cursor:pointer">排行榜</div>
-    <div id="rankTableBody" style="display:none">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer">排行榜</div>
+    <div id="rankTableBody" style="display:none;flex-basis:100%">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
         <table style="font-size:12px">
@@ -153,7 +154,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div id="rank-split"></div>
       <div id="rank-pay"></div>
     </div>
-    <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;margin-bottom:6px;cursor:pointer">风险评估</div>
+    <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer">风险评估</div>
+    </div>
     <div id="riskBody" style="display:none"></div>
   </section>
 
@@ -329,7 +331,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v40.5';
+var APP_VER = 'v40.6';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1057,7 +1059,7 @@ function renderPaySide(){
   }
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   // 盈利统计（折叠，默认关闭）
-  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;margin-bottom:6px;cursor:pointer">盈利统计</div>';
+  let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer">盈利统计</div>';
   h += '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   h += `<span>总单 <b style="font-size:16px;color:#cf1322">${sales.toFixed(2)}</b></span>`;
@@ -1221,7 +1223,7 @@ function previewSidePay(){
 function renderSplitSide(){
   const box = document.getElementById('rank-split');
   if(!box) return;
-  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;margin-bottom:6px;cursor:pointer">' + (labels.split || '飞单统计') + '</div>';
+  let h = '<div onclick="var e=document.getElementById(\'splitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer">' + (labels.split || '飞单统计') + '</div>';
   h += '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:15px;white-space:nowrap">阈值</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();renderSplitSide();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0">`;
@@ -4023,7 +4025,7 @@ function renderAll(){
     const lianCodes = Object.keys(sData).filter(c => c.startsWith('连肖'));
     if(lianCodes.length > 0) hasData = true;
     const collapsed = true;
-    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;margin-bottom:6px;cursor:pointer"><span>平特肖 ${collapsed?'':'▼'}</span></div>`;
+    sh += `<div onclick="var e=document.getElementById('singlesList'); if(e) e.style.display=e.style.display==='none'?'':'none';" style="display:flex;justify-content:space-between;align-items:center;display:inline-block;padding:4px 12px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer"><span>平特肖 ${collapsed?'':'▼'}</span></div>`;
     sh += `<div id="singlesList" style="display:${collapsed?'none':'block'}">`;
     const zodOrder = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
     singleProducts.map(p => ({ p, d: sData[p.code] || { qty: 0, amount: 0 } }))
