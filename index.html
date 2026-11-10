@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.32';
+var APP_VER = 'v46.33';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2691,8 +2691,8 @@ function handleSave(){
     line = line.trim();
     if(!line) return ''; // 空行保留作分隔
     if(/^共\s*[0-9]/.test(line)) return ''; // 跳过汇总行
-    // 裸生肖+各数+金额 → 自动加"特"
-    if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}\s*各\s*数\s*[0-9]/.test(line)){
+    // 裸生肖+各+金额 → 自动加"特"
+    if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}\s*各\s*(?:数\s*)?[0-9]/.test(line)){
       line = '特' + line;
     }
     return line;
