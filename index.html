@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.8';
+var APP_VER = 'v47.9';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1820,23 +1820,26 @@ function getThisRoundFly(){
       if(round > 0.01){ lines.push({code: code, amt: round, full: lxFlyAmt, done: done, auto: false}); }
     }
   }
-  // 二中二/三中三/三中二
+  // 二中二/三中三/三中二（合并显示总额，不展开每个组合）
   let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
   if(emOn){
+    let emTotal = 0;
     orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
-        const amt = codeSalesForOrder(o, c);
-        totalFly += amt;
-        if(autoFlyOn){
-          lines.push({code: c, amt: amt, full: amt, done: 0, auto: true});
-        } else {
-          const done = flownPerPos[c] || 0;
-          const round = Math.max(0, amt - done);
-          already += done;
-          if(round > 0.01){ lines.push({code: c, amt: round, full: amt, done: done, auto: false}); }
-        }
+        emTotal += codeSalesForOrder(o, c);
       }
     });});
+    if(emTotal > 0){
+      totalFly += emTotal;
+      if(autoFlyOn){
+        lines.push({code: '二中二/三中三合计', amt: emTotal, full: emTotal, done: 0, auto: true});
+      } else {
+        const done = flownPerPos['_em_total'] || 0;
+        const round = Math.max(0, emTotal - done);
+        already += done;
+        if(round > 0.01) lines.push({code: '二中二/三中三合计', amt: round, full: emTotal, done: done, auto: false});
+      }
+    }
   }
   return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly };
 }
