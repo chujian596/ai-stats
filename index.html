@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.38';
+var APP_VER = 'v46.39';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -2877,10 +2877,19 @@ function handleSave(){
     ln = ln.replace(/^新澳/, '').replace(/[、，,]\s*$/, '').trim();
     if(/^(共|合计)/.test(ln)) continue;
     if(!/\d/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
-    if(/^(各|个)(?:数|号|个|件|样|款|肖|组)?\s*[0-9]/.test(ln) && mergedLines.length > 0){
-      mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + ln;
-    } else {
-      mergedLines.push(ln);
+    // 混合订单拆分：金额(>49)后面紧跟生肖时，自动断行
+    ln = ln.replace(/(\d{2,}(?:\.\d+)?)\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, function(m, num){
+      return parseFloat(num) > 49 ? num + '\n' : m;
+    });
+    var subLines = ln.split('\n');
+    for(var si = 0; si < subLines.length; si++){
+      var sub = subLines[si].trim();
+      if(!sub) continue;
+      if(/^(各|个)(?:数|号|个|件|样|款|肖|组)?\s*[0-9]/.test(sub) && mergedLines.length > 0){
+        mergedLines[mergedLines.length - 1] = mergedLines[mergedLines.length - 1] + ' ' + sub;
+      } else {
+        mergedLines.push(sub);
+      }
     }
   }
 
