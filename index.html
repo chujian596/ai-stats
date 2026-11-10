@@ -20,6 +20,8 @@
 <title>AI云统计系统</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.rank-btn{display:inline-block!important}
+#rank-split>.rank-btn,#rank-pay>.rank-btn,#rank-singles>.rank-btn{display:none!important}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);background-attachment:fixed;color:#e8e8e8;padding-bottom:30px;font-size:17px;min-height:100vh}
 header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .title{font-size:15px;font-weight:700}
@@ -331,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v42.3';
+var APP_VER = 'v42.4';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
