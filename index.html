@@ -2054,11 +2054,8 @@ function saveProducts(){
 }
 function colorBadge(code){
   const p = products.find(x => x.code === code);
-  const bg = {red:'#ffe0d6', blue:'#dbeafe', green:'#d4edda'}[(p && p.color)] || '#f0f0f0';
-  const fg = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#666';
-  const bd = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#ccc';
   const name = p && p.name ? ' ' + esc(p.name) : '';
-  return `<span class="cb" style="display:inline-block;padding:2px 6px 2px 8px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
+  return `<span class="cb" style="display:inline-block;padding:2px 8px;border-radius:4px;background:#f5f5f5;color:#333;font-weight:600;font-size:13px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
 }
 function toggleLink(code, link){
   const p = products.find(x => x.code === code);
