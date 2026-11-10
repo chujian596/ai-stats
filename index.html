@@ -161,12 +161,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-cust" class="card tab-panel" style="display:none">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>排名</th><th>客户</th><th>单数</th><th>累计金额</th></tr></thead>
-        <tbody id="tbody-cust"></tbody>
-      </table>
-    </div>
+    <div id="tbody-cust"></div>
   </section>
 
   <section id="tab-orders" class="card tab-panel" style="display:none">
@@ -337,7 +332,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.3';
+var APP_VER = 'v37.4';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -4076,10 +4071,14 @@ function renderAll(){
   custRows.sort((a,b) => b.amount - a.amount || b.qty - a.qty || a.name.localeCompare(b.name,'zh'));
   let custHtml = '';
   if(custRows.length === 0){
-    custHtml = '<tr><td colspan="4" style="color:#999;text-align:center;padding:20px">暂无客户数据</td></tr>';
+    custHtml = '<div style="color:#999;text-align:center;padding:20px">暂无客户数据</div>';
   } else {
     custRows.forEach((r, idx) => {
-      custHtml += `<tr><td style="color:#666">${idx+1}</td><td style="font-weight:600">${esc(r.name)}</td><td style="color:#666">${r.orders}</td><td style="font-weight:600">${r.amount.toFixed(2)}</td></tr>`;
+      custHtml += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;padding:8px 12px">`;
+      custHtml += `<div style="display:flex;justify-content:space-between;align-items:center">`;
+      custHtml += `<span style="font-weight:700;font-size:14px">${idx+1}. ${esc(r.name)} <span style="font-size:11px;color:#999;font-weight:400">(${r.orders}单)</span></span>`;
+      custHtml += `<span style="font-size:14px;font-weight:600">${r.amount.toFixed(2)}</span>`;
+      custHtml += `</div></div>`;
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
