@@ -335,7 +335,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v43.1';
+var APP_VER = 'v43.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -4071,14 +4071,6 @@ function renderAll(){
   }
   renderPaySide();
   renderSplitSide();
-  // 重建按钮栏：清空后放回固定按钮+收集动态按钮
-  const bar = document.getElementById('rank-btnbar');
-  const btnMain = document.getElementById('btn-rank-main');
-  const btnRisk = document.getElementById('btn-risk');
-  bar.innerHTML = '';
-  bar.appendChild(btnMain);
-  document.querySelectorAll('#tab-rank .rank-btn:not(#btn-rank-main):not(#btn-risk)').forEach(b => bar.appendChild(b));
-  bar.appendChild(btnRisk);
   renderCP();
 
   const custRows = Object.keys(custMap).map(name => ({
