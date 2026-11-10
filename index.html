@@ -161,8 +161,12 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </section>
 
   <section id="tab-cust" class="card tab-panel" style="display:none">
-    <div style="font-weight:700;font-size:16px;margin-bottom:12px;color:#333">客户排行榜</div>
-    <div id="tbody-cust"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>排名</th><th>客户</th><th>单数</th><th>累计金额</th></tr></thead>
+        <tbody id="tbody-cust"></tbody>
+      </table>
+    </div>
   </section>
 
   <section id="tab-orders" class="card tab-panel" style="display:none">
@@ -333,7 +337,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.1';
+var APP_VER = 'v37.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -4072,16 +4076,10 @@ function renderAll(){
   custRows.sort((a,b) => b.amount - a.amount || b.qty - a.qty || a.name.localeCompare(b.name,'zh'));
   let custHtml = '';
   if(custRows.length === 0){
-    custHtml = '<div style="color:#999;text-align:center;padding:20px">暂无客户数据</div>';
+    custHtml = '<tr><td colspan="4" style="color:#999;text-align:center;padding:20px">暂无客户数据</td></tr>';
   } else {
     custRows.forEach((r, idx) => {
-      const rankColor = idx===0 ? '#f59e0b' : idx===1 ? '#9ca3af' : idx===2 ? '#b45309' : '#e5e7eb';
-      const rankText = idx===0 ? '🥇' : idx===1 ? '🥈' : idx===2 ? '🥉' : (idx+1);
-      custHtml += `<div style="display:flex;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)">`;
-      custHtml += `<div style="width:36px;height:36px;border-radius:50%;background:${rankColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0">${rankText}</div>`;
-      custHtml += `<div style="flex:1;margin-left:12px"><div style="font-size:16px;font-weight:600;color:#333">${esc(r.name)}</div><div style="font-size:12px;color:#999">${r.orders}单</div></div>`;
-      custHtml += `<div style="font-size:18px;font-weight:700;color:#cf1322">${r.amount.toFixed(2)}</div>`;
-      custHtml += `</div>`;
+      custHtml += `<tr><td style="color:#666">${idx+1}</td><td style="font-weight:600">${esc(r.name)}</td><td style="color:#666">${r.orders}</td><td style="font-weight:600">${r.amount.toFixed(2)}</td></tr>`;
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
