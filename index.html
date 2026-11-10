@@ -4034,10 +4034,10 @@ function renderAll(){
         return za - zb;
       })
       .forEach(({p, d}) => {
-        const badgeColor = p.code === '平特马' ? '#d97706' : '#666';
+        const badgeColor = '#f0f0f0'; const badgeTextColor = '#333';
         sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;margin-bottom:3px;border-radius:8px;background:#f8f9fa;border:1px solid #eee">
 <div style="display:flex;align-items:center;gap:6px">
-<span style="background:${badgeColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700">${esc(p.code.replace('平特',''))}</span>
+<span style="background:${badgeColor};color:${badgeTextColor};border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">${esc(p.code.replace('平特',''))}</span>
 </div>
 <div style="display:flex;gap:12px;align-items:center">
 <span style="font-size:14px;font-weight:700;color:#333">${d.qty}单</span>
@@ -4055,7 +4055,7 @@ function renderAll(){
         const base = n===2?4:n===3?10:30;
         const mult = z.includes('马') ? base-0.5 : base;
         sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;margin-bottom:3px;border-radius:8px;background:#f8f9fa;border:1px solid #eee">
-<span style="background:#f0f0f0;color:#333;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">${esc(z)}${n}连</span>
+<span style="background:#e8e8e8;color:#555;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">${esc(z)}${n}连</span>
 <span style="font-size:14px;font-weight:700;color:#333">${d.qty}单 × ${mult}倍</span>
 <span style="font-size:14px;font-weight:600;color:#1a1a1a">${d.amount.toFixed(2)}</span>
 </div>`;
