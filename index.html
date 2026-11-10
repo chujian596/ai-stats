@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v48.6';
+var APP_VER = 'v48.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1395,20 +1395,20 @@ function renderSplitSide(){
   h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制全部</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'pte\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">平特一肖</button>';
-  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
+  h += '<button onclick="showGroupDetail(\'spec\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">特号</button>';
+  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'em\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">二中三中</button>';
-  h += '<button onclick="sideSplitCopyEM()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
+  h += '<button onclick="showGroupDetail(\'pte\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">平特</button>';
+  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="showGroupDetail(\'lx\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">连肖</button>';
   h += '<button onclick="sideSplitCopyLX()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'spec\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">特号</button>';
-  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
+  h += '<button onclick="showGroupDetail(\'em\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">二中二三中三</button>';
+  h += '<button onclick="sideSplitCopyEM()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:7px;font-size:13px">重置已飞</button>';
