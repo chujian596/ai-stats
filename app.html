@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.40';
+var APP_VER = 'v46.41';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -2681,9 +2681,14 @@ function parseLine(text){
           codes.push(m[1].padStart(2,'0'));
           rest = rest.slice(m[1].length);
         } else {
-          const skip = rest.match(/^[^\d]+/) || rest.match(/^\d{3,}/);
-          if(skip) rest = rest.slice(skip[0].length);
-          else rest = '';
+          // 有无法识别的文本，不静默跳过，直接报错
+          var badText = rest.match(/^[^\d]+/);
+          if(badText && badText[0].trim()){
+            throw new Error('无法识别：「' + badText[0].trim() + '」');
+          }
+          var badNum = rest.match(/^\d{3,}/);
+          if(badNum) throw new Error('无法识别的数字：' + badNum[0]);
+          rest = '';
         }
       }
     }
