@@ -419,7 +419,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.48';
+var APP_VER = 'v46.49';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3136,14 +3136,11 @@ renderAll();
       display = `${prod}(${p.codes.length}组) 每组${p.price}元 = ${amount.toFixed(2)}元`;
     } else {
       const modeTxt = p.isPer ? '×' : '=';
-      // 判断产品类型标签
+      // 判断产品类型标签（平特/连肖代码本身已含产品名，不重复加）
       const c0 = p.codes[0] || '';
       let label = '';
-      if(c0.indexOf('平特') === 0) label = '平特';
-      else if(c0.indexOf('连肖') === 0) label = '连肖';
-      else if(/^\d{2}$/.test(c0)) label = '特号';
-      else label = c0.replace(/\d.*/,''); // 其他产品名
-      display = `${label} ${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`;
+      if(c0.indexOf('平特') !== 0 && c0.indexOf('连肖') !== 0 && /^\d{2}$/.test(c0)) label = '特号 ';
+      display = `${label}${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`;
     }
     results.push(display);
   });
