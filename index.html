@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v48.4';
+var APP_VER = 'v48.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1395,19 +1395,24 @@ function renderSplitSide(){
   h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制全部</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制特号</button>';
-  h += '<button onclick="confirmGroupFly(\'spec\')" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px">确认特号</button>';
+  h += '<span style="flex:1;display:flex;align-items:center;padding:0 6px;font-size:14px;color:#333">平特一肖</span>';
+  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制平特</button>';
-  h += '<button onclick="confirmGroupFly(\'pte\')" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px">确认平特</button>';
+  h += '<span style="flex:1;display:flex;align-items:center;padding:0 6px;font-size:14px;color:#333">二中三中</span>';
+  h += '<button onclick="sideSplitCopyEM()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="sideSplitCopyAuto()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制即飞(连肖/二三中)</button>';
-  h += '<button onclick="confirmGroupFly(\'auto\')" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px">确认即飞</button>';
+  h += '<span style="flex:1;display:flex;align-items:center;padding:0 6px;font-size:14px;color:#333">连肖</span>';
+  h += '<button onclick="sideSplitCopyLX()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
+  h += '<span style="flex:1;display:flex;align-items:center;padding:0 6px;font-size:14px;color:#333">特号</span>';
+  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:7px;font-size:13px">重置已飞</button>';
+  h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px;font-weight:600">确认飞单</button>';
   h += '</div>';
   h += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');renderSplitSide();" style="width:16px;height:16px">即飞产品自动复制（连肖/二中二/三中三）</label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
@@ -1815,6 +1820,36 @@ function sideSplitCopyAuto(){
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
   myAlert('已复制即飞单 ' + autoTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+}
+
+function sideSplitCopyEM(){
+  const r = getThisRoundFly();
+  const emLines = r.lines.filter(l => l.code === '二中二/三中三合计');
+  if(emLines.length === 0){ myAlert('没有二中二/三中三需要复制'); return; }
+  const emTotal = emLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = [];
+  orders.forEach(o => {
+    const hasEM = (o.codes||[]).some(c => typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0));
+    if(hasEM && o.raw) copyLines.push(o.raw);
+  });
+  copyLines.push('合计 ' + emTotal.toFixed(2));
+  const txt = copyLines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  myAlert('已复制二中二/三中三 ' + emTotal.toFixed(0) + ' 元');
+}
+
+function sideSplitCopyLX(){
+  const r = getThisRoundFly();
+  const lxLines = r.lines.filter(l => l.code.startsWith('连肖'));
+  if(lxLines.length === 0){ myAlert('没有连肖需要复制'); return; }
+  const lxTotal = lxLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = lxLines.map(l => l.code + ' ' + l.amt.toFixed(2));
+  copyLines.push('合计 ' + lxTotal.toFixed(2));
+  const txt = copyLines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  myAlert('已复制连肖 ' + lxTotal.toFixed(0) + ' 元');
 }
 
 function sideSplitCopyPte(){
