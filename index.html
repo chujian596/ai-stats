@@ -4491,8 +4491,8 @@ function renderRisk(){
   });
   const pteEntries = Object.entries(pteMap).sort((a,b)=>b[1]-a[1]);
   if(pteEntries.length){
-    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 ▼</div>`;
-    h += `<div id="riskPteTable">`;
+    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 ▶</div>`;
+    h += `<div id="riskPteTable" style="display:none">`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
     h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留赔</th></tr>`;
     const drawZSet = (lastDraw && lastDraw.specialNum) ? new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean)) : null;
@@ -4538,8 +4538,8 @@ function renderRisk(){
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
       // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
       if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem('lxFlyName', lxFlyName)}catch(e){} }
-      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖对冲 ▼</div>`;
-      h += `<div id="riskHedgeBox" style="background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
+      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖对冲 ▶</div>`;
+      h += `<div id="riskHedgeBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
       h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
       if(noteStr) h += `<div style="color:#999;font-size:11px">${noteStr}</div>`;
@@ -4603,8 +4603,8 @@ function renderRisk(){
   const breakevenThreshold = totalSales / payMult;
   h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
   // 飞单清单折叠预览
-  h += `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 12px;background:#f3f4f6;color:#374151;border-radius:6px;margin-top:6px;cursor:pointer;font-size:13px;font-weight:700">📄 飞单明细 ▼</div>`;
-  h += `<div id="flyListPreview" style="background:#f9fafb;border-radius:6px;padding:8px;font-size:12px;line-height:1.7">`;
+  h += `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 12px;background:#f3f4f6;color:#374151;border-radius:6px;margin-top:6px;cursor:pointer;font-size:13px;font-weight:700">📄 飞单明细 ▶</div>`;
+  h += `<div id="flyListPreview" style="display:none;background:#f9fafb;border-radius:6px;padding:8px;font-size:12px;line-height:1.7">`;
   const flySales = getSplitSales();
   const flyKeys = Object.keys(flySales).sort();
   let flyTotal = 0;
