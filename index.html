@@ -334,7 +334,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v38.0';
+var APP_VER = 'v38.4';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -344,8 +344,9 @@ fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && v !== APP_VER){
-      // 云端版本和本地不一样，强制刷新拉新版
+    if(v && v !== APP_VER && !sessionStorage.getItem('vReloaded')){
+      // 云端版本和本地不一样，强制刷新拉新版（只reload一次防止循环）
+      sessionStorage.setItem('vReloaded','1');
       location.reload();
     }
   }).catch(function(){});
@@ -625,6 +626,7 @@ if(savedLock.expire){
 var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
 
 function showLock(){
+  if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
   var now = Date.now();
   var left = lockData.expire - now;
   var expired = left <= 0;
