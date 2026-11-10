@@ -287,11 +287,73 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <button id="fs-mid" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:17px;border-radius:8px" onclick="setFontSize(17)">中</button>
         <button id="fs-big" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:19px;border-radius:8px" onclick="setFontSize(19)">大</button>
       </div>
+      <button onclick="openHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalSeg,#2C2C2E);color:#fff;font-size:16px;margin-bottom:10px">使用说明</button>
       <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin:24px 0 10px 4px">数据</div>
       <div id="drawRecBox" style="font-size:13px;color:var(--modalLabel,#8E8E93);margin:0 4px 10px;line-height:1.6"></div>
       <button onclick="clearDrawRecord()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalSeg,#2C2C2E);color:#FF9F0A;font-size:16px;margin-bottom:10px">撤销开奖记录</button>
       <button onclick="resetTheme()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalSeg,#2C2C2E);color:#FF453A;font-size:16px">恢复默认</button>
+    </div>
+  </div>
+
+  <!-- 使用说明弹窗 -->
+  <div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeHelp()">
+    <div style="background:var(--modalBg,#1C1C1E);border-radius:20px 20px 0 0;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:24px 20px 34px;color:var(--modalText,#fff)">
+      <div style="width:36px;height:4px;background:#48484A;border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-size:17px;font-weight:600;margin-bottom:16px;text-align:center">使用说明</div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">一、录入订单</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 在输入框输入订单，点"保存"或按回车<br>
+        2. 每笔订单一行，多行同时录入<br>
+        3. 选客户：顶部"客户:散客"下拉切换<br>
+        4. 回车键=换行（不是保存），点按钮保存
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">二、支持的订单格式</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        <b style="color:#fff">特号：</b>03 10（空格分隔）<br>
+        <b style="color:#fff">特肖：</b>虎500 / 马龙兔各50<br>
+        <b style="color:#fff">平特：</b>平虎500 / 平肖虎500<br>
+        <b style="color:#fff">连肖：</b>连肖龙虎兔100<br>
+        <b style="color:#fff">二中二：</b>二中二03,10 100<br>
+        <b style="color:#fff">三中三：</b>三中三07,24,32 100<br>
+        <b style="color:#fff">多笔一行：</b>虎500羊400（自动拆分）<br>
+        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        输入框输入<b style="color:#fff">"开"</b>开头+7个号码：<br>
+        <code style="background:#2C2C2E;padding:2px 6px;border-radius:4px">开01.03.08.11.13.21.09</code><br>
+        前6个=平号，最后1个=特号<br>
+        弹出结算确认后点"记入赔付"
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">四、历史订单管理</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 点"历史订单"查看所有客户订单<br>
+        2. 每个客户右侧有"复制"和"撤单"<br>
+        3. "撤单"=删除该客户全部订单（需确认）<br>
+        4. 点客户名可展开/收起明细
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">五、飞单统计</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 顶部"飞单统计"查看持仓和风险<br>
+        2. 飞单阈值=0表示全飞（不留）<br>
+        3. 阈值越大，自留越多
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">六、注意事项</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 无法识别的订单会整笔报错，不会只存一部分<br>
+        2. 数据存在本机，换手机需重新录入<br>
+        3. 每天点"今日归档"切换账单日<br>
+        4. 版本号在左上角，如有更新提示刷新
+      </div>
+
+      <button onclick="closeHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-top:20px">知道了</button>
     </div>
   </div>
 </main>
@@ -357,7 +419,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.45';
+var APP_VER = 'v46.46';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3347,6 +3409,7 @@ function renderOrdersList(){
     h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
     h += `<span style="font-weight:700;font-size:14px">${maskName(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></span>`;
     h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
+    h += `<button onclick="event.stopPropagation();deleteCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#cf1322;border-radius:4px;padding:4px 10px;font-size:12px;margin-left:4px">撤单</button>`;
     h += `</div>`;
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
     h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
@@ -3658,6 +3721,15 @@ function copyCustOrders(cust){
   text += '中奖总计:' + totalWin.toFixed(2) + '\n';
   text += (net>=0?'盈利':'亏损') + ':' + Math.abs(net).toFixed(2);
   navigator.clipboard.writeText(text).then(()=>myAlert('已复制'));
+}
+
+function deleteCustOrders(cust){
+  const cnt = orders.filter(o => (o.customer||'散客') === cust).length;
+  if(!cnt){ myAlert('该客户无订单'); return; }
+  if(!confirm('确定删除「' + cust + '」的全部' + cnt + '笔订单？\n此操作不可撤销！')) return;
+  orders = orders.filter(o => (o.customer||'散客') !== cust);
+  saveOrders(); renderAll();
+  myAlert('已删除' + cnt + '笔订单');
 }
 
 function copyAllOrders(){
@@ -4748,6 +4820,8 @@ function clearDrawRecord(){
   myAlert('已撤销开奖记录');
 }
 function closeSettings(){ document.getElementById('settingsModal').style.display='none'; }
+function openHelp(){ document.getElementById('helpModal').style.display='flex'; }
+function closeHelp(){ document.getElementById('helpModal').style.display='none'; }
 function setFontSize(sz){
   const cur = JSON.parse(localStorage.getItem('app_theme')||'{}');
   cur.fontSize = sz;
