@@ -1768,7 +1768,7 @@ function sideSplitCopy(){
   const txt = lines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  myAlert('已复制本轮飞单：\n' + txt);
+  myAlert('已复制本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n共' + r.lines.length + '项，直接粘贴发给上家');
 }
 
 // === 分批飞单 ===
