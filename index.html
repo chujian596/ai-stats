@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v44.0';
+var APP_VER = 'v44.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1295,7 +1295,7 @@ function renderSideCustPay(){
           h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0">';
           h += '<span style="font-size:14px">' + esc(cust) + '</span>';
           h += '<span style="display:flex;align-items:center;gap:8px">';
-          h += '<span style="color:#cf1322;font-weight:600;font-size:14px">' + payAmt.toFixed(2) + '</span>';
+          h += '<span style="color:#1a1a1a;font-size:14px">' + payAmt.toFixed(2) + '</span>';
                     h += '</span>';
           h += '</div>';
         });
@@ -1334,7 +1334,7 @@ function renderSideCustPay(){
         const payAmt = custMap[k] * payMult;
         h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0">';
         h += '<span style="font-size:14px">' + esc(k) + '</span>';
-        h += '<span style="color:#cf1322;font-weight:600;font-size:14px">' + payAmt.toFixed(2) + '</span>';
+        h += '<span style="color:#1a1a1a;font-size:14px">' + payAmt.toFixed(2) + '</span>';
         h += '</div>';
       });
       h += '</div>';
