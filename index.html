@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.1';
+var APP_VER = 'v47.2';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1376,7 +1376,11 @@ function renderSplitSide(){
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="sideSplitCalc()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px;font-weight:600">飞单统计</button>';
-  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制</button>';
+  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制本轮</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
+  h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:8px;font-size:14px;font-weight:600">确认本轮飞单</button>';
+  h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:8px;font-size:14px">重置已飞</button>';
   h += '</div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
@@ -1813,8 +1817,9 @@ function sideSplitCalc(){
   const keys = Object.keys(sales).sort();
   const total = keys.reduce((s,k) => s + sales[k], 0);
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
+  const _r = getThisRoundFly();
   document.getElementById('sideSplitSummary').innerHTML =
-    `总单金额 <b style="font-size:16px">${total.toFixed(2)}</b> | 阈值 <b style="font-size:16px">${splitTakeAll.toFixed(0)}</b> | 飞单总金额 <b style="color:#cf1322;font-size:16px">${partner.toFixed(2)}</b>`;
+    `总单 <b>${total.toFixed(0)}</b> | 应飞 <b style="color:#cf1322">${partner.toFixed(0)}</b><br>已飞 ${_r.already.toFixed(0)} | 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b>`;
   document.getElementById('sideSplitResult').innerHTML = '';
   const st = document.getElementById('splitTakeAll');
   if(st) st.value = splitTakeAll;
