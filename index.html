@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v44.5';
+var APP_VER = 'v44.6';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1745,10 +1745,11 @@ function calcSplit(){
     const totalKeptPayout = keptPayout + pteKeptPayout;
     const realNet = keptCash - totalKeptPayout;
     splitHtml += `<div style="border-top:1px dashed #ccc;margin:6px 0"></div>`;
-    splitHtml += `<div style="font-weight:700">🎯已开奖：特${lastDraw.specialNum} ${NUM2ZODIAC[lastDraw.specialNum]||''}</div>`;
+    splitHtml += `<div style="font-weight:700">已开奖：特${lastDraw.specialNum} ${NUM2ZODIAC[lastDraw.specialNum]||''}</div>`;
+    splitHtml += `<div style="font-size:13px;color:#666">平号：${(lastDraw.regularNums||[]).map(n=>String(n).padStart(2,'0')+(NUM2ZODIAC[n]||'')).join(' ')}</div>`;
     splitHtml += `<div>自留现金：<b>${keptCash.toFixed(0)}</b></div>`;
-    splitHtml += `<div>特号自留赔付：${keptAmt}×${payMult}=<b style="color:#cf1322">${keptPayout.toFixed(0)}</b></div>`;
-    if(pteKeptPayout > 0) splitHtml += `<div>平特自留赔付：<b style="color:#cf1322">${pteKeptPayout.toFixed(0)}</b></div>`;
+    splitHtml += `<div>特号自留赔付：${keptAmt}×${payMult}=<b>${keptPayout.toFixed(0)}</b></div>`;
+    if(pteKeptPayout > 0) splitHtml += `<div>平特自留赔付：<b>${pteKeptPayout.toFixed(0)}</b></div>`;
     if(flyAmt > 0) splitHtml += `<div>飞出去特号（上家赔）：${flyAmt}×${payMult}=<b style="color:#666">${flyPayout.toFixed(0)}</b></div>`;
     if(pteFlyPayout > 0) splitHtml += `<div>飞出去平特（上家赔）：<b style="color:#666">${pteFlyPayout.toFixed(0)}</b></div>`;
     splitHtml += `<div style="font-size:16px;font-weight:700">实际净盈亏：<b style="color:${realNet>=0?'#16a34a':'#cf1322'}">${realNet>=0?'+':''}${realNet.toFixed(0)}</b></div>`;
@@ -3666,13 +3667,15 @@ function renderRisk(){
     });
     if(lxFlyAmt > 0){ actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * 4); }
     const actualNet = keptCash - actualSpecPayout - actualPtePayout - actualLxPayout;
-    h += `<div style="margin:6px 0;padding:12px;background:${actualNet>=0?'#f0fdf4':'#fef2f2'};border-radius:8px;font-size:15px;line-height:1.8;border:2px solid ${actualNet>=0?'#16a34a':'#cf1322'}">`;
-    h += `<div style="font-weight:700;font-size:16px;margin-bottom:4px">🎯 已开奖：特${String(dn).padStart(2,'0')} ${dz}</div>`;
-    h += `<div>特号赔付：${keptSpecBet.toFixed(0)}×${payMult}=<b style="color:#cf1322">${actualSpecPayout.toFixed(0)}</b></div>`;
-    if(actualPtePayout > 0) h += `<div>平特赔付：<b style="color:#cf1322">${actualPtePayout.toFixed(0)}</b></div>`;
-    if(actualLxPayout > 0) h += `<div>连肖赔付：<b style="color:#cf1322">${actualLxPayout.toFixed(0)}</b></div>`;
+    h += `<div style="margin:6px 0;padding:12px;background:#f8f9fa;border-radius:8px;font-size:15px;line-height:1.8;border:1px solid #e5e5e5">`;
+    const regNums = (lastDraw.regularNums||[]).map(n => String(n).padStart(2,'0') + (NUM2ZODIAC[n]||'')).join(' ');
+    h += `<div style="font-weight:700;font-size:15px;margin-bottom:4px">已开奖：特${String(dn).padStart(2,'0')} ${dz}</div>`;
+    h += `<div style="font-size:13px;color:#666;margin-bottom:4px">平号：${regNums}</div>`;
+    h += `<div>特号赔付：${keptSpecBet.toFixed(0)}×${payMult}=<b>${actualSpecPayout.toFixed(0)}</b></div>`;
+    if(actualPtePayout > 0) h += `<div>平特赔付：<b>${actualPtePayout.toFixed(0)}</b></div>`;
+    if(actualLxPayout > 0) h += `<div>连肖赔付：<b>${actualLxPayout.toFixed(0)}</b></div>`;
     h += `<div style="border-top:1px dashed #ccc;margin-top:4px;padding-top:4px">自留现金：${keptCash.toFixed(0)}</div>`;
-    h += `<div style="font-weight:700;font-size:18px">实际净盈亏：<b style="color:${actualNet>=0?'#16a34a':'#cf1322'}">${actualNet>=0?'+':''}${actualNet.toFixed(0)}</b></div>`;
+    h += `<div style="font-weight:700;font-size:16px">实际净盈亏：<b style="color:${actualNet>=0?'#166534':'#cf1322'}">${actualNet>=0?'+':''}${actualNet.toFixed(0)}</b></div>`;
     h += `</div>`;
   }
   h += `<div style="margin:6px 0;padding:10px;background:${worstNet<-1000?'#fef2f2':worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;font-size:15px;line-height:1.6">`;
