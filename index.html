@@ -132,8 +132,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 
   <section id="tab-rank" class="card tab-panel">
     <div id="rank-btnbar" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px">
-      <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="padding:6px 14px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
-      <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="padding:6px 14px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">风险评估</div>
+      <div id="btn-rank-main" onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="padding:6px 14px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
+      <div id="btn-risk" onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="padding:6px 14px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">风险评估</div>
     </div>
     <div id="rankTableBody" style="display:none;text-align:left">
     <div style="display:flex;gap:4px">
@@ -331,7 +331,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v42.0';
+var APP_VER = 'v42.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -4065,15 +4065,19 @@ function renderAll(){
     }
     sh += '</div>'; // close singlesList
     document.getElementById('rank-singles').innerHTML = sh;
-    // 把折叠按钮移到顶部按钮栏
-    document.querySelectorAll('#tab-rank .rank-btn').forEach(b => document.getElementById('rank-btnbar').appendChild(b));
   } else {
     document.getElementById('rank-singles').innerHTML = '';
   }
   renderPaySide();
   renderSplitSide();
-  // 把所有折叠按钮移到顶部按钮栏
-  document.querySelectorAll('#tab-rank .rank-btn').forEach(b => document.getElementById('rank-btnbar').appendChild(b));
+  // 重建按钮栏：清空后放回固定按钮+收集动态按钮
+  const bar = document.getElementById('rank-btnbar');
+  const btnMain = document.getElementById('btn-rank-main');
+  const btnRisk = document.getElementById('btn-risk');
+  bar.innerHTML = '';
+  bar.appendChild(btnMain);
+  document.querySelectorAll('#tab-rank .rank-btn:not(#btn-rank-main):not(#btn-risk)').forEach(b => bar.appendChild(b));
+  bar.appendChild(btnRisk);
   renderCP();
 
   const custRows = Object.keys(custMap).map(name => ({
