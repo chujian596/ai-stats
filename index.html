@@ -332,7 +332,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.7';
+var APP_VER = 'v37.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3443,6 +3443,7 @@ function renderRisk(){
   const numBets = {}; // 01-49 -> total bet
   for(let i=1;i<=49;i++) numBets[i] = 0;
   let totalSales = 0;
+  let fullTotalSales = 0;
   let emFlySales = 0; // 二中二/三中三总金额（飞单开关开时不计入自留）
   let emFlyOn = true;
   try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){ emFlyOn = true; }
@@ -3459,6 +3460,7 @@ function renderRisk(){
     });
     emFlySales += emAmt;
     totalSales += (emFlyOn ? (oAmt - emAmt) : oAmt);
+    fullTotalSales += oAmt;
     const seen = {};
     (o.codes||[]).forEach(c => {
       if(seen[c]) return; seen[c] = true;
@@ -3483,7 +3485,7 @@ function renderRisk(){
   const maxBet = numBets[sorted[0]] || 1;
   let h = '';
   h += '<div style="font-size:12px;line-height:1.8">';
-  h += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>总单金额</span><b style="color:#cf1322">${totalSales.toFixed(2)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>总单金额</span><b style="color:#cf1322">${fullTotalSales.toFixed(2)}</b></div>`;
   // 盈亏号统计
   let winNums = 0, loseNums = 0, zeroCnt = 0;
   sorted.forEach(n => {
@@ -3564,11 +3566,11 @@ function renderRisk(){
   else verdict = '⚠️ 风险高：最坏亏'+riskPct.toFixed(0)+'%，建议飞更多';
   // 今日汇总条
   h += `<div style="display:flex;gap:4px;margin:6px 0">`;
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${totalSales.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${fullTotalSales.toFixed(0)}</b></div>`;
   const totalFly = currentFly + pteFlyAmt + lxFlyAmt + (emFlyOn ? emFlySales : 0);
-  h += `<div style="flex:1;background:#fef2f2;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞</div><b style="font-size:16px;color:#cf1322">${totalFly.toFixed(0)}</b></div>`;
-  h += `<div style="flex:1;background:#f0fdf4;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">自留</div><b style="font-size:16px;color:#16a34a">${keptCash.toFixed(0)}</b></div>`;
-  h += `<div style="flex:1;background:${worstNet<0?'#fffbeb':'#f0fdf4'};border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">最坏</div><b style="font-size:16px;color:${worstNet<0?'#cf1322':'#16a34a'}">${worstNet<0?'':''}${worstNet.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞</div><b style="font-size:16px;color:#cf1322">${totalFly.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">自留</div><b style="font-size:16px;color:#16a34a">${keptCash.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">最坏</div><b style="font-size:16px;color:${worstNet<0?'#cf1322':'#16a34a'}">${worstNet<0?'':''}${worstNet.toFixed(0)}</b></div>`;
   h += `</div>`;
   // 已开奖：显示实际结果
   if(lastDraw && lastDraw.specialNum){
