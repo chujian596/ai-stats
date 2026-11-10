@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v50.4';
+var APP_VER = 'v50.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1972,7 +1972,7 @@ function confirmGroupCurrent(){
   }
   const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
-  if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？\n确认后自动复制，直接粘贴发给上家')) return;
+  myConfirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？\n确认后自动复制，直接粘贴发给上家', function(){
   // 先复制（此时还没记录已飞，复制函数能拿到正确的本轮金额）
   groupFn();
   // 再记录已飞（EM组用特殊key _em_total）
@@ -1998,6 +1998,7 @@ function confirmGroupCurrent(){
   // 刷新明细（重新显示本组，数字更新）
   showGroupDetail(currentFlyGroup);
   myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元\n订单已复制，直接粘贴发给上家');
+  });
 }
 
 function sideSplitCopyEM(){
@@ -2160,7 +2161,7 @@ function confirmGroupFly(group){
 function confirmThisRoundFly(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  if(!confirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。')) return;
+  myConfirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。', function(){
   r.lines.forEach(l => {
     var key = l.code;
     if(l.code === '二中二/三中三合计') key = '_em_total';
@@ -2172,10 +2173,11 @@ function confirmThisRoundFly(){
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
   myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元');
+  });
 }
 
 function resetFlown(){
-  if(!confirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）')) return;
+  myConfirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）', function(){
   flownPerPos = {};
   localStorage.removeItem('flownPerPos');
   currentFlyGroup = null;
@@ -2195,6 +2197,7 @@ function resetFlown(){
     if(box) box.innerHTML = '';
   } catch(e){}
   myAlert('已重置，飞单统计将从头计算');
+  });
 }
 function sideSplitCalc(){
   splitTakeAll = parseFloat(document.getElementById('sideSplitTh').value) || 0;
