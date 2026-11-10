@@ -2058,7 +2058,7 @@ function colorBadge(code){
   const fg = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#666';
   const bd = {red:'#d63031', blue:'#1d4ed8', green:'#1e7e34'}[(p && p.color)] || '#ccc';
   const name = p && p.name ? ' ' + esc(p.name) : '';
-  return `<span class="cb" style="display:inline-block;padding:2px 6px 2px 8px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;border-left:3px solid ${bd}">${esc(code)}${name}</span>`;
+  return `<span class="cb" style="display:inline-block;padding:2px 6px 2px 8px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
 }
 function toggleLink(code, link){
   const p = products.find(x => x.code === code);
