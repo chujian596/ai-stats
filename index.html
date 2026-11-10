@@ -330,7 +330,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v39.7';
+var APP_VER = 'v39.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2539,9 +2539,11 @@ function codeSalesForOrder(o, prod){
 let _texiaoChoice = null;
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
-  if(raw0 && !/[\u4e00-\u9fa5]/.test(raw0)){
-    var nums0 = raw0.match(/\d+/g);
-    if(nums0 && nums0.length >= 1){ autoPayout(); return; }
+  if(raw0){
+    var nums0 = (raw0.match(/\d+/g)||[]).map(Number);
+    var inRange = nums0.filter(function(n){ return n>=1 && n<=49; });
+    // 开奖特征：包含+号连接特号，或有>=5个1-49的号码
+    if(/\+/.test(raw0) || inRange.length >= 5){ autoPayout(); return; }
   }
   try {
   let text = document.getElementById('input').value;
