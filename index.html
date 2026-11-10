@@ -335,7 +335,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v39.4';
+var APP_VER = 'v39.5';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2055,7 +2055,7 @@ function saveProducts(){
 }
 function colorBadge(code){
   const p = products.find(x => x.code === code);
-  const fg = {red:'#991b1b', blue:'#1e3a8a', green:'#14532d'}[(p && p.color)] || '#333';
+  const fg = {red:'#dc2626', blue:'#1e40af', green:'#166534'}[(p && p.color)] || '#333';
   const name = p && p.name ? ' ' + esc(p.name) : '';
   return `<span class="cb" style="color:${fg};font-weight:700;font-size:14px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
 }
