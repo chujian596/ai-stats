@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.0';
+var APP_VER = 'v37.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -571,7 +571,7 @@ function autoPayout(){
       restoreIfNeeded();
 renderAll();
       if(typeof renderRisk==='function') renderRisk();
-      var pc = document.getElementById('payCtrl'); if(pc) pc.style.display=''; var pb = document.getElementById('profitBody'); if(pb) pb.style.display='';
+      var pb = document.getElementById('profitBody'); if(pb) pb.style.display='';
     };
   }
   document.getElementById('drawInput').value = '';
@@ -1145,7 +1145,6 @@ function renderPaySide(){
   }
   h += '</div>'; // close profitBody
 
-  h += '<div onclick="var e=document.getElementById(\'payCtrl\');e.style.display=e.style.display==\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">手动赔付</div>';
   h += '<div id="payCtrl" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:4px">';
   var btnLabel = sidePaySel || (labels.prodBtn||'选产品');
