@@ -353,7 +353,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.22';
+var APP_VER = 'v46.23';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2582,8 +2582,10 @@ function parseLine(text){
   });
   // 清理：如果已经有了"产品:号码"格式，去掉开头多余的裸产品名
   codeText = codeText.replace(/^\s*(二中二|三中三|三中二)\s+(?=(?:二中二|三中三|三中二):)/, ' ');
-  // 多组组合：18-20-35、15-18-20、02-18-39
-  codeText = codeText.replace(/(\d{2})-(\d{2})-(\d{2})/g, (m, n1, n2, n3) => '三中三:' + n1 + ',' + n2 + ',' + n3);
+  // 多组组合：只有明确写了三中三/复式时，横杠三连号才转三中三
+  if(codeText.indexOf('三中三') >= 0 || codeText.indexOf('复') >= 0){
+    codeText = codeText.replace(/(\d{2})-(\d{2})-(\d{2})/g, (m, n1, n2, n3) => '三中三:' + n1 + ',' + n2 + ',' + n3);
+  }
   // "46 41 29三中三" → "三中三:46,41,29"
   codeText = codeText.replace(/(\d{2})\s+(\d{2})(?:\s+(\d{2}))?\s*(二中二|三中三|三中二)/g, (m, n1, n2, n3, prod) => {
     return ' ' + prod + ':' + n1 + ',' + n2 + (n3 ? ',' + n3 : '') + ' ';
@@ -2594,6 +2596,8 @@ function parseLine(text){
   });
   // 中文逗号统一成分隔（英文逗号不能拆，二中二:03,04 里逗号是号码分隔）
   codeText = codeText.replace(/，/g, '、');
+  // 纯号码之间的横杠改空格（特号连写：44-10-08 → 44 10 08）
+  codeText = codeText.replace(/(\d{2})-(\d{2})/g, '$1 $2');
   // 整行都是生肖（如"兔、龙、鸡"）→ 视为买这些肖的全部号码（特号全肖）
   const zodOnly = codeText.replace(/[、\s;；.。]/g, '');
   if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}$/.test(zodOnly)){
