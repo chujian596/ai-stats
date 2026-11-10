@@ -3285,7 +3285,7 @@ function renderOrdersList(){
   h += `<div onclick="var e=document.getElementById('upDetail');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-weight:700;font-size:14px;color:#333">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
-  h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
+  h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走 <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
@@ -3293,8 +3293,8 @@ function renderOrdersList(){
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
   h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
-  h += `</div>`;
-  h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #fde68a">`;
+  h += `<div style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
+  h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
   // 三栏：左特码 中肖 右二中二三中三
   let upL = '', upM = '', upR = '';
   try {
