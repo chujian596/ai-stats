@@ -114,7 +114,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <textarea id="input" placeholder="输入订单，或输入开奖六个平号+特自动结算" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
+      <textarea id="input" placeholder="输入订单，或开+开奖号码自动结算（如：开01.03.08.11.13.21.09）" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.44';
+var APP_VER = 'v46.45';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -2713,13 +2713,17 @@ let _texiaoChoice = null;
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
+    // 明确开奖：以"开"开头，直接结算
+    if(/^开[].?/.test(raw0) || /^开奖/.test(raw0)){
+      autoPayout(); return;
+    }
     // 先剔掉产品词，避免"3中3"里的两个3被当成开奖号码
     var norm0 = raw0.replace(/三中三|二中二|三中二|3中3|2中2|3中2|复式/g, '');
     var nums0 = (norm0.match(/\d+/g)||[]).map(Number);
     var inRange = nums0.filter(function(n){ return n>=1 && n<=49; });
-    // 开奖特征：不含订单关键词，且有>=5个1-49号码
+    // 开奖特征：不含订单关键词，且有>=6个1-49号码
     var isOrder = /各|米|平|连肖|二中二|三中三|单|双|大|小|组|合|肖|尾|中三|中二|中3|中2|复式|复/.test(raw0);
-    if(!isOrder && inRange.length >= 5){ autoPayout(); return; }
+    if(!isOrder && inRange.length >= 6){ autoPayout(); return; }
   }
   try {
   let text = document.getElementById('input').value;
