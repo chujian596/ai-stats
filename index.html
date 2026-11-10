@@ -2054,8 +2054,10 @@ function saveProducts(){
 }
 function colorBadge(code){
   const p = products.find(x => x.code === code);
+  const bg = {red:'#ffe0e0', blue:'#e0e7ff', green:'#dcfce7'}[(p && p.color)] || '#f0f0f0';
+  const fg = {red:'#c0392b', blue:'#1e40af', green:'#15803d'}[(p && p.color)] || '#666';
   const name = p && p.name ? ' ' + esc(p.name) : '';
-  return `<span class="cb" style="display:inline-block;padding:2px 8px;border-radius:4px;background:#f5f5f5;color:#333;font-weight:600;font-size:13px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
+  return `<span class="cb" style="display:inline-block;padding:2px 8px;border-radius:4px;background:${bg};color:${fg};font-weight:600;font-size:13px;line-height:1.4;white-space:nowrap;">${esc(code)}${name}</span>`;
 }
 function toggleLink(code, link){
   const p = products.find(x => x.code === code);
@@ -3990,7 +3992,7 @@ function renderAll(){
   const left = subCodes.slice(0, 25);
   const right = subCodes.slice(25);
   const rowHtml = (list, startIdx) => list.map((r, i) =>
-    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:15px;font-weight:700">${r.q}</td><td style="font-size:16px;font-weight:800;color:#cf1322">${r.a.toFixed(2)}</td></tr>`
+    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:15px;font-weight:700">${r.q}</td><td style="font-size:13px;font-weight:600;color:#333">${r.a.toFixed(2)}</td></tr>`
   ).join('');
   document.getElementById('tbody-rank-l').innerHTML = rowHtml(left, 1);
   document.getElementById('tbody-rank-r').innerHTML = rowHtml(right, 26);
