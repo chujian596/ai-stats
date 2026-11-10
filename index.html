@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v45.1';
+var APP_VER = 'v45.2';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3688,8 +3688,24 @@ function renderRisk(){
       }
     });
   });
-  const specTotalSales = totalSales - pteTotalSales;
-  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">特号 + 平特 = 总单</span><span>${specTotalSales.toFixed(0)} + ${pteTotalSales.toFixed(0)} = <b>${totalSales.toFixed(0)}</b></span></div>`;
+  let emTotalSales = 0;
+  orders.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+        emTotalSales += codeSalesForOrder(o, c);
+      }
+    });
+  });
+  let lxTotalSales = 0;
+  orders.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && c.startsWith('连肖')){
+        lxTotalSales += codeSalesForOrder(o, c);
+      }
+    });
+  });
+  const specTotalSales = totalSales - pteTotalSales - emTotalSales - lxTotalSales;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">特号 + 平特 + 其他</span><span>${specTotalSales.toFixed(0)} + ${pteTotalSales.toFixed(0)} + ${(emTotalSales+lxTotalSales).toFixed(0)} = <b>${totalSales.toFixed(0)}</b></span></div>`;
   h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">均衡线</span><span>${(specTotalSales/payMult).toFixed(0)}元/号</span></div>`;
   h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">49号分布</span><span>亏${loseNums} · 赚${winNums} · 零${zeroCnt}</span></div>`;
   h += `<div style="margin:6px 0;display:flex;height:6px;border-radius:3px;overflow:hidden">`;
