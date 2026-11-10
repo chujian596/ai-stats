@@ -419,7 +419,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.46';
+var APP_VER = 'v46.47';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -2650,7 +2650,7 @@ function parseLine(text){
     return nums.join(' ') + ' ';
   });
   // 裸生肖处理：单个裸生肖默认特肖（展开全部号码）；多个裸生肖仍需明确
-  const cleanedZod = codeText.replace(/平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g, '').replace(/连肖[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g, '');
+  const cleanedZod = codeText.replace(/平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}/g, '').replace(/连肖[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}/g, '');
   const stillBare = cleanedZod.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}/g);
   if(stillBare){
     stillBare.forEach(function(zs){
