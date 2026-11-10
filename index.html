@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v50.6';
+var APP_VER = 'v50.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1254,19 +1254,32 @@ function renderPaySide(){
         if(lxFlown > 0 && lz.split('').every(z => drawZ.has(z))) flyLxBack += lxFlown * 4;
       }
       let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
-      if(emOn){ const allN = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
-        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
-          const amt = codeSalesForOrder(o, c);
-          const emFlown = autoFlyOn ? amt : Math.min(amt, flownPerPos[c] || 0);
-          flyEm += emFlown;
-          const nums = c.split(':')[1].split(',');
-          if(emFlown > 0 && nums.every(n => allN.has(Number(n)))){
-            if(c.indexOf('二中二:')===0) flyEmBack += emFlown * 60;
-            else if(c.indexOf('三中三:')===0) flyEmBack += emFlown * 600;
-            else flyEmBack += emFlown * 20;
+      if(emOn){
+        // 先算二中二三中三总额，再从_flownPerPos['_em_total']读已飞比例
+        let emTotalAll = 0;
+        const emOrderList = [];
+        orders.forEach(o => { (o.codes||[]).forEach(c => {
+          if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+            const amt = codeSalesForOrder(o, c);
+            emTotalAll += amt;
+            emOrderList.push({code:c, amt:amt});
           }
-        }
-      });});}
+        });});
+        const emFlownTotal = autoFlyOn ? emTotalAll : Math.min(emTotalAll, flownPerPos['_em_total'] || 0);
+        flyEm += emFlownTotal;
+        const flownRatio = emTotalAll > 0 ? emFlownTotal / emTotalAll : 0;
+        const allN = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum]);
+        emOrderList.forEach(item => {
+          const nums = item.code.split(':')[1].split(',');
+          if(nums.every(n => allN.has(Number(n)))){
+            let mult = 0;
+            if(item.code.indexOf('二中二:')===0) mult = 60;
+            else if(item.code.indexOf('三中三:')===0) mult = 600;
+            else mult = 20;
+            flyEmBack += item.amt * flownRatio * mult;
+          }
+        });
+      }
     } catch(e){}
     const flyOutSum = flySpec + flyPte + flyLx + flyEm;
     const flyBackSum = flySpecBack + flyPteBack + flyLxBack + flyEmBack;
