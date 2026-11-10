@@ -146,13 +146,13 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-rank" class="card tab-panel">
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
-      <div onclick="var e=document.getElementById('singlesList');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
+      <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="var e=document.getElementById('splitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
       <div onclick="var e=document.getElementById('profitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
-      <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
+      <div onclick="var e=document.getElementById('singlesList');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
     </div>
@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v51.2';
+var APP_VER = 'v51.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
