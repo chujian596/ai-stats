@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v49.4';
+var APP_VER = 'v49.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1885,8 +1885,12 @@ function confirmGroupCurrent(){
   if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？\n确认后自动复制，直接粘贴发给上家')) return;
   // 先复制（此时还没记录已飞，复制函数能拿到正确的本轮金额）
   groupFn();
-  // 再记录已飞
-  groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
+  // 再记录已飞（EM组用特殊key _em_total）
+  groupLines.forEach(l => {
+    var key = l.code;
+    if(l.code === '二中二/三中三合计') key = '_em_total';
+    flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
+  });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   // 只刷新数字摘要，不重建整个面板（避免退出飞单页）
   try {
@@ -2068,8 +2072,23 @@ function resetFlown(){
   if(!confirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）')) return;
   flownPerPos = {};
   localStorage.removeItem('flownPerPos');
+  currentFlyGroup = null;
+  // 刷新摘要
+  try {
+    const sales = getSplitSales();
+    const keys = Object.keys(sales);
+    const total = keys.reduce((s,k) => s + sales[k], 0);
+    const _r = getThisRoundFly();
+    const sumEl = document.getElementById('sideSplitSummary');
+    if(sumEl){
+      sumEl.innerHTML =
+        '总单 <b>' + total.toFixed(0) + '</b> | 应飞总额 <b style="color:#cf1322">' + _r.totalFly.toFixed(0) + '</b><br>' +
+        '已飞 ' + _r.already.toFixed(0) + ' | 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _r.thisRound.toFixed(0) + '</b>';
+    }
+    var box = document.getElementById('sideSplitResult');
+    if(box) box.innerHTML = '';
+  } catch(e){}
   myAlert('已重置，飞单统计将从头计算');
-  calcSplit();
 }
 function sideSplitCalc(){
   splitTakeAll = parseFloat(document.getElementById('sideSplitTh').value) || 0;
