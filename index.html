@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v44.4';
+var APP_VER = 'v44.5';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1371,29 +1371,61 @@ function renderSideCustPay(){
       h += '</div>';
     });
     h += '<div style="border-top:1px solid #ddd;margin-top:6px;padding-top:6px">';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">累计应收</span><span style="color:#1a1a1a;font-weight:700;font-size:15px">' + totalBuy.toFixed(2) + '</span></div>';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">累计已赔</span><span style="color:#1a1a1a;font-weight:700;font-size:15px">' + totalPaid.toFixed(2) + '</span></div>';
-    var netVal = totalBuy-totalPaid; h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">飞单前净盈亏</span><span style="color:' + (netVal>=0?'#166534':'#cf1322') + ';font-size:14px">' + netVal.toFixed(2) + '</span></div>';
-    // 飞单后实际净盈亏
+    // 逐笔流水账
+    // 先算各项赔付
+    let paySpec=0,payPte=0,payLx=0,payEm=0;
     if(lastDraw && lastDraw.specialNum){
-      let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
+      try{
+        const allNums=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);
+        const drawZ=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
+        orders.forEach(o=>{(o.codes||[]).forEach(c=>{
+          if(typeof c!=='string')return;
+          if(/^\d{2}$/.test(c) && Number(c)===Number(lastDraw.specialNum)){ paySpec += codeSalesForOrder(o,c)*payMult; }
+          else if(c.startsWith('平特')){ const z=c.replace('平特',''); if(drawZ.has(z)) payPte += codeSalesForOrder(o,c)*(z==='马'?1.8:payMultSingle); }
+          else if(c.startsWith('连肖')){ const z=c.replace('连肖',''); if(z.split('').every(zz=>drawZ.has(zz))) payLx += codeSalesForOrder(o,c)*4; }
+          else if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){ const nums=c.split(':')[1].split(','); if(nums.every(n=>allNums.has(Number(n)))){ if(c.indexOf('二中二:')===0) payEm += codeSalesForOrder(o,c)*60; else if(c.indexOf('三中三:')===0) payEm += codeSalesForOrder(o,c)*600; else payEm += codeSalesForOrder(o,c)*20; } }
+        });});
+      }catch(e){}
+    }
+    const totalPay = paySpec+payPte+payLx+payEm;
+    // 飞单各项
+    let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
+    if(lastDraw && lastDraw.specialNum){
       try{
         const sales0=getSplitSales();
         Object.keys(sales0).forEach(k=>{flySpec+=Math.max(0,sales0[k]-splitTakeAll);});
         flySpecBack+=Math.max(0,(sales0[lastDraw.specialNum]||0)-splitTakeAll)*payMult;
         const pteAgg={};
         orders.forEach(o=>{(o.codes||[]).forEach(c=>{if(typeof c==='string'&&c.startsWith('平特')){const z=c.replace('平特','');pteAgg[z]=(pteAgg[z]||0)+codeSalesForOrder(o,c);}});});
-        const drawZ=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-        Object.entries(pteAgg).forEach(([z,amt])=>{const extra=pteFlyTakeAll>0?Math.max(0,amt-pteFlyTakeAll):0;flyPte+=extra;if(extra>0&&drawZ.has(z))flyPteBack+=extra*(z==='马'?1.8:payMultSingle);});
-        if(lxFlyAmt>0){flyLx+=lxFlyAmt;const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');if(lz.split('').every(z=>drawZ.has(z)))flyLxBack+=lxFlyAmt*4;}
+        const drawZ2=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
+        Object.entries(pteAgg).forEach(([z,amt])=>{const extra=pteFlyTakeAll>0?Math.max(0,amt-pteFlyTakeAll):0;flyPte+=extra;if(extra>0&&drawZ2.has(z))flyPteBack+=extra*(z==='马'?1.8:payMultSingle);});
+        if(lxFlyAmt>0){flyLx+=lxFlyAmt;const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');if(lz.split('').every(z=>drawZ2.has(z)))flyLxBack+=lxFlyAmt*4;}
         let emOn=true;try{emOn=localStorage.getItem('emFlyOn')!=='0';}catch(e){}
         if(emOn){const allN=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);orders.forEach(o=>{(o.codes||[]).forEach(c=>{if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){const amt=codeSalesForOrder(o,c);flyEm+=amt;const nums=c.split(':')[1].split(',');if(nums.every(n=>allN.has(Number(n)))){if(c.indexOf('二中二:')===0)flyEmBack+=amt*60;else if(c.indexOf('三中三:')===0)flyEmBack+=amt*600;else flyEmBack+=amt*20;}}});});}
       }catch(e){}
-      const flyOutSum=flySpec+flyPte+flyLx+flyEm;
-      const flyBackSum=flySpecBack+flyPteBack+flyEmBack+flyLxBack;
-      const realNet=totalBuy-totalPaid-flyOutSum+flyBackSum;
-      h += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #ddd;margin-top:3px"><span style="font-size:14px;font-weight:700">飞单后实际净盈亏</span><span style="color:' + (realNet>=0?'#166534':'#cf1322') + ';font-weight:700;font-size:16px">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
     }
+    const flyOutSum=flySpec+flyPte+flyLx+flyEm;
+    const flyBackSum=flySpecBack+flyPteBack+flyLxBack+flyEmBack;
+    const grossNet = totalBuy - totalPay;
+    const realNet = grossNet - flyOutSum + flyBackSum;
+    // 渲染流水账
+    h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">结算明细</div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">总收入（总单）</span><span style="font-size:14px;font-weight:600">+' + totalBuy.toFixed(2) + '</span></div>';
+    h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:2px">赔付明细：</div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">特号赔付</span><span style="font-size:13px;color:#666">-' + paySpec.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">平特赔付</span><span style="font-size:13px;color:#666">-' + payPte.toFixed(2) + '</span></div>';
+    if(payLx>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">连肖赔付</span><span style="font-size:13px;color:#666">-' + payLx.toFixed(2) + '</span></div>';
+    if(payEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">二中二三中三赔付</span><span style="font-size:13px;color:#666">-' + payEm.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:14px">毛净盈亏</span><span style="font-size:14px;font-weight:700;color:' + (grossNet>=0?'#166534':'#cf1322') + '">' + (grossNet>=0?'+':'') + grossNet.toFixed(2) + '</span></div>';
+    // 飞单调整
+    if(lastDraw && lastDraw.specialNum && (flyOutSum>0 || flyBackSum>0)){
+      h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:4px">飞单调整：</div>';
+      if(flySpec>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去特号' + (flySpecBack>0?'（上家赔回+' + flySpecBack.toFixed(0) + ')':'') + '</span><span style="font-size:13px;color:#666">-' + (flySpec-flySpecBack).toFixed(2) + '</span></div>';
+      if(flyPte>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去平特</span><span style="font-size:13px;color:#666">-' + flyPte.toFixed(2) + '</span></div>';
+      if(flyLx>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去连肖</span><span style="font-size:13px;color:#666">-' + flyLx.toFixed(2) + '</span></div>';
+      if(flyEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去二中二三中三</span><span style="font-size:13px;color:#666">-' + flyEm.toFixed(2) + '</span></div>';
+    }
+    h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;margin-top:4px"><span style="font-size:15px;font-weight:700">最终余额</span><span style="font-size:18px;font-weight:700;color:' + (realNet>=0?'#166534':'#cf1322') + '">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
     h += '</div>';
     h += '</div>';
   }
