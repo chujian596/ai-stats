@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.34';
+var APP_VER = 'v46.35';
 // 自动检查新版本
 setTimeout(function(){
   fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
@@ -4489,7 +4489,7 @@ function applyTheme(){
   const t = JSON.parse(localStorage.getItem('app_theme')||'{}');
   const color = t.color || '#7c3aed';
   const bg = t.bg || BGS[1].css;
-  const isDark = BGS.find(b=>b.css===bg)?.dark;
+  const isDark = (BGS.find(b=>b.css===bg)||{}).dark;
   document.body.style.background = bg;
   document.documentElement.style.setProperty('--themeColor', color);
   document.documentElement.style.setProperty('--modalBg', isDark ? '#1C1C1E' : '#ffffff');
@@ -4636,7 +4636,7 @@ function openSettings(){
   [['fs-small',15],['fs-mid',17],['fs-big',19]].forEach(([id,val])=>{
     const el = document.getElementById(id);
     const curBg = JSON.parse(localStorage.getItem('app_theme')||'{}').bg || BGS[1].css;
-    const darkMode = BGS.find(b=>b.css===curBg)?.dark;
+    const darkMode = (BGS.find(b=>b.css===curBg)||{}).dark;
     if(fs === val){
       el.style.background = darkMode ? '#fff' : '#000';
       el.style.color = darkMode ? '#000' : '#fff';
