@@ -2724,8 +2724,8 @@ function handleSave(){
     line = line.trim();
     if(!line) return ''; // 空行保留作分隔
     if(/^共\s*[0-9]/.test(line)) return ''; // 跳过汇总行
-    // 裸生肖+各+金额 → 自动加"特"
-    if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}\s*各\s*(?:数\s*)?[0-9]/.test(line)){
+    // 裸生肖+各+金额 → 自动加"特"（支持各号/各数/各）
+    if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,}\s*各\s*(?:号|数)?\s*[0-9]/.test(line)){
       line = '特' + line;
     }
     return line;
