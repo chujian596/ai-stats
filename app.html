@@ -222,7 +222,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
-      <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">📋 复制飞单</button>
+      <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">复制本轮飞单</button>
+      <button class="btn" style="font-size:15px;padding:8px 14px;background:#fff;color:#16a34a;border:1px solid #16a34a" onclick="confirmThisRoundFly()">确认本轮飞单</button>
+      <button class="btn" style="font-size:15px;padding:8px 14px;background:#fff;color:#cf1322;border:1px solid #cf1322" onclick="resetFlown()">重置已飞</button>
     </div>
     <pre id="splitResult" style="margin-top:6px;padding:10px;background:#f5f5f5;border-radius:6px;font-size:13px;white-space:pre-wrap;line-height:1.8"></pre>
     <div id="autoCustPay" style="margin-top:8px"></div>
@@ -419,7 +421,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.49';
+var APP_VER = 'v47.0';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1620,6 +1622,9 @@ function updateTitles(){
 const SPLIT_KEY = sk('product_stats_split_v1');
 let splitTakeAll = 100;
 try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100; } catch(e){ splitTakeAll = 100; }
+// 已飞累计（分批飞单）：key=位置代码，value=已飞金额
+let flownPerPos = {};
+try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } catch(e){ flownPerPos = {}; }
 let pteFlyTakeAll = 0;
 try { pteFlyTakeAll = parseFloat(localStorage.getItem('pteFlyTakeAll') || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
 let lxFlyAmt = 0;
@@ -1726,42 +1731,74 @@ function renderAutoCustPay(){
   box.innerHTML = h;
 }
 function sideSplitCopy(){
-  const sales = getSplitSales();
-  const keys = Object.keys(sales).sort();
-  const lines = [];
-  let partner = 0;
-  keys.forEach(k => {
-    const extra = Math.max(0, sales[k] - splitTakeAll);
-    if(extra > 0){ lines.push(`${k} ${extra.toFixed(2)}`); partner += extra; }
-  });
-  // 平特飞单
-  const pteMap = {};
-  orders.forEach(o => { (o.codes||[]).forEach(c => {
-    if(typeof c === 'string' && c.startsWith('平特')){
-      const z = c.replace('平特','');
-      pteMap[z] = (pteMap[z]||0) + codeSalesForOrder(o, c);
-    }
-  });});
-  Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
-    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
-    if(extra > 0){ lines.push(`平特${z} ${extra.toFixed(2)}`); partner += extra; }
-  });
-  // 连肖飞单
-  if(lxFlyAmt > 0){ lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`); partner += lxFlyAmt; }
-  // 二中二三中三飞单
-  let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
-  if(emOn){ orders.forEach(o => { (o.codes||[]).forEach(c => {
-    if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
-      const amt = codeSalesForOrder(o, c);
-      lines.push(c.replace(':',' ') + ' ' + amt.toFixed(2));
-      partner += amt;
-    }
-  });});}
-  lines.push(`合计 ${partner.toFixed(2)}`);
+  const r = getThisRoundFly();
+  if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
+  const lines = r.lines.map(l => l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
+  lines.push('合计 ' + r.thisRound.toFixed(2));
   const txt = lines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  myAlert('已复制：\n' + txt);
+  myAlert('已复制本轮飞单：\n' + txt);
+}
+
+// === 分批飞单 ===
+function getThisRoundFly(){
+  // 返回 {lines: [], total: X, already: Y, totalFly: Z}
+  const sales = getSplitSales();
+  const keys = Object.keys(sales).sort();
+  const lines = [];
+  let totalFly = 0, already = 0;
+  keys.forEach(k => {
+    const full = Math.max(0, sales[k] - splitTakeAll);
+    const done = flownPerPos[k] || 0;
+    const round = Math.max(0, full - done);
+    totalFly += full;
+    already += done;
+    if(round > 0.01){ lines.push({code: k, amt: round, full: full, done: done}); }
+  });
+  // 平特
+  const pteMap = {};
+  orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && c.startsWith('平特')){
+      pteMap[c] = (pteMap[c]||0) + codeSalesForOrder(o, c);
+    }
+  });});
+  Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([code,amt]) => {
+    const full = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
+    const done = flownPerPos[code] || 0;
+    const round = Math.max(0, full - done);
+    totalFly += full;
+    already += done;
+    if(round > 0.01){ lines.push({code: code, amt: round, full: full, done: done}); }
+  });
+  // 连肖
+  if(lxFlyAmt > 0){
+    const code = '连肖' + (lxFlyName||'');
+    const done = flownPerPos[code] || 0;
+    const round = Math.max(0, lxFlyAmt - done);
+    totalFly += lxFlyAmt;
+    already += done;
+    if(round > 0.01){ lines.push({code: code, amt: round, full: lxFlyAmt, done: done}); }
+  }
+  return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly };
+}
+
+function confirmThisRoundFly(){
+  const r = getThisRoundFly();
+  if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
+  if(!confirm('确认本轮飞单 ' + r.thisRound.toFixed(2) + ' 元？\n确认后这些金额将标记为已飞，下次只算新增部分。')) return;
+  r.lines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
+  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(2) + ' 元\n累计已飞 ' + r.already.toFixed(2) + ' 元');
+  calcSplit();
+}
+
+function resetFlown(){
+  if(!confirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）')) return;
+  flownPerPos = {};
+  localStorage.removeItem('flownPerPos');
+  myAlert('已重置，飞单统计将从头计算');
+  calcSplit();
 }
 function sideSplitCalc(){
   splitTakeAll = parseFloat(document.getElementById('sideSplitTh').value) || 0;
@@ -1839,10 +1876,13 @@ function calcSplit(){
     }
   });});}
   const totalFly = partner + pteFlyAll + lxFlyAll + emFlyAll;
+  // 分批飞单：已飞累计 vs 本轮应飞
+  const _r = getThisRoundFly();
   let splitHtml = `<div style="line-height:2">` +
     `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b> = <b>${(total+pteLxTotal).toFixed(2)}</b></div>` +
     `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
-    `<div>飞单出去：<b style="color:#cf1322">${totalFly.toFixed(2)}</b>（特号${partner.toFixed(0)}+平特${pteFlyAll.toFixed(0)}+连肖${lxFlyAll.toFixed(0)}+二中二三中三${emFlyAll.toFixed(0)}）</div>`;
+    `<div>应飞总额：<b style="color:#cf1322">${totalFly.toFixed(2)}</b></div>` +
+    `<div style="font-size:13px;color:#666">已飞累计：${_r.already.toFixed(2)}　|　本轮应飞：<b style="color:#cf1322">${_r.thisRound.toFixed(2)}</b></div>`;
   if(lastDraw && lastDraw.specialNum){
     // 开奖后显示实际
     const keptAmt = Math.min(sales[lastDraw.specialNum]||0, splitTakeAll);
