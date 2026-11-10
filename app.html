@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v49.3';
+var APP_VER = 'v49.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1883,10 +1883,11 @@ function confirmGroupCurrent(){
   const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
   if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？\n确认后自动复制，直接粘贴发给上家')) return;
+  // 先复制（此时还没记录已飞，复制函数能拿到正确的本轮金额）
+  groupFn();
+  // 再记录已飞
   groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
-  // 自动复制本组订单
-  groupFn();
   // 只刷新数字摘要，不重建整个面板（避免退出飞单页）
   try {
     const sales = getSplitSales();
