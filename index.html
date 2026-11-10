@@ -332,7 +332,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.8';
+var APP_VER = 'v37.9';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3114,7 +3114,8 @@ function renderOrdersList(){
     h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
     h += `<span>中奖 <b style="color:#cf1322">${g.totalWin.toFixed(2)}</b></span>`;
     h += `<span>${net>=0?'盈利':'亏损'} <b style="color:${net>=0?'#16a34a':'#cf1322'}">${Math.abs(net).toFixed(2)}</b></span>`;
-    h += `</div></div>`;
+    h += `</div>`;
+    h += `<div style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
     h += `<div id="od_${gi}" style="display:none;padding:6px 8px">`;
     g.orders.forEach(({o, idx}) => {
       const wd = calcOrderWinDetail(o);
