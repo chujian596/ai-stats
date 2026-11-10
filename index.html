@@ -55,7 +55,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </style>
 </head>
 <body>
-<div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+<div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
   <div style="max-width:320px;width:100%;text-align:center">
     <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#1a1a1a">🔐 会员验证</div>
     <div id="lockMsg" style="font-size:15px;color:#666;margin-bottom:8px"></div>
@@ -76,7 +76,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div style="display:flex;justify-content:space-between;align-items:center">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">👤客户:<span id="custLabel">散客</span>▾</button>
       <div style="text-align:center">
-        <span id="bigAmount" style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 12px;font-size:16px;font-weight:700;color:#1e40af">0.00</span>
+        <span id="bigAmount" style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 12px;font-size:16px;font-weight:700;color:#1e40af">0.00</span><span id="bigSub" style="display:none"></span>
       </div>
       <button type="button" style="border:1px solid #7c3aed;background:#f3e8ff;color:#7c3aed;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="toggleShop()">🏪<span id="shopLabel">澳门云统计</span>▾</button>
     </div>
@@ -329,7 +329,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v40.2';
+var APP_VER = 'v40.3';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -644,7 +644,7 @@ function showLock(){
     var inp = document.getElementById('lockPwd');
     inp.placeholder = '此设备未授权';
     document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#7c3aed">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
-    document.getElementById('lockScreen').style.display = 'block';
+    document.getElementById('lockScreen').style.display = 'flex';
     return;
   }
   if(expired){
@@ -657,7 +657,7 @@ function showLock(){
     document.getElementById('lockPwdWrap').style.display = 'none';
     document.getElementById('lockEnterBtn').style.display = '';
   }
-  document.getElementById('lockScreen').style.display = 'block';
+  document.getElementById('lockScreen').style.display = 'flex';
 }
 function unlock(){
   var p = document.getElementById('lockPwd').value;
