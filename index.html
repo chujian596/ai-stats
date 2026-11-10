@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.31';
+var APP_VER = 'v46.32';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3908,8 +3908,8 @@ function renderRisk(){
       const fly = Math.max(0, amt - kept);
       const hit = drawZSet ? drawZSet.has(z) : null;
       const rowBg = hit ? 'background:#d4edda;' : (hit===false ? 'opacity:0.5;' : '');
-      const payoutStr = hit===true ? `${(kept*mult).toFixed(0)} ←赔` : (hit===false ? '未中' : (kept*mult).toFixed(0));
-      const payoutColor = hit===true ? '#155724' : (hit===false ? '#999' : '#cf1322');
+      const payoutStr = kept===0 ? '全飞' : (hit===true ? `${(kept*mult).toFixed(0)} ←赔` : (hit===false ? '未中' : (kept*mult).toFixed(0)));
+      const payoutColor = kept===0 ? '#999' : (hit===true ? '#155724' : (hit===false ? '#999' : '#cf1322'));
       h += `<tr style="border-bottom:1px solid #f5f5f5;${rowBg}"><td style="padding:3px">${z}${hit===true?' ✓':''}</td><td style="text-align:right;padding:3px">${amt.toFixed(0)}</td><td style="text-align:right;padding:3px;color:${fly>0?'#cf1322':'#999'}">${fly>0?fly.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:${payoutColor};font-weight:${hit===true?'700':'400'}">${payoutStr}</td></tr>`;
     });
     h += `</table>`;
