@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v49.0';
+var APP_VER = 'v49.1';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1860,27 +1860,33 @@ function showGroupDetail(group){
 function confirmGroupCurrent(){
   if(!currentFlyGroup){ myAlert('请先点选要确认的分组'); return; }
   const r = getThisRoundFly();
-  let groupLines, groupName;
+  let groupLines, groupName, groupFn;
   if(currentFlyGroup === 'spec'){
     groupLines = r.lines.filter(l => !l.auto && !l.code.startsWith('平特') && l.code !== '二中二/三中三合计' && !l.code.startsWith('连肖'));
-    groupName = '特号';
+    groupName = '特号'; groupFn = sideSplitCopySpec;
   } else if(currentFlyGroup === 'pte'){
     groupLines = r.lines.filter(l => l.code.startsWith('平特'));
-    groupName = '平特';
+    groupName = '平特'; groupFn = sideSplitCopyPte;
   } else if(currentFlyGroup === 'em'){
     groupLines = r.lines.filter(l => l.code === '二中二/三中三合计');
-    groupName = '二中二/三中三';
+    groupName = '二中二/三中三'; groupFn = sideSplitCopyEM;
   } else {
     groupLines = r.lines.filter(l => l.code.startsWith('连肖'));
-    groupName = '连肖';
+    groupName = '连肖'; groupFn = sideSplitCopyLX;
   }
   const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
-  if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
+  if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？\n确认后自动复制，直接粘贴发给上家')) return;
   groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
-  myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
+  // 自动复制本组订单
+  groupFn();
+  // 刷新面板
   calcSplit();
+  renderSplitSide();
+  // 刷新明细
+  showGroupDetail(currentFlyGroup);
+  myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元\n订单已复制，直接粘贴发给上家');
 }
 
 function sideSplitCopyEM(){
