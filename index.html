@@ -337,7 +337,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v36.7';
+var APP_VER = 'v36.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -1029,7 +1029,38 @@ function renderPaySide(){
   // 保存当前选择，避免重建后丢失
   const oldMult = box.querySelector('#sidePayMult');
   const savedMult = oldMult ? oldMult.value : payMult;
-  const total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
+  let total = pays.reduce((s,p) => s + Number(p.amount||0), 0);
+  // 开奖后实时计算赔付，不读赔付记录
+  if(lastDraw && lastDraw.specialNum){
+    const regular = lastDraw.regularNums || [];
+    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+    let realPayout = 0;
+    orders.forEach(o => {
+      (o.codes||[]).forEach(c => {
+        if(typeof c !== 'string') return;
+        if(/^\d{2}$/.test(c)){
+          if(Number(c) === Number(lastDraw.specialNum)) realPayout += codeSalesForOrder(o, c) * payMult;
+        } else if(c.startsWith('平特')){
+          const z = c.replace('平特','');
+          if(drawZ.has(z)) realPayout += codeSalesForOrder(o, c) * (z==='马'?1.8:payMultSingle);
+        } else if(c.startsWith('连肖')){
+          const z = c.replace('连肖','');
+          if(z.split('').every(zz => drawZ.has(zz))) realPayout += codeSalesForOrder(o, c) * 4;
+        } else if(c.indexOf('二中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 60;
+        } else if(c.indexOf('三中三:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 600;
+        } else if(c.indexOf('三中二:')===0){
+          const nums = c.split(':')[1].split(',');
+          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 20;
+        }
+      });
+    });
+    total = realPayout;
+  }
   const sales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   // 盈利统计（折叠，默认关闭）
   let h = '<div onclick="var e=document.getElementById(\'profitBody\');e.style.display=e.style.display===\'none\'?\'\':\'none\'" style="padding:8px 12px;font-size:14px;font-weight:700;color:#fff;background:#7c3aed;border-radius:8px;margin-bottom:6px;cursor:pointer">盈利统计</div>';
