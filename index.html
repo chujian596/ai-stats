@@ -58,14 +58,15 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 <body>
 <div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
   <div style="max-width:320px;width:100%;text-align:center">
-    <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#1a1a1a">🔐 会员验证</div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#1a1a1a">会员验证</div>
     <div id="lockMsg" style="font-size:15px;color:#666;margin-bottom:8px"></div>
     <div id="lockPwdWrap">
       <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:17px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
-      <button onclick="unlock()" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:12px;font-size:16px;font-weight:700">进入</button>
+      <button onclick="unlock()" style="width:100%;border:1px solid #ccc;background:#fff;color:#333;border-radius:8px;padding:12px;font-size:16px;font-weight:600">进入</button>
     </div>
     <button id="lockEnterBtn" onclick="skipLock()" style="display:none;width:100%;margin-top:12px;border:none;background:#e0e0e0;color:#333;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
   </div>
+  <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;color:#bbb" id="lockVer"></div>
 </div>
 <header style="display:none">
   <div class="title" id="mainTitle">AI云统计系统</div>
@@ -336,7 +337,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.7';
+var APP_VER = 'v46.8';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -625,6 +626,7 @@ var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
 
 function showLock(){
   if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
+  var lv = document.getElementById('lockVer'); if(lv) lv.textContent = APP_VER;
   var now = Date.now();
   var left = lockData.expire - now;
   var expired = left <= 0;
@@ -632,11 +634,11 @@ function showLock(){
   if(expired){
     timeTxt = '会员已到期';
   } else if(left < 3600000){
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/60000) + '</b> 分钟';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#333">' + Math.ceil(left/60000) + '</b> 分钟';
   } else if(left < 86400000){
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/3600000) + '</b> 小时';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#333">' + Math.ceil(left/3600000) + '</b> 小时';
   } else {
-    timeTxt = '会员剩余 <b style="font-size:17px;color:#7c3aed">' + Math.ceil(left/86400000) + '</b> 天';
+    timeTxt = '会员剩余 <b style="font-size:17px;color:#333">' + Math.ceil(left/86400000) + '</b> 天';
   }
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
