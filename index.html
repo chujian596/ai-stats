@@ -3279,18 +3279,18 @@ function renderOrdersList(){
     });});
   } catch(e){}
   window._upCopy = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}` + (lastDraw ? `\n命中额:${flyBackTotal.toFixed(0)}` : '') + (lastDraw ? `\n总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}\n结算:-${(flyOutTotal-flyBackTotal).toFixed(0)}` : '\n未开奖，结算待定');
-  h += `<div style="border:2px solid #d97706;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fffbeb">`;
+  h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">`;
   h += `<div onclick="var e=document.getElementById('upDetail');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
-  h += `<span style="font-weight:700;font-size:14px;color:#d97706">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span> ▼</span>`;
-  h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #d97706;background:#fff;color:#d97706;border-radius:4px;padding:2px 8px;font-size:11px">复制清单</button>`;
+  h += `<span style="font-weight:700;font-size:14px;color:#333">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
+  h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:4px;padding:2px 8px;font-size:11px">复制</button>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走 <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
   h += `<span>结算 <b style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'-'+Math.abs(flyOutTotal-flyBackTotal).toFixed(0):'待开奖'}</b></span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
-  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #fde68a"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
   h += `</div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #fde68a">`;
   // 三栏：左特码 中肖 右二中二三中三
