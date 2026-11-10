@@ -3162,7 +3162,7 @@ renderAll();
     saveRoster();
   }
   document.getElementById('input').value = '';
-  let msg = '本次已保存：' + results.join('；') + `；合计<span style="color:#333;font-size:16px;font-weight:700">${totalAmount.toFixed(2)}元</span>`;
+  let msg = '本次已保存：<br>' + results.join('<br>') + `<br>合计<span style="color:#333;font-size:16px;font-weight:700">${totalAmount.toFixed(2)}元</span>`;
   // notes不显示给用户
   if(!storageOK){
     msg += '\n⚠ 当前浏览器不允许本地保存，刷新后数据会丢失，已自动下载备份JSON，请收好！';
