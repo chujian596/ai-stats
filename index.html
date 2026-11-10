@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v48.9';
+var APP_VER = 'v49.0';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1822,7 +1822,9 @@ function sideSplitCopyAuto(){
   myAlert('已复制即飞单 ' + autoTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
 }
 
+var currentFlyGroup = null; // 当前查看的飞单分组
 function showGroupDetail(group){
+  currentFlyGroup = group;
   const r = getThisRoundFly();
   let groupLines, groupName;
   if(group === 'spec'){
@@ -1850,8 +1852,35 @@ function showGroupDetail(group){
   groupLines.forEach(l => {
     h += '<div style="display:flex;justify-content:space-between;padding:5px 6px;border-bottom:1px solid #eee"><span style="font-size:14px">' + l.code + '</span><span style="font-size:14px;color:#cf1322;font-weight:700">' + l.amt.toFixed(0) + '</span></div>';
   });
+  h += '<div style="padding:6px;text-align:center"><button onclick="confirmGroupCurrent()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:6px 20px;font-size:13px;font-weight:600">确认本组飞单</button></div>';
   h += '</div>';
   box.innerHTML = h;
+}
+
+function confirmGroupCurrent(){
+  if(!currentFlyGroup){ myAlert('请先点选要确认的分组'); return; }
+  const r = getThisRoundFly();
+  let groupLines, groupName;
+  if(currentFlyGroup === 'spec'){
+    groupLines = r.lines.filter(l => !l.auto && !l.code.startsWith('平特') && l.code !== '二中二/三中三合计' && !l.code.startsWith('连肖'));
+    groupName = '特号';
+  } else if(currentFlyGroup === 'pte'){
+    groupLines = r.lines.filter(l => l.code.startsWith('平特'));
+    groupName = '平特';
+  } else if(currentFlyGroup === 'em'){
+    groupLines = r.lines.filter(l => l.code === '二中二/三中三合计');
+    groupName = '二中二/三中三';
+  } else {
+    groupLines = r.lines.filter(l => l.code.startsWith('连肖'));
+    groupName = '连肖';
+  }
+  const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
+  if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
+  if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
+  groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
+  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
+  calcSplit();
 }
 
 function sideSplitCopyEM(){
