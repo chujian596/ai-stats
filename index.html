@@ -73,6 +73,18 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <div id="memInfo"></div>
 </header>
 <main>
+<div id="billBar" style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap">
+    <span style="font-size:13px;color:#999">账单日</span>
+    <span id="billDateTxt" style="font-size:15px;font-weight:700;color:#333">--</span>
+    <span id="billDayStat" style="font-size:12px;color:#999"></span>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button type="button" onclick="billOpenHistory()" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600;color:#333">历史账单</button>
+    <button type="button" onclick="billArchiveNow()" style="border:1px solid #7c3aed;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600">今日归档</button>
+  </div>
+</div>
+<div id="billRollTip" style="display:none;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:13px;line-height:1.5;color:#613400"></div>
   <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
   <div style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
     <div style="display:flex;justify-content:space-between;align-items:center">
@@ -337,7 +349,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.9';
+var APP_VER = 'v46.10';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2577,6 +2589,13 @@ function parseLine(text){
   codeText = codeText.replace(/(二中二|三中三|三中二)\s*(\d{2})\s+(\d{2})(?:\s+(\d{2}))?/g, (m, prod, n1, n2, n3) => {
     return ' ' + prod + ':' + n1 + ',' + n2 + (n3 ? ',' + n3 : '') + ' ';
   });
+  // 中文逗号统一成分隔（英文逗号不能拆，二中二:03,04 里逗号是号码分隔）
+  codeText = codeText.replace(/，/g, '、');
+  // 整行都是生肖（如"兔、龙、鸡"）→ 视为买这些肖的全部号码（特号全肖）
+  const zodOnly = codeText.replace(/[、\s;；.。]/g, '');
+  if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}$/.test(zodOnly)){
+    codeText = zodOnly.split('').map(z => NUM2ZODIAC_REV[z].map(n => String(n).padStart(2,'0')).join(' ')).join(' ');
+  }
   // 拆分并逐个识别（注意：不能按英文逗号拆分，因为二中二:03,04格式里逗号是号码分隔）
   const parts = codeText.split(/[\s、;；.。]+/).filter(Boolean);
   const codes = [];
@@ -4597,6 +4616,210 @@ else if(left2 < 3600000) memTxt = '剩' + Math.ceil(left2/60000) + '分钟';
 else if(left2 < 86400000) memTxt = '剩' + Math.ceil(left2/3600000) + '小时';
 else memTxt = '剩' + Math.ceil(left2/86400000) + '天';
 document.getElementById('memInfo').textContent = '会员' + memTxt;
+
+/* ===== 按日账单：归档 + 历史回看（独立模块，不改原有统计链路） ===== */
+const BILL_KEY = sk('bill_archive_v1');
+const BOOK_KEY = sk('bill_book_date');
+let billArchive = {};
+try { billArchive = JSON.parse(localStorage.getItem(BILL_KEY) || '{}'); } catch(e) { billArchive = {}; }
+
+function billToday(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function billBookDate(){ try { return localStorage.getItem(BOOK_KEY) || ''; } catch(e){ return ''; } }
+function billSetBookDate(d){ try { localStorage.setItem(BOOK_KEY, d); } catch(e){} }
+function billSaveArchive(){ try { localStorage.setItem(BILL_KEY, JSON.stringify(billArchive)); } catch(e){} }
+
+function billSum(){
+  const amt = orders.reduce((s,o) => s + Number(o.amount||0), 0);
+  const pay = pays.reduce((s,p) => s + Number(p.amount||0), 0);
+  return { n: orders.length, amt: amt, pay: pay, net: amt - pay };
+}
+
+function billRefreshBar(){
+  const d = billBookDate() || billToday();
+  const el = document.getElementById('billDateTxt');
+  if(el) el.textContent = d;
+  const st = document.getElementById('billDayStat');
+  if(st){
+    const s = billSum();
+    st.textContent = s.n ? ('本日 ' + s.n + ' 单 · 收 ' + s.amt.toFixed(2) + ' · 净 ' + s.net.toFixed(2)) : '本日暂无记录';
+  }
+}
+
+function billArchiveNow(silent){
+  const d = billBookDate() || billToday();
+  const s = billSum();
+  if(!s.n && !pays.length){
+    billSetBookDate(billToday());
+    billRefreshBar();
+    return false;
+  }
+  billArchive[d] = {
+    orders: JSON.parse(JSON.stringify(orders)),
+    pays: JSON.parse(JSON.stringify(pays)),
+    custpays: JSON.parse(JSON.stringify(custpays || [])),
+    savedAt: new Date().toISOString(),
+    sum: s
+  };
+  billSaveArchive();
+  orders = []; saveOrders();
+  pays = []; if(typeof savePays === 'function') savePays();
+  custpays = []; if(typeof saveCP === 'function') saveCP();
+  billSetBookDate(billToday());
+  const tip = document.getElementById('billRollTip');
+  if(tip) tip.style.display = 'none';
+  if(typeof renderAll === 'function') renderAll();
+  billRefreshBar();
+  if(!silent) alert('已归档 ' + d + '：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + '。账本已切到今天。');
+  return true;
+}
+
+function billCheckRollover(){
+  const book = billBookDate();
+  const today = billToday();
+  const tip = document.getElementById('billRollTip');
+  if(!book){ billSetBookDate(today); billRefreshBar(); return; }
+  if(book === today){ if(tip) tip.style.display = 'none'; billRefreshBar(); return; }
+  const s = billSum();
+  if(!tip){ billRefreshBar(); return; }
+  if(s.n > 0 || pays.length){
+    tip.style.display = 'block';
+    tip.innerHTML = '账本还停在 <b>' + book + '</b>（' + s.n + ' 单 / 收 ' + s.amt.toFixed(2) + ' 元）。今天已经是 ' + today + '。<br>'
+      + '<button type="button" onclick="billArchiveNow()" style="margin-top:6px;border:none;background:#7c3aed;color:#fff;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600">归档 ' + book + '，开始今天</button> '
+      + '<button type="button" onclick="document.getElementById(\'billRollTip\').style.display=\'none\'" style="margin-left:6px;border:1px solid #ddd;background:#fff;border-radius:6px;padding:6px 12px;font-size:13px">继续用旧账本</button>';
+  } else {
+    billSetBookDate(today);
+    tip.style.display = 'none';
+  }
+  billRefreshBar();
+}
+
+function billOpenHistory(){
+  const today = billToday();
+  const s = billSum();
+  let h = '<div style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000" onclick="if(event.target===this)billCloseHistory()">'
+        + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,560px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:16px">历史账单</b>'
+        + '<button type="button" onclick="billCloseHistory()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>';
+  if(s.n || pays.length){
+    h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
+      + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#7c3aed;font-weight:700">净 ' + s.net.toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#888;margin-top:4px">' + s.n + ' 单 · 收 ' + s.amt.toFixed(2) + ' · 赔付 ' + s.pay.toFixed(2) + '</div></div>';
+  }
+  const keys = Object.keys(billArchive).sort().reverse();
+  if(!keys.length && !(s.n || pays.length)){
+    h += '<div style="color:#999;padding:24px;text-align:center;font-size:13px">还没有归档记录。<br>点顶部「今日归档」就会把当天存成一份，之后随时能翻。</div>';
+  }
+  keys.forEach(k => {
+    const a = billArchive[k] || {};
+    const sm = a.sum || { n: (a.orders||[]).length, amt: 0, pay: 0, net: 0 };
+    h += '<div onclick="billView(\'' + k + '\')" style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer">'
+      + '<div style="display:flex;justify-content:space-between"><b>' + k + '</b><span style="color:#666">' + (sm.n||0) + ' 单 · 净 ' + Number(sm.net||0).toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#888;margin-top:4px">收 ' + Number(sm.amt||0).toFixed(2) + ' · 赔付 ' + Number(sm.pay||0).toFixed(2) + '　<span style="color:#7c3aed">查看明细 →</span></div></div>';
+  });
+  const oldc = billOldDayCount();
+  if(oldc.n > 0){
+    h += '<button type="button" onclick="billSplitOld()" style="width:100%;margin-top:4px;border:1px solid #ddd;background:#fafafa;border-radius:8px;padding:9px;font-size:13px;color:#555">当前账本里还有 ' + oldc.n + ' 笔、跨 ' + oldc.days + ' 天的旧订单 → 按日期拆进历史</button>';
+  }
+  h += '</div></div>';
+  const el = document.createElement('div');
+  el.id = 'billHistMask';
+  el.innerHTML = h;
+  document.body.appendChild(el);
+}
+
+function billCloseHistory(){ const m = document.getElementById('billHistMask'); if(m) m.remove(); }
+function billCloseView(){ const m = document.getElementById('billViewMask'); if(m) m.remove(); }
+
+function billView(k){
+  const a = billArchive[k];
+  if(!a) return;
+  const list = a.orders || [];
+  const sm = a.sum || { n: list.length, amt: 0, pay: 0, net: 0 };
+  let h = '<div style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1001" onclick="if(event.target===this)billCloseView()">'
+        + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,600px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>' + k + '　' + (sm.n||0) + ' 单</b>'
+        + '<button type="button" onclick="billCloseView()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>'
+        + '<div style="display:flex;gap:12px;font-size:12px;color:#666;background:#fafafa;border-radius:8px;padding:8px;margin-bottom:10px">'
+        + '<span>收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b></span>'
+        + '<span>赔付 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b></span>'
+        + '<span>净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></span></div>';
+  if(!list.length){
+    h += '<div style="color:#999;padding:18px;text-align:center;font-size:13px">这天没有订单</div>';
+  }
+  list.forEach(o => {
+    const t = String(o.ts || o.createdAt || '').replace('T',' ').slice(5,16);
+    h += '<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding:7px 0;font-size:13px;color:#333">'
+      + '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>' + (o.customer || '散客') + '</b>　<span style="color:#888">' + (o.codes||[]).join(' ') + '</span></div>'
+      + '<div style="text-align:right;white-space:nowrap;margin-left:8px">' + Number(o.amount||0).toFixed(2) + ' <span style="color:#aaa;font-size:11px">' + t + '</span></div></div>';
+  });
+  h += '<button type="button" onclick="billRestore(\'' + k + '\')" style="width:100%;margin-top:12px;border:1px solid #ddd;background:#fafafa;border-radius:8px;padding:10px;font-size:13px">把这天恢复为当前账本</button>';
+  h += '</div></div>';
+  const el = document.createElement('div');
+  el.id = 'billViewMask';
+  el.innerHTML = h;
+  document.body.appendChild(el);
+}
+
+function billOldDayCount(){
+  const book = billBookDate() || billToday();
+  const list = orders.filter(o => String(o.ts || o.createdAt || '').slice(0,10) < book);
+  return { n: list.length, days: new Set(list.map(o => String(o.ts || o.createdAt || '').slice(0,10))).size };
+}
+
+function billSplitOld(){
+  const book = billBookDate() || billToday();
+  const oldOnes = orders.filter(o => String(o.ts || o.createdAt || '').slice(0,10) < book);
+  if(!oldOnes.length){ alert('当前账本里没有早于 ' + book + ' 的订单'); return; }
+  const days = new Set(oldOnes.map(o => String(o.ts || o.createdAt || '').slice(0,10)));
+  if(!confirm('把 ' + oldOnes.length + ' 笔、跨 ' + days.size + ' 天的旧订单，按日期拆进历史账单？\n当前账本只保留 ' + book + ' 的订单。')) return;
+  const groups = {};
+  orders.forEach(o => { const d = String(o.ts || o.createdAt || '').slice(0,10); (groups[d] = groups[d] || []).push(o); });
+  Object.keys(groups).forEach(d => {
+    if(d >= book) return;
+    const g = groups[d];
+    const amt = g.reduce((s,o) => s + Number(o.amount||0), 0);
+    const cur = billArchive[d] || { orders: [], pays: [], custpays: [], savedAt: new Date().toISOString(), sum: {n:0, amt:0, pay:0, net:0} };
+    cur.orders = (cur.orders || []).concat(g);
+    cur.sum = { n: cur.orders.length, amt: (cur.sum && cur.sum.amt ? cur.sum.amt : 0) + amt, pay: (cur.sum && cur.sum.pay) || 0, net: 0 };
+    cur.sum.net = cur.sum.amt - cur.sum.pay;
+    billArchive[d] = cur;
+  });
+  orders = orders.filter(o => String(o.ts || o.createdAt || '').slice(0,10) >= book);
+  saveOrders(); billSaveArchive();
+  if(typeof renderAll === 'function') renderAll();
+  billRefreshBar(); billCloseHistory(); billOpenHistory();
+  alert('已拆分 ' + oldOnes.length + ' 笔到 ' + days.size + ' 天历史账单。');
+}
+
+function billRestore(k){
+  const a = billArchive[k];
+  if(!a) return;
+  if(!confirm('把 ' + k + ' 恢复为当前账本？今天已有的记录会先自动归档，不会丢。')) return;
+  billArchiveNow(true);
+  orders = JSON.parse(JSON.stringify(a.orders || []));
+  pays = JSON.parse(JSON.stringify(a.pays || []));
+  custpays = JSON.parse(JSON.stringify(a.custpays || []));
+  saveOrders();
+  if(typeof savePays === 'function') savePays();
+  if(typeof saveCP === 'function') saveCP();
+  billSetBookDate(k);
+  billCloseView(); billCloseHistory();
+  if(typeof renderAll === 'function') renderAll();
+  billRefreshBar();
+  alert('已切到 ' + k + ' 的账本。');
+}
+
+/* 每次主界面重绘后同步顶部账单日 */
+try {
+  const __billRenderAll = renderAll;
+  renderAll = function(){ __billRenderAll.apply(null, arguments); try { billRefreshBar(); } catch(e){} };
+} catch(e){}
+
+setTimeout(function(){ try { billCheckRollover(); } catch(e){} }, 350);
+
 </script>
 </body>
 </html>
