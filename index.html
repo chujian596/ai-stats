@@ -4275,7 +4275,6 @@ function renderRisk(){
   const maxBet = numBets[sorted[0]] || 1;
   let h = '';
   h += '<div style="font-size:12px;line-height:1.8">';
-  h += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>总单金额</span><b style="color:#cf1322">${fullTotalSales.toFixed(2)}</b></div>`;
   // 盈亏号统计
   let winNums = 0, loseNums = 0, zeroCnt = 0;
   sorted.forEach(n => {
