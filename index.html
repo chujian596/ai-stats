@@ -1784,8 +1784,8 @@ function toggleOd(id, el){
   var show = e.style.display === 'none';
   e.style.display = show ? '' : 'none';
   if(el){
-    var t = el.textContent;
-    el.textContent = t.replace(/[▼▶]/g, show ? '▼' : '▶');
+    var t = el.querySelector('.od-toggle-text');
+    if(t) t.textContent = show ? '展开详细清单 ▼' : '展开详细清单 ▶';
   }
 }
 function toggleSplit(){
