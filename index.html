@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.30';
+var APP_VER = 'v46.31';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3692,8 +3692,6 @@ function renderRisk(){
   });
   // 连肖飞单：飞出去的注码按2连4倍算赔付扣除
   if(lxFlyAmt > 0){ lxPayout = Math.max(0, lxPayout - lxFlyAmt * 4); }
-  // 自留现金 = 总收 - 特号飞 - 平特飞 - 连肖自己下注
-  const keptCash = totalSales - currentFly - pteFlyAmt - lxFlyAmt;
   // 各产品独立核算：特号自留现金（只算特号本身）
   let pteTotalSalesSum = 0;
   Object.values(pteBetByZod).forEach(v => pteTotalSalesSum += v);
@@ -3701,9 +3699,12 @@ function renderRisk(){
   orders.forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c === 'string' && c.startsWith('连肖')){ lxTotalSalesSum += codeSalesForOrder(o, c); }
   });});
+  const effectiveLxFly = splitTakeAll === 0 ? lxTotalSalesSum : lxFlyAmt;
+  // 自留现金 = 总收 - 特号飞 - 平特飞 - 连肖飞
+  const keptCash = totalSales - currentFly - pteFlyAmt - effectiveLxFly;
   const specKept = (fullTotalSales - pteTotalSalesSum - emFlySales - lxTotalSalesSum) - currentFly;
   const pteKept = pteTotalSalesSum - pteFlyAmt;
-  const lxKept = lxTotalSalesSum - lxFlyAmt;
+  const lxKept = lxTotalSalesSum - effectiveLxFly;
   const totalOtherPayout = ptePayout + lxPayout;
   const worstNum = sorted[0];
   const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : 0;
@@ -3833,8 +3834,9 @@ function renderRisk(){
   function worstAt(T){
     let fly = 0;
     for(let i=1;i<=49;i++) fly += Math.max(0, (numBets[i]||0) - T);
-    const kept = totalSales - fly - pteFlyAmt - lxFlyAmt;
-    const maxKept = Math.min(numBets[sorted[0]]||0, T);
+    const thisLxFly = T === 0 ? lxTotalSalesSum : lxFlyAmt;
+    const kept = totalSales - fly - pteFlyAmt - thisLxFly;
+    const maxKept = T > 0 ? Math.min(numBets[sorted[0]]||0, T) : 0;
     return kept - maxKept*payMult - totalOtherPayout;
   }
   function findT(target){
