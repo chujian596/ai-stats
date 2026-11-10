@@ -68,7 +68,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   </div>
 </div>
 <header>
-  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span id="verSpan" style="font-size:10px;opacity:0.7"></span></div>
+  <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.textContent=t">AI云统计系统</div>
   <div id="memInfo" style="font-size:10px;opacity:0.8;text-align:right"></div>
 </header>
 <main>
@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.0';
+var APP_VER = 'v46.1';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -703,7 +703,7 @@ setInterval(function(){
     el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   }
   var mem = document.getElementById('memInfo');
-  if(mem) mem.textContent = '会员剩' + d + '天' + h + '时' + m + '分';
+  if(mem) mem.innerHTML = '会员剩' + d + '天' + h + '时' + m + '分 <span style="opacity:0.6">'+APP_VER+'</span>';
 }, 1000);
 
 var shop = localStorage.getItem('current_shop') || 'A';
@@ -1468,7 +1468,7 @@ function saveLabels(){ try { localStorage.setItem(LABEL_KEY, JSON.stringify(labe
 function updateTitles(){
   // 只更新标题文字，不调用renderAll（避免输入框失焦）
   const mt = document.getElementById('mainTitle');
-  if(mt) mt.innerHTML = (labels.mainTitle||'AI云统计系统') + ' <span style="font-size:10px;opacity:0.7">' + APP_VER + '</span>';
+  if(mt) mt.textContent = (labels.mainTitle||'AI云统计系统');
   const bb = document.getElementById('mode-btn-bundle');
   if(bb) bb.textContent = labels.bundleBtn || '套餐模式';
   const sb = document.getElementById('mode-btn-single');
@@ -4028,7 +4028,7 @@ function renderRisk(){
 function renderAll(){
   // 自定义标题
   const mt = document.getElementById('mainTitle');
-  if(mt) mt.innerHTML = (labels.mainTitle||'AI云统计系统') + ' <span style="font-size:10px;opacity:0.7">' + APP_VER + '</span>';
+  if(mt) mt.textContent = (labels.mainTitle||'AI云统计系统');
   const bb = document.getElementById('mode-btn-bundle');
   if(bb) bb.textContent = labels.bundleBtn || '套餐模式';
   const sb = document.getElementById('mode-btn-single');
