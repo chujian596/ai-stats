@@ -429,7 +429,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v52.2';
+var APP_VER = 'v53.0';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3265,9 +3265,9 @@ function autoFetchDraw(){
         return;
       }
       var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
-      var drawStr = '开' + nums.join('.');
+      var drawStr = '开' + m.draw + ' ' + nums.join('.');
       document.getElementById('input').value = drawStr;
-      myAlert('已获取第' + m.draw + '期开奖\n' + drawStr + '\n点保存即可结算');
+      autoPayout();
     })
     .catch(function(e){
       btn.textContent = '自动获取开奖';
@@ -3275,6 +3275,27 @@ function autoFetchDraw(){
       myAlert('获取失败，请检查网络');
     });
 }
+// 自动定时获取开奖：每天21:33-21:35每30秒检查一次
+setInterval(function(){
+  var now = new Date();
+  var h = now.getHours(), m = now.getMinutes();
+  // 21:33 ~ 21:35 之间
+  if(h === 21 && m >= 33 && m <= 35){
+    // 检查是否已经结算过本期
+    fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var m2 = d.latest && d.latest.macao;
+        if(!m2 || !m2.winner_numbers || m2.winner_numbers.length < 7) return;
+        var already = localStorage.getItem('lastDrawPeriod') || '';
+        if(already == String(m2.draw)) return; // 已经结算过了
+        var nums = m2.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
+        document.getElementById('input').value = '开' + m2.draw + ' ' + nums.join('.');
+        autoPayout();
+      })
+      .catch(function(){});
+  }
+}, 30000);
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
@@ -3282,13 +3303,6 @@ function handleSave(){
     if(/^开[].?/.test(raw0) || /^开奖/.test(raw0)){
       autoPayout(); return;
     }
-    // 先剔掉产品词，避免"3中3"里的两个3被当成开奖号码
-    var norm0 = raw0.replace(/三中三|二中二|三中二|3中3|2中2|3中2|复式/g, '');
-    var nums0 = (norm0.match(/\d+/g)||[]).map(Number);
-    var inRange = nums0.filter(function(n){ return n>=1 && n<=49; });
-    // 开奖特征：不含订单关键词，且有>=6个1-49号码
-    var isOrder = /各|米|平|连肖|二中二|三中三|单|双|大|小|组|合|肖|尾|中三|中二|中3|中2|复式|复/.test(raw0);
-    if(!isOrder && inRange.length >= 6){ autoPayout(); return; }
   }
   try {
   let text = document.getElementById('input').value;
@@ -3816,7 +3830,7 @@ function hideSub(code){
   restoreIfNeeded();
 renderAll();
 }
-function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); } catch(e){} }
+function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem('lastDrawPeriod', String(lastDraw.period)); } catch(e){} }
 try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
 
 function calcOrderWinDetail(o){
