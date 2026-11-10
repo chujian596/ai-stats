@@ -56,7 +56,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </head>
 <body>
 <div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;padding:20px;box-sizing:border-box">
-  <div style="max-width:320px;margin:0 auto;text-align:center;position:fixed;top:25%;left:0;right:0;padding:0 20px;box-sizing:border-box">
+  <div style="max-width:320px;margin:0 auto;text-align:center;position:fixed;top:35%;left:0;right:0;padding:0 20px;box-sizing:border-box">
     <div style="font-size:17px;font-weight:700;margin-bottom:20px;color:#1a1a1a">🔐 会员验证</div>
     <div id="lockMsg" style="font-size:17px;color:#666;margin-bottom:10px"></div>
     <div id="lockPwdWrap">
@@ -64,7 +64,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button onclick="unlock()" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:12px;font-size:16px;font-weight:700">进入</button>
     </div>
   </div>
-  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:220px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#e0e0e0;color:#333;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
+  <button id="lockEnterBtn" onclick="skipLock()" style="display:none;position:fixed;bottom:180px;left:20px;right:20px;max-width:320px;margin:0 auto;width:auto;border:none;background:#e0e0e0;color:#333;border-radius:8px;padding:14px;font-size:17px;font-weight:700">进入系统</button>
 </div>
 <header>
   <div class="title" id="mainTitle" style="text-align:center" contenteditable="true" spellcheck="false" onblur="var t=this.textContent.replace(/v[0-9.]+/g,'').trim();labels.mainTitle=t;saveLabels();this.innerHTML=t+' <span style=\'font-size:10px;opacity:0.7\'>'+APP_VER+'</span>'">AI云统计系统 <span id="verSpan" style="font-size:10px;opacity:0.7"></span></div>
@@ -76,8 +76,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div style="display:flex;justify-content:space-between;align-items:center">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">👤客户:<span id="custLabel">散客</span>▾</button>
       <div style="text-align:center">
-        <div><span style="font-size:11px;color:#666">累计</span> <span id="bigAmount" style="font-size:22px;font-weight:800;color:#1a1a1a">0.00</span></div>
-        <div id="bigSub" style="font-size:14px;color:#666;font-weight:700"></div>
+        <div><span style="font-size:11px;color:#666">累计</span> <span id="bigAmount" style="font-size:22px;font-weight:800;color:#1a1a1a !important">0.00</span></div>
+        <div id="bigSub" style="font-size:14px;color:#1a1a1a;font-weight:700"></div>
       </div>
       <button type="button" style="border:1px solid #7c3aed;background:#f3e8ff;color:#7c3aed;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:700" onclick="toggleShop()">🏪<span id="shopLabel">澳门云统计</span>▾</button>
     </div>
