@@ -50,8 +50,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 .table-wrap.compact th,.table-wrap.compact td{padding:4px 4px}
 .table-wrap.compact .cb{font-size:15px !important;padding:3px 6px !important}
 #chipRow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{border:1px solid #d8b4fe;color:#7c3aed;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
-.chip.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.chip{border:1px solid #ccc;color:#333;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
+.chip.on{background:#333;border-color:#333;color:#fff}
 .chip .cnt{font-size:15px;font-weight:400;opacity:.7;margin-left:4px}
 </style>
 </head>
@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v43.4';
+var APP_VER = 'v43.5';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
