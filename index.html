@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.3';
+var APP_VER = 'v47.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1754,19 +1754,22 @@ function sideSplitCopy(){
 // === 分批飞单 ===
 function getThisRoundFly(){
   // 返回 {lines: [], total: X, already: Y, totalFly: Z}
+  // 特号/平特：用flownPerPos跟踪分批飞
+  // 连肖/二中二/三中三：即飞产品，每次都显示在复制列表里，不记已飞
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
   const lines = [];
   let totalFly = 0, already = 0;
+  // 特号（手动分批飞）
   keys.forEach(k => {
     const full = Math.max(0, sales[k] - splitTakeAll);
     const done = flownPerPos[k] || 0;
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
-    if(round > 0.01){ lines.push({code: k, amt: round, full: full, done: done}); }
+    if(round > 0.01){ lines.push({code: k, amt: round, full: full, done: done, auto: false}); }
   });
-  // 平特
+  // 平特（手动分批飞）
   const pteMap = {};
   orders.forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c === 'string' && c.startsWith('平特')){
@@ -1779,27 +1782,37 @@ function getThisRoundFly(){
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
-    if(round > 0.01){ lines.push({code: code, amt: round, full: full, done: done}); }
+    if(round > 0.01){ lines.push({code: code, amt: round, full: full, done: done, auto: false}); }
   });
-  // 连肖
+  // 连肖（即飞，不记已飞）
   if(lxFlyAmt > 0){
     const code = '连肖' + (lxFlyName||'');
-    const done = flownPerPos[code] || 0;
-    const round = Math.max(0, lxFlyAmt - done);
     totalFly += lxFlyAmt;
-    already += done;
-    if(round > 0.01){ lines.push({code: code, amt: round, full: lxFlyAmt, done: done}); }
+    lines.push({code: code, amt: lxFlyAmt, full: lxFlyAmt, done: 0, auto: true});
+  }
+  // 二中二/三中三/三中二（即飞，不记已飞）
+  let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+  if(emOn){
+    orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+        const amt = codeSalesForOrder(o, c);
+        totalFly += amt;
+        lines.push({code: c, amt: amt, full: amt, done: 0, auto: true});
+      }
+    });});
   }
   return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly };
 }
 
 function confirmThisRoundFly(){
   const r = getThisRoundFly();
-  if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  if(!confirm('确认本轮飞单 ' + r.thisRound.toFixed(2) + ' 元？\n确认后这些金额将标记为已飞，下次只算新增部分。')) return;
-  r.lines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
+  const manualLines = r.lines.filter(l => !l.auto);
+  const manualTotal = manualLines.reduce((s,l)=>s+l.amt,0);
+  if(manualTotal < 0.01){ myAlert('特号/平特没有需要确认的飞单\n（即飞产品每次复制即可，不需要确认）'); return; }
+  if(!confirm('确认本轮特号/平特飞单 ' + manualTotal.toFixed(2) + ' 元？\n（即飞产品：连肖/二中二/三中三每次复制即可）')) return;
+  manualLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
-  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(2) + ' 元\n累计已飞 ' + r.already.toFixed(2) + ' 元');
+  myAlert('已确认特号/平特飞单 ' + manualTotal.toFixed(2) + ' 元');
   calcSplit();
 }
 
