@@ -336,7 +336,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.5';
+var APP_VER = 'v46.7';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -619,12 +619,8 @@ function reportDevice(){
 }
 var BAKE_EXPIRE;
 var savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}');
-if(savedLock.expire){
-  BAKE_EXPIRE = savedLock.expire;
-} else {
-  BAKE_EXPIRE = Date.now() + 31 * 86400000;
-  localStorage.setItem(LOCK_KEY, JSON.stringify({expire: BAKE_EXPIRE}));
-}
+BAKE_EXPIRE = new Date('2026-12-30T00:00:00+08:00').getTime();
+localStorage.setItem(LOCK_KEY, JSON.stringify({expire: BAKE_EXPIRE, pwd: savedLock.pwd || ''}));
 var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
 
 function showLock(){
@@ -670,7 +666,7 @@ function unlock(){
   var p = document.getElementById('lockPwd').value;
   // 管理员码：延期30天 + 绕过设备检查
   if(p === ADMIN_CODE){
-    lockData.expire = Date.now() + 31 * 86400000;
+    lockData.expire = Date.now() + 30 * 86400000;
     localStorage.setItem(LOCK_KEY, JSON.stringify(lockData));
     document.getElementById('lockScreen').style.display = 'none';
     return;
