@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v48.2';
+var APP_VER = 'v48.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1392,7 +1392,11 @@ function renderSplitSide(){
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="sideSplitCalc()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px;font-weight:600">飞单统计</button>';
-  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制本轮</button>';
+  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制全部</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
+  h += '<button onclick="sideSplitCopyAuto()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制即飞单</button>';
+  h += '<button onclick="sideSplitCopyManual()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制特号平特</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:8px;font-size:14px;font-weight:600">确认本轮飞单</button>';
@@ -1781,6 +1785,42 @@ function sideSplitCopy(){
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
   myAlert('已复制本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+}
+
+function sideSplitCopyAuto(){
+  const r = getThisRoundFly();
+  const autoLines = r.lines.filter(l => l.auto);
+  if(autoLines.length === 0){ myAlert('没有即飞产品需要复制'); return; }
+  const autoTotal = autoLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = [];
+  autoLines.forEach(l => {
+    if(l.code === '二中二/三中三合计'){
+      orders.forEach(o => {
+        const hasEM = (o.codes||[]).some(c => typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0));
+        if(hasEM && o.raw) copyLines.push(o.raw);
+      });
+    } else {
+      copyLines.push(l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
+    }
+  });
+  copyLines.push('合计 ' + autoTotal.toFixed(2));
+  const txt = copyLines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  myAlert('已复制即飞单 ' + autoTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+}
+
+function sideSplitCopyManual(){
+  const r = getThisRoundFly();
+  const manualLines = r.lines.filter(l => !l.auto);
+  if(manualLines.length === 0){ myAlert('没有特号/平特需要复制'); return; }
+  const manualTotal = manualLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = manualLines.map(l => l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
+  copyLines.push('合计 ' + manualTotal.toFixed(2));
+  const txt = copyLines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  myAlert('已复制特号/平特 ' + manualTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
 }
 
 // === 分批飞单 ===
