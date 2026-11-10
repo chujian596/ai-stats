@@ -352,7 +352,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.16';
+var APP_VER = 'v46.18';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -732,32 +732,26 @@ let orders = loadOrders();
 function updateOrderSummary(){
   var el = document.getElementById('orderSummary');
   if(!el) return;
-  var orders = loadOrders();
-  var spec=0, pteLx=0, em=0;
+  var spec=0, pte=0, lx=0, em=0;
   orders.forEach(function(o){
     var amt = Number(o.amount)||0;
-    var emAmt = 0;
+    var emAmt = 0, pteAmt = 0, lxAmt = 0;
     var seen = {};
     (o.codes||[]).forEach(function(c){
       if(seen[c]) return; seen[c]=true;
       if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){
         emAmt += codeSalesForOrder(o,c);
+      } else if(c.indexOf('平特')===0){
+        pteAmt += codeSalesForOrder(o,c);
+      } else if(c.indexOf('连肖')===0){
+        lxAmt += codeSalesForOrder(o,c);
       }
     });
     em += emAmt;
-    spec += amt - emAmt;
+    pte += pteAmt;
+    lx += lxAmt;
+    spec += amt - emAmt - pteAmt - lxAmt;
   });
-  // 平特+连肖从spec里拆出来
-  var pte=0, lx=0;
-  orders.forEach(function(o){
-    (o.codes||[]).forEach(function(c){
-      if(typeof c==='string'){
-        if(c.indexOf('平特')===0) pte += codeSalesForOrder(o,c);
-        if(c.indexOf('连肖')===0) lx += codeSalesForOrder(o,c);
-      }
-    });
-  });
-  spec = spec - pte - lx;
   el.innerHTML = '订单累计：<b>特号'+spec+'</b>　平/连:'+pte+'/'+lx+'　二/三:'+em;
 }
 function loadOrders(){
@@ -3680,6 +3674,16 @@ function renderRisk(){
   if(lxFlyAmt > 0){ lxPayout = Math.max(0, lxPayout - lxFlyAmt * 4); }
   // 自留现金 = 总收 - 特号飞 - 平特飞 - 连肖自己下注
   const keptCash = totalSales - currentFly - pteFlyAmt - lxFlyAmt;
+  // 各产品独立核算：特号自留现金（只算特号本身）
+  let pteTotalSalesSum = 0;
+  Object.values(pteBetByZod).forEach(v => pteTotalSalesSum += v);
+  let lxTotalSalesSum = 0;
+  orders.forEach(o => { (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && c.startsWith('连肖')){ lxTotalSalesSum += codeSalesForOrder(o, c); }
+  });});
+  const specKept = (fullTotalSales - pteTotalSalesSum - emFlySales - lxTotalSalesSum) - currentFly;
+  const pteKept = pteTotalSalesSum - pteFlyAmt;
+  const lxKept = lxTotalSalesSum - lxFlyAmt;
   const totalOtherPayout = ptePayout + lxPayout;
   const worstNum = sorted[0];
   const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : (numBets[worstNum]||0);
@@ -3687,19 +3691,19 @@ function renderRisk(){
   // 集中度
   const top5sum = top5.reduce((s,n) => s + numBets[n], 0);
   const concPct = totalSales > 0 ? (top5sum/totalSales*100).toFixed(0) : 0;
-  // 期望值（飞单后）
+  // 期望值（特号独立）
   let ev = 0;
   sorted.forEach(n => {
     const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
-    ev += (keptCash - keptBet*payMult - totalOtherPayout) / 49;
+    ev += (specKept - keptBet*payMult) / 49;
   });
   const riskPct = keptCash > 0 ? Math.abs(worstNet)/keptCash*100 : 100;
-  // 飞单后重新统计亏号/赚号及金额范围
+  // 飞单后重新统计亏号/赚号及金额范围（特号独立）
   winNums = 0; loseNums = 0; zeroCnt = 0;
   let loseMin = 0, loseMax = 0, winMin = 0;
   sorted.forEach(n => {
     const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
-    const net = keptCash - keptBet*payMult - totalOtherPayout;
+    const net = specKept - keptBet*payMult;
     if(numBets[n] === 0) zeroCnt++;
     else if(net >= 0){ winNums++; if(winMin===0||net<winMin) winMin=net; }
     else { loseNums++; if(loseMax===0||net>loseMax) loseMax=net; if(net<loseMin) loseMin=net; }
@@ -3784,15 +3788,25 @@ function renderRisk(){
   const specTotalSales = fullTotalSales - pteTotalSales - emTotalSales - lxTotalSales;
   h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">特号 + 平特 + 三中三 + 连肖</span><span>${specTotalSales.toFixed(0)} + ${pteTotalSales.toFixed(0)} + ${emTotalSales.toFixed(0)} + ${lxTotalSales.toFixed(0)} = <b>${fullTotalSales.toFixed(0)}</b></span></div>`;
   h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">均衡线</span><span>${(specTotalSales/payMult).toFixed(0)}元/号</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">49号分布</span><span>亏${loseNums} · 赚${winNums} · 零${zeroCnt}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">49号分布（特号）</span><span>亏${loseNums} · 赚${winNums} · 零${zeroCnt}</span></div>`;
   h += `<div style="margin:6px 0;display:flex;height:6px;border-radius:3px;overflow:hidden">`;
   h += `<div style="width:${loseNums/49*100}%;background:#999"></div>`;
   h += `<div style="width:${winNums/49*100}%;background:#ccc"></div>`;
   h += `<div style="width:${zeroCnt/49*100}%;background:#333"></div>`;
   h += `</div>`;
-  h += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #ddd;margin-top:4px"><span style="color:#666">最坏情况</span><span style="color:#cf1322">开${String(worstNum).padStart(2,'0')}号 ${worstNet.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">最好情况</span><span style="color:#16a34a">开零号 +${keptCash.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">平均期望</span><span style="color:${ev>=0?'#16a34a':'#cf1322'}">${ev>=0?'+':''}${ev.toFixed(0)}/期</span></div>`;
+  // 特号独立盈亏
+  const specWorstNet = specKept - worstKeptBet*payMult;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #ddd;margin-top:4px"><span style="color:#333;font-weight:600">特号最坏</span><span style="color:${specWorstNet<0?'#cf1322':'#16a34a'}">开${String(worstNum).padStart(2,'0')}号 ${specWorstNet>=0?'+':''}${specWorstNet.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#333;font-weight:600">特号最好</span><span style="color:#16a34a">开零号 +${specKept.toFixed(0)}</span></div>`;
+  // 平特独立盈亏
+  const pteNet = pteKept - ptePayout;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#333;font-weight:600">平特最坏</span><span style="color:${pteNet<0?'#cf1322':'#16a34a'}">${pteNet>=0?'+':''}${pteNet.toFixed(0)}</span></div>`;
+  // 连肖独立盈亏
+  const lxNet = lxKept - lxPayout;
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#333;font-weight:600">连肖最坏</span><span style="color:${lxNet<0?'#cf1322':'#16a34a'}">${lxNet>=0?'+':''}${lxNet.toFixed(0)}</span></div>`;
+  // 二中二三中三
+  const emNet = emFlyOn ? 0 : (emFlySales - 0);
+  h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#333;font-weight:600">二/三${emFlyOn?'（已全飞）':'（自留）'}</span><span style="color:${emNet<0?'#cf1322':'#16a34a'}">${emNet>=0?'+':''}${emNet.toFixed(0)}</span></div>`;
   h += `<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#666">集中度</span><span>top5占${concPct}%</span></div>`;
   h += `<div style="margin-top:6px;padding:6px 8px;background:#fff;border:1px solid #e5e5e5;border-radius:6px;font-size:13px;color:${worstNet>=0?'#16a34a':riskPct<=30?'#e67e22':'#cf1322'}">${verdict}</div>`;
   // 阈值推荐
@@ -3841,7 +3855,7 @@ function renderRisk(){
     const bet = numBets[n]||0;
     const keptAmt = Math.min(bet, splitTakeAll);
     const flyAmt = Math.max(0, bet - splitTakeAll);
-    const net = keptCash - keptAmt*payMult - totalOtherPayout;
+    const net = specKept - keptAmt*payMult;
     const isZero = bet === 0;
     const color = isZero ? '#ccc' : '#1a1a1a';
     const betStr = bet>0 ? (splitTakeAll>0 && flyAmt>0 ? keptAmt.toFixed(0)+'<span style="color:#999;font-size:10px">飞'+flyAmt.toFixed(0)+'</span>' : bet.toFixed(0)) : '-';
