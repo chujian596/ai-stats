@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.42';
+var APP_VER = 'v46.43';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -2542,8 +2542,9 @@ function parseLine(text){
   codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1数');
   // 1.5 "虎平"→"平特虎"（生肖+平，如虎平1000）
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])平/g, '平特$1');
-  // 2. "平X"→"平特X"（单独的平+生肖）
-  codeText = codeText.replace(/平(?![特])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+  // 2. "平肖X"→"平特X"，"平X"→"平特X"
+  codeText = codeText.replace(/平肖([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+  codeText = codeText.replace(/平(?![特肖])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
   // 恢复"平特"
   codeText = codeText.replace(/『PT』/g, '平特');
   // 3. "平特马龙兔"→"平特马平特龙平特兔"
@@ -2634,6 +2635,10 @@ function parseLine(text){
   // "三中三46 41 29" → "三中三:46,41,29"
   codeText = codeText.replace(/(二中二|三中三|三中二)\s*(\d{2})\s+(\d{2})(?:\s+(\d{2}))?/g, (m, prod, n1, n2, n3) => {
     return ' ' + prod + ':' + n1 + ',' + n2 + (n3 ? ',' + n3 : '') + ' ';
+  });
+  // "三中三07,24,32" → "三中三:07,24,32"（逗号分隔紧跟产品名）
+  codeText = codeText.replace(/(二中二|三中三|三中二)\s*(\d{2}(?:,\d{2})+)/g, (m, prod, nums) => {
+    return ' ' + prod + ':' + nums + ' ';
   });
   // 中文逗号统一成分隔（英文逗号不能拆，二中二:03,04 里逗号是号码分隔）
   codeText = codeText.replace(/，/g, '、');
@@ -2891,7 +2896,19 @@ function handleSave(){
       var _tail = _t.slice(_lastEnd).trim();
       if(_tail && rawLines.length > 0) rawLines[rawLines.length-1] += ' ' + _tail;
     } else {
-      rawLines = [text];
+      // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
+      var _nums = _t.match(/\d{1,2}/g);
+      var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
+      if(_nums && _nums.length === 4 && !_hasZod){
+        var _positions = [];
+        var _re2 = /\d{1,2}/g; var _mm;
+        while((_mm = _re2.exec(_t)) !== null) _positions.push({i:_mm.index, l:_mm[0].length});
+        // 第2个数字后切分
+        var cut = _positions[1].i + _positions[1].l;
+        rawLines = [_t.slice(0,cut).trim(), _t.slice(cut).trim()];
+      } else {
+        rawLines = [text];
+      }
     }
   } else {
     rawLines = text.split(/[\r\n。；;]+/);
