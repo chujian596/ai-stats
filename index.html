@@ -114,7 +114,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <textarea id="input" placeholder="输入订单，或输入开奖六个平号+特自动结算" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleSave()}"></textarea>
+      <textarea id="input" placeholder="输入订单，或输入开奖六个平号+特自动结算" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleSave()}" onblur="if(this.value.trim())handleSave()"></textarea>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="undoLastOrder()">撤销上一条</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.26';
+var APP_VER = 'v46.28';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3878,7 +3878,7 @@ function renderRisk(){
     const net = specKept - keptAmt*payMult;
     const isZero = bet === 0;
     const color = isZero ? '#ccc' : '#1a1a1a';
-    const betStr = bet>0 ? (splitTakeAll>0 && flyAmt>0 ? keptAmt.toFixed(0)+'<span style="color:#999;font-size:10px">飞'+flyAmt.toFixed(0)+'</span>' : bet.toFixed(0)) : '-';
+    const betStr = bet>0 ? (splitTakeAll>0 && flyAmt>0 ? bet.toFixed(0)+'<span style="color:#999;font-size:10px">飞'+flyAmt.toFixed(0)+'</span>' : bet.toFixed(0)) : '-';
     h += `<div style="display:grid;grid-template-columns:32px 1fr 50px;text-align:right;align-items:center;padding:1px 0;border-bottom:1px solid #f5f5f5;color:${isZero?'#bbb':'inherit'}"><span style="text-align:left">${String(n).padStart(2,'0')}${NUM2ZODIAC[n]||''}</span><span>${betStr}</span><span style="color:${color}">${net>=0?'+':''}${net.toFixed(0)}</span></div>`;
   });
   h += `</div>`;
@@ -3898,7 +3898,7 @@ function renderRisk(){
     h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 ▼</div>`;
     h += `<div id="riskPteTable">`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
-    h += `<tr style="color:#7c3aed"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留赔</th></tr>`;
+    h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留赔</th></tr>`;
     const drawZSet = (lastDraw && lastDraw.specialNum) ? new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean)) : null;
     pteEntries.forEach(([z,amt]) => {
       const mult = z==='马' ? 1.8 : payMultSingle;
