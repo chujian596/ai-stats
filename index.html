@@ -356,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.36';
+var APP_VER = 'v46.37';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -535,7 +535,7 @@ function autoPayout(){
       });});
       const drawZ0 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
       Object.entries(pteAgg0).forEach(([z, amt]) => {
-        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
         flyOutAmt += extra;
         if(extra > 0 && drawZ0.has(z)) flyBackAmt += extra * (z==='马'?1.8:payMultSingle);
       });
@@ -591,7 +591,7 @@ function autoPayout(){
         });});
         const drawZ0 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
         Object.entries(pteAgg0).forEach(([z, amt]) => {
-          const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+          const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
           flyOut0 += extra;
           if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * 1.8;
         });
@@ -1161,7 +1161,7 @@ function renderPaySide(){
       });});
       const drawZ = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
       Object.entries(pteAgg).forEach(([z, amt]) => {
-        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
         flyPte += extra;
         if(extra > 0 && drawZ.has(z)) flyPteBack += extra * (z==='马'?1.8:payMultSingle);
       });
@@ -1680,7 +1680,7 @@ function sideSplitCopy(){
     }
   });});
   Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
-    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(extra > 0){ lines.push(`平特${z} ${extra.toFixed(2)}`); partner += extra; }
   });
   // 连肖飞单
@@ -1767,7 +1767,7 @@ function calcSplit(){
       pteAggAll[z] = (pteAggAll[z]||0) + codeSalesForOrder(o, c);
     }
   });});
-  Object.values(pteAggAll).forEach(amt => { pteFlyAll += pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0; });
+  Object.values(pteAggAll).forEach(amt => { pteFlyAll += pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt; });
   if(lxFlyAmt > 0) lxFlyAll = lxFlyAmt;
   let emOnChk = true; try { emOnChk = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
   if(emOnChk){ orders.forEach(o => { (o.codes||[]).forEach(c => {
@@ -1797,7 +1797,7 @@ function calcSplit(){
       }
     });});
     Object.entries(pteAgg).forEach(([z, amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       const kept = amt - extra;
       pteFly += extra;
       if(drawZ.has(z)){ pteKeptPayout += kept * (z==='马'?1.8:payMultSingle); pteFlyPayout += extra * (z==='马'?1.8:payMultSingle); }
@@ -1862,7 +1862,7 @@ function calcSplit(){
       }
     });});
     Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       if(extra > 0){ lines.push(`平特${z} ${extra.toFixed(2)}`); partner += extra; }
     });
     if(lxFlyAmt > 0){ lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`); partner += lxFlyAmt; }
@@ -1902,7 +1902,7 @@ function copySplit(){
     });
   });
   Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
-    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(extra > 0){
       lines.push(`平特${z} ${extra.toFixed(2)}`);
       partner += extra;
@@ -1993,7 +1993,7 @@ function copyFlyType(type){
       });
     });
     Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([z,amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       if(extra > 0) lines.push(`${z} ${extra.toFixed(2)}`);
     });
     if(lxFlyAmt > 0) lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`);
@@ -3340,7 +3340,7 @@ function renderOrdersList(){
         });
       });
       Object.entries(pteAgg).forEach(([z, amt]) => {
-        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+        const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
         if(extra > 0){
           flyOutTotal += extra;
           if(drawZods.has(z)) flyBackTotal += extra * 1.8;
@@ -3397,7 +3397,7 @@ function renderOrdersList(){
       }
     });});
     Object.entries(pteMap2).forEach(([z,amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       if(extra > 0) upCopyLines.push(`平特${z} ${extra.toFixed(0)}`);
     });
     if(lxFlyAmt > 0) upCopyLines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}`);
@@ -3486,7 +3486,7 @@ function renderOrdersList(){
       }
     });});
     Object.entries(pteD).forEach(([z, amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       if(extra > 0){
         const hit = drawZodsD.has(z);
         upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${extra.toFixed(0)}${hit?' ←命中':''}</div>`;
@@ -4048,7 +4048,7 @@ function renderRisk(){
   // 中栏：平特+连肖
   let colM = '';
   Object.entries(pteBetByZod).forEach(([z,amt]) => {
-    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : 0;
+    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(extra > 0){ colM += `<div>${z} ${extra.toFixed(0)}</div>`; flyTotal += extra; }
   });
   if(lxFlyAmt > 0){ colM += `<div>连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}</div>`; flyTotal += lxFlyAmt; }
