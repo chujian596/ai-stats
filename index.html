@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v47.4';
+var APP_VER = 'v47.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1382,6 +1382,7 @@ function renderSplitSide(){
   h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:8px;font-size:14px;font-weight:600">确认本轮飞单</button>';
   h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:8px;font-size:14px">重置已飞</button>';
   h += '</div>';
+  h += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');renderSplitSide();" style="width:16px;height:16px">即飞产品自动复制（连肖/二中二/三中三）</label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
@@ -1635,6 +1636,9 @@ try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100
 // 已飞累计（分批飞单）：key=位置代码，value=已飞金额
 let flownPerPos = {};
 try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } catch(e){ flownPerPos = {}; }
+// 即飞产品开关：连肖/二中二/三中三是否每次自动复制
+let autoFlyOn = false;
+try { autoFlyOn = localStorage.getItem('autoFlyOn') === '1'; } catch(e){ autoFlyOn = false; }
 let pteFlyTakeAll = 0;
 try { pteFlyTakeAll = parseFloat(localStorage.getItem('pteFlyTakeAll') || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
 let lxFlyAmt = 0;
@@ -1784,20 +1788,37 @@ function getThisRoundFly(){
     already += done;
     if(round > 0.01){ lines.push({code: code, amt: round, full: full, done: done, auto: false}); }
   });
-  // 连肖（即飞，不记已飞）
+  // 连肖（即飞或分批飞取决于开关）
   if(lxFlyAmt > 0){
     const code = '连肖' + (lxFlyName||'');
-    totalFly += lxFlyAmt;
-    lines.push({code: code, amt: lxFlyAmt, full: lxFlyAmt, done: 0, auto: true});
+    if(autoFlyOn){
+      // 即飞：每次都显示，不记已飞
+      totalFly += lxFlyAmt;
+      lines.push({code: code, amt: lxFlyAmt, full: lxFlyAmt, done: 0, auto: true});
+    } else {
+      // 分批飞：和特号一样跟踪
+      const done = flownPerPos[code] || 0;
+      const round = Math.max(0, lxFlyAmt - done);
+      totalFly += lxFlyAmt;
+      already += done;
+      if(round > 0.01){ lines.push({code: code, amt: round, full: lxFlyAmt, done: done, auto: false}); }
+    }
   }
-  // 二中二/三中三/三中二（即飞，不记已飞）
+  // 二中二/三中三/三中二
   let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
   if(emOn){
     orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
         const amt = codeSalesForOrder(o, c);
         totalFly += amt;
-        lines.push({code: c, amt: amt, full: amt, done: 0, auto: true});
+        if(autoFlyOn){
+          lines.push({code: c, amt: amt, full: amt, done: 0, auto: true});
+        } else {
+          const done = flownPerPos[c] || 0;
+          const round = Math.max(0, amt - done);
+          already += done;
+          if(round > 0.01){ lines.push({code: c, amt: round, full: amt, done: done, auto: false}); }
+        }
       }
     });});
   }
