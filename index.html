@@ -332,7 +332,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v37.6';
+var APP_VER = 'v37.7';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3721,7 +3721,7 @@ function renderRisk(){
       // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
       if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem('lxFlyName', lxFlyName)}catch(e){} }
       h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖对冲 ▼</div>`;
-      h += `<div id="riskHedgeBox" style="background:#fffbeb;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
+      h += `<div id="riskHedgeBox" style="background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
       h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
       if(noteStr) h += `<div style="color:#999;font-size:11px">${noteStr}</div>`;
@@ -3743,9 +3743,9 @@ function renderRisk(){
         const effNoneNet = pteTotal - effBet;
         h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
         if(myBet > 0){
-          h += `<div style="background:#e6f4ea;padding:6px 8px;border-radius:6px;margin-bottom:4px">✅ 你已下注：<b>${myName}</b> / <b>${myBet}元</b>（${myOdds}倍）<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:6px">撤销</button></div>`;
+          h += `<div style="background:#f5f5f5;padding:6px 8px;border-radius:6px;margin-bottom:4px">✅ 你已下注：<b>${myName}</b> / <b>${myBet}元</b>（${myOdds}倍）<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:6px">撤销</button></div>`;
         } else {
-          h += `<div>💡 系统推荐：${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:none;background:#f59e0b;color:#fff;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:700;margin-left:6px">按推荐下注</button></div>`;
+          h += `<div>💡 系统推荐：${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:600;margin-left:6px">按推荐下注</button></div>`;
         }
         // 开奖后判断实际是哪种情况
         let actualCase = null;
@@ -3783,7 +3783,7 @@ function renderRisk(){
   const afterFlyPayout = specialPayout + totalOtherPayout;
   const afterFlyNet = worstNet;
   const breakevenThreshold = totalSales / payMult;
-  h += `<div style="margin-top:8px;padding:10px;background:#faf5ff;border-radius:8px;font-size:14px;line-height:1.6">`;
+  h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:6px;font-size:15px">飞单阈值（调了实时生效）</div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>特号每号上限</span><input type="number" id="riskThresholdInput" value="${splitTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="splitTakeAll=parseFloat(document.getElementById('riskThresholdInput').value)||0;saveSplitAll();renderSplit();renderRisk()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:6px 16px;font-size:14px;font-weight:600">设</button></div>`;
   h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span>平特每肖上限</span><input type="number" id="pteFlyInput" value="${pteFlyTakeAll}" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:16px;text-align:center"><span>元</span><button onclick="pteFlyTakeAll=parseFloat(document.getElementById('pteFlyInput').value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};renderRisk()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:6px 16px;font-size:14px;font-weight:600">设</button></div>`;
