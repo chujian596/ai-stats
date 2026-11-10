@@ -260,9 +260,12 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border-radius:12px 12px 0 0;box-shadow:0 -2px 10px rgba(0,0,0,.1)">
+  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border-radius:12px 12px 0 0;box-shadow:0 -2px 10px rgba(0,0,0,.1);background:#fff">
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
-    <div class="btn-row">
+    <div onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:6px;cursor:pointer;font-size:12px;color:#999">
+      <span class="arrow">▼</span>
+    </div>
+    <div id="bottomBtns" class="btn-row" style="display:none">
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
@@ -353,7 +356,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.23';
+var APP_VER = 'v46.24';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
