@@ -349,7 +349,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v46.10';
+var APP_VER = 'v46.11';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -2471,8 +2471,8 @@ function parseLine(text){
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
   // 斜杠当价格分隔符
   text = text.replace(/\//g, ' ');
-  // 只有文本里明确有三中三字样时，横杠组合才转三中三
-  if(text.indexOf('三中三') >= 0){
+  // 只有文本里明确有三中三字样、且不是复式写法时，横杠组合才转三中三
+  if(text.indexOf('三中三') >= 0 && text.indexOf('复') < 0){
     text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
   }
   // 保护冒号格式代码不被价格提取吃掉：用占位符替换
@@ -2569,11 +2569,13 @@ function parseLine(text){
     pick(0, []);
     return result;
   }
-  // "03.04.06.05.49复二" 或 "03 04 06 05 49 复二"
-  codeText = codeText.replace(/((?:\d{2}[.、\s])+\d{2})\s*复([二三])/g, (m, numStr, k) => {
-    const nums = numStr.split(/[.、\s]/).filter(x=>/^\d{2}$/.test(x)).sort();
-    const kNum = k === '二' ? 2 : 3;
-    const prod = k === '二' ? '二中二' : '三中三';
+  // 复式展开：支持 "03.04.06.05.49复二"、"44-10-08-09-04-05复式三中三" 等写法
+  codeText = codeText.replace(/((?:\d{2}[-.、\s])+\d{2})\s*复(?:式)?\s*(?:(三中三|二中二|三中二)|([二三]))/g, (m, numStr, fullProd, k) => {
+    const nums = numStr.split(/[-.、\s]/).filter(x=>/^\d{2}$/.test(x)).sort();
+    const is2 = (fullProd === '二中二') || (k === '二');
+    const prod = is2 ? '二中二' : '三中三';
+    const kNum = is2 ? 2 : 3;
+    if(nums.length < kNum) return m;
     const combos = comb(nums, kNum);
     return ' ' + combos.map(c => prod + ':' + c.join(',')).join(' ') + ' ';
   });
@@ -2655,10 +2657,12 @@ let _texiaoChoice = null;
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
-    var nums0 = (raw0.match(/\d+/g)||[]).map(Number);
+    // 先剔掉产品词，避免"3中3"里的两个3被当成开奖号码
+    var norm0 = raw0.replace(/三中三|二中二|三中二|3中3|2中2|3中2|复式/g, '');
+    var nums0 = (norm0.match(/\d+/g)||[]).map(Number);
     var inRange = nums0.filter(function(n){ return n>=1 && n<=49; });
     // 开奖特征：不含订单关键词，且有>=5个1-49号码
-    var isOrder = /各|米|平|连肖|二中二|三中三|单|双|大|小|组|合|肖|尾/.test(raw0);
+    var isOrder = /各|米|平|连肖|二中二|三中三|单|双|大|小|组|合|肖|尾|中三|中二|中3|中2|复式|复/.test(raw0);
     if(!isOrder && inRange.length >= 5){ autoPayout(); return; }
   }
   try {
