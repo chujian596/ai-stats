@@ -1395,12 +1395,15 @@ function renderSplitSide(){
   h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制全部</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="sideSplitCopyAuto()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制即飞单</button>';
-  h += '<button onclick="sideSplitCopyManual()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制特号平特</button>';
+  h += '<button onclick="sideSplitCopyAuto()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制即飞(连肖/二三中)</button>';
+  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制平特</button>';
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:8px;font-size:14px;font-weight:600">确认本轮飞单</button>';
-  h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:8px;font-size:14px">重置已飞</button>';
+  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:13px">复制特号</button>';
+  h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:8px;font-size:13px;font-weight:600">确认飞单</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
+  h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:8px;font-size:13px">重置已飞</button>';
   h += '</div>';
   h += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');renderSplitSide();" style="width:16px;height:16px">即飞产品自动复制（连肖/二中二/三中三）</label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
@@ -1810,17 +1813,30 @@ function sideSplitCopyAuto(){
   myAlert('已复制即飞单 ' + autoTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
 }
 
-function sideSplitCopyManual(){
+function sideSplitCopyPte(){
   const r = getThisRoundFly();
-  const manualLines = r.lines.filter(l => !l.auto);
-  if(manualLines.length === 0){ myAlert('没有特号/平特需要复制'); return; }
-  const manualTotal = manualLines.reduce((s,l)=>s+l.amt,0);
-  const copyLines = manualLines.map(l => l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
-  copyLines.push('合计 ' + manualTotal.toFixed(2));
+  const pteLines = r.lines.filter(l => l.code.startsWith('平特'));
+  if(pteLines.length === 0){ myAlert('没有平特需要复制'); return; }
+  const pteTotal = pteLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = pteLines.map(l => l.code + ' ' + l.amt.toFixed(2));
+  copyLines.push('合计 ' + pteTotal.toFixed(2));
   const txt = copyLines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  myAlert('已复制特号/平特 ' + manualTotal.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+  myAlert('已复制平特 ' + pteTotal.toFixed(0) + ' 元');
+}
+
+function sideSplitCopySpec(){
+  const r = getThisRoundFly();
+  const specLines = r.lines.filter(l => !l.auto && !l.code.startsWith('平特'));
+  if(specLines.length === 0){ myAlert('没有特号需要复制'); return; }
+  const specTotal = specLines.reduce((s,l)=>s+l.amt,0);
+  const copyLines = specLines.map(l => l.code + ' ' + l.amt.toFixed(2));
+  copyLines.push('合计 ' + specTotal.toFixed(2));
+  const txt = copyLines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  myAlert('已复制特号 ' + specTotal.toFixed(0) + ' 元');
 }
 
 // === 分批飞单 ===
