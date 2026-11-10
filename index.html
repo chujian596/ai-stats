@@ -427,7 +427,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v49.2';
+var APP_VER = 'v49.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -1887,10 +1887,20 @@ function confirmGroupCurrent(){
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   // 自动复制本组订单
   groupFn();
-  // 刷新面板
-  calcSplit();
-  renderSplitSide();
-  // 刷新明细
+  // 只刷新数字摘要，不重建整个面板（避免退出飞单页）
+  try {
+    const sales = getSplitSales();
+    const keys = Object.keys(sales);
+    const total = keys.reduce((s,k) => s + sales[k], 0);
+    const _r = getThisRoundFly();
+    const sumEl = document.getElementById('sideSplitSummary');
+    if(sumEl){
+      sumEl.innerHTML =
+        '总单 <b>' + total.toFixed(0) + '</b> | 应飞总额 <b style="color:#cf1322">' + _r.totalFly.toFixed(0) + '</b><br>' +
+        '已飞 ' + _r.already.toFixed(0) + ' | 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _r.thisRound.toFixed(0) + '</b>';
+    }
+  } catch(e){}
+  // 刷新明细（重新显示本组，数字更新）
   showGroupDetail(currentFlyGroup);
   myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元\n订单已复制，直接粘贴发给上家');
 }
