@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v45.8';
+var APP_VER = 'v45.9';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -3726,7 +3726,7 @@ function renderRisk(){
   function worstAt(T){
     let fly = 0;
     for(let i=1;i<=49;i++) fly += Math.max(0, (numBets[i]||0) - T);
-    const kept = totalSales - fly;
+    const kept = totalSales - fly - pteFlyAmt - lxFlyAmt;
     const maxKept = Math.min(numBets[sorted[0]]||0, T);
     return kept - maxKept*payMult - totalOtherPayout;
   }
