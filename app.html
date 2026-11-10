@@ -114,7 +114,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <textarea id="input" placeholder="输入订单，或开+开奖号码自动结算（如：开01.03.08.11.13.21.09）" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
+      <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
+      <div style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5">开奖自动结算：输入"开"开头+7个号码，如：开01.03.08.11.13.21.09</div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
