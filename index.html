@@ -333,7 +333,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v43.9';
+var APP_VER = 'v44.0';
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
@@ -4041,14 +4041,14 @@ function renderAll(){
 <span style="background:${badgeColor};color:${badgeTextColor};border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">${esc(p.code.replace('平特',''))}</span>
 </div>
 <div style="display:flex;gap:12px;align-items:center">
-<span style="font-size:14px;font-weight:700;color:#333">${d.qty}单</span>
-<span style="font-size:15px;font-weight:600;color:#1a1a1a;min-width:60px;text-align:right">${d.amount.toFixed(2)}</span>
+<span style="font-size:14px;color:#666">${d.qty}单</span>
+<span style="font-size:14px;color:#1a1a1a;min-width:60px;text-align:right">${d.amount.toFixed(2)}</span>
 </div>
 </div>`;
       });
     // 连肖
     if(lianCodes.length > 0){
-      sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:13px;color:#999;font-weight:700">连肖（2连4倍/3连10倍/4连30倍，含马减0.5）</div>';
+      sh += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #ddd;font-size:14px;color:#666;font-weight:600">连肖（2连4倍/3连10倍/4连30倍，含马减0.5）</div>';
       lianCodes.forEach(c => {
         const d = sData[c];
         const z = c.replace('连肖','');
@@ -4057,8 +4057,8 @@ function renderAll(){
         const mult = z.includes('马') ? base-0.5 : base;
         sh += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;margin-bottom:3px;border-radius:8px;background:#f8f9fa;border:1px solid #eee">
 <span style="background:#e8e8e8;color:#555;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">${esc(z)}${n}连</span>
-<span style="font-size:14px;font-weight:700;color:#333">${d.qty}单 × ${mult}倍</span>
-<span style="font-size:14px;font-weight:600;color:#1a1a1a">${d.amount.toFixed(2)}</span>
+<span style="font-size:14px;color:#666">${d.qty}单 × ${mult}倍</span>
+<span style="font-size:14px;color:#1a1a1a">${d.amount.toFixed(2)}</span>
 </div>`;
       });
     }
