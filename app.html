@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v56.8';
+var APP_VER = 'v56.9';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4656,31 +4656,26 @@ function renderRisk(){
       else if(net>0.5) winArr.push(net);
       else if(net<-0.5) losers.push(net);
     }
-    // 小亏/大亏分界：对齐小赚的最小盈利额（没有小赚时用自留的一半）
-    const band = winArr.length ? Math.min.apply(null,winArr) : specKept*0.5;
+    // 小亏/大亏分界：对齐小赚的最大盈利额，比这还亏才算大亏（没有小赚时用自留）
+    const band = winArr.length ? Math.max.apply(null,winArr) : specKept;
     const smallLose=[], bigLose=[];
     losers.forEach(net => { if(-net <= band) smallLose.push(net); else bigLose.push(net); });
     const pct = c => (c/49*100).toFixed(0)+'%';
-    const rng = (a,pre)=>{ if(!a.length) return '0个'; const mn=Math.min.apply(null,a),mx=Math.max.apply(null,a); return a.length+'个 · '+pct(a.length)+' · '+pre+mn.toFixed(0)+'~'+pre+mx.toFixed(0); };
+    const rangeTxt = (a,pre)=>{ if(!a.length) return '0个'; const mn=Math.min.apply(null,a),mx=Math.max.apply(null,a); return a.length+'个 · '+pct(a.length)+' · '+pre+mn.toFixed(0)+'~'+pre+mx.toFixed(0); };
     h += `<div style="margin-top:10px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">`;
     h += `<div style="font-weight:700;font-size:13px;padding:8px 10px;background:#fafafa;border-bottom:1px solid #eee">49号盈亏分布（开哪个号的结果）</div>`;
     h += `<div style="padding:2px 10px;font-size:14px">`;
     h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#16a34a">纯赚号（没人买）</span><b>${noBet}个 · ${pct(noBet)} · 每个+${specKept.toFixed(0)}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#16a34a">小赚号</span><b>${winArr.length?pct(winArr.length)+' · +'+Math.min.apply(null,winArr).toFixed(0)+'~+'+Math.max.apply(null,winArr).toFixed(0):'0个'}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#e67e22">小亏号</span><b>${smallLose.length?pct(smallLose.length)+' · '+Math.min.apply(null,smallLose).toFixed(0)+'~'+Math.max.apply(null,smallLose).toFixed(0):'0个'}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#cf1322">大亏号</span><b>${bigLose.length?pct(bigLose.length)+' · '+Math.min.apply(null,bigLose).toFixed(0)+'~'+Math.max.apply(null,bigLose).toFixed(0):'0个'}</b></div>`;
-    // 最大赔付 - 自留 = 实际最大亏损
-    const maxPayout = worstKeptBet*payMult;
-    const realWorst = maxPayout - specKept;
-    h += `<div style="padding:6px 0;font-size:13px;line-height:1.8">`;
-    h += `<div style="display:flex;justify-content:space-between"><span style="color:#666">最大赔付（开最热号）</span><b>${maxPayout.toFixed(0)}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between"><span style="color:#666">减：自留现金</span><b>${specKept.toFixed(0)}</b></div>`;
-    if(maxPayout<=0){
-      h += `<div style="display:flex;justify-content:space-between;color:#16a34a;font-weight:700;border-top:1px solid #eee;margin-top:4px;padding-top:4px"><span>实际最大亏损</span><b>0 · 零风险</b></div>`;
-    } else if(specKept>=maxPayout){
-      h += `<div style="display:flex;justify-content:space-between;color:#16a34a;font-weight:700;border-top:1px solid #eee;margin-top:4px;padding-top:4px"><span>实际最大亏损</span><b>0 · 自留够赔（1:${(maxPayout/specKept).toFixed(2)}）</b></div>`;
+    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#16a34a">小赚号</span><b>${rangeTxt(winArr,'+')}</b></div>`;
+    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#e67e22">小亏号</span><b>${rangeTxt(smallLose,'')}</b></div>`;
+    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#cf1322">大亏号</span><b>${rangeTxt(bigLose,'')}</b></div>`;
+    // 直接给结果（已是净数，不再减来减去）
+    const realWorst = worstKeptBet*payMult - specKept;
+    h += `<div style="padding:8px 10px;font-size:14px;border-top:1px solid #eee;margin-top:2px">`;
+    if(realWorst<=0){
+      h += `<div style="display:flex;justify-content:space-between;color:#16a34a;font-weight:700"><span>开任何号都不亏</span><b>+${(-realWorst).toFixed(0)}</b></div>`;
     } else {
-      h += `<div style="display:flex;justify-content:space-between;color:#cf1322;font-weight:700;border-top:1px solid #eee;margin-top:4px;padding-top:4px"><span>实际最大亏损</span><b>−${realWorst.toFixed(0)}</b></div>`;
+      h += `<div style="display:flex;justify-content:space-between;color:#cf1322;font-weight:700"><span>最差一个号净亏</span><b>−${realWorst.toFixed(0)}</b></div>`;
     }
     h += `</div></div></div>`;
   }
