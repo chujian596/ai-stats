@@ -3657,8 +3657,10 @@ function handleSave(){
     let ln = lines[i];
     // 提前转换数字简写产品名：3中3→三中三，2中2→二中二
     ln = ln.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
-    // "01.02.03/50" 这种：号码串/价格 → 号码串 各价格
-    ln = ln.replace(/^([\d.、\s]+?)\s*\/\s*(\d+(?:\.\d+)?)$/, '$1 各$2');
+    // "01.02.03/50" 或 "10/20/30/50" 这种：最后一个斜杠后是金额(>49) → 号码串 各金额
+    ln = ln.replace(/^([\d.、\s\/]+?)\s*\/\s*(\d+(?:\.\d+)?)$/, function(m, nums, price){
+      return parseFloat(price) > 49 ? nums + ' 各' + price : m;
+    });
     // 其余斜杠当分隔符
     ln = ln.replace(/\//g, ' ');
     // 去掉"新澳"等前缀和尾部顿号
