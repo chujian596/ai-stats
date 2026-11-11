@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v55.7';
+var APP_VER = 'v55.8';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3412,6 +3412,34 @@ function handleSave(){
     return line;
   }).filter(l => l !== '').join('\n');
   document.getElementById('input').value = text;
+  // 平特多肖也要问：每肖p 还是 几肖共p平分
+  if(!_texiaoChoice){
+    const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
+    if(pingMatch && !/[数号]/.test(pingMatch[2])){
+      const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+      ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+        + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">平特' + pz + ' ' + pp + '元，怎么算？</div>'
+        + '<div style="border-top:1px solid #eee;margin-top:10px">'
+        + '<button id="pA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">' + pz.length + '肖共' + pp + '元（平分，合计' + pp + '）</button>'
+        + '<button id="pB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">每肖' + pp + '（共' + (pz.length*pp) + '元）</button>'
+        + '<button id="pC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+        + '</div></div>';
+      document.body.appendChild(ov);
+      ov.querySelector('#pA').onclick = () => { ov.remove(); _texiaoChoice='pingTotal'; handleSave(); };
+      ov.querySelector('#pB').onclick = () => {
+        ov.remove();
+        // 拆成每个肖一行：平虎80 平龙80 平兔80
+        text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
+          () => pz.split('').map(z => '平' + z + pp).join('\n'));
+        document.getElementById('input').value = text;
+        _texiaoChoice = 'pingPerZod'; handleSave();
+      };
+      ov.querySelector('#pC').onclick = () => { ov.remove(); _texiaoChoice=null; };
+      return;
+    }
+  }
   // 检测特肖多肖：弹窗选择各肖还是各数
   if(!_texiaoChoice){
     const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
