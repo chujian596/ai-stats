@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v56.1';
+var APP_VER = 'v56.2';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4696,62 +4696,15 @@ function renderRisk(){
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
       // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
       if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem('lxFlyName', lxFlyName)}catch(e){} }
-      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖对冲 ▶</div>`;
+      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖持仓 ▶</div>`;
       h += `<div id="riskHedgeBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
       h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
       if(noteStr) h += `<div style="color:#999;font-size:11px">${noteStr}</div>`;
       h += `<div style="margin-top:4px">收<b>${pteTotal.toFixed(0)}</b> 全中赔<b style="color:#cf1322">${allPteWorst.toFixed(0)}</b></div>`;
       h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-      h += `<div>不对冲最差：<b style="color:${worstNoHedge<0?'#cf1322':'#16a34a'}">${worstNoHedge.toFixed(0)}</b></div>`;
+      h += `<div>连肖全中要赔：<b style="color:${worstNoHedge<0?'#cf1322':'#16a34a'}">${worstNoHedge.toFixed(0)}</b></div>`;
       h += `</div>`;
-      if(hedgeBet > 0){
-        // 用户已下的连肖单 vs 系统推荐
-        const myBet = lxFlyAmt > 0 ? lxFlyAmt : 0;
-        const myName = lxFlyName || '';
-        const myOdds = odds; // 简化：用当前推荐赔率
-        // 如果用户已下注，用实际下注金额算净盈亏
-        const effBet = myBet > 0 ? myBet : hedgeBet;
-        const effName = myBet > 0 ? myName : lianName;
-        const effAllHitNet = pteTotal - worstPte + effBet*(myOdds-1);
-        const effWorstProperNet = pteTotal - worstProperPayout - effBet;
-        const effBestPartialNet = pteTotal - smallestPte - effBet;
-        const effNoneNet = pteTotal - effBet;
-        h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-        if(myBet > 0){
-          h += `<div style="background:#f5f5f5;padding:6px 8px;border-radius:6px;margin-bottom:4px">✅ 你已下注：<b>${myName}</b> / <b>${myBet}元</b>（${myOdds}倍）<button onclick="lxFlyAmt=0;lxFlyName='';try{localStorage.setItem('lxFlyAmt',0);localStorage.setItem('lxFlyName','')}catch(e){};renderRisk()" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:3px 10px;font-size:13px;margin-left:6px">撤销</button></div>`;
-        } else {
-          h += `<div>💡 系统推荐：${lianName}/${hedgeBet}元（${odds}倍）<button onclick="lxFlyAmt=${hedgeBet};lxFlyName='${lianName}';try{localStorage.setItem('lxFlyAmt',lxFlyAmt);localStorage.setItem('lxFlyName','${lianName}')}catch(e){};renderRisk()" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:4px;padding:3px 14px;font-size:13px;font-weight:600;margin-left:6px">按推荐下注</button></div>`;
-        }
-        // 开奖后判断实际是哪种情况
-        let actualCase = null;
-        if(lastDraw && lastDraw.specialNum){
-          const dzs = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-          const hitCount = hedgeZodiacs.filter(x => dzs.has(x.z)).length;
-          const hitNames = hedgeZodiacs.filter(x => dzs.has(x.z)).map(x=>x.z).join('');
-          if(hitCount === hedgeZodiacs.length) actualCase = {label:'全中', net:effAllHitNet, names:hitNames};
-          else if(hitCount === 0) actualCase = {label:'都不中', net:effNoneNet, names:'无'};
-          else if(hitCount === 1) {
-            const hitZ = hedgeZodiacs.find(x => dzs.has(x.z));
-            if(hitZ === hedgeZodiacs[hedgeZodiacs.length-1]) actualCase = {label:'小的中', net:effBestPartialNet, names:hitZ.z};
-            else actualCase = {label:'大的中', net:effWorstProperNet, names:hitZ.z};
-          } else {
-            actualCase = {label:`中${hitCount}个(${hitNames})`, net:effWorstProperNet, names:hitNames};
-          }
-        }
-        const cases = [
-          {label:'全中', net:effAllHitNet},
-          {label:'大的中', net:effWorstProperNet},
-          {label:'小的中', net:effBestPartialNet},
-          {label:'都不中', net:effNoneNet}
-        ];
-        cases.forEach(c => {
-          const isActual = actualCase && actualCase.label === c.label;
-          const bg = isActual ? 'background:#d4edda;border-radius:4px;padding:2px 4px;' : '';
-          h += `<div style="${bg}">· ${c.label}：<b style="color:${c.net<0?'#cf1322':'#16a34a'}">${c.net>=0?'+':''}${c.net.toFixed(0)}</b>${isActual?' ←实际('+actualCase.names+')':''}</div>`;
-        });
-        h += `</div>`;
-      }
       h += `</div>`;
     }
   }
