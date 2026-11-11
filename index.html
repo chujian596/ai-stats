@@ -277,6 +277,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
+      <button class="btn" style="color:#16a34a" onclick="restoreLastBackup()">一键恢复上次备份</button>
       <button class="btn" style="color:#cf1322" onclick="clearAll()">清空全部数据</button>
       <button class="btn" onclick="openSettings()">⚙ 设置</button>
     </div>
@@ -321,7 +322,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <b style="color:#fff">二中二：</b>二中二03,10 100<br>
         <b style="color:#fff">三中三：</b>三中三07,24,32 100<br>
         <b style="color:#fff">多笔一行：</b>虎500羊400（自动拆分）<br>
-        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）
+        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）<br>
+        <b style="color:#fff">号码各金额：</b>09 19 29 39 49 各40（=每个号40元）
       </div>
 
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算（自动获取）</div>
@@ -428,13 +430,21 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.6';
+var APP_VER = 'v55.1';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
   d.textContent = 'JS错误: ' + msg + ' 行:' + line;
   document.body.appendChild(d);
 };
+// 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
+function hardUpdateTo(v){
+  var url = location.pathname + '?v=' + encodeURIComponent(v);
+  if(location.search && location.search.indexOf('v=')>=0){
+    url = location.pathname + location.search.replace(/([?&])v=[^&]*/,'$1v='+encodeURIComponent(v));
+  }
+  location.replace(url);
+}
 // 自动检查新版本
 setTimeout(function(){
   fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
@@ -442,8 +452,8 @@ setTimeout(function(){
     if(v && v!==APP_VER){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
-      bar.textContent='发现新版本 '+v+'，点击刷新';
-      bar.onclick=function(){location.reload(true);};
+      bar.textContent='发现新版本 '+v+'，点这里更新';
+      bar.onclick=function(){ hardUpdateTo(v); };
       document.body.appendChild(bar);
     }
   }).catch(()=>{});
@@ -458,9 +468,9 @@ fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(v => {
     v = v.trim();
     if(v && v !== APP_VER && !sessionStorage.getItem('vReloaded')){
-      // 云端版本和本地不一样，强制刷新拉新版（只reload一次防止循环）
+      // 云端版本和本地不一样，硬跳带版本号的网址拉新版（只跳一次防止循环）
       sessionStorage.setItem('vReloaded','1');
-      location.reload();
+      hardUpdateTo(v);
     }
   }).catch(function(){});
 // 生肖映射：号码→生肖
@@ -3183,6 +3193,11 @@ function parseLine(text){
   codeText = codeText.replace(/，/g, '、');
   // 纯号码之间的横杠改空格（特号连写：44-10-08 → 44 10 08）
   codeText = codeText.replace(/(\d{2})-(\d{2})/g, '$1 $2');
+  // 号码组后面写"各<金额>"：09 19 29 39 49 各40 → 09 40 19 40 ...（生肖"马龙兔各50"前无数字，不受影响）
+  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+)/g, function(_, group, amt){
+    var nums = group.split(/[\s、.。;；-]+/).filter(Boolean);
+    return nums.map(function(n){ return n.padStart(2,'0') + ' ' + amt; }).join(' ');
+  });
   // 整行都是生肖（如"兔、龙、鸡"）→ 视为买这些肖的全部号码（特号全肖）
   const zodOnly = codeText.replace(/[、\s;；.。]/g, '');
   if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}$/.test(zodOnly)){
@@ -5063,6 +5078,8 @@ function exportCSV(){
 
 function exportBackup(){
   const data = JSON.stringify({ version: 3, orders, roster, products });
+  // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
+  try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
     download('订单备份_' + dateStr() + '.json',
@@ -5074,46 +5091,55 @@ function exportBackup(){
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">'
     + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+orders.length+'单）</div>'
-    + '<div style="padding:12px;flex:1;overflow:auto;background:#f9f9f9;margin:10px;border-radius:6px"><textarea id="backupTxt" style="width:100%;height:200px;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;font-family:monospace;color:#333;resize:none">'+data.replace(/</g,'&lt;')+'</textarea></div>'
+    + '<div style="margin:12px 12px 0;padding:10px;background:#e8f7ee;color:#16a34a;border-radius:8px;font-size:14px;font-weight:700;text-align:center;line-height:1.5">✓ 已自动存到 app 内部<br><span style="font-weight:400;font-size:12px">以后点绿色「一键恢复上次备份」即可找回，不用找文件</span></div>'
+    + '<div style="padding:12px;flex:1;overflow:auto;background:#f9f9f9;margin:10px;border-radius:6px"><textarea id="backupTxt" style="width:100%;height:160px;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;font-family:monospace;color:#333;resize:none">'+data.replace(/</g,'&lt;')+'</textarea></div>'
     + '<div style="display:flex;gap:8px;padding:0 14px 14px">'
     + '<button onclick="this.parentElement.parentElement.parentElement.remove()" style="flex:1;padding:12px;border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:8px;font-size:15px">关闭</button>'
-    + '<button onclick="var t=document.getElementById(\'backupTxt\');t.select();document.execCommand(\'copy\');this.textContent=\'已复制✓\';navigator.clipboard&&navigator.clipboard.writeText(t.value)" style="flex:1;padding:12px;border:none;background:#333;color:#fff;border-radius:8px;font-size:15px;font-weight:700">复制备份</button>'
+    + '<button onclick="var t=document.getElementById(\'backupTxt\');t.select();document.execCommand(\'copy\');this.textContent=\'已复制✓\';navigator.clipboard&&navigator.clipboard.writeText(t.value)" style="flex:1;padding:12px;border:1px solid #999;background:#fff;color:#222;border-radius:8px;font-size:15px;font-weight:700">复制备份留档</button>'
     + '</div></div>';
   document.body.appendChild(ov);
 }
 
+function applyBackup(data){
+  let newOrders, newRoster = null, newProducts = null;
+  if(Array.isArray(data)){
+    newOrders = data;
+  } else if(data && Array.isArray(data.orders)){
+    newOrders = data.orders;
+    if(Array.isArray(data.roster)) newRoster = data.roster.filter(x => typeof x === 'string' && x.trim());
+    if(Array.isArray(data.products)) newProducts = data.products;
+  } else {
+    throw new Error('备份格式不正确');
+  }
+  if(!confirm(`将用备份中的 ${newOrders.length} 条订单替换当前 ${orders.length} 条订单，确定？`)) return;
+  orders = newOrders.map(normalizeOrder);
+  if(newRoster){ roster = newRoster; saveRoster(); }
+  if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
+  saveOrders();
+  restoreIfNeeded();
+  renderAll();
+  myAlert('导入成功');
+}
 function importBackup(ev){
   const file = ev.target.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      let newOrders, newRoster = null, newProducts = null;
-      if(Array.isArray(data)){
-        newOrders = data;
-      } else if(data && Array.isArray(data.orders)){
-        newOrders = data.orders;
-        if(Array.isArray(data.roster)) newRoster = data.roster.filter(x => typeof x === 'string' && x.trim());
-        if(Array.isArray(data.products)) newProducts = data.products;
-      } else {
-        throw new Error('备份格式不正确');
-      }
-      if(!confirm(`将用备份中的 ${newOrders.length} 条订单替换当前 ${orders.length} 条订单，确定？`)) return;
-      orders = newOrders.map(normalizeOrder);
-      if(newRoster){ roster = newRoster; saveRoster(); }
-      if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
-      saveOrders();
-      restoreIfNeeded();
-renderAll();
-      myAlert('导入成功');
-    } catch(err) {
-      myAlert('导入失败：' + err.message);
-    } finally {
-      ev.target.value = '';
-    }
+    try { applyBackup(JSON.parse(e.target.result)); }
+    catch(err) { myAlert('导入失败：' + err.message); }
+    finally { ev.target.value = ''; }
   };
   reader.readAsText(file, 'UTF-8');
+}
+// 一键恢复app内部存的最近一次备份（不用找下载文件夹）
+function restoreLastBackup(){
+  let raw = null;
+  try { raw = localStorage.getItem('_lastBackup'); } catch(e){}
+  if(!raw){ myAlert('还没有可恢复的内部备份'); return; }
+  const t = localStorage.getItem('_lastBackupTime') || '';
+  if(!confirm('将恢复你最近一次点"备份JSON"时存在app内部的备份' + (t?'（'+t+'）':'') + '，继续？')) return;
+  try { applyBackup(JSON.parse(raw)); }
+  catch(err){ myAlert('恢复失败：' + err.message); }
 }
 
 function myAlert(msg){
