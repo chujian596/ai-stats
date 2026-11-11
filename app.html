@@ -321,7 +321,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <b style="color:#fff">二中二：</b>二中二03,10 100<br>
         <b style="color:#fff">三中三：</b>三中三07,24,32 100<br>
         <b style="color:#fff">多笔一行：</b>虎500羊400（自动拆分）<br>
-        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）
+        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）<br>
+        <b style="color:#fff">号码各金额：</b>09 19 29 39 49 各40（=每个号40元）
       </div>
 
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算（自动获取）</div>
@@ -428,7 +429,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.6';
+var APP_VER = 'v54.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3183,6 +3184,11 @@ function parseLine(text){
   codeText = codeText.replace(/，/g, '、');
   // 纯号码之间的横杠改空格（特号连写：44-10-08 → 44 10 08）
   codeText = codeText.replace(/(\d{2})-(\d{2})/g, '$1 $2');
+  // 号码组后面写"各<金额>"：09 19 29 39 49 各40 → 09 40 19 40 ...（生肖"马龙兔各50"前无数字，不受影响）
+  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+)/g, function(_, group, amt){
+    var nums = group.split(/[\s、.。;；-]+/).filter(Boolean);
+    return nums.map(function(n){ return n.padStart(2,'0') + ' ' + amt; }).join(' ');
+  });
   // 整行都是生肖（如"兔、龙、鸡"）→ 视为买这些肖的全部号码（特号全肖）
   const zodOnly = codeText.replace(/[、\s;；.。]/g, '');
   if(/^[马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,}$/.test(zodOnly)){
