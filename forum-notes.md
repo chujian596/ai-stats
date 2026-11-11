@@ -16,9 +16,9 @@
 
 ## 2. 查询/抓取流程（forum_reader.py）
 
-1. 翻全部分页（`FORUM_MAX_PAGES`，默认 60 页，每页 200），按帖子 id 去重；本轮全量 5936 帖。
+1. 翻全部分页（`FORUM_MAX_PAGES`，默认 60 页，每页 200），按帖子 id 去重；本轮全量 5994 帖。
 2. 按标题归类：含「杀/禁/亡/绝」且有「肖」→ kill 杀肖；含「肖/中特/平特」→ rec 推荐肖；其余 other。
-3. 对 kill/rec 帖按 id 拉详情（`FORUM_DETAIL_CAP`，默认上限 4000，本轮 600）；详情正文落 `forum-details-cache.json`（可再生中间产物，**不上传仓库**），断点续跑命中缓存不重复下载。
+3. 对 kill/rec 帖按 id 拉详情（`FORUM_DETAIL_CAP`，默认上限 4000，本轮 1500）；详情正文落 `forum-details-cache.json`（可再生中间产物，**不上传仓库**），断点续跑命中缓存不重复下载。
 4. 解析：去 HTML 标签、解实体、按期号 `\d{2,3}期` 切段；前半段（「开」之前）提取生肖字（去重保序）；后半段取开肖/号码/站点自标；同期号重复保留首行。
 5. 对照官方特肖独立对账，汇总命中率/错误率/分类，登记每条来源与指纹。
 
@@ -46,12 +46,13 @@
 ## 5. 复跑流程
 
 ```
-FORUM_MAX_PAGES=60 FORUM_DETAIL_CAP=600 python3 forum_reader.py fetch      # 翻列表→拉详情→解析→对账→写两个 JSON
+FORUM_MAX_PAGES=60 FORUM_DETAIL_CAP=1500 python3 forum_reader.py fetch      # 翻列表→拉详情→解析→对账→写两个 JSON
 python3 forum_reader.py reconcile                                            # 只用已缓存详情重算统计
 ```
 
 - 开奖后重跑 `fetch`：新一期自动对账；命中本地详情缓存，不重复下载。
 - `forum-summary.json` 供 `stats.html`「论坛」标签页加载；`forum-snapshot.json` 为全量逐期明细存证。
+- 本轮（2026-11-11，315 期未开）：拉详情 1500 帖，对账 1500（杀 73 · 荐 786 · 其他 641）；栏目级 good 119 · bad 306 · watch 434；未结算行 1504（315 期）。
 
 ## 6. 已知边界与未接入渠道
 
