@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v57.6';
+var APP_VER = 'v57.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4265,13 +4265,13 @@ function renderOrdersList(){
   // 返水：飞走金额按比例返给我
   let rebateOn = true, rebateRate = 0.03;
   try { rebateOn = localStorage.getItem('rebateOn') !== '0'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
-  const rebateAmt = (rebateOn && lastDraw) ? flyOutTotal * rebateRate : 0;
+  const rebateAmt = rebateOn ? flyOutTotal * rebateRate : 0;
   const owedAmt = lastDraw ? (flyOutTotal - flyBackTotal) : 0;
   const netSettle = lastDraw ? (rebateAmt - owedAmt) : null;
   let copyTail = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}`;
+  if(rebateOn && flyOutTotal > 0) copyTail += `\n返水:${flyOutTotal.toFixed(0)}×${(rebateRate*100).toFixed(0)}%=+${rebateAmt.toFixed(0)}`;
   if(lastDraw){
     copyTail += `\n命中额:${flyBackTotal.toFixed(0)}\n总账单:${owedAmt.toFixed(0)}`;
-    if(rebateOn) copyTail += `\n返水:${flyOutTotal.toFixed(0)}×${(rebateRate*100).toFixed(0)}%=+${rebateAmt.toFixed(0)}`;
     copyTail += `\n结算:${netSettle>=0?'+':''}${netSettle.toFixed(0)}`;
   } else copyTail += '\n未开奖，结算待定';
   window._upCopy = copyTail;
@@ -4290,7 +4290,7 @@ function renderOrdersList(){
   h += `<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" ${rebateOn?'checked':''} onchange="try{localStorage.setItem('rebateOn',this.checked?'1':'0')}catch(e){};renderAll()" style="width:15px;height:15px">返水</label>`;
   h += `<input type="number" step="0.005" min="0" max="0.2" value="${rebateRate}" onchange="try{localStorage.setItem('rebateRate',this.value||'0.03')}catch(e){};renderAll()" style="width:56px;border:1px solid #ccc;border-radius:4px;padding:2px 4px;font-size:12px;text-align:right">`;
   h += `<span style="color:#999">（飞走×比例）</span>`;
-  if(rebateOn && lastDraw) h += `<span style="margin-left:auto;color:#16a34a;font-weight:600">返水 +${rebateAmt.toFixed(0)}</span>`;
+  if(rebateOn && flyOutTotal > 0) h += `<span style="margin-left:auto;color:#16a34a;font-weight:600">返水 +${rebateAmt.toFixed(0)}</span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
   h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
