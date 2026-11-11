@@ -182,7 +182,7 @@ function loadAll(){
 
 function fetchList(){
   var authors={};
-  var pages=[1,2];
+  var pages=[1,2,3,4,5,6];
   var chain=Promise.resolve();
   pages.forEach(function(pg){
     chain=chain.then(function(){
@@ -454,7 +454,15 @@ function renderDoc(){
     +'<div class="row"><span>帖子详情</span><span style="font-size:12px">/api/v1/forums/{id}</span></div>'
     +'<div class="muted" style="margin-top:6px">接口跨域已放开（CORS *），无需登录 token，网页可直接读取。</div></div>';
 
-  html+='<div class="card"><h2>三、操作流程</h2><div style="line-height:1.8;font-size:14px">'
+  html+='<div class="card"><h2>三、站点接入记录</h2><div style="line-height:1.8;font-size:14px">'
+    +'<b>已接入（可直接读取，澳门）：</b><br>17图库公开论坛接口（lottery=macao）。<br><br>'
+    +'<b>待接入 / 暂不可直读：</b><br>'
+    +'· zzxxww0491.4901988gg.app:8450/ok.html — 滑块拼图验证，需人工过验证后才能进；<br>'
+    +'· 47.129.67.181:8074（曾夫人论坛）— 前端与接口均加密，静态网页暂不能直接读；<br>'
+    +'· 800tk08075.g1omeksxto.cyou（600图库）— 同一加密后端（api.bdmijg.com / tkapi.352722.com），暂未接入。<br><br>'
+    +'<span class="muted">口径：只采集新澳门/澳门数据，香港彩、快乐8一律不取。</span></div></div>';
+
+  html+='<div class="card"><h2>四、操作流程</h2><div style="line-height:1.8;font-size:14px">'
     +'1. 打开页面，先读手机本地快照快速显示；<br>'
     +'2. 后台自动拉取官方历史开奖 + 论坛列表 + 各帖详情；<br>'
     +'3. 解析每帖按期号切段，取出预测生肖和结果；<br>'
@@ -462,24 +470,24 @@ function renderDoc(){
     +'5. 按阈值分类，渲染三个板块；<br>'
     +'6. 点「刷新」重新抓取并更新本地快照。</div></div>';
 
-  html+='<div class="card"><h2>四、对错口径</h2><div style="line-height:1.8;font-size:14px">'
+  html+='<div class="card"><h2>五、对错口径</h2><div style="line-height:1.8;font-size:14px">'
     +'· 杀肖：被杀的肖 = 当期特肖 → 错；没中特肖 → 准。<br>'
     +'· 推荐肖：列表含当期特肖 → 中；否则 → 没中。<br>'
     +'· 一律以官方开奖为准，不采用帖子自标的准/错；帖子自标仅在无官方结果时作回退。</div></div>';
 
-  html+='<div class="card"><h2>五、分类阈值</h2><div style="line-height:1.8;font-size:14px">'
+  html+='<div class="card"><h2>六、分类阈值</h2><div style="line-height:1.8;font-size:14px">'
     +'· 有效样本 ≥10 期：命中率 ≥70% 记「准的」，&lt;70% 记「差的」；<br>'
     +'· 样本不足 10 期：记「观察」。<br>'
     +'· 第一肖命中率：推荐列表排第一的肖，历史上开出特肖的比例；随机基准约 1/12 ≈ 8.3%。</div></div>';
 
-  html+='<div class="card"><h2>六、复制整套做法需要什么</h2><div style="line-height:1.8;font-size:14px">'
+  html+='<div class="card"><h2>七、复制整套做法需要什么</h2><div style="line-height:1.8;font-size:14px">'
     +'1. 一个可公开访问、跨域放开的开奖历史接口；<br>'
     +'2. 一个资料/论坛列表接口 + 帖子详情接口；<br>'
     +'3. 一套生肖与号码对应表、球色规则；<br>'
     +'4. 一个静态 HTML 页面即可跑，无需服务器。<br>'
     +'换其他站点：改接口地址和正文解析规则即可；接口结构差别大时需调整切段和取肖逻辑。</div></div>';
 
-  html+='<div class="card"><h2>七、自动化与云端</h2><div style="line-height:1.8;font-size:14px">'
+  html+='<div class="card"><h2>八、自动化与云端</h2><div style="line-height:1.8;font-size:14px">'
     +'· 纯静态网页只能在打开页面时抓取，不能自己定时跑；要无人值守定时抓取，需要一个后端定时任务（或云函数）定时拉取、对账后存成 JSON。<br>'
     +'· 当前数据存手机本地快照；可把结果 JSON 备份到 GitHub 仓库或飞书云盘做中转。<br>'
     +'· 历史目前只拉 2026 年；跨年份对账、平号平肖命中率为后续可选项。</div></div>';
