@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v53.6';
+var APP_VER = 'v53.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3258,10 +3258,8 @@ function updateDrawInfoBar(){
     var nums = lastDraw.regularNums.concat([lastDraw.specialNum]);
     var numsStr = nums.map(function(n){ return String(n).padStart(2,'0'); });
     el.textContent = '期' + (lastDraw.period||'?') + ' 特' + String(lastDraw.specialNum).padStart(2,'0') + ' ' + numsStr.join(' ');
-    renderLiveBalls(nums, true);
   } else {
     el.textContent = '未获取开奖数据';
-    renderLiveBalls([]);
   }
 }
 function autoFetchDraw(){
@@ -3281,6 +3279,8 @@ function autoFetchDraw(){
       var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
       var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
       renderLiveBalls(m.winner_numbers, true);
+      // 手动查看球5秒后自动收起
+      setTimeout(function(){ var lb=document.getElementById('liveBalls'); if(lb) lb.innerHTML=''; }, 5000);
       if(parseInt(m.draw) <= already){
         return; // 已结算过，不重复处理，但圆球已经显示了
       }
@@ -3331,7 +3331,12 @@ setInterval(function(){
       btn.style.opacity = '1';
     }
   }
-  if(!isDrawTime) return;
+  if(!isDrawTime){
+    // 非开奖时间，收起球
+    var bb = document.getElementById('liveBalls');
+    if(bb && bb.children.length > 0) bb.innerHTML = '';
+    return;
+  }
   var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
   fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
     .then(function(r){ return r.json(); })
@@ -3356,6 +3361,8 @@ setInterval(function(){
             _liveDrawLast = ''; _liveDrawStable = 0;
             document.getElementById('input').value = '开' + m2.draw + ' ' + numsStr;
             autoPayout();
+            // 结算完收起球
+            setTimeout(function(){ var lb=document.getElementById('liveBalls'); if(lb) lb.innerHTML=''; }, 3000);
           }
         } else {
           _liveDrawLast = key;
