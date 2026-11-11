@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v55.4';
+var APP_VER = 'v55.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3044,9 +3044,11 @@ function parseLine(text){
   if(!text) return null;
   // 快速通道：整行就是"一串号码 + 各/个 + 金额"，直接认，不走后面容易出错的转换
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
-  const fast = text.match(/^((?:\d{1,2}[\s\-、.。+]+)+\d{1,2})\s*(?:各(?:数|号|个|件|样|款|肖|组)?|个)\s*([0-9]+(?:\.[0-9]+)?)\s*$/);
+  // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
+  var SEP = '[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+';
+  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
   if(fast){
-    var fnums = fast[1].split(/[\s\-、.。+]+/).filter(Boolean).map(function(n){ return n.padStart(2,'0'); });
+    var fnums = fast[1].split(new RegExp(SEP)).filter(Boolean).map(function(n){ return n.padStart(2,'0'); });
     if(fnums.length >= 1) return { codes: fnums, price: parseFloat(fast[2]), isPer: true };
   }
   // 先把常见中文金额转成阿拉伯数字
@@ -3696,7 +3698,7 @@ renderAll();
   });
 
   if(errors.length > 0){
-    myAlert('无法识别，请重新编辑!');
+    myAlert('无法识别：' + errors[0]);
     return;
   }
 
