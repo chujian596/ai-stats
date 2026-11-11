@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.2';
+var APP_VER = 'v58.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3657,7 +3657,9 @@ function handleSave(){
     let ln = lines[i];
     // 提前转换数字简写产品名：3中3→三中三，2中2→二中二
     ln = ln.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
-    // 斜杠当价格分隔符
+    // "01.02.03/50" 这种：号码串/价格 → 号码串 各价格
+    ln = ln.replace(/^([\d.、\s]+?)\s*\/\s*(\d+(?:\.\d+)?)$/, '$1 各$2');
+    // 其余斜杠当分隔符
     ln = ln.replace(/\//g, ' ');
     // 去掉"新澳"等前缀和尾部顿号
     ln = ln.replace(/^新澳/, '').replace(/[、，,]\s*$/, '').trim();
