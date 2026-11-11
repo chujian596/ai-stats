@@ -432,7 +432,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.1';
+var APP_VER = 'v54.2';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3285,6 +3285,7 @@ function autoFetchDraw(){
         // 已结算过，更新显示但不重复结算
         lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
         updateDrawInfoBar();
+        if(typeof renderOrdersList==='function') renderOrdersList();
         return;
       }
       var drawStr = '开' + m.draw + ' ' + nums.join('.');
