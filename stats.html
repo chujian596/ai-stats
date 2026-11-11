@@ -604,10 +604,32 @@ function renderOverview(){
     +'<div class="row"><span>自标不符帖</span><span>'+fMm+'</span></div>'
     +'<div class="muted" style="margin-top:6px">明细、来源接口与指纹见「论坛」标签页；全量逐期明细存 forum-snapshot.json。</div></div>';
 
-  html+='<div class="card"><h2>本期主推第一肖累计</h2><div class="muted">各推荐帖列表排第一的肖，被提到最多的</div><div class="board" style="margin-top:10px">';
+  // 只统计扣完缺更后判为「准的」的论坛帖 + 文字墙栏目
+  var goodRecFirst={}, goodKillVote={};
+  fCols.forEach(function(c){
+    if(c.cls!=='good') return;
+    var z=(c.current||{}).zods||[];
+    if(c.kind==='rec' && z[0]) goodRecFirst[z[0]]=(goodRecFirst[z[0]]||0)+1;
+    if(c.kind==='kill') z.forEach(function(x){ goodKillVote[x]=(goodKillVote[x]||0)+1; });
+  });
+  twCols.forEach(function(c){
+    if(c.cls!=='good') return;
+    var rows=c.rows||[]; var z=(rows[rows.length-1]||{}).zods||[];
+    if(c.kind==='rec' && z[0]) goodRecFirst[z[0]]=(goodRecFirst[z[0]]||0)+1;
+    if(c.kind==='kill') z.forEach(function(x){ goodKillVote[x]=(goodKillVote[x]||0)+1; });
+  });
+
+  html+='<div class="card"><h2>本期主推共识（只算准的）</h2><div class="muted">扣完缺更后判为「准的」的推荐帖，列表排第一的肖被提到次数；差的帖不再混入</div><div class="board" style="margin-top:10px">';
   ZOD.forEach(function(z){
-    var n=firstCount[z]||0;
-    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'帖</div></div>';
+    var n=goodRecFirst[z]||0;
+    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'票</div></div>';
+  });
+  html+='</div></div>';
+
+  html+='<div class="card"><h2>本期杀肖共识（避开）</h2><div class="muted">准的杀肖资料本期要杀的肖，票数越多越该避开</div><div class="board" style="margin-top:10px">';
+  ZOD.forEach(function(z){
+    var n=goodKillVote[z]||0;
+    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'票</div></div>';
   });
   html+='</div></div>';
   $('panelOverview').innerHTML=html;
