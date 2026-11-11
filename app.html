@@ -289,10 +289,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">外观</div>
       <div id="bgStyles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">字体大小</div>
-      <div style="display:flex;gap:0;margin-bottom:24px;background:var(--modalSeg,#2C2C2E);border-radius:10px;padding:3px">
-        <button id="fs-small" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:15px;border-radius:8px" onclick="setFontSize(15)">小</button>
-        <button id="fs-mid" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:17px;border-radius:8px" onclick="setFontSize(17)">中</button>
-        <button id="fs-big" style="flex:1;padding:10px;border:none;background:transparent;color:#8E8E93;font-size:19px;border-radius:8px" onclick="setFontSize(19)">大</button>
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button id="fs-small" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:15px" onclick="setFontSize(15)">小</button>
+        <button id="fs-mid" style="flex:1;padding:10px;border:1px solid #333;border-radius:8px;background:#fff;color:#333;font-size:17px;font-weight:600" onclick="setFontSize(17)">中</button>
+        <button id="fs-big" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:19px" onclick="setFontSize(19)">大</button>
       </div>
       <button onclick="openHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalSeg,#2C2C2E);color:#fff;font-size:16px;margin-bottom:10px">使用说明</button>
       <button onclick="closeSettings()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
@@ -433,7 +433,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.3';
+var APP_VER = 'v54.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -5310,7 +5310,7 @@ function openSettings(){
   BGS.forEach((b,i)=>{
     const btn = document.createElement('button');
     const selected = cur.bg === b.css || (!cur.bg && i===0);
-    btn.style.cssText = `padding:14px 4px;border-radius:10px;border:${selected?'2px solid #fff':'2px solid transparent'};background:${b.css};color:#fff;font-size:14px;font-weight:500`;
+    btn.style.cssText = `padding:14px 4px;border-radius:10px;border:${selected?'2px solid #333':'1px solid #ddd'};background:#fff;color:#333;font-size:14px;font-weight:500`;
     btn.textContent = b.name;
     btn.onclick = ()=>{
       cur.bg = b.css;
