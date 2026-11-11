@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.13';
+var APP_VER = 'v58.14';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3530,9 +3530,36 @@ function handleSave(){
       const prodDef = products.find(p => p.code === canonical);
       if(prodDef && prodDef.links && prodDef.links.length > 1){
         // 替换原文中的产品名为标准名
-        // 找到价格
+        // 找到价格（阿拉伯数字 + 中文数字）
         const priceM = text.match(/([0-9]+(?:\.[0-9]+)?)/);
-        const price = priceM ? parseFloat(priceM[1]) : 0;
+        let price = priceM ? parseFloat(priceM[1]) : 0;
+        if(!price){
+          // 中文数字转阿拉伯（含口语省略：一百五=150, 一千二=1200）
+          const cnMap = {零:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+          const cnM = text.match(/(十|[一二两三四五六七八九][千百十]?[一二两三四五六七八九]?十?[一二两三四五六七八九]?)/);
+          if(cnM){
+            const s = cnM[1];
+            let v = 0, i = 0;
+            const digits = [];
+            while(i < s.length){
+              const ch = s[i];
+              if(cnMap[ch] !== undefined){ digits.push({d: cnMap[ch], pos: i}); i++; }
+              else if(ch === '千'){
+                v += (digits.length ? digits.pop().d : 1) * 1000;
+                if(i+1 < s.length && cnMap[s[i+1]] !== undefined && s[i+2] !== '百' && s[i+2] !== '十'){ v += cnMap[s[i+1]] * 100; i += 2; }
+                else i++;
+              } else if(ch === '百'){
+                v += (digits.length ? digits.pop().d : 1) * 100;
+                if(i+1 < s.length && cnMap[s[i+1]] !== undefined && s[i+2] !== '十' && s[i+2] !== '百' && s[i+2] !== '千'){ v += cnMap[s[i+1]] * 10; i += 2; }
+                else i++;
+              } else if(ch === '十'){
+                v += (digits.length ? digits.pop().d : 1) * 10; i++;
+              } else i++;
+            }
+            digits.forEach(x => v += x.d);
+            price = v;
+          }
+        }
         if(!window._waveChoice){
           // 只有明确写了"各号"或"各数"才不弹窗
           const hasExplicit = text.includes('各号') || text.includes('各数');
