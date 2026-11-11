@@ -127,9 +127,12 @@ def parse_rows(h):
 
 
 def classify(title):
-    if KILL_RE.search(title or ""):
+    t = title or ""
+    if NONZOD_RE.search(t):
+        return "other"
+    if KILL_RE.search(t):
         return "kill"
-    if REC_RE.search(title or ""):
+    if REC_RE.search(t):
         return "rec"
     return "other"
 
