@@ -58,6 +58,7 @@
     <div class="tab" id="tabKill" onclick="switchTab('kill')">杀肖追踪</div>
     <div class="tab" id="tabRec" onclick="switchTab('rec')">推荐肖</div>
     <div class="tab" id="tabTw" onclick="switchTab('tw')">文字墙</div>
+    <div class="tab" id="tabForum" onclick="switchTab('forum')">论坛</div>
     <div class="tab" id="tabHot" onclick="switchTab('hot')">冷热号</div>
     <div class="tab" id="tabDoc" onclick="switchTab('doc')">说明</div>
   </div>
@@ -66,6 +67,7 @@
   <div id="panelKill" style="display:none"></div>
   <div id="panelRec" style="display:none"></div>
   <div id="panelTw" style="display:none"></div>
+  <div id="panelForum" style="display:none"></div>
   <div id="panelHot" style="display:none"></div>
   <div id="panelDoc" style="display:none"></div>
   <div class="muted" style="margin-top:20px;line-height:1.6">注：以上均为历史数据统计，开奖为随机事件，过往命中率不代表以后结果，仅供参考。</div>
@@ -77,7 +79,7 @@ var ZOD=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'
 var NUM2Z={};
 [['马',[1,13,25,37,49]],['蛇',[2,14,26,38]],['龙',[3,15,27,39]],['兔',[4,16,28,40]],['虎',[5,17,29,41]],['牛',[6,18,30,42]],['鼠',[7,19,31,43]],['猪',[8,20,32,44]],['狗',[9,21,33,45]],['鸡',[10,22,34,46]],['猴',[11,23,35,47]],['羊',[12,24,36,48]]].forEach(function(z){ z[1].forEach(function(n){ NUM2Z[n]=z[0]; }); });
 
-var state={ authors:[], official:{}, currentPeriod:0, fetchedAt:'', tw:{ source:{}, columns:[] } };
+var state={ authors:[], official:{}, currentPeriod:0, fetchedAt:'', tw:{ source:{}, columns:[] }, forum:{ source:{}, columns:[] } };
 var LS_KEY='stats_snapshot_v1';
 
 function $(id){ return document.getElementById(id); }
@@ -158,6 +160,14 @@ function loadTextwall(){
   }).catch(function(){ state.tw={ source:{}, columns:[] }; });
 }
 
+// 论坛后台对账汇总（forum_reader.py 生成，静态 JSON，同目录）
+function loadForum(){
+  return fetchJson('forum-summary.json').then(function(d){
+    state.forum.source=(d&&d.source)||{};
+    state.forum.columns=(d&&d.columns)||[];
+  }).catch(function(){ state.forum={ source:{}, columns:[] }; });
+}
+
 function judgeRow(kind, row){
   // 返回 'hit' | 'miss' | null(未开奖)
   var off=state.official[row.period];
@@ -179,7 +189,7 @@ function loadAll(){
   var btn=$('refreshBtn'); btn.textContent='抓取中…'; btn.disabled=true;
   $('panelKill').innerHTML='<div class="loading">正在抓取资料…</div>';
   loadOfficial().then(function(){
-    return fetchList();
+    return Promise.all([fetchList(), loadForum()]);
   }).then(function(){
     saveSnapshot();
     renderAll();
@@ -259,7 +269,7 @@ function authorStats(a){
 
 function classifyLabel(cls){ return cls==='good'?'准的':cls==='bad'?'差的':'观察'; }
 
-var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', tw:'Tw', hot:'Hot', doc:'Doc' };
+var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', tw:'Tw', forum:'Forum', hot:'Hot', doc:'Doc' };
 function switchTab(t){
   Object.keys(TAB_MAP).forEach(function(k){
     $('panel'+TAB_MAP[k]).style.display = k===t?'':'none';
@@ -269,7 +279,7 @@ function switchTab(t){
 
 function renderAll(){
   $('fetchedAt').textContent = state.fetchedAt?('上次更新：'+state.fetchedAt):'';
-  renderOverview(); renderKill(); renderRec(); renderTw(); renderHot(); renderDoc();
+  renderOverview(); renderKill(); renderRec(); renderTw(); renderForum(); renderHot(); renderDoc();
 }
 
 // 杀肖汇总：各肖被多少准作者杀 / 多少差作者杀
@@ -433,6 +443,54 @@ function renderTw(){
   $('panelTw').innerHTML=html;
 }
 
+function renderForum(){
+  var cols=state.forum.columns||[];
+  if(!cols.length){ $('panelForum').innerHTML='<div class="card"><div class="muted">暂无论坛汇总数据。</div></div>'; return; }
+  var src=state.forum.source||{};
+  function clsN(c){ return cols.filter(function(x){return x.cls===c;}).length; }
+  var kill=cols.filter(function(c){return c.kind==='kill';});
+  var rec=cols.filter(function(c){return c.kind==='rec';});
+  var mmN=cols.filter(function(c){return c.mismatchCount>0;}).length;
+
+  var html='<div class="card"><h2>来源（后台脚本抓取对账）</h2>'
+    +'<div class="row"><span>站点</span><span>'+esc(src.siteName||'—')+'</span></div>'
+    +'<div class="row"><span>栏目数</span><span>'+cols.length+'（杀 '+kill.length+' / 推荐 '+rec.length+'）</span></div>'
+    +'<div class="row"><span>分类</span><span>准 '+clsN('good')+' · 差 '+clsN('bad')+' · 观察 '+clsN('watch')+'</span></div>'
+    +'<div class="row"><span>自标不符栏目</span><span>'+mmN+'</span></div>'
+    +'<div class="muted" style="margin-top:6px">列表 '+esc(src.listApi||'')+'<br>详情 '+esc(src.detailApi||'')+'<br>'+esc(src.access||'')+'</div></div>';
+
+  function fCard(c){
+    var pct=c.acc!=null?Math.round(c.acc*100)+'%':'—';
+    var mr=c.missRate!=null?Math.round(c.missRate*100)+'%':'—';
+    var badges='';
+    if(c.mismatchCount>0) badges+='<span class="tag bad">自标不符 '+c.mismatchCount+'</span> ';
+    var cur=c.current||null;
+    var curTxt=cur&&cur.zods&&cur.zods.length?('本期 '+cur.period+' 期：'+cur.zods.join(' ')):'本期暂无';
+    var link=c.sourceUrl?(' · <a href="'+esc(c.sourceUrl)+'" target="_blank" rel="noopener">来源接口</a>'):'';
+    var meta2='抓取 '+esc(c.fetchedAt||'—')+' · 指纹 '+esc(c.rawSha||'—');
+    return '<div class="auth" onclick="this.classList.toggle(\'open\')">'
+      +'<div class="top"><span class="name">'+esc(c.name||'匿名')+'</span><span class="tag '+c.cls+'">'+classifyLabel(c.cls)+'</span></div>'
+      +'<div class="meta">'+esc(c.topic)+' · 准'+c.hit+' 错'+c.miss+' 待'+c.unresolved+' · 准确率'+pct+' · 错误率'+mr+link+'</div>'
+      +(badges?'<div class="meta">'+badges+'</div>':'')
+      +'<div class="meta">'+curTxt+'</div>'
+      +'<div class="bar"><i style="width:'+(c.acc!=null?Math.round(c.acc*100):0)+'%"></i></div>'
+      +'<div class="detail">'+meta2+'<br>逐条明细存后台论坛全量快照 forum-snapshot.json。</div></div>';
+  }
+  function sortAcc(a,b){ return (b.acc||0)-(a.acc||0); }
+
+  html+='<div class="card"><h2>杀肖帖（'+kill.length+'）</h2>';
+  if(kill.length===0) html+='<div class="muted">无</div>';
+  kill.slice().sort(sortAcc).forEach(function(c){ html+=fCard(c); });
+  html+='</div>';
+
+  html+='<div class="card"><h2>推荐肖帖（'+rec.length+'）</h2>';
+  if(rec.length===0) html+='<div class="muted">无</div>';
+  rec.slice().sort(sortAcc).forEach(function(c){ html+=fCard(c); });
+  html+='</div>';
+
+  $('panelForum').innerHTML=html;
+}
+
 function ballColor(n){
   var red=[1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
   var blue=[3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
@@ -524,6 +582,19 @@ function renderOverview(){
     +'<div class="row"><span>自标不符栏目</span><span>'+twMm+'</span></div>'
     +'<div class="muted" style="margin-top:6px">明细与来源链接见「文字墙」标签页。</div></div>';
 
+  var fCols=state.forum.columns||[];
+  var fKill=fCols.filter(function(c){return c.kind==='kill';}).length;
+  var fRec=fCols.filter(function(c){return c.kind==='rec';}).length;
+  var fG=fCols.filter(function(c){return c.cls==='good';}).length;
+  var fB=fCols.filter(function(c){return c.cls==='bad';}).length;
+  var fW=fCols.filter(function(c){return c.cls==='watch';}).length;
+  var fMm=fCols.filter(function(c){return c.mismatchCount>0;}).length;
+  html+='<div class="card"><h2>论坛帖（后台对账）</h2>'
+    +'<div class="row"><span>帖子数</span><span>'+fCols.length+'（杀 '+fKill+' / 推荐 '+fRec+'）</span></div>'
+    +'<div class="row"><span>分类</span><span>准 '+fG+' · 差 '+fB+' · 观察 '+fW+'</span></div>'
+    +'<div class="row"><span>自标不符帖</span><span>'+fMm+'</span></div>'
+    +'<div class="muted" style="margin-top:6px">明细、来源接口与指纹见「论坛」标签页；全量逐期明细存 forum-snapshot.json。</div></div>';
+
   html+='<div class="card"><h2>本期主推第一肖累计</h2><div class="muted">各推荐帖列表排第一的肖，被提到最多的</div><div class="board" style="margin-top:10px">';
   ZOD.forEach(function(z){
     var n=firstCount[z]||0;
@@ -542,10 +613,11 @@ function renderDoc(){
     +'<div class="row"><span>历史开奖</span><span style="font-size:12px">/api/v1/lotteries/macao/histories?year=2026</span></div>'
     +'<div class="row"><span>论坛列表</span><span style="font-size:12px">/api/v1/forums?lottery=macao&page=1&per_page=100</span></div>'
     +'<div class="row"><span>帖子详情</span><span style="font-size:12px">/api/v1/forums/{id}</span></div>'
+    +'<div class="row"><span>论坛后台汇总</span><span style="font-size:12px">forum-summary.json（forum_reader.py 生成）</span></div>'
     +'<div class="muted" style="margin-top:6px">接口跨域已放开（CORS *），无需登录 token，网页可直接读取。</div></div>';
 
   html+='<div class="card"><h2>三、站点接入记录</h2><div style="line-height:1.8;font-size:14px">'
-    +'<b>已接入（可直接读取，澳门）：</b><br>1. 17图库公开论坛接口（lottery=macao）。<br>2. 4901996 联盟站文字墙：栏目页 book-detail?ruleId=…，数据为静态 JS h3.wanpz.com/script/490137/dynamic_{ruleId}_1.js，base64 解码后再解二层 JSON；页面首屏有滑块，但数据 JS 不随滑块。对账快照存 textwall-snapshot.json。<br><br>'
+    +'<b>已接入（可直接读取，澳门）：</b><br>1. 17图库公开论坛接口（lottery=macao）：后台 forum_reader.py 翻全部分页 → 按标题归类杀肖/推荐 → 按帖子 id 拉详情历史 → 对照官方特肖对账；每帖登记来源接口、抓取时间、内容指纹、命中率/错误率、自标不符，全量明细存 forum-snapshot.json，精简汇总 forum-summary.json 供本页加载。<br>2. 4901996 联盟站文字墙：栏目页 book-detail?ruleId=…，数据为静态 JS h3.wanpz.com/script/490137/dynamic_{ruleId}_1.js，base64 解码后再解二层 JSON；页面首屏有滑块，但数据 JS 不随滑块。对账快照存 textwall-snapshot.json。<br><br>'
     +'<b>待接入 / 暂不可直读：</b><br>'
     +'· zzxxww0491.4901988gg.app:8450/ok.html — 滑块拼图验证，需人工过验证后才能进；<br>'
     +'· 47.129.67.181:8074（曾夫人论坛）— 前端与接口均加密，静态网页暂不能直接读；<br>'
