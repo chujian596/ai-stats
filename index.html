@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v56.3';
+var APP_VER = 'v56.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4071,8 +4071,8 @@ function renderOrdersList(){
     h += `<div onclick="toggleOd('od_${gi}',this)" style="padding:8px;background:#f8f9fa;cursor:pointer">`;
     h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
     h += `<span style="font-weight:700;font-size:14px">${maskName(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.orders.length}单)</span></span>`;
-    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
-    h += `<button onclick="event.stopPropagation();deleteCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#cf1322;border-radius:4px;padding:4px 10px;font-size:12px;margin-left:4px">撤单</button>`;
+    h += `<button onclick="event.stopPropagation();deleteCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#cf1322;border-radius:4px;padding:4px 10px;font-size:12px">撤单</button>`;
+    h += `<button onclick="event.stopPropagation();copyCustOrders('${esc(c)}')" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px;margin-left:4px">复制</button>`;
     h += `</div>`;
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
     h += `<span>下注 <b style="color:#333">${g.totalBet.toFixed(2)}</b></span>`;
@@ -4389,10 +4389,11 @@ function copyCustOrders(cust){
 function deleteCustOrders(cust){
   const cnt = orders.filter(o => (o.customer||'散客') === cust).length;
   if(!cnt){ myAlert('该客户无订单'); return; }
-  if(!confirm('确定删除「' + cust + '」的全部' + cnt + '笔订单？\n此操作不可撤销！')) return;
+  myConfirm('确定删除「' + cust + '」的全部' + cnt + '笔订单？\n此操作不可撤销！', function(){
   orders = orders.filter(o => (o.customer||'散客') !== cust);
   saveOrders(); renderAll();
   myAlert('已删除' + cnt + '笔订单');
+  });
 }
 
 function copyAllOrders(){
