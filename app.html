@@ -429,13 +429,21 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.7';
+var APP_VER = 'v54.8';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
   d.textContent = 'JS错误: ' + msg + ' 行:' + line;
   document.body.appendChild(d);
 };
+// 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
+function hardUpdateTo(v){
+  var url = location.pathname + '?v=' + encodeURIComponent(v);
+  if(location.search && location.search.indexOf('v=')>=0){
+    url = location.pathname + location.search.replace(/([?&])v=[^&]*/,'$1v='+encodeURIComponent(v));
+  }
+  location.replace(url);
+}
 // 自动检查新版本
 setTimeout(function(){
   fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
@@ -443,8 +451,8 @@ setTimeout(function(){
     if(v && v!==APP_VER){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
-      bar.textContent='发现新版本 '+v+'，点击刷新';
-      bar.onclick=function(){location.reload(true);};
+      bar.textContent='发现新版本 '+v+'，点这里更新';
+      bar.onclick=function(){ hardUpdateTo(v); };
       document.body.appendChild(bar);
     }
   }).catch(()=>{});
@@ -459,9 +467,9 @@ fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(v => {
     v = v.trim();
     if(v && v !== APP_VER && !sessionStorage.getItem('vReloaded')){
-      // 云端版本和本地不一样，强制刷新拉新版（只reload一次防止循环）
+      // 云端版本和本地不一样，硬跳带版本号的网址拉新版（只跳一次防止循环）
       sessionStorage.setItem('vReloaded','1');
-      location.reload();
+      hardUpdateTo(v);
     }
   }).catch(function(){});
 // 生肖映射：号码→生肖
