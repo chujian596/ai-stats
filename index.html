@@ -116,7 +116,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
         <span id="drawInfoTxt">未获取开奖数据</span>
-        <button onclick="autoFetchDraw()" style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">自动获取开奖</button>
+        <button id="drawFetchBtn" onclick="autoFetchDraw()" style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">自动获取开奖</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
@@ -429,7 +429,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v53.3';
+var APP_VER = 'v53.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3297,7 +3297,18 @@ var _autoSettledPeriod = 0;
 setInterval(function(){
   var now = new Date();
   var h = now.getHours(), m = now.getMinutes();
-  if(!(h === 21 && m >= 33 && m <= 35)) return;
+  var btn = document.getElementById('drawFetchBtn');
+  var isDrawTime = (h === 21 && m >= 33 && m <= 35);
+  if(btn){
+    if(isDrawTime){
+      btn.textContent = '正在获取开奖数据...';
+      btn.style.opacity = '0.6';
+    } else {
+      btn.textContent = '自动获取开奖';
+      btn.style.opacity = '1';
+    }
+  }
+  if(!isDrawTime) return;
   var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
   fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
     .then(function(r){ return r.json(); })
