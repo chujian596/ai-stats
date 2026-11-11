@@ -3752,13 +3752,14 @@ renderAll();
       const r = parseLine(line);
       if(r){
         // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）
-        const allBareNums = r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
+        const allBareNums = !window.__skipAmbig && r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
         if(allBareNums){
           window.__ambigAbort = true;
           var _codes = r.codes.join(' ');
           var _price = r.price;
+          var _n = r.codes.length;
           var _digits = line.replace(/[^\d]/g,'');
-          myChoice('这串怎么算？', _codes + ' 每注' + _price + '元？', ['确认：前面是特号，各'+_price+'元','重新编辑'], function(pick){
+          myChoice('这串怎么算？', _codes + ' 共'+_price+'元？怎么分？', ['各'+_price+'元（每个号）','共'+_price+'元（'+_n+'个号分）','重新编辑'], function(pick){
             if(pick===0){
               var inp = document.getElementById('input');
               var outLines = inp.value.split(/\r?\n/).map(function(l){
@@ -3769,6 +3770,10 @@ renderAll();
               });
               inp.value = outLines.join('\n');
               handleSave();
+            } else if(pick===1){
+              window.__skipAmbig = true;
+              handleSave();
+              window.__skipAmbig = false;
             }
           });
           return;
