@@ -21,6 +21,7 @@
 - `siteNo`、`fetchedAt`、`rawBytes`、`rawSha`：抓取时间、原始字节数、内容指纹（改料比对用）
 - `kind`：kill 杀肖 / rec 推荐肖 / other 非生肖维度
 - `hit` `miss` `unresolved` `total` `acc`(命中率) `missRate`(错误率) `cls`(good/bad/watch)
+- `missingPeriods` / `missingCount`：近期窗口内源站漏发（未更新）的期号；`expected` 应发期数；`coverage` 覆盖率=已发/应发
 - `changed` / `changedPeriods`：与上一次快照逐期比对，历史期生肖被改动即标记（改料）
 - `mismatch`：站点自标「准/错」与我方独立对账不一致的期（靠谱度参考）
 
@@ -32,6 +33,7 @@
 - 杀肖 kill：特肖在被杀肖里 → `miss`(错)，否则 `hit`(准)。
 - 推荐 rec：特肖在推荐肖里 → `hit`，否则 `miss`。
 - 官方未开出（315 期）→ `unresolved`，不计命中率。
+- **缺更计错**：源站某期没发资料（漏更/藏掉错期），视为未交付，计入 `miss`；窗口取最晚期号往前回溯该栏目已发期数那么多期，避免早年串入期号或上墙截断把旧期误算成缺更。`miss` 含缺更期，命中率=命中/(已发+缺更)。
 - 分类阈值：已结算样本 ≥10 且命中率 ≥70% = good；<70% = bad；否则 watch。
 - 注意：杀肖天然容错高（只杀 1~3 个肖），宽肖推荐（七肖/六肖）覆盖率高、命中率虚高；窄肖（一肖/三肖）命中率更能说明问题。
 

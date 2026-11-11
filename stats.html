@@ -402,7 +402,7 @@ function renderTw(){
     +'<div class="row"><span>分类</span><span>准 '+clsN('good')+' · 差 '+clsN('bad')+' · 观察 '+clsN('watch')+'</span></div>'
     +'<div class="row"><span>改料栏目</span><span>'+changedN+'</span></div>'
     +'<div class="row"><span>自标不符栏目</span><span>'+mmN+'</span></div>'
-    +'<div class="muted" style="margin-top:6px">'+esc(src.access||'')+'</div></div>';
+    +'<div class="muted" style="margin-top:6px">近期窗口内源站漏发的期按未交付计错，已计入错误率；覆盖率=已发期/应发期。<br>'+esc(src.access||'')+'</div></div>';
 
   function colCard(c){
     var pct=c.acc!=null?Math.round(c.acc*100)+'%':'—';
@@ -421,9 +421,11 @@ function renderTw(){
       det+='<div>'+r.period+'期 '+zodTxt+openTxt+' → '+jt+mm+'</div>';
     });
     var link=c.sourceUrl?(' · <a href="'+esc(c.sourceUrl)+'" target="_blank" rel="noopener">来源</a>'):'';
+    var ms=c.missingCount?(' 缺更'+c.missingCount):'';
+    var cov=c.coverage!=null?(' · 覆盖'+Math.round(c.coverage*100)+'%'):'';
     return '<div class="auth" onclick="this.classList.toggle(\'open\')">'
       +'<div class="top"><span class="name">'+esc(c.title)+'</span><span class="tag '+c.cls+'">'+classifyLabel(c.cls)+'</span></div>'
-      +'<div class="meta">'+twKindLabel(c.kind)+' · 准'+c.hit+' 错'+c.miss+' 待'+c.unresolved+' · 准确率'+pct+' · 错误率'+mr+link+'</div>'
+      +'<div class="meta">'+twKindLabel(c.kind)+' · 准'+c.hit+' 错'+c.miss+ms+' 待'+c.unresolved+' · 准确率'+pct+' · 错误率'+mr+cov+link+'</div>'
       +(badges?'<div class="meta">'+badges+'</div>':'')
       +'<div class="meta">'+curTxt+'</div>'
       +'<div class="bar"><i style="width:'+(c.acc!=null?Math.round(c.acc*100):0)+'%"></i></div>'
@@ -462,7 +464,7 @@ function renderForum(){
     +'<div class="row"><span>栏目数</span><span>'+cols.length+'（杀 '+kill.length+' / 推荐 '+rec.length+'）</span></div>'
     +'<div class="row"><span>分类</span><span>准 '+clsN('good')+' · 差 '+clsN('bad')+' · 观察 '+clsN('watch')+'</span></div>'
     +'<div class="row"><span>自标不符栏目</span><span>'+mmN+'</span></div>'
-    +'<div class="muted" style="margin-top:6px">列表 '+esc(src.listApi||'')+'<br>详情 '+esc(src.detailApi||'')+'<br>'+esc(src.access||'')+'</div></div>';
+    +'<div class="muted" style="margin-top:6px">近期窗口内源站漏发的期按未交付计错，已计入错误率；覆盖率=已发期/应发期。<br>列表 '+esc(src.listApi||'')+'<br>详情 '+esc(src.detailApi||'')+'<br>'+esc(src.access||'')+'</div></div>';
 
   function fCard(c){
     var pct=c.acc!=null?Math.round(c.acc*100)+'%':'—';
@@ -472,10 +474,12 @@ function renderForum(){
     var cur=c.current||null;
     var curTxt=cur&&cur.zods&&cur.zods.length?('本期 '+cur.period+' 期：'+cur.zods.join(' ')):'本期暂无';
     var link=c.sourceUrl?(' · <a href="'+esc(c.sourceUrl)+'" target="_blank" rel="noopener">来源接口</a>'):'';
+    var ms=c.missingCount?(' 缺更'+c.missingCount):'';
+    var cov=c.coverage!=null?(' · 覆盖'+Math.round(c.coverage*100)+'%'):'';
     var meta2='抓取 '+esc(c.fetchedAt||'—')+' · 指纹 '+esc(c.rawSha||'—');
     return '<div class="auth" onclick="this.classList.toggle(\'open\')">'
       +'<div class="top"><span class="name">'+esc(c.name||'匿名')+'</span><span class="tag '+c.cls+'">'+classifyLabel(c.cls)+'</span></div>'
-      +'<div class="meta">'+esc(c.topic)+' · 准'+c.hit+' 错'+c.miss+' 待'+c.unresolved+' · 准确率'+pct+' · 错误率'+mr+link+'</div>'
+      +'<div class="meta">'+esc(c.topic)+' · 准'+c.hit+' 错'+c.miss+ms+' 待'+c.unresolved+' · 准确率'+pct+' · 错误率'+mr+cov+link+'</div>'
       +(badges?'<div class="meta">'+badges+'</div>':'')
       +'<div class="meta">'+curTxt+'</div>'
       +'<div class="bar"><i style="width:'+(c.acc!=null?Math.round(c.acc*100):0)+'%"></i></div>'

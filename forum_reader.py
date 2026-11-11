@@ -210,6 +210,25 @@ def cmd_fetch():
     reconcile(columns, official)
 
 
+def missing_periods(rows, kind, official):
+    """近期窗口内官方已开奖、但源站漏发的期（视为未交付/隐藏错期，计 miss）。
+
+    窗口取最晚期号往前回溯「已发期数」那么多期（下限 10），避免早年串入期号
+    或上墙只保留近几十期造成的截断把旧期误算成缺更。
+    """
+    if kind not in ("kill", "rec"):
+        return []
+    settled = [r["period"] for r in rows if r.get("officialZod")]
+    if not settled:
+        return []
+    hi = max(settled)
+    depth = len(settled)
+    lo = hi - depth + 1
+    off_periods = {int(k) for k, v in official.items() if v and v.get("specialZod")}
+    published = set(settled)
+    return sorted(p for p in off_periods if lo <= p <= hi and p not in published)
+
+
 def reconcile(columns, official):
     out = []
     for c in columns:
@@ -229,16 +248,23 @@ def reconcile(columns, official):
                     mismatch.append({"period": r["period"], "selfMark": r["selfMark"], "verdict": v})
             else:
                 unresolved += 1
+        # 缺更期：窗口内官方已开奖但源站没发，按未交付计错
+        missing = missing_periods(c["rows"], c["kind"], official)
+        miss += len(missing)
         total = hit + miss
         acc = hit / total if total > 0 else None
         miss_rate = miss / total if total > 0 else None
+        expected = len([r for r in c["rows"] if r.get("officialZod")]) + len(missing)
+        coverage = (expected - len(missing)) / expected if expected > 0 else None
         cls = "watch"
         if total >= 10:
             cls = "good" if (acc is not None and acc >= 0.7) else "bad"
         c.update({"hit": hit, "miss": miss, "unresolved": unresolved, "total": total,
                   "acc": round(acc, 3) if acc is not None else None,
                   "missRate": round(miss_rate, 3) if miss_rate is not None else None,
-                  "cls": cls, "mismatch": mismatch})
+                  "cls": cls, "mismatch": mismatch,
+                  "missingPeriods": missing, "missingCount": len(missing),
+                  "expected": expected, "coverage": round(coverage, 3) if coverage is not None else None})
         out.append(c)
 
     out.sort(key=lambda x: (x["cls"] != "good", -(x["acc"] or 0)))
@@ -275,7 +301,8 @@ def reconcile(columns, official):
             "sourceUrl": c["sourceUrl"], "apiUrl": c["apiUrl"], "fetchedAt": c["fetchedAt"],
             "rawSha": c["rawSha"], "hit": c["hit"], "miss": c["miss"], "unresolved": c["unresolved"],
             "total": c["total"], "acc": c["acc"], "missRate": c["missRate"], "cls": c["cls"],
-            "mismatchCount": len(c["mismatch"]),
+            "mismatchCount": len(c["mismatch"]), "missingCount": c["missingCount"],
+            "expected": c["expected"], "coverage": c["coverage"],
             "current": latest and {"period": latest["period"], "zods": latest["zods"],
                                    "openedZod": latest["openedZod"], "verdict": latest["verdict"]},
         })

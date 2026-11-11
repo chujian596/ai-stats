@@ -145,6 +145,67 @@ def judge(kind, zods, off_zod):
     return "hit" if off_zod in zods else "miss"
 
 
+def missing_periods(rows, kind, official):
+    """近期窗口内官方已开奖、但源站漏发的期（视为未交付/隐藏错期，计 miss）。
+
+    窗口取最晚期号往前回溯「已发期数」那么多期（下限 10），避免早年串入期号
+    或上墙只保留近几十期造成的截断把旧期误算成缺更。
+    """
+    if kind not in ("kill", "rec"):
+        return []
+    settled = [r["period"] for r in rows if r.get("officialZod")]
+    if not settled:
+        return []
+    hi = max(settled)
+    depth = len(settled)
+    lo = hi - depth + 1
+    off_periods = {int(k) for k, v in official.items() if v and v.get("specialZod")}
+    published = set(settled)
+    return sorted(p for p in off_periods if lo <= p <= hi and p not in published)
+
+
+def reconcile_columns(columns, official):
+    """对已解析行重新对账，并把窗口内缺更期计入 miss。"""
+    for c in columns:
+        hit = miss = unresolved = 0
+        mismatch = []
+        for r in c["rows"]:
+            off = official.get(str(r["period"]))
+            off_zod = off["specialZod"] if off else None
+            r["officialZod"] = off_zod
+            v = judge(c["kind"], r["zods"], off_zod)
+            r["verdict"] = v
+            if v == "hit":
+                hit += 1
+            elif v == "miss":
+                miss += 1
+                if r.get("selfMark") == "准" and v == "miss":
+                    mismatch.append({"period": r["period"], "selfMark": r["selfMark"], "verdict": v})
+            else:
+                unresolved += 1
+        missing = missing_periods(c["rows"], c["kind"], official)
+        miss += len(missing)
+        total = hit + miss
+        acc = hit / total if total else None
+        miss_rate = miss / total if total else None
+        expected = len([r for r in c["rows"] if r.get("officialZod")]) + len(missing)
+        coverage = (expected - len(missing)) / expected if expected > 0 else None
+        cls = "watch"
+        if total >= 10:
+            cls = "good" if (acc is not None and acc >= 0.7) else "bad"
+        c.update({"hit": hit, "miss": miss, "unresolved": unresolved, "total": total,
+                  "acc": round(acc, 3) if acc is not None else None,
+                  "missRate": round(miss_rate, 3) if miss_rate is not None else None,
+                  "cls": cls,
+                  "missingPeriods": missing, "missingCount": len(missing),
+                  "expected": expected, "coverage": round(coverage, 3) if coverage is not None else None})
+        c["mismatch"] = [{"period": r["period"], "selfMark": r["selfMark"], "verdict": r["verdict"]}
+                         for r in c["rows"] if r.get("selfMark") and r["verdict"]
+                         and ((r["selfMark"] == "准" and r["verdict"] == "miss")
+                              or (r["selfMark"] == "错" and r["verdict"] == "hit"))]
+    return columns
+
+
 def fetch_all():
     rules = json.load(open(RULES, encoding="utf-8"))
     official = load_official()
@@ -185,11 +246,6 @@ def fetch_all():
         changed_periods = []
         old_rows = prev.get(rule_id, {})
         for r in rows:
-            off = official.get(str(r["period"]))
-            off_zod = off["specialZod"] if off else None
-            verdict = judge(col["kind"], r["zods"], off_zod)
-            r["officialZod"] = off_zod
-            r["verdict"] = verdict
             # 改料复查：历史期生肖与上次快照不一致
             if r["period"] in old_rows and old_rows[r["period"]] != r["zods"]:
                 changed_periods.append({"period": r["period"], "before": old_rows[r["period"]], "after": r["zods"]})
@@ -197,25 +253,8 @@ def fetch_all():
 
         col["changed"] = bool(changed_periods)
         col["changedPeriods"] = changed_periods
+        reconcile_columns([col], official)
 
-        # 统计
-        hit = sum(1 for r in col["rows"] if r["verdict"] == "hit")
-        miss = sum(1 for r in col["rows"] if r["verdict"] == "miss")
-        unresolved = sum(1 for r in col["rows"] if r["verdict"] is None)
-        total = hit + miss
-        acc = hit / total if total else None
-        miss_rate = miss / total if total else None
-        col.update({"hit": hit, "miss": miss, "unresolved": unresolved, "total": total,
-                    "acc": round(acc, 3) if acc is not None else None,
-                    "missRate": round(miss_rate, 3) if miss_rate is not None else None})
-        col["cls"] = "watch"
-        if total >= 10:
-            col["cls"] = "good" if (acc is not None and acc >= 0.7) else "bad"
-        # 站点自标与独立对账不一致的期（靠谱度参考）
-        col["mismatch"] = [{"period": r["period"], "selfMark": r["selfMark"], "verdict": r["verdict"]}
-                           for r in col["rows"] if r["selfMark"] and r["verdict"]
-                           and ((r["selfMark"] == "准" and r["verdict"] == "miss")
-                                or (r["selfMark"] == "错" and r["verdict"] == "hit"))]
         if NONZOD_RE.search(title) or not any(r["zods"] for r in rows):
             col["nonZodiac"] = True
         columns.append(col)
@@ -240,9 +279,11 @@ def report(snap):
         if c["kind"] == "other":
             continue
         pct = f"{round(c['acc']*100)}%" if c["acc"] is not None else "—"
+        cov = f" 覆盖{round(c['coverage']*100)}%" if c.get("coverage") is not None else ""
+        ms = f" 缺更{c['missingCount']}" if c.get("missingCount") else ""
         flag = " 改料!" if c.get("changed") else ""
         mm = f" 自标不符{len(c['mismatch'])}" if c.get("mismatch") else ""
-        print(f"  [{c['cls']}] {c['title']} 中{c['hit']} 错{c['miss']} 待{c['unresolved']} {pct}{flag}{mm}")
+        print(f"  [{c['cls']}] {c['title']} 中{c['hit']} 错{c['miss']}{ms} 待{c['unresolved']} {pct}{cov}{flag}{mm}")
 
 
 if __name__ == "__main__":
@@ -251,4 +292,8 @@ if __name__ == "__main__":
         fetch_all()
     else:
         snap = json.load(open(SNAPSHOT, encoding="utf-8"))
+        official = load_official()
+        reconcile_columns(snap["columns"], official)
+        snap["officialCount"] = len(official)
+        json.dump(snap, open(SNAPSHOT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         report(snap)
