@@ -162,10 +162,15 @@ function loadTextwall(){
 
 // 论坛后台对账汇总（forum_reader.py 生成，静态 JSON，同目录）
 function loadForum(){
-  return fetchJson('forum-summary.json').then(function(d){
-    state.forum.source=(d&&d.source)||{};
-    state.forum.columns=(d&&d.columns)||[];
-  }).catch(function(){ state.forum={ source:{}, columns:[] }; });
+  function apply(d){ state.forum.source=(d&&d.source)||{}; state.forum.columns=(d&&d.columns)||[]; }
+  return fetchJson('forum-summary.json').then(apply).catch(function(){
+    // 边缘节点临时 504/404 时，延迟 1.2s 重试一次，避免冷加载直接留空
+    return new Promise(function(res){
+      setTimeout(function(){
+        fetchJson('forum-summary.json').then(apply).catch(function(){ state.forum={ source:{}, columns:[] }; }).then(res);
+      }, 1200);
+    });
+  });
 }
 
 function judgeRow(kind, row){
