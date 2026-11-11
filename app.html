@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v56.6';
+var APP_VER = 'v56.7';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4629,8 +4629,18 @@ function renderRisk(){
   const rec0 = findT(0);
   const rec20 = findT(-totalSales*0.2);
   const rec40 = findT(-totalSales*0.4);
-  h += `<div style="display:flex;gap:6px;margin-top:8px">`;
-  [{label:'保本',val:rec0,loss:'最坏不亏'},{label:'稳健',val:rec20,loss:'亏≤20%'},{label:'宽松',val:rec40,loss:'亏≤40%'}].forEach(p => {
+  // 自动稳健：开了就把阈值自动设为稳健值（最坏亏≤当天20%）
+  let autoStable = true;
+  try { autoStable = localStorage.getItem('autoStable') !== '0'; } catch(e){}
+  if(autoStable && Math.round(splitTakeAll) !== rec20){
+    splitTakeAll = rec20; saveSplitAll();
+    renderSplit(); return renderRisk();
+  }
+  h += `<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:#333;cursor:pointer">`
+    + `<input type="checkbox" id="autoStableChk" ${autoStable?'checked':''} onchange="var v=this.checked;try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};if(v){splitTakeAll=${rec20};saveSplitAll();renderSplit();}renderRisk()" style="width:16px;height:16px">`
+    + `自动设为稳健阈值（最坏亏≤当天20%）</label>`;
+  h += `<div style="display:flex;gap:6px;margin-top:6px">`;
+  [{label:'稳健',val:rec20,loss:'亏≤20%'},{label:'宽松',val:rec40,loss:'亏≤40%'}].forEach(p => {
     h += `<button onclick="splitTakeAll=${p.val};saveSplitAll();renderSplit();renderRisk()" style="flex:1;border:1px solid #ccc;color:#333;background:#fff;border-radius:6px;padding:8px 4px;font-size:13px;font-weight:600">${p.label}<br>${p.val}<br><span style="font-size:10px;font-weight:400;color:#999">${p.loss}</span></button>`;
   });
   h += `</div>`;
