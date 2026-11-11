@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v57.4';
+var APP_VER = 'v57.5';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -4595,9 +4595,9 @@ function renderRisk(){
   // 今日汇总条
   h += `<div style="display:flex;gap:4px;margin:6px 0">`;
   h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${fullTotalSales.toFixed(0)}</b></div>`;
-  const totalFly = currentFly + pteFlyAmt + lxFlyAmt + (emFlyOn ? emFlySales : 0);
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞</div><b style="font-size:16px;color:#cf1322">${totalFly.toFixed(0)}</b></div>`;
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">自留</div><b style="font-size:16px;color:#16a34a">${keptCash.toFixed(0)}</b></div>`;
+  const _fr = getThisRoundFly();
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞(实际)</div><b style="font-size:16px;color:#cf1322">${_fr.already.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">待飞</div><b style="font-size:16px;color:#d97706">${_fr.thisRound.toFixed(0)}</b></div>`;
   h += `</div>`;
   // 已开奖：显示实际结果
   if(lastDraw && lastDraw.specialNum){
