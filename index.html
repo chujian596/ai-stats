@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v55.9';
+var APP_VER = 'v56.0';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -894,21 +894,23 @@ function saveOrders(){
   catch(e){ storageOK = false; }
 }
 function delOrder(idx){
-  if(!confirm('删除这笔订单？金额会同步扣减')) return;
+  myConfirm('删除这笔订单？金额会同步扣减', function(){
   orders.splice(idx, 1);
   saveOrders();
   restoreIfNeeded();
 renderAll();
+  });
 }
 function undoLastOrder(){
   if(!orders.length){ document.getElementById('saveMsg').textContent='没有可撤销的订单'; return; }
   var last = orders[orders.length-1];
-  if(!confirm('撤销上一条订单？\n'+(last.raw||last.cust||'')+' 金额:'+(last.amount||''))) return;
+  myConfirm('撤销上一条订单？\n'+(last.raw||last.cust||'')+' 金额:'+(last.amount||''), function(){
   orders.pop();
   saveOrders();
   restoreIfNeeded();
   renderAll();
   document.getElementById('saveMsg').textContent='已撤销上一条订单';
+  });
 }
 
 // 赔付记录
@@ -5151,7 +5153,7 @@ function applyBackup(data){
   } else {
     throw new Error('备份格式不正确');
   }
-  if(!confirm(`将用备份中的 ${newOrders.length} 条订单替换当前 ${orders.length} 条订单，确定？`)) return;
+  myConfirm(`将用备份中的 ${newOrders.length} 条订单替换当前 ${orders.length} 条订单，确定？`, function(){
   orders = newOrders.map(normalizeOrder);
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
@@ -5159,6 +5161,7 @@ function applyBackup(data){
   restoreIfNeeded();
   renderAll();
   myAlert('导入成功');
+  });
 }
 function importBackup(ev){
   const file = ev.target.files[0];
@@ -5177,9 +5180,10 @@ function restoreLastBackup(){
   try { raw = localStorage.getItem('_lastBackup'); } catch(e){}
   if(!raw){ myAlert('还没有可恢复的内部备份'); return; }
   const t = localStorage.getItem('_lastBackupTime') || '';
-  if(!confirm('将恢复你最近一次点"备份JSON"时存在app内部的备份' + (t?'（'+t+'）':'') + '，继续？')) return;
+  myConfirm('将恢复你最近一次点"备份JSON"时存在app内部的备份' + (t?'（'+t+'）':'') + '，继续？', function(){
   try { applyBackup(JSON.parse(raw)); }
   catch(err){ myAlert('恢复失败：' + err.message); }
+  });
 }
 
 function myAlert(msg){
@@ -5536,8 +5540,7 @@ function resetTheme(){
 }
 
 function clearAll(){
-  if(!confirm('确定清空全部数据？不可恢复！建议先备份JSON。')) return;
-  if(!confirm('再次确认：真的要清空全部数据吗？')) return;
+  myConfirm('确定清空全部数据？不可恢复！建议先备份JSON。', function(){
   orders = [];
   pays = [];
   custpays = [];
@@ -5550,6 +5553,7 @@ function clearAll(){
   if(lockBackup) localStorage.setItem(LOCK_KEY, lockBackup);
   if(rosterBackup) localStorage.setItem(RKEY, rosterBackup);
   location.reload();
+  });
 }
 
 updateModeBtns();
