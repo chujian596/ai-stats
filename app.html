@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v57.7';
+var APP_VER = 'v57.8';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3120,8 +3120,10 @@ function parseLine(text){
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
   codeText = codeText.replace(/平特/g, '『PT』');
-  // 1. "特肖X"→"X数"（特肖=特码买该肖全部号码），"特X"→"X数"
-  codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '$1数');
+  // 1. "特肖X"→"X数"，"特X"→"X数"（特=特码买该肖全部号码；特后面跟一串生肖就整串都当特肖）
+  codeText = codeText.replace(/特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zs) => {
+    return zs.split('').map(c => c + '数').join('');
+  });
   // 1.5 "虎平"→"平特虎"（生肖+平，如虎平1000）
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])平/g, '平特$1');
   // 2. "平肖X"→"平特X"，"平X"→"平特X"
@@ -3148,7 +3150,7 @@ function parseLine(text){
   codeText = codeText.replace(/^澳/, '');
   // "蛇数"→展开蛇的所有号码
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])数/g, (m, z) => {
-    return NUM2ZODIAC_REV[z].map(n => String(n).padStart(2,'0')).join(' ');
+    return NUM2ZODIAC_REV[z].map(n => String(n).padStart(2,'0')).join(' ') + ' ';
   });
   // 头数展开：0头→01-09, 1头→10-19, ...
   codeText = codeText.replace(/(\d)头/g, (m, h) => {
