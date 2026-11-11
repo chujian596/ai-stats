@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v56.2';
+var APP_VER = 'v56.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3694,7 +3694,24 @@ renderAll();
     const mDef = ln.match(/各(?:组|数|号|个|肖)?\s*([0-9]+(?:\.[0-9]+)?)/);
     if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
   }
-  mergedLines.forEach((line, i) => {
+  // 多行组合：前面几行纯号码组合，最后一行"三中三各组20"给类型和每组金额
+  let workLines = mergedLines;
+  let comboProduct = null, comboPrice = null;
+  for(const ln of mergedLines){
+    const mc = ln.match(/^(三中三|二中二|三中二)\s*(?:各(?:组|数|号|个)?\s*)?([0-9]+(?:\.[0-9]+)?)\s*$/);
+    if(mc){ comboProduct = mc[1]; comboPrice = parseFloat(mc[2]); break; }
+  }
+  if(comboProduct && comboPrice){
+    const nNums = comboProduct === '二中二' ? 2 : 3;
+    const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
+    workLines = mergedLines.map(ln=>{
+      const t = ln.trim();
+      if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
+      if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;
+      return ln;
+    }).filter(x=>x!==null);
+  }
+  workLines.forEach((line, i) => {
     const trimmed = line.trim();
     // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行
     if(/^(三中三|二中二|三中二)[:：\s]*$/.test(trimmed)){
