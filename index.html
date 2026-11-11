@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v53.5';
+var APP_VER = 'v53.6';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3280,9 +3280,9 @@ function autoFetchDraw(){
       }
       var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
       var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+      renderLiveBalls(m.winner_numbers, true);
       if(parseInt(m.draw) <= already){
-        myAlert('第' + m.draw + '期已结算过了\n最新期号: ' + m.draw);
-        return;
+        return; // 已结算过，不重复处理，但圆球已经显示了
       }
       var drawStr = '开' + m.draw + ' ' + nums.join('.');
       document.getElementById('input').value = drawStr;
@@ -5340,7 +5340,10 @@ function clearDrawRecord(){
   const sp = d && d.specialNum ? String(d.specialNum).padStart(2,'0') : '';
   if(!confirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。')) return;
   localStorage.removeItem('lastDraw');
+  localStorage.removeItem('lastDrawPeriod');
   lastDraw = null;
+  renderLiveBalls([]);
+  updateDrawInfoBar();
   const idx = pays.findIndex(function(p){ return p && p.product === '自动结算'; });
   if(idx >= 0){
     const rec = pays[idx];
