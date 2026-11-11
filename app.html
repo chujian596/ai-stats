@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.9';
+var APP_VER = 'v58.10';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3540,20 +3540,21 @@ function handleSave(){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
           } else {
           const numCount = prodDef.links.length;
+          window.__ambigAbort = true;
           const ov = document.createElement('div');
           ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
           ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
             + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">请选择注单方式</div>'
             + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + canonical + ' ' + price + '元（' + numCount + '个号）</div>'
             + '<div style="border-top:1px solid #eee">'
-            + '<button id="wvA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">总额' + price + '（摊到' + numCount + '号，每个' + (price/numCount).toFixed(1) + '元）</button>'
-            + '<button id="wvB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#7c3aed;font-weight:700;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
+            + '<button id="wvA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:600;border-bottom:1px solid #eee">总额' + price + '（摊到' + numCount + '号，每个' + (price/numCount).toFixed(1) + '元）</button>'
+            + '<button id="wvB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:600;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
             + '<button id="wvC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
             + '</div></div>';
           document.body.appendChild(ov);
-          ov.querySelector('#wvA').onclick = () => { ov.remove(); window._waveChoice='total'; window._waveCanonical=canonical; handleSave(); };
-          ov.querySelector('#wvB').onclick = () => { ov.remove(); window._waveChoice='perNum'; window._waveCanonical=canonical; window._waveLastPerNum=true; handleSave(); };
-          ov.querySelector('#wvC').onclick = () => { ov.remove(); window._waveChoice=null; };
+          ov.querySelector('#wvA').onclick = () => { ov.remove(); window._waveChoice='total'; window._waveCanonical=canonical; window.__ambigAbort=false; handleSave(); };
+          ov.querySelector('#wvB').onclick = () => { ov.remove(); window._waveChoice='perNum'; window._waveCanonical=canonical; window._waveLastPerNum=true; window.__ambigAbort=false; handleSave(); };
+          ov.querySelector('#wvC').onclick = () => { ov.remove(); window._waveChoice=null; window.__ambigAbort=false; };
           return;
           }
         }
