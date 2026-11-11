@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.12';
+var APP_VER = 'v58.13';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3787,10 +3787,12 @@ renderAll();
       if(e.ambigZodiac){
         var zs = e.ambigZodiac;
         window.__ambigAbort = true;
-        myChoice('「'+zs+'」怎么录？', '没写平/特/连，这'+zs.length+'个生肖按哪种产品？点一下就存好。', ['特肖：买该肖全部特号','平特：买该肖平特','连肖：买这几个肖连肖'], function(pick){
+        myChoice('「'+zs+'」怎么录？', '没写平/特/连，这'+zs.length+'个生肖按哪种产品？点一下就存好。', ['特肖：买该肖全部特号','平特：买该肖平特','连肖：买这几个肖连肖','重新编辑'], function(pick){
+          if(pick===3){ window.__ambigAbort=false; return; }
           var prefix = pick===0 ? '特' : (pick===1 ? '平特' : '连肖');
           var inp = document.getElementById('input');
           inp.value = inp.value.replace(new RegExp('(^|[^特平连])('+zs+')'), '$1'+prefix+'$2');
+          window.__ambigAbort=false;
           handleSave();
         });
         return;
