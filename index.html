@@ -329,12 +329,13 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算（自动获取）</div>
       <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
-        输入框输入<b style="color:#fff">"开"</b>开头+7个号码：<br>
-        <code style="background:#2C2C2E;padding:2px 6px;border-radius:4px">开01.03.08.11.13.21.09</code><br>
-        前6个=平号，最后1个=特号<br>
-        弹出结算确认后点"记入赔付"
+        1. 点"自动获取开奖"按钮，自动拉取最新开奖号码并结算<br>
+        2. <b style="color:#fff">每天21:33-21:35自动获取</b>，号码逐个跳出，稳定后自动结算<br>
+        3. 顶部时钟在开奖时段会变红闪烁，表示正在自动刷新<br>
+        4. 彩色圆球显示开奖号码（红/蓝/绿），特号带金色边框<br>
+        5. 也可手动输入"开"+7个号码结算（备用）
       </div>
 
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">四、历史订单管理</div>
@@ -360,7 +361,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
         1. 无法识别的订单会整笔报错，不会只存一部分<br>
         2. 保存后每行显示产品类型（特号/平特/连肖），方便核对<br>
-        3. 开奖：输入"开"+7个号码自动结算<br>
+        3. 开奖：点"自动获取开奖"或输入"开"+7个号码<br>
         4. 历史订单里"撤单"=删除该客户全部订单<br>
         5. 数据存在本机，换手机需重新录入<br>
         6. 每天点"今日归档"切换账单日
@@ -432,7 +433,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v54.2';
+var APP_VER = 'v54.3';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
