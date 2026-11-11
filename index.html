@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v57.1';
+var APP_VER = 'v57.2';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3048,7 +3048,7 @@ function parseLine(text){
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
   // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
   var SEP = '[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+';
-  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
+  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
   if(fast){
     var fnums = fast[1].split(new RegExp(SEP)).filter(Boolean).map(function(n){ return n.padStart(2,'0'); });
     if(fnums.length >= 1) return { codes: fnums, price: parseFloat(fast[2]), isPer: true };
@@ -3078,7 +3078,7 @@ function parseLine(text){
   text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
-  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|个)\\s*' + numRe + unitRe + '\\s*$'));
+  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*' + numRe + unitRe + '\\s*$'));
   let isPer, price, codeText;
   if(mGe){
     isPer = true;
@@ -3094,6 +3094,12 @@ function parseLine(text){
   if(!(price > 0)) throw new Error('价格必须大于0');
   // 恢复保护的冒号格式代码
   codeText = codeText.replace(/『P(\d+)』/g, (m, idx) => protectedCodes[parseInt(idx)]);
+  // 统一分隔符：各种横杠/中点/加号/顿号转空格；数字间英文句点转空格（不能动逗号，三中三:02,15,28 靠它分隔）
+  codeText = codeText.replace(/[–—―·+、]+/g, ' ').replace(/(\d)\.(\d)/g, '$1 $2');
+  // 数字间英文逗号转空格，但冒号后的逗号保留（三中三:02,15,28 的分隔符）
+  codeText = codeText.replace(/(?<![:：])(\d),(?=\d)/g, '$1 ');
+  // 开头裸产品前缀：特码: / 特: / 特码 / 特 （后面跟数字的，只是说明这是特码单）
+  codeText = codeText.replace(/^\s*特码?[:：]?\s*(?=\d)/, ' ');
   const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
