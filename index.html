@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v55.8';
+var APP_VER = 'v55.9';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -5194,6 +5194,21 @@ function myAlert(msg){
   document.body.appendChild(ov);
   ov.querySelector('#maOk').onclick = () => ov.remove();
 }
+// app 内确认框（不显示网址），用法：myConfirm('确定?', () => { 确定后做的事 })
+function myConfirm(msg, onOk){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">提示</div>'
+    + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="mcNo" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
+    + '<button id="mcYes" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确定</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#mcNo').onclick = () => ov.remove();
+  ov.querySelector('#mcYes').onclick = () => { ov.remove(); if(onOk) onOk(); };
+}
 
 function myConfirm(msg, cb){
   const ov = document.createElement('div');
@@ -5480,7 +5495,7 @@ function clearDrawRecord(){
   let d = null;
   try { d = JSON.parse(raw); } catch(e){}
   const sp = d && d.specialNum ? String(d.specialNum).padStart(2,'0') : '';
-  if(!confirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。')) return;
+  myConfirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。', function(){
   localStorage.removeItem('lastDraw');
   localStorage.removeItem('lastDrawPeriod');
   lastDraw = null;
@@ -5489,21 +5504,22 @@ function clearDrawRecord(){
   const idx = pays.findIndex(function(p){ return p && p.product === '自动结算'; });
   if(idx >= 0){
     const rec = pays[idx];
-    if(confirm('还发现一条「自动结算」赔付记录：' + (rec.note || '') + ' ' + (Number(rec.amount)||0).toFixed(2) + ' 元。\n一起删除并回滚上家累计吗？')){
+    myConfirm('还发现一条「自动结算」赔付记录：' + (rec.note || '') + ' ' + (Number(rec.amount)||0).toFixed(2) + ' 元。\n一起删除并回滚上家累计吗？', function(){
       const before = rec._upBefore;
       pays.splice(idx, 1);
       savePays();
       if(typeof before !== 'undefined'){
         localStorage.setItem('upCum', String(before));
       } else {
-        alert('这条记录是旧版本存的，没有回滚点。上家累计请到「飞单统计」手工核对一次。');
+        myAlert('这条记录是旧版本存的，没有回滚点。上家累计请到「飞单统计」手工核对一次。');
       }
-    }
+    });
   }
   closeSettings();
   renderAll();
   if(typeof billRefreshBar === 'function') billRefreshBar();
   myAlert('已撤销开奖记录');
+  });
 }
 function closeSettings(){ document.getElementById('settingsModal').style.display='none'; }
 function openHelp(){ document.getElementById('helpModal').style.display='flex'; }
