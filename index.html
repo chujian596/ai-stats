@@ -114,8 +114,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
-      <div style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
-        <span>开奖自动结算：输入"开"开头+7个号码，如：开01.03.08.11.13.21.09</span>
+      <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
+        <span id="drawInfoTxt">未获取开奖数据</span>
         <button onclick="autoFetchDraw()" style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">自动获取开奖</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
@@ -429,7 +429,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v53.1';
+var APP_VER = 'v53.2';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3250,6 +3250,16 @@ function codeSalesForOrder(o, prod){
   return (Number(o.price)||0)*times;
 }
 let _texiaoChoice = null;
+function updateDrawInfoBar(){
+  var el = document.getElementById('drawInfoTxt');
+  if(!el) return;
+  if(lastDraw){
+    var nums = lastDraw.regularNums.concat([lastDraw.specialNum]).map(function(n){ return String(n).padStart(2,'0'); });
+    el.textContent = '期' + (lastDraw.period||'?') + ' 特' + String(lastDraw.specialNum).padStart(2,'0') + ' ' + nums.join(' ');
+  } else {
+    el.textContent = '未获取开奖数据';
+  }
+}
 function autoFetchDraw(){
   var btn = event.target;
   btn.textContent = '获取中...';
@@ -3836,7 +3846,7 @@ function hideSub(code){
   restoreIfNeeded();
 renderAll();
 }
-function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem('lastDrawPeriod', String(lastDraw.period)); } catch(e){} }
+function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem('lastDrawPeriod', String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); }
 try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
 
 function calcOrderWinDetail(o){
@@ -5553,6 +5563,7 @@ try {
 } catch(e){}
 
 setTimeout(function(){ try { billCheckRollover(); } catch(e){} }, 350);
+setTimeout(function(){ try { updateDrawInfoBar(); } catch(e){} }, 500);
 
 </script>
 </body>
