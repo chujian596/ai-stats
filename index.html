@@ -430,7 +430,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.3';
+var APP_VER = 'v58.4';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3753,6 +3753,28 @@ renderAll();
     try {
       const r = parseLine(line);
       if(r){
+        // 裸号码歧义：没写"各"、全是2位号、末尾金额≤49（既像号又像金额）时弹确认
+        const allBareNums = r.codes.length >= 2 && !r.isPer && r.price > 0 && r.price <= 49 && r.codes.every(c=>/^\d{2}$/.test(c));
+        if(allBareNums){
+          window.__ambigAbort = true;
+          var _codes = r.codes.join(' ');
+          var _price = r.price;
+          var _digits = line.replace(/[^\d]/g,'');
+          myChoice('这串怎么算？', _codes + ' 每注' + _price + '元？', ['确认：前面是特号，各'+_price+'元','取消重写'], function(pick){
+            if(pick===0){
+              var inp = document.getElementById('input');
+              var outLines = inp.value.split(/\r?\n/).map(function(l){
+                if(l.replace(/[^\d]/g,'') === _digits){
+                  return l.replace(/(\d+)(?!.*\d)/, '各$1');
+                }
+                return l;
+              });
+              inp.value = outLines.join('\n');
+              handleSave();
+            }
+          });
+          return;
+        }
         parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer });
         lastPrice = r.price; lastIsPer = r.isPer;
       }
