@@ -155,6 +155,13 @@ footer b{color:var(--fg);font-weight:700}
     <div class="meta" id="meta"></div>
   </header>
 
+  <div id="lastResult" style="background:var(--panel);border:1px solid var(--line);padding:10px 12px;margin-bottom:16px;border-radius:2px">
+    <div style="font-size:11px;color:var(--dim);letter-spacing:.1em;margin-bottom:6px">上期开奖</div>
+    <div id="lastResultBalls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="color:var(--dim);font-size:13px">加载中...</span>
+    </div>
+  </div>
+
   <h2>票仓倾斜灯 · 读数</h2>
   <div class="tilt" id="tilt"></div>
   <div class="legend" id="tiltNote"></div>
@@ -225,6 +232,14 @@ document.getElementById('meta').innerHTML =
   `<span class="tag"><span class="dot ${prev['波色']}"></span>上期 ${prev['期']} 特码 ${prev['特码']} ${prev['生肖']}</span>`
   + `<span class="tag">兵 ${DATA['统计']['兵']}</span>`
   + `<span class="tag">触发 ${DATA['统计']['触发']}</span>`;
+
+// 上期开奖展示
+const lr = document.getElementById('lastResultBalls');
+if (lr && prev) {
+  lr.innerHTML = `<span style="font-size:13px;color:var(--dim)">${prev['期']}期 (${prev['日期']})</span>` +
+    `<span style="font-size:22px;font-weight:800" class="${prev['波色']}">${prev['特码']}</span>` +
+    `<span style="font-size:14px">${prev['生肖']} · ${prev['波色']}波</span>`;
+}
 
 /* 四档：方形色块 */
 const TIERS=[12,14,16,18];
