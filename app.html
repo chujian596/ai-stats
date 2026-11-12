@@ -476,13 +476,13 @@ document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
+// 每次打开都检查版本，不对就自动更新（不用sessionStorage限制，每次都检查）
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && v !== APP_VER && !sessionStorage.getItem('vReloaded')){
-      // 云端版本和本地不一样，硬跳带版本号的网址拉新版（只跳一次防止循环）
-      sessionStorage.setItem('vReloaded','1');
+    if(v && v !== APP_VER){
+      // 云端版本和本地不一样，硬跳带版本号的网址拉新版
       hardUpdateTo(v);
     }
   }).catch(function(){});
