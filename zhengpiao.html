@@ -397,5 +397,74 @@ document.getElementById('foot').innerHTML =
 +`<b>钉死</b>：反向票≥10 的号码标「钉」，只作标记、不参与剔除；61 期实测剔除仅 T12 多 1 期，却会误杀大号。<br>`
 +`<b>说明</b>：号码颜色即波色，进度条长度按最高票归一；特码后与往年今日为历史统计，仅供参考，不参与排序。`;
 </script>
+
+<!-- 下拉刷新 -->
+<style>
+.pull-refresh{position:fixed;top:0;left:0;right:0;height:0;overflow:hidden;
+  background:var(--panel);display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:height .2s ease;color:var(--dim);font-size:13px}
+.pull-refresh.active{height:50px}
+.pull-refresh.loading{height:50px}
+.pull-refresh .arrow{display:inline-block;transition:transform .2s;margin-right:6px}
+.pull-refresh.active .arrow{transform:rotate(180deg)}
+.pull-refresh.loading .arrow{display:none}
+.spinner{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .6s linear infinite;display:none}
+.pull-refresh.loading .spinner{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+<div class="pull-refresh" id="pullRefresh">
+  <span class="arrow">↓</span>
+  <span class="text">下拉刷新</span>
+  <span class="spinner"></span>
+</div>
+<script>
+(function(){
+  var pr=document.getElementById('pullRefresh');
+  var text=pr.querySelector('.text');
+  var startY=0, pulling=false, dist=0;
+  var THRESHOLD=60;
+
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY<=0 && !pr.classList.contains('loading')){
+      startY=e.touches[0].clientY;
+      pulling=true;
+    }
+  },{passive:true});
+
+  document.addEventListener('touchmove',function(e){
+    if(!pulling) return;
+    var y=e.touches[0].clientY;
+    dist=y-startY;
+    if(dist>0 && window.scrollY<=0){
+      e.preventDefault();
+      pr.style.height=Math.min(dist*0.5,80)+'px';
+      if(dist>THRESHOLD){
+        pr.classList.add('active');
+        text.textContent='释放刷新';
+      }else{
+        pr.classList.remove('active');
+        text.textContent='下拉刷新';
+      }
+    }
+  },{passive:false});
+
+  document.addEventListener('touchend',function(){
+    if(!pulling) return;
+    pulling=false;
+    if(dist>THRESHOLD){
+      pr.classList.add('loading');
+      pr.classList.remove('active');
+      pr.style.height='50px';
+      text.textContent='加载中...';
+      setTimeout(function(){location.reload();},800);
+    }else{
+      pr.style.height='0';
+      pr.classList.remove('active');
+    }
+    dist=0;
+  });
+})();
+</script>
 </body>
 </html>
