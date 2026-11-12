@@ -309,6 +309,7 @@ function renderKill(){
   // ===== 文字墙（网站推荐）杀肖票数 =====
   var twKillCount = {};
   var twKillCols = 0;
+  var twDetails = []; // 栏目明细
   if(state.tw && state.tw.columns){
     state.tw.columns.forEach(function(col){
       if(col.title && (col.title.indexOf('杀')>=0 || col.title.indexOf('绝')>=0)){
@@ -316,6 +317,7 @@ function renderKill(){
           var last = col.rows[col.rows.length-1];
           if(last.zods && last.zods.length){
             twKillCols++;
+            twDetails.push({title: col.title, zods: last.zods});
             last.zods.forEach(function(z){
               twKillCount[z] = (twKillCount[z]||0) + 1;
             });
@@ -324,16 +326,28 @@ function renderKill(){
       }
     });
   }
-  // 按票数排序
+  // 栏目明细（每个栏目杀了哪几个肖）
+  html+='<div class="card"><h2>网站推荐杀肖（文字墙栏目明细）</h2><div class="muted">共'+twKillCols+'个杀肖栏目本期有数据</div><div style="margin-top:10px">';
+  twDetails.forEach(function(d){
+    var shortTitle = d.title.replace(/澳门香港大联盟【|】4901996.com/g, '').replace(/澳门大联盟【|】/g, '');
+    html+='<div class="row"><span style="font-size:14px">'+esc(shortTitle)+'</span><span>';
+    d.zods.forEach(function(z){
+      html+='<span class="zod kill" style="margin-left:4px">'+z+'</span>';
+    });
+    html+='</span></div>';
+  });
+  if(twDetails.length===0) html+='<div class="muted">本期暂无文字墙杀肖数据</div>';
+  html+='</div></div>';
+
+  // 票数汇总
   var twSorted = Object.keys(twKillCount).sort(function(a,b){return twKillCount[b]-twKillCount[a];});
-  html+='<div class="card"><h2>网站推荐杀肖票数（文字墙）</h2><div class="muted">共'+twKillCols+'个杀肖栏目本期有数据，票数越高越建议避开</div><div style="margin-top:10px">';
+  html+='<div class="card"><h2>网站推荐杀肖票数汇总</h2><div class="muted">所有栏目合计，票数越高越建议避开</div><div style="margin-top:10px">';
   twSorted.forEach(function(z){
     var n = twKillCount[z];
     var pct = Math.round(n/Math.max(twKillCols,1)*100);
     var color = n>=3?'#c62828':(n>=2?'#e65100':'#666');
     html+='<div class="row"><span class="zod kill">'+z+'</span><span style="color:'+color+';font-weight:700">'+n+'票（'+pct+'%）</span></div>';
   });
-  if(twSorted.length===0) html+='<div class="muted">本期暂无文字墙杀肖数据</div>';
   html+='</div></div>';
 
   // ===== 论坛杀肖票数 =====
