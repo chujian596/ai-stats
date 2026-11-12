@@ -760,9 +760,18 @@ function renderOverview(){
   
   var html = '';
   
+  // 获取最新期号
+  var latestPeriod = '';
+  if(state.official){
+    var periods = Object.keys(state.official);
+    if(periods.length > 0){
+      latestPeriod = Math.max.apply(null, periods) + '期';
+    }
+  }
+  
   // 本期结论卡片
   html += '<div class="card" style="border:2px solid #333">';
-  html += '<h2 style="text-align:center">🎯 本期结论（'+killTotal+'个杀肖资料）</h2>';
+  html += '<h2 style="text-align:center">🎯 '+latestPeriod+' 结论（'+killTotal+'个杀肖资料）</h2>';
   
   // 避开（大家都在杀）
   html += '<div style="background:#fef2f2;padding:10px;border-radius:8px;margin:10px 0">';
