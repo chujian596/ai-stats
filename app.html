@@ -439,6 +439,18 @@ window.onerror = function(msg, url, line){
 };
 // 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
 function hardUpdateTo(v){
+  // 先清除PWA缓存
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){ reg.unregister(); });
+    });
+  }
+  // 清除所有缓存
+  if('caches' in window){
+    caches.keys().then(function(names){
+      names.forEach(function(name){ caches.delete(name); });
+    });
+  }
   var ts = Date.now();
   var url = location.pathname + '?v=' + encodeURIComponent(v) + '&_t=' + ts;
   if(location.search && location.search.indexOf('v=')>=0){
