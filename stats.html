@@ -60,12 +60,14 @@
     <div class="tab" id="tabTw" onclick="switchTab('tw')">文字墙</div>
     <div class="tab" id="tabForum" onclick="switchTab('forum')">论坛</div>
     <div class="tab" id="tabHot" onclick="switchTab('hot')">冷热号</div>
+    <div class="tab" id="tabRank" onclick="switchTab('rank')">命中率排行</div>
     <div class="tab" id="tabDoc" onclick="switchTab('doc')">说明</div>
   </div>
 
   <div id="panelOverview"></div>
   <div id="panelKill" style="display:none"></div>
   <div id="panelRec" style="display:none"></div>
+  <div id="panelRank" style="display:none"></div>
   <div id="panelTw" style="display:none"></div>
   <div id="panelForum" style="display:none"></div>
   <div id="panelHot" style="display:none"></div>
@@ -274,7 +276,7 @@ function authorStats(a){
 
 function classifyLabel(cls){ return cls==='good'?'准的':cls==='bad'?'差的':'观察'; }
 
-var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', tw:'Tw', forum:'Forum', hot:'Hot', doc:'Doc' };
+var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', doc:'Doc' };
 function switchTab(t){
   Object.keys(TAB_MAP).forEach(function(k){
     $('panel'+TAB_MAP[k]).style.display = k===t?'':'none';
@@ -284,7 +286,7 @@ function switchTab(t){
 
 function renderAll(){
   $('fetchedAt').textContent = state.fetchedAt?('上次更新：'+state.fetchedAt):'';
-  renderOverview(); renderKill(); renderRec(); renderTw(); renderForum(); renderHot(); renderDoc();
+  renderOverview(); renderKill(); renderRec(); renderRank(); renderTw(); renderForum(); renderHot(); renderDoc();
 }
 
 // 杀肖汇总：各肖被多少准作者杀 / 多少差作者杀
@@ -396,6 +398,100 @@ function renderKill(){
   });
   html+='</div>';
   $('panelKill').innerHTML=html;
+}
+
+// 栏目命中率排行：所有栏目按命中率从高到低排
+function renderRank(){
+  var all = [];
+  
+  // 文字墙栏目
+  if(state.tw && state.tw.columns){
+    state.tw.columns.forEach(function(col){
+      if(col.hit || col.miss){
+        var total = col.hit + col.miss;
+        var acc = total > 0 ? (col.hit / total * 100).toFixed(1) : 0;
+        all.push({
+          name: col.title || '未知',
+          source: '文字墙',
+          kind: col.kind || 'other',
+          hit: col.hit || 0,
+          miss: col.miss || 0,
+          total: total,
+          acc: parseFloat(acc),
+          cls: col.cls || 'watch'
+        });
+      }
+    });
+  }
+  
+  // 论坛帖子
+  if(state.forum && state.forum.columns){
+    state.forum.columns.forEach(function(col){
+      if(col.hit || col.miss){
+        var total = col.hit + col.miss;
+        var acc = total > 0 ? (col.hit / total * 100).toFixed(1) : 0;
+        all.push({
+          name: col.name || '未知',
+          source: '论坛',
+          kind: col.kind || 'other',
+          hit: col.hit || 0,
+          miss: col.miss || 0,
+          total: total,
+          acc: parseFloat(acc),
+          cls: col.cls || 'watch'
+        });
+      }
+    });
+  }
+  
+  // 按命中率从高到低排序
+  all.sort(function(a, b){ return b.acc - a.acc; });
+  
+  var html = '';
+  
+  // 顶部统计
+  html += '<div class="card"><h2>栏目命中率排行</h2><div class="muted">共 ' + all.length + ' 个栏目/帖子，按命中率从高到低排</div>';
+  html += '<div style="display:flex;gap:12px;margin-top:10px">';
+  html += '<div style="flex:1;text-align:center;padding:8px;background:#f0fdf4;border-radius:8px"><div style="font-size:12px;color:#666">准（good）</div><div style="font-size:20px;font-weight:700;color:#16a34a">' + all.filter(function(x){return x.cls==='good';}).length + '</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:8px;background:#fffbeb;border-radius:8px"><div style="font-size:12px;color:#666">观察（watch）</div><div style="font-size:20px;font-weight:700;color:#d97706">' + all.filter(function(x){return x.cls==='watch';}).length + '</div></div>';
+  html += '<div style="flex:1;text-align:center;padding:8px;background:#fef2f2;border-radius:8px"><div style="font-size:12px;color:#666">差（bad）</div><div style="font-size:20px;font-weight:700;color:#dc2626">' + all.filter(function(x){return x.cls==='bad';}).length + '</div></div>';
+  html += '</div></div>';
+  
+  // 杀肖栏目排行
+  var killList = all.filter(function(x){return x.kind === 'kill';});
+  if(killList.length){
+    html += '<div class="card" style="margin-top:12px"><h2>🔪 杀肖栏目排行（' + killList.length + '个）</h2>';
+    html += '<div style="margin-top:10px">';
+    killList.forEach(function(item, idx){
+      var color = item.acc >= 80 ? '#16a34a' : item.acc >= 60 ? '#d97706' : '#dc2626';
+      html += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0">';
+      html += '<div style="width:24px;font-weight:700;color:#999">' + (idx+1) + '</div>';
+      html += '<div style="flex:1;font-size:13px">' + item.name + '</div>';
+      html += '<div style="font-size:12px;color:#666;margin:0 12px">中' + item.hit + ' · 错' + item.miss + '</div>';
+      html += '<div style="width:60px;text-align:right;font-weight:700;color:' + color + '">' + item.acc + '%</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+  
+  // 推荐肖栏目排行
+  var recList = all.filter(function(x){return x.kind === 'rec';});
+  if(recList.length){
+    html += '<div class="card" style="margin-top:12px"><h2>🎯 推荐肖栏目排行（' + recList.length + '个）</h2>';
+    html += '<div style="margin-top:10px">';
+    recList.forEach(function(item, idx){
+      var color = item.acc >= 80 ? '#16a34a' : item.acc >= 60 ? '#d97706' : '#dc2626';
+      html += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0">';
+      html += '<div style="width:24px;font-weight:700;color:#999">' + (idx+1) + '</div>';
+      html += '<div style="flex:1;font-size:13px">' + item.name + '</div>';
+      html += '<div style="font-size:12px;color:#666;margin:0 12px">中' + item.hit + ' · 错' + item.miss + '</div>';
+      html += '<div style="width:60px;text-align:right;font-weight:700;color:' + color + '">' + item.acc + '%</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+  
+  $('panelRank').innerHTML = html;
 }
 
 function renderRec(){
