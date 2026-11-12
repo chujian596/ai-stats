@@ -711,54 +711,6 @@ function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&'
 function renderOverview(){
   // ===== 本期结论（最显眼，放在最前面） =====
   var ZOD = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-  var killVote = {};
-  for(var i=0; i<ZOD.length; i++){ killVote[ZOD[i]] = 0; }
-  var killTotal = 0;
-  
-  // 统计文字墙杀肖票数
-  if(state.tw && state.tw.columns){
-    for(var j=0; j<state.tw.columns.length; j++){
-      var col = state.tw.columns[j];
-      if(col.kind === 'kill' && col.rows && col.rows.length > 0){
-        var lastRow = col.rows[col.rows.length-1];
-        if(lastRow.zods){
-          killTotal++;
-          for(var k=0; k<lastRow.zods.length; k++){
-            var z = lastRow.zods[k];
-            if(killVote[z] !== undefined) killVote[z]++;
-          }
-        }
-      }
-    }
-  }
-  
-  // 统计论坛杀肖票数
-  if(state.forum && state.forum.columns){
-    for(var m=0; m<state.forum.columns.length; m++){
-      var fcol = state.forum.columns[m];
-      if(fcol.kind === 'kill' && fcol.current && fcol.current.zods){
-        killTotal++;
-        for(var n=0; n<fcol.current.zods.length; n++){
-          var fz = fcol.current.zods[n];
-          if(killVote[fz] !== undefined) killVote[fz]++;
-        }
-      }
-    }
-  }
-  
-  // 按票数排序
-  var killArr = [];
-  for(var zname in killVote){
-    killArr.push({z: zname, n: killVote[zname]});
-  }
-  killArr.sort(function(a,b){ return b.n - a.n; });
-  
-  // Top 3 最多人杀的（避开）
-  var top3 = killArr.slice(0, 3);
-  // Top 3 最少人杀的（关注）
-  var bottom3 = killArr.slice(-3).reverse();
-  
-  var html = '';
   
   // 获取最新期号
   var latestPeriod = '';
@@ -769,32 +721,102 @@ function renderOverview(){
     }
   }
   
-  // 本期结论卡片
-  html += '<div class="card" style="border:2px solid #333">';
-  html += '<h2 style="text-align:center">🎯 '+latestPeriod+' 结论（'+killTotal+'个杀肖资料）</h2>';
+  // ===== 1. 文字墙杀肖统计 =====
+  var twKillVote = {};
+  for(var i=0; i<ZOD.length; i++){ twKillVote[ZOD[i]] = 0; }
+  var twKillTotal = 0;
   
-  // 避开（大家都在杀）
-  html += '<div style="background:#fef2f2;padding:10px;border-radius:8px;margin:10px 0">';
-  html += '<div style="color:#dc2626;font-weight:700;margin-bottom:8px">🔴 避开（大家都在杀）</div>';
-  for(var t=0; t<top3.length; t++){
-    var item = top3[t];
-    var pct = killTotal > 0 ? Math.round(item.n/killTotal*100) : 0;
-    html += '<div style="margin:4px 0;font-size:15px">';
-    html += '<b>'+item.z+'</b> - '+item.n+'票 ('+pct+'%)';
-    html += '</div>';
+  if(state.tw && state.tw.columns){
+    for(var j=0; j<state.tw.columns.length; j++){
+      var col = state.tw.columns[j];
+      if(col.kind === 'kill' && col.rows && col.rows.length > 0){
+        var lastRow = col.rows[col.rows.length-1];
+        if(lastRow.zods){
+          twKillTotal++;
+          for(var k=0; k<lastRow.zods.length; k++){
+            var z = lastRow.zods[k];
+            if(twKillVote[z] !== undefined) twKillVote[z]++;
+          }
+        }
+      }
+    }
+  }
+  
+  // 文字墙按票数排序
+  var twArr = [];
+  for(var tz in twKillVote){
+    twArr.push({z: tz, n: twKillVote[tz]});
+  }
+  twArr.sort(function(a,b){ return b.n - a.n; });
+  
+  // ===== 2. 论坛杀肖统计 =====
+  var forumKillVote = {};
+  for(var f=0; f<ZOD.length; f++){ forumKillVote[ZOD[f]] = 0; }
+  var forumKillTotal = 0;
+  
+  if(state.forum && state.forum.columns){
+    for(var m=0; m<state.forum.columns.length; m++){
+      var fcol = state.forum.columns[m];
+      if(fcol.kind === 'kill' && fcol.current && fcol.current.zods){
+        // 只统计最新期的
+        if(latestPeriod && fcol.current.period == parseInt(latestPeriod)){
+          forumKillTotal++;
+          for(var n=0; n<fcol.current.zods.length; n++){
+            var fz = fcol.current.zods[n];
+            if(forumKillVote[fz] !== undefined) forumKillVote[fz]++;
+          }
+        }
+      }
+    }
+  }
+  
+  // 论坛按票数排序
+  var forumArr = [];
+  for(var fzname in forumKillVote){
+    forumArr.push({z: fzname, n: forumKillVote[fzname]});
+  }
+  forumArr.sort(function(a,b){ return b.n - a.n; });
+  
+  var html = '';
+  
+  // ===== 本期结论总卡片 =====
+  html += '<div class="card" style="border:2px solid #333">';
+  html += '<h2 style="text-align:center">🎯 '+latestPeriod+' 杀肖共识</h2>';
+  
+  // --- 文字墙（49站） ---
+  html += '<div style="margin:15px 0">';
+  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">📺 文字墙（49站 '+twKillTotal+'个栏目）</div>';
+  html += '<div style="background:#f8f9fa;padding:10px;border-radius:8px">';
+  
+  // 文字墙Top3杀得最多的
+  var twTop3 = twArr.slice(0, 3);
+  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">🔴 杀得最多：</div>';
+  for(var tt=0; tt<twTop3.length; tt++){
+    var titem = twTop3[tt];
+    if(titem.n > 0){
+      var tpct = twKillTotal > 0 ? Math.round(titem.n/twKillTotal*100) : 0;
+      html += '<div style="margin:3px 0 3px 10px;font-size:14px">'+titem.z+' - '+titem.n+'票 ('+tpct+'%)</div>';
+    }
   }
   html += '</div>';
+  html += '</div>';
   
-  // 关注（大家都不杀）
-  html += '<div style="background:#f0fdf4;padding:10px;border-radius:8px">';
-  html += '<div style="color:#16a34a;font-weight:700;margin-bottom:8px">🟢 关注（大家都不杀）</div>';
-  for(var b=0; b<bottom3.length; b++){
-    var bitem = bottom3[b];
-    var bpct = killTotal > 0 ? Math.round(bitem.n/killTotal*100) : 0;
-    html += '<div style="margin:4px 0;font-size:15px">';
-    html += '<b>'+bitem.z+'</b> - '+bitem.n+'票 ('+bpct+'%)';
-    html += '</div>';
+  // --- 论坛 ---
+  html += '<div style="margin:15px 0">';
+  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">💬 论坛（'+forumKillTotal+'个帖子）</div>';
+  html += '<div style="background:#f8f9fa;padding:10px;border-radius:8px">';
+  
+  // 论坛Top3杀得最多的
+  var forumTop3 = forumArr.slice(0, 3);
+  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">🔴 杀得最多：</div>';
+  for(var ft=0; ft<forumTop3.length; ft++){
+    var fitem = forumTop3[ft];
+    if(fitem.n > 0){
+      var fpct = forumKillTotal > 0 ? Math.round(fitem.n/forumKillTotal*100) : 0;
+      html += '<div style="margin:3px 0 3px 10px;font-size:14px">'+fitem.z+' - '+fitem.n+'票 ('+fpct+'%)</div>';
+    }
   }
+  html += '</div>';
   html += '</div>';
   
   html += '</div>';
