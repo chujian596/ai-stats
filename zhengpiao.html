@@ -277,7 +277,7 @@ document.getElementById('stats').innerHTML = [
   ['平均池', st['池均'], '号/兵'],
   ['空池', st['空池'], '次'],
   ['异常', st['异常'], '次'],
-  ['条件库', '18.9万', '条']
+  ['条件库', st['条件数'].toLocaleString(), '条']
 ].map(([k,v,s])=>`<div class="cell"><div class="k">${k}</div><div class="v num">${v}<small>${s}</small></div></div>`).join('');
 
 /* 票仓倾斜灯 */
