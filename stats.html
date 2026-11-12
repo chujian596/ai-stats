@@ -299,11 +299,62 @@ function renderKill(){
       else if(s.cls==='bad') badKill[z]=(badKill[z]||0)+1;
     });
   });
-  var html='<div class="card"><h2>本期杀肖汇总</h2><div class="muted">准的作者杀掉的肖（可参考排除） vs 差的作者杀掉的肖（留意反着看）</div><div class="board" style="margin-top:10px">';
+  var html='<div class="card"><h2>本期杀肖汇总（按作者准确率分）</h2><div class="muted">准的作者杀掉的肖（可参考排除） vs 差的作者杀掉的肖（留意反着看）</div><div class="board" style="margin-top:10px">';
   ZOD.forEach(function(z){
     var g=goodKill[z]||0, b=badKill[z]||0;
     html+='<div class="cell"><div class="z">'+z+'</div><div class="n">准'+g+' / 差'+b+'</div></div>';
   });
+  html+='</div></div>';
+
+  // ===== 文字墙（网站推荐）杀肖票数 =====
+  var twKillCount = {};
+  var twKillCols = 0;
+  if(state.tw && state.tw.columns){
+    state.tw.columns.forEach(function(col){
+      if(col.title && (col.title.indexOf('杀')>=0 || col.title.indexOf('绝')>=0)){
+        if(col.rows && col.rows.length){
+          var last = col.rows[col.rows.length-1];
+          if(last.zods && last.zods.length){
+            twKillCols++;
+            last.zods.forEach(function(z){
+              twKillCount[z] = (twKillCount[z]||0) + 1;
+            });
+          }
+        }
+      }
+    });
+  }
+  // 按票数排序
+  var twSorted = Object.keys(twKillCount).sort(function(a,b){return twKillCount[b]-twKillCount[a];});
+  html+='<div class="card"><h2>网站推荐杀肖票数（文字墙）</h2><div class="muted">共'+twKillCols+'个杀肖栏目本期有数据，票数越高越建议避开</div><div style="margin-top:10px">';
+  twSorted.forEach(function(z){
+    var n = twKillCount[z];
+    var pct = Math.round(n/Math.max(twKillCols,1)*100);
+    var color = n>=3?'#c62828':(n>=2?'#e65100':'#666');
+    html+='<div class="row"><span class="zod kill">'+z+'</span><span style="color:'+color+';font-weight:700">'+n+'票（'+pct+'%）</span></div>';
+  });
+  if(twSorted.length===0) html+='<div class="muted">本期暂无文字墙杀肖数据</div>';
+  html+='</div></div>';
+
+  // ===== 论坛杀肖票数 =====
+  var forumKillCount = {};
+  list.forEach(function(a){
+    var s = authorStats(a);
+    if(s.curRow && s.curRow.zods){
+      s.curRow.zods.forEach(function(z){
+        forumKillCount[z] = (forumKillCount[z]||0) + 1;
+      });
+    }
+  });
+  var forumSorted = Object.keys(forumKillCount).sort(function(a,b){return forumKillCount[b]-forumKillCount[a];});
+  html+='<div class="card"><h2>论坛杀肖票数（111帖）</h2><div class="muted">共'+list.length+'个杀肖帖本期有数据，票数越高越建议避开</div><div style="margin-top:10px">';
+  forumSorted.forEach(function(z){
+    var n = forumKillCount[z];
+    var pct = Math.round(n/Math.max(list.length,1)*100);
+    var color = n>=10?'#c62828':(n>=6?'#e65100':'#666');
+    html+='<div class="row"><span class="zod kill">'+z+'</span><span style="color:'+color+';font-weight:700">'+n+'票（'+pct+'%）</span></div>';
+  });
+  if(forumSorted.length===0) html+='<div class="muted">本期暂无论坛杀肖数据</div>';
   html+='</div></div>';
 
   // 作者列表
