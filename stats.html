@@ -48,10 +48,10 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.18</span></h1>
+    <h1>资料统计</h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
-  <div class="muted" id="fetchedAt" style="margin:-6px 0 12px">上次更新：2026/11/13 04:00</div>
+  <div class="muted" id="fetchedAt" style="margin:-6px 0 12px"></div>
 
   <div class="tabs">
     <div class="tab on" id="tabOverview" onclick="switchTab('overview')">总览</div>
@@ -709,29 +709,90 @@ function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&'
 
 // 总览：来源、资料数量、分类计数、本期主推第一肖累计
 function renderOverview(){
-  var html = '<div class="card">';
-  html += '<h2>🎯 本期结论</h2>';
-  html += '<div style="padding:10px">';
-  html += '<p style="font-size:16px;line-height:1.8">';
-  html += '🔴 <b>避开</b>：大家都在杀的肖，别买<br>';
-  html += '🟢 <b>关注</b>：大家都不杀的肖，可以考虑';
-  html += '</p>';
-  html += '</div>';
-  html += '</div>';
-  
-  // 先放个简单的统计
-  var auth=state.authors||[];
+  var auth=state.authors;
   var kill=auth.filter(function(a){return a.kind==='kill';});
-  var rec=auth.filter(function(a){return a.kind&&a.kind.indexOf('rec')===0;});
-  
-  html += '<div class="card">';
-  html += '<h2>📊 数据统计</h2>';
-  html += '<div class="row"><span>杀肖资料</span><span>'+kill.length+' 份</span></div>';
-  html += '<div class="row"><span>推荐肖资料</span><span>'+rec.length+' 份</span></div>';
-  html += '<div class="row"><span>已对账开奖</span><span>'+Object.keys(state.official||{}).length+' 期</span></div>';
-  html += '</div>';
+  var rec=auth.filter(function(a){return a.kind.indexOf('rec')===0;});
+  function cnt(list,cls){ return list.filter(function(a){return authorStats(a).cls===cls;}).length; }
+  var gK=cnt(kill,'good'), bK=cnt(kill,'bad'), wK=cnt(kill,'watch');
+  var gR=cnt(rec,'good'), bR=cnt(rec,'bad'), wR=cnt(rec,'watch');
+  var typeCount={rec9:0,rec6:0,rec5:0,rec4:0,rec3:0};
+  rec.forEach(function(a){ typeCount[a.kind]=(typeCount[a.kind]||0)+1; });
+  var firstCount={};
+  rec.forEach(function(a){ var s=authorStats(a); if(s.curRow&&s.curRow.zods[0]) firstCount[s.curRow.zods[0]]=(firstCount[s.curRow.zods[0]]||0)+1; });
+  var offN=Object.keys(state.official).length;
 
+  var html='<div class="card"><h2>数据来源</h2>'
+    +'<div class="row"><span>接入数据源</span><span>1 个（公开论坛）</span></div>'
+    +'<div class="row"><span>已对账官方开奖</span><span>'+offN+' 期</span></div>'
+    +'<div class="muted" style="margin-top:6px">每个帖子记为一份资料、一个发布者；后续接入新网址会按源分组累计。</div></div>';
 
+  html+='<div class="card"><h2>资料数量</h2>'
+    +'<div class="row"><span>资料总数（发布者）</span><span>'+auth.length+' 份</span></div>'
+    +'<div class="row"><span>杀肖资料</span><span>'+kill.length+' 份</span></div>'
+    +'<div class="row"><span>推荐肖资料</span><span>'+rec.length+' 份</span></div>'
+    +'<div class="row"><span>　九肖 / 六肖</span><span>'+typeCount.rec9+' / '+typeCount.rec6+'</span></div>'
+    +'<div class="row"><span>　五肖 / 四肖 / 三肖</span><span>'+typeCount.rec5+' / '+typeCount.rec4+' / '+typeCount.rec3+'</span></div></div>';
+
+  html+='<div class="card"><h2>分类统计（对照特肖）</h2>'
+    +'<div class="row"><span>准的（对多错少）</span><span>杀 '+gK+' · 推荐 '+gR+' · 合计 '+(gK+gR)+'</span></div>'
+    +'<div class="row"><span>差的（错多对少）</span><span>杀 '+bK+' · 推荐 '+bR+' · 合计 '+(bK+bR)+'</span></div>'
+    +'<div class="row"><span>观察（样本不足）</span><span>杀 '+wK+' · 推荐 '+wR+' · 合计 '+(wK+wR)+'</span></div></div>';
+
+  var twCols=state.tw.columns||[];
+  var twKill=twCols.filter(function(c){return c.kind==='kill';}).length;
+  var twRec=twCols.filter(function(c){return c.kind==='rec';}).length;
+  var twOth=twCols.filter(function(c){return c.kind==='other';}).length;
+  var twG=twCols.filter(function(c){return c.cls==='good';}).length;
+  var twB=twCols.filter(function(c){return c.cls==='bad';}).length;
+  var twW=twCols.filter(function(c){return c.cls==='watch';}).length;
+  var twMm=twCols.filter(function(c){return (c.mismatch||[]).length>0;}).length;
+  html+='<div class="card"><h2>文字墙栏目</h2>'
+    +'<div class="row"><span>栏目数</span><span>'+twCols.length+'（杀 '+twKill+' / 推荐 '+twRec+' / 其他 '+twOth+'）</span></div>'
+    +'<div class="row"><span>分类</span><span>准 '+twG+' · 差 '+twB+' · 观察 '+twW+'</span></div>'
+    +'<div class="row"><span>自标不符栏目</span><span>'+twMm+'</span></div>'
+    +'<div class="muted" style="margin-top:6px">明细与来源链接见「文字墙」标签页。</div></div>';
+
+  var fCols=state.forum.columns||[];
+  var fKill=fCols.filter(function(c){return c.kind==='kill';}).length;
+  var fRec=fCols.filter(function(c){return c.kind==='rec';}).length;
+  var fG=fCols.filter(function(c){return c.cls==='good';}).length;
+  var fB=fCols.filter(function(c){return c.cls==='bad';}).length;
+  var fW=fCols.filter(function(c){return c.cls==='watch';}).length;
+  var fMm=fCols.filter(function(c){return c.mismatchCount>0;}).length;
+  html+='<div class="card"><h2>论坛帖（后台对账）</h2>'
+    +'<div class="row"><span>帖子数</span><span>'+fCols.length+'（杀 '+fKill+' / 推荐 '+fRec+'）</span></div>'
+    +'<div class="row"><span>分类</span><span>准 '+fG+' · 差 '+fB+' · 观察 '+fW+'</span></div>'
+    +'<div class="row"><span>自标不符帖</span><span>'+fMm+'</span></div>'
+    +'<div class="muted" style="margin-top:6px">明细、来源接口与指纹见「论坛」标签页；全量逐期明细存 forum-snapshot.json。</div></div>';
+
+  // 只统计扣完缺更后判为「准的」的论坛帖 + 文字墙栏目
+  var goodRecFirst={}, goodKillVote={};
+  fCols.forEach(function(c){
+    if(c.cls!=='good') return;
+    var z=(c.current||{}).zods||[];
+    if(c.kind==='rec' && z[0]) goodRecFirst[z[0]]=(goodRecFirst[z[0]]||0)+1;
+    if(c.kind==='kill') z.forEach(function(x){ goodKillVote[x]=(goodKillVote[x]||0)+1; });
+  });
+  twCols.forEach(function(c){
+    if(c.cls!=='good') return;
+    var rows=c.rows||[]; var z=(rows[rows.length-1]||{}).zods||[];
+    if(c.kind==='rec' && z[0]) goodRecFirst[z[0]]=(goodRecFirst[z[0]]||0)+1;
+    if(c.kind==='kill') z.forEach(function(x){ goodKillVote[x]=(goodKillVote[x]||0)+1; });
+  });
+
+  html+='<div class="card"><h2>本期主推共识（只算准的）</h2><div class="muted">扣完缺更后判为「准的」的推荐帖，列表排第一的肖被提到次数；差的帖不再混入</div><div class="board" style="margin-top:10px">';
+  ZOD.forEach(function(z){
+    var n=goodRecFirst[z]||0;
+    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'票</div></div>';
+  });
+  html+='</div></div>';
+
+  html+='<div class="card"><h2>本期杀肖共识（避开）</h2><div class="muted">准的杀肖资料本期要杀的肖，票数越多越该避开</div><div class="board" style="margin-top:10px">';
+  ZOD.forEach(function(z){
+    var n=goodKillVote[z]||0;
+    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'票</div></div>';
+  });
+  html+='</div></div>';
   $('panelOverview').innerHTML=html;
 }
 
