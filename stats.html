@@ -709,111 +709,27 @@ function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&'
 
 // 总览：来源、资料数量、分类计数、本期主推第一肖累计
 function renderOverview(){
-  // ===== 本期结论（最显眼） =====
-  var ZOD = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-  
-  // 统计杀肖票数（文字墙+论坛）
-  var killVote = {};
-  ZOD.forEach(function(z){ killVote[z] = 0; });
-  var killTotal = 0;
-  
-  // 文字墙杀肖
-  if(state.tw && state.tw.columns){
-    state.tw.columns.forEach(function(col){
-      if(col.kind === 'kill' && col.rows && col.rows.length){
-        var last = col.rows[col.rows.length-1];
-        if(last.zods){
-          killTotal++;
-          last.zods.forEach(function(z){
-            if(killVote[z] !== undefined) killVote[z]++;
-          });
-        }
-      }
-    });
-  }
-  
-  // 论坛杀肖
-  if(state.forum && state.forum.columns){
-    state.forum.columns.forEach(function(col){
-      if(col.kind === 'kill' && col.current && col.current.zods){
-        killTotal++;
-        col.current.zods.forEach(function(z){
-          if(killVote[z] !== undefined) killVote[z]++;
-        });
-      }
-    });
-  }
-  
-  // 按票数排序
-  var killSorted = Object.entries(killVote).sort(function(a,b){return b[1]-a[1];});
-  
-  // 杀肖最多的Top 3（大家都在杀的）
-  var killTop3 = killSorted.slice(0, 3);
-  // 杀肖最少的Top 3（大家都不杀的）
-  var killBottom3 = killSorted.slice(-3).reverse();
-  
-  var html = '';
-  
-  // ===== 本期结论卡片 =====
-  html += '<div class="card" style="border:2px solid #333">';
-  html += '<h2 style="text-align:center;font-size:20px">🎯 本期结论（'+killTotal+'个杀肖资料）</h2>';
-  html += '<div style="margin-top:15px">';
-  
-  // 避开（大家都在杀）
-  html += '<div style="background:#fef2f2;padding:12px;border-radius:8px;margin-bottom:10px">';
-  html += '<div style="color:#dc2626;font-weight:700;font-size:16px;margin-bottom:8px">🔴 避开（大家都在杀）</div>';
-  killTop3.forEach(function(item){
-    var z = item[0], n = item[1];
-    var pct = killTotal > 0 ? Math.round(n/killTotal*100) : 0;
-    var bar = '█'.repeat(Math.round(pct/5));
-    html += '<div style="display:flex;align-items:center;margin:4px 0">';
-    html += '<div style="width:30px;font-weight:700;font-size:16px">'+z+'</div>';
-    html += '<div style="flex:1;background:#fecaca;height:16px;border-radius:4px;overflow:hidden;margin:0 8px">';
-    html += '<div style="width:'+pct+'%;background:#dc2626;height:100%"></div>';
-    html += '</div>';
-    html += '<div style="width:60px;text-align:right;font-size:13px;color:#666">'+n+'票 '+pct+'%</div>';
-    html += '</div>';
-  });
+  var html = '<div class="card">';
+  html += '<h2>🎯 本期结论</h2>';
+  html += '<div style="padding:10px">';
+  html += '<p style="font-size:16px;line-height:1.8">';
+  html += '🔴 <b>避开</b>：大家都在杀的肖，别买<br>';
+  html += '🟢 <b>关注</b>：大家都不杀的肖，可以考虑';
+  html += '</p>';
+  html += '</div>';
   html += '</div>';
   
-  // 关注（大家都不杀）
-  html += '<div style="background:#f0fdf4;padding:12px;border-radius:8px">';
-  html += '<div style="color:#16a34a;font-weight:700;font-size:16px;margin-bottom:8px">🟢 关注（大家都不杀）</div>';
-  killBottom3.forEach(function(item){
-    var z = item[0], n = item[1];
-    var pct = killTotal > 0 ? Math.round(n/killTotal*100) : 0;
-    html += '<div style="display:flex;align-items:center;margin:4px 0">';
-    html += '<div style="width:30px;font-weight:700;font-size:16px">'+z+'</div>';
-    html += '<div style="flex1:1;background:#bbf7d0;height:16px;border-radius:4px;overflow:hidden;margin:0 8px">';
-    html += '<div style="width:'+pct+'%;background:#16a34a;height:100%"></div>';
-    html += '</div>';
-    html += '<div style="width:60px;text-align:right;font-size:13px;color:#666">'+n+'票 '+pct+'%</div>';
-    html += '</div>';
-  });
-  html += '</div>';
-  
-  html += '</div>';
-  html += '<div class="muted" style="margin-top:10px;text-align:center">数据来源：49站文字墙 + 公开论坛，共 '+killTotal+'个杀肖资料</div>';
-  html += '</div>';
-  
-  // ===== 详细统计（放在后面，想看再点） =====
-  var auth=state.authors;
+  // 先放个简单的统计
+  var auth=state.authors||[];
   var kill=auth.filter(function(a){return a.kind==='kill';});
-  var rec=auth.filter(function(a){return a.kind.indexOf('rec')===0;});
-  function cnt(list,cls){ return list.filter(function(a){return authorStats(a).cls===cls;}).length; }
-  var gK=cnt(kill,'good'), bK=cnt(kill,'bad'), wK=cnt(kill,'watch');
-  var gR=cnt(rec,'good'), bR=cnt(rec,'bad'), wR=cnt(rec,'watch');
-  var typeCount={rec9:0,rec6:0,rec5:0,rec4:0,rec3:0};
-  rec.forEach(function(a){ typeCount[a.kind]=(typeCount[a.kind]||0)+1; });
-  var offN=Object.keys(state.official).length;
-
-  html+='<div class="card" style="margin-top:12px"><h2>📊 详细统计</h2>'
-    +'<div class="row"><span>杀肖资料总数</span><span>'+killTotal+' 个</span></div>'
-    +'<div class="row"><span>推荐肖资料</span><span>'+rec.length+' 份</span></div>'
-    +'<div class="row"><span>已对账开奖</span><span>'+offN+' 期</span></div>'
-    +'<div class="row"><span>准的（杀+推荐）</span><span>'+(gK+gR)+' 份</span></div>'
-    +'<div class="row"><span>差的（杀+推荐）</span><span>'+(bK+bR)+' 份</span></div>'
-    +'<div class="muted" style="margin-top:6px">想看更多数据，点上面的标签页：杀肖追踪、命中率排行等</div></div>';
+  var rec=auth.filter(function(a){return a.kind&&a.kind.indexOf('rec')===0;});
+  
+  html += '<div class="card">';
+  html += '<h2>📊 数据统计</h2>';
+  html += '<div class="row"><span>杀肖资料</span><span>'+kill.length+' 份</span></div>';
+  html += '<div class="row"><span>推荐肖资料</span><span>'+rec.length+' 份</span></div>';
+  html += '<div class="row"><span>已对账开奖</span><span>'+Object.keys(state.official||{}).length+' 期</span></div>';
+  html += '</div>';
 
 
   $('panelOverview').innerHTML=html;
