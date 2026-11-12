@@ -4210,8 +4210,8 @@ function renderOrdersList(){
     });
     // 特码飞单中奖：只有开的那个号上家赔47倍
     if(lastDraw){
-      const sp = lastDraw.specialNum;
-      const spFly = Math.max(0, (sales[sp]||0) - splitTakeAll);
+      const spKey = String(lastDraw.specialNum).padStart(2, '0');
+      const spFly = Math.max(0, (sales[spKey]||0) - splitTakeAll);
       flyBackTotal += spFly * 47;
     }
     // 平特飞单
