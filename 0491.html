@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>0491资料栏目 · 封存核对</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;font-size:17px;padding-bottom:40px}
+  @media (prefers-color-scheme: dark){ body{filter:invert(1) hue-rotate(180deg)} }
+  .wrap{max-width:480px;margin:0 auto;padding:14px}
+  .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .hd h1{font-size:19px;font-weight:700;margin:0}
+  .btn{border:1px solid #ccc;background:#fff;color:#333;border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;text-decoration:none}
+  .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px;margin-bottom:14px}
+  .card h2{font-size:15px;font-weight:700;margin:0 0 10px}
+  .muted{color:#888;font-size:13px;line-height:1.6}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 14px;border:1px solid #ddd;background:#fff;color:#666;border-radius:10px;font-size:14px;font-weight:600}
+  .tab.on{border-color:#333;color:#1a1a1a;font-weight:700}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+  .row:last-child{border-bottom:none}
+  .tag{display:inline-block;padding:2px 7px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap}
+  .tag.good{background:#e8f5e9;color:#2e7d32}
+  .tag.bad{background:#fdecea;color:#c62828}
+  .tag.watch{background:#f0f0f0;color:#777}
+  .balls{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+  .ball{width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;font-weight:700;font-size:15px;border:1px solid #ddd;background:#fafafa}
+  .ball.sp{border:2px solid #333;background:#eee}
+  .cols{display:flex;gap:4px;font-size:12px;color:#999;padding-bottom:6px;border-bottom:1px solid #eee}
+  .c1{flex:0 0 82px}.c2{flex:1;min-width:0}.c3{flex:0 0 74px}
+  .pick{word-break:break-all;font-size:13px;line-height:1.45}
+  .stat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:#555}
+  .stat b{font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1>0491 · 资料栏目</h1>
+    <a class="btn" href="portal.html">返回</a>
+  </div>
+  <div id="tabs" class="tabs"></div>
+  <div class="card"><h2 id="drawTitle">开奖</h2><div class="balls" id="balls"></div><div class="muted" id="drawMeta"></div></div>
+  <div class="card"><h2>本期统计</h2><div class="stat" id="sum"></div></div>
+  <div class="card">
+    <h2>栏目推荐与判定</h2>
+    <div class="cols"><div class="c1">栏目</div><div class="c2">开奖前封存推荐</div><div class="c3">结果 / 核查</div></div>
+    <div id="rows"></div>
+  </div>
+  <div class="card">
+    <h2>口径说明</h2>
+    <div class="muted" id="notes">
+      推荐一律取<b>开奖前封存</b>（行尾仍为“？00”时抓取，附指纹），开奖后再与网站当前行比对：字串不同=事后改料，行消失=无法复核。<br>
+      命中按各栏目真实规则判定（杀肖/杀尾为“未被杀中=对”，平特为“平码出现该肖=中”）。<br>
+      315期及以前无封存，不在本页统计范围。
+    </div>
+  </div>
+</div>
+<script>
+var DATA=null, cur=null;
+function q(id){return document.getElementById(id)}
+fetch('data/0491.json?v='+Date.now()).then(function(r){return r.json()}).then(function(d){
+  DATA=d; var ks=Object.keys(d.periods).sort(function(a,b){return b-a});
+  cur=ks[0];
+  var tabs='';ks.forEach(function(k){tabs+='<div class="tab'+(k===cur?' on':'')+'" data-k="'+k+'">'+k+'期</div>'});
+  q('tabs').innerHTML=tabs;
+  q('tabs').onclick=function(e){var t=e.target.getAttribute('data-k');if(!t)return;cur=t;
+    [].forEach.call(q('tabs').children,function(c){c.className='tab'+(c.getAttribute('data-k')===cur?' on':'')});
+    render();};
+  render();
+});
+function render(){
+  var p=DATA.periods[cur];
+  q('drawTitle').textContent=cur+'期开奖'+(p.drawn?'':'（待开奖）');
+  var balls='';
+  if(p.plains.length){
+    p.plains.forEach(function(n){balls+='<div class="ball">'+('0'+n).slice(-2)+'</div>'});
+    balls+='<div class="ball">+</div><div class="ball sp">'+('0'+p.special).slice(-2)+'</div>';
+    q('drawMeta').textContent='特码 '+p.special+' · '+p.special_zodiac+' · 五行'+(p.wx||'—');
+  }else{ q('drawMeta').textContent='本期尚未开奖，只展示封存推荐'; }
+  q('balls').innerHTML=balls;
+  var rows='';
+  p.rows.forEach(function(r){
+    var h = r.hit===true?'<span class="tag good">中</span>':(r.hit===false?'<span class="tag bad">不中</span>':'<span class="tag watch">待开奖</span>');
+    var ret = r.retro==='一致'?'<span class="tag good">一致</span>':(r.retro==='推荐被改'?'<span class="tag bad">被改</span>':'<span class="tag watch">'+r.retro+'</span>');
+    rows+='<div class="row"><div class="c1">'+r.name+'</div><div class="c2 pick">'+esc(r.pick)+'</div><div class="c3" style="text-align:right">'+h+'<br>'+ret+'</div></div>';
+  });
+  q('rows').innerHTML=rows;
+  var s='<span>命中 <b>'+p.hit+' / '+p.total+'</b></span>';
+  var changed=p.rows.filter(function(r){return r.retro==='推荐被改'}).length;
+  var gone=p.rows.filter(function(r){return r.retro==='行已消失'}).length;
+  s+='<span>被改 <b>'+changed+'</b></span><span>行消失 <b>'+gone+'</b></span>';
+  s+='<span>生成 '+DATA.generated_at+'</span>';
+  q('sum').innerHTML=s;
+}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body>
+</html>
