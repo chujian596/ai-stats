@@ -3,7 +3,8 @@ import sys,json
 f=sys.argv[1]; text=open(sys.argv[2],encoding='utf-8').read() if len(sys.argv)>2 and sys.argv[2]!='-' else sys.stdin.read()
 s=open(f,encoding='utf-8').read()
 def grab(name):
-    a=s.index(name); d=0; i=a
+    import re
+    m=re.search(name, s); a=m.start(); d=0; i=a
     while True:
         if s[i]=='{': d+=1
         elif s[i]=='}':
@@ -11,7 +12,7 @@ def grab(name):
             if d==0: break
         i+=1
     return s[a:i+1]
-doSave=grab('function doSave(){'); parseLine=grab('function parseLine(text){'); fix=grab('function showFixDialog(rawLine, msg){')
+doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)'); fix=grab(r'function showFixDialog\(rawLine, msg\)')
 i2=s.index('return [{"code": "01"'); j=s.index(';', i2); prods=s[i2+len('return '):j]
 pre = """
 const window={}; const els={};

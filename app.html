@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.33';
+var APP_VER = 'v58.34';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3825,9 +3825,10 @@ function showAIConfirmDialog(rawText, reason){
   };
 }
 
-function doSave(){
+function doSave(overrideText){
   try {
-  let text = document.getElementById('input').value;
+  var _isOverride = (overrideText !== undefined && overrideText !== null);
+  let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
   text = text.split('\n').map(line => {
@@ -3840,7 +3841,7 @@ function doSave(){
     }
     return line;
   }).filter(l => l !== '').join('\n');
-  document.getElementById('input').value = text;
+  if(!_isOverride) document.getElementById('input').value = text;
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
     const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
@@ -4042,7 +4043,12 @@ function doSave(){
       var _before = _t.substring(0, _m.index);
       var _last = _before.slice(-1);
       var _isAmt = false;
-      if(_num > 49) _isAmt = true;
+      var _after = _t.charAt(_m.index + _m[0].length);
+      // 点分隔号码（05.17.29）和横杠号码不算金额，避免把一行号码拆成两单
+      if(_last === '.' || _after === '.') _isAmt = false;
+      // 行首的"特"是玩法前缀，紧贴的数字是号码不是金额
+      else if(_last === '特' && _before.trim() === '特') _isAmt = false;
+      else if(_num > 49) _isAmt = true;
       else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头尾]/.test(_last)) _isAmt = true;
       if(_isAmt) _amts.push({i:_m.index, l:_m[0].length});
     }
