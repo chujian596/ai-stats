@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.31';
+var APP_VER = 'v58.32';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3577,7 +3577,7 @@ async function parseOrderByLocalAI(inputText) {
   }
 }
 
-let _useLocalAI = false; // 客户版：不带AI，纯本地规则
+let _useLocalAI = false; // 客户版：纯本地规则
 function toggleLocalAI(){
   _useLocalAI = !_useLocalAI;
   const btn = document.getElementById('aiToggleBtn');
@@ -3696,8 +3696,14 @@ function handleSave(){
         // AI要求确认，弹窗让用户选
         showAIConfirmDialog(raw0, ret.reason || '请选择玩法');
       } else {
-        alert(ret.msg || 'AI解析失败');
+        // AI失败/超时：不让用户卡住，自动交给本地解析器兜底
+        console.warn('[AI未识别，转本地解析]', ret && ret.msg);
+        doSave();
       }
+    }).catch(function(err){
+      // AI请求异常（断网/超时/key问题）：同样回落本地解析
+      console.warn('[AI请求异常，转本地解析]', err && err.message);
+      doSave();
     });
     return;
   }
