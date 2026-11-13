@@ -23,6 +23,16 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 .rank-btn{display:inline-block!important;margin:0 4px 6px 0}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);background-attachment:fixed;color:#e8e8e8;padding-bottom:120px;font-size:17px;min-height:100vh}
+
+/* 夜间模式：跟随系统 */
+@media (prefers-color-scheme: dark) {
+  body {
+    filter: invert(1) hue-rotate(180deg);
+  }
+  img, video, canvas, .no-invert {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
 header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .title{font-size:15px;font-weight:700}
 .totals{font-size:13px;margin-top:1px;opacity:.95;font-weight:700}
@@ -430,7 +440,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.20';
+var APP_VER = 'v58.21';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';

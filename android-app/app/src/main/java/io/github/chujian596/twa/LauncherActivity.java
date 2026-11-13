@@ -1,7 +1,13 @@
 package io.github.chujian596.twa;
 
 import android.app.Activity;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -13,6 +19,9 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 设置状态栏颜色，根据系统夜间模式自动切换
+        updateStatusBarColor();
 
         webView = new WebView(this);
         setContentView(webView);
@@ -33,7 +42,37 @@ public class LauncherActivity extends Activity {
             }
         });
 
-        webView.loadUrl("https://chujian596.github.io/ai-stats/app.html");
+        webView.loadUrl("file:///android_asset/app.html");
+    }
+
+    private void updateStatusBarColor() {
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+
+        // 检测系统是否是夜间模式
+        int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        boolean isNightMode = nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
+
+        if (isNightMode) {
+            // 夜间模式：状态栏深色，文字浅色
+            window.setStatusBarColor(Color.parseColor("#121212"));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                window.getDecorView().setSystemUiVisibility(0);
+            }
+        } else {
+            // 日间模式：状态栏浅色，文字深色
+            window.setStatusBarColor(Color.parseColor("#ffffff"));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            }
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // 系统主题切换时，更新状态栏颜色
+        updateStatusBarColor();
     }
 
     @Override
