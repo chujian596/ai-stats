@@ -1,19 +1,30 @@
-# 用无头 mock 跑完整 doSave(预处理→parseLine→生成订单)，验证真实写法能否录入
-import sys,json
-f=sys.argv[1]; text=open(sys.argv[2],encoding='utf-8').read() if len(sys.argv)>2 and sys.argv[2]!='-' else sys.stdin.read()
+# 无头跑完整 doSave(预处理→parseLine→订单)，验证真实写法能否录入
+# 用法: python3 full_save_check.py <页面文件> <文本文件|->
+import sys,json,re
+f=sys.argv[1]
+text=open(sys.argv[2],encoding='utf-8').read() if len(sys.argv)>2 and sys.argv[2]!='-' else sys.stdin.read()
 s=open(f,encoding='utf-8').read()
-def grab(name):
-    import re
-    m=re.search(name, s); a=m.start(); d=0; i=a
-    while True:
+
+def grab(pat, optional=False):
+    m=re.search(pat, s)
+    if not m:
+        if optional: return None
+        raise ValueError('未找到 '+pat)
+    a=m.start(); d=0; i=a
+    while i<len(s):
         if s[i]=='{': d+=1
         elif s[i]=='}':
             d-=1
             if d==0: break
         i+=1
     return s[a:i+1]
-doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)'); fix=grab(r'function showFixDialog\(rawLine, msg\)')
+
+doSave=grab(r'function doSave\(')
+parseLine=grab(r'function parseLine\(text\)')
+fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){ return false; }'
+
 i2=s.index('return [{"code": "01"'); j=s.index(';', i2); prods=s[i2+len('return '):j]
+
 pre = """
 const window={}; const els={};
 function _el(id){ if(!els[id]) els[id]={id:id,value:'',innerHTML:'',textContent:'',style:{},appendChild:function(){},remove:function(){},querySelector:function(){return {onclick:null,style:{}}},addEventListener:function(){}}; return els[id]; }
