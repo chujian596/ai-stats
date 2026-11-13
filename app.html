@@ -19,18 +19,13 @@
 <link rel="icon" href="icon-512.png">
 <title>AI云统计系统</title>
 <script>
-// 自动加载线上最新版（有网就跳线上，没网就用本地版）
+// 强制跳转到线上最新版（有网就跳，没网才用本地版）
 (function(){
   var onlineUrl = "https://chujian596.github.io/ai-stats/app.html";
   // 如果已经是线上地址，就不跳了
   if(location.href.indexOf("chujian596.github.io") >= 0) return;
-  // 检查网络，有网就跳线上（静默失败，不弹错误）
-  var img = new Image();
-  img.onload = function(){ location.href = onlineUrl; };
-  img.onerror = function(){ /* 没网，用本地版 */ };
-  img.src = onlineUrl + "?t=" + Date.now();
-  // 2秒后没加载成功，直接用本地版
-  setTimeout(function(){ /* 超时了，用本地版 */ }, 2000);
+  // 直接跳线上
+  location.replace(onlineUrl);
 })();
 </script>
 <style>
