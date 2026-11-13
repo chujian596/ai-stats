@@ -134,7 +134,6 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
-        <button class="btn" id="aiToggleBtn" style="flex:1;padding:5px;font-size:12px;background:#eee;color:#999" onclick="toggleLocalAI()">AI:关</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
@@ -316,124 +315,63 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="width:36px;height:4px;background:#48484A;border-radius:2px;margin:0 auto 20px"></div>
       <div style="font-size:17px;font-weight:600;margin-bottom:16px;text-align:center">使用说明</div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">一、录入订单（基础操作）</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. 顶部先选客户：<b style="color:var(--modalText,#fff)">"客户:散客"</b> 下拉切换，选谁就记到谁名下<br>
-        2. 在输入框写订单，点 <b style="color:var(--modalText,#fff)">保存</b> 入账（<b style="color:var(--modalText,#fff)">回车=换行</b>，不是保存）<br>
-        3. 一笔一行，可多行一次保存<br>
-        4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
-        5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">一、录入订单</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 在输入框输入订单，点"保存"或按回车<br>
+        2. 每笔订单一行，多行同时录入<br>
+        3. 选客户：顶部"客户:散客"下拉切换<br>
+        4. 回车键=换行（不是保存），点按钮保存
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">二、支持的订单格式（全部）</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        <b style="color:var(--modalText,#fff)">① 特号（买号码）</b><br>
-        &nbsp;&nbsp;03 10 05　03-10-05　03,10,05　03、10、05　都能认<br>
-        &nbsp;&nbsp;例：<b style="color:var(--modalText,#fff)">03 10 05 100</b> = 三个号共100（按100算总额）<br>
-        &nbsp;&nbsp;例：<b style="color:var(--modalText,#fff)">03 10 05 各100</b> = 每个号100<br><br>
-
-        <b style="color:var(--modalText,#fff)">② 特肖（买生肖全部号码）</b><br>
-        &nbsp;&nbsp;虎500　特虎500　特肖虎500　马龙兔各50　特肖龙虎兔100<br><br>
-
-        <b style="color:var(--modalText,#fff)">③ 平特（平特肖）</b><br>
-        &nbsp;&nbsp;平虎500　平肖虎500　虎平500　平特马500　平特马龙兔各50　马龙兔平特肖100<br><br>
-
-        <b style="color:var(--modalText,#fff)">④ 连肖（二/三/四连）</b><br>
-        &nbsp;&nbsp;连肖龙虎兔100　龙虎兔三连肖100　平连龙虎100　三四连肖虎马龙兔100<br><br>
-
-        <b style="color:var(--modalText,#fff)">⑤ 组合玩法</b><br>
-        &nbsp;&nbsp;二中二 03,10 100　二中二:03,10 100<br>
-        &nbsp;&nbsp;三中二 03,10,22 100　三中三 07,24,32 100<br>
-        &nbsp;&nbsp;三中三:07,24,32 100　（用横杠写的 07-24-32 也会自动识别）<br><br>
-
-        <b style="color:var(--modalText,#fff)">⑥ 快捷批量写法</b><br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">头数：</b>0头200（=01~09全买）1头100（=10~19）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">尾数：</b>尾5 100（=05/15/25/35/45）尾0 100（=10/20/30/40）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">生肖全包：</b>虎数100（=虎的全部号码）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">号码各金额：</b>09 19 29 39 49 各40（每个号40）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">号码+金额成对：</b>03 10 05 20（=03号10元 + 05号20元）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">多笔一行：</b>虎500羊400（自动拆成两笔）<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">中文金额：</b>虎两百　龙一百　马三百<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">单位后缀：</b>元/块/米/块钱 都忽略，如 虎500元<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">二、支持的订单格式</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        <b style="color:#fff">特号：</b>03 10（空格分隔）<br>
+        <b style="color:#fff">特肖：</b>虎500 / 马龙兔各50<br>
+        <b style="color:#fff">平特：</b>平虎500 / 平肖虎500<br>
+        <b style="color:#fff">连肖：</b>连肖龙虎兔100<br>
+        <b style="color:#fff">二中二：</b>二中二03,10 100<br>
+        <b style="color:#fff">三中三：</b>三中三07,24,32 100<br>
+        <b style="color:#fff">多笔一行：</b>虎500羊400（自动拆分）<br>
+        <b style="color:#fff">号码+金额成对：</b>03 10 05 20（=03=10元+05=20元）<br>
+        <b style="color:#fff">号码各金额：</b>09 19 29 39 49 各40（=每个号40元）
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、开奖与自动结算</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. 点 <b style="color:var(--modalText,#fff)">自动获取开奖</b> → 拉最新号码并结算<br>
-        2. <b style="color:var(--modalText,#fff)">每天 21:33-21:35 自动获取</b>：号码逐个跳出，稳定后自动结算<br>
-        3. 顶部时钟在开奖时段<b style="color:var(--modalText,#fff)">变红闪烁</b> = 正在刷新中<br>
-        4. 彩球显示开奖号码（红/蓝/绿波），<b style="color:var(--modalText,#fff)">特号带金边</b><br>
-        5. 备用手动：输入 <b style="color:var(--modalText,#fff)">开</b> + 7个号码 结算<br>
-        6. 结算错了 → 设置 → <b style="color:var(--modalText,#fff)">撤销开奖记录</b> 重来
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">三、开奖结算（自动获取）</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 点"自动获取开奖"按钮，自动拉取最新开奖号码并结算<br>
+        2. <b style="color:#fff">每天21:33-21:35自动获取</b>，号码逐个跳出，稳定后自动结算<br>
+        3. 顶部时钟在开奖时段会变红闪烁，表示正在自动刷新<br>
+        4. 彩色圆球显示开奖号码（红/蓝/绿），特号带金色边框<br>
+        5. 也可手动输入"开"+7个号码结算（备用）
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">四、客户 / 订单 / 账单日</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. <b style="color:var(--modalText,#fff)">客户统计</b>：按客户看单量和金额<br>
-        2. <b style="color:var(--modalText,#fff)">历史订单</b>：每个客户右侧"复制 / 撤单"，点客户名展开明细<br>
-        &nbsp;&nbsp;· 撤单 = 删除该客户当期全部订单（会二次确认）<br>
-        3. <b style="color:var(--modalText,#fff)">订单对账</b>：一键"复制汇总"发给客户核对<br>
-        4. <b style="color:var(--modalText,#fff)">今日归档</b>：把当前账本封存、开新的一天；历史账本可切换查看<br>
-        5. <b style="color:var(--modalText,#fff)">清除订单</b>：清空当期订单（不可恢复，谨慎）
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">四、历史订单管理</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 点"历史订单"查看所有客户订单<br>
+        2. 每个客户右侧有"复制"和"撤单"<br>
+        3. "撤单"=删除该客户全部订单（需确认）<br>
+        4. 点客户名可展开/收起明细
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">五、飞单统计（分批飞单）</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. <b style="color:var(--modalText,#fff)">阈值</b> = 每个号码最多自留多少，超出的才飞<br>
-        2. 阈值填 <b style="color:var(--modalText,#fff)">0</b> = 全飞（一点不留）<br>
-        3. 分批飞单流程：<br>
-        &nbsp;&nbsp;- 快截止时：<b style="color:var(--modalText,#fff)">复制本轮飞单</b> → 发给上家 → 点 <b style="color:var(--modalText,#fff)">确认本轮飞单</b><br>
-        &nbsp;&nbsp;- 之后又进新单：再打开飞单统计，只算新增部分，重复上面动作<br>
-        &nbsp;&nbsp;- 新一期开始：点 <b style="color:var(--modalText,#fff)">重置已飞</b> 清零<br>
-        4. 页面显示：应飞总额 / 已飞累计 / 本轮应飞<br>
-        5. 配套查看：<b style="color:var(--modalText,#fff)">持仓分析（飞单后）、特号持仓、飞单明细</b>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">五、飞单统计（分批飞单）</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 阈值=每个号码最多自留多少，超了才飞<br>
+        2. 阈值=0表示全飞（不留）<br>
+        3. <b style="color:#fff">分批飞单：</b><br>
+        &nbsp;&nbsp;- 快截止时：复制本轮→发上家→点"确认本轮飞单"<br>
+        &nbsp;&nbsp;- 后面又来新单：再打开飞单统计，只算新增部分<br>
+        &nbsp;&nbsp;- 新一期开始：点"重置已飞"清零<br>
+        &nbsp;&nbsp;- 页面显示：应飞总额/已飞累计/本轮应飞
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、统计与风控</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. <b style="color:var(--modalText,#fff)">排行榜</b>：特号累计，左右两栏对照<br>
-        2. <b style="color:var(--modalText,#fff)">AI统计</b>：风险/集中度分析（开奖前预测）<br>
-        3. <b style="color:var(--modalText,#fff)">盈利统计</b>：本期盈亏明细，可"复制盈亏明细"<br>
-        4. <b style="color:var(--modalText,#fff)">平特肖</b>：平特单品累计<br>
-        5. <b style="color:var(--modalText,#fff)">产品累计</b>：按产品看总量
-      </div>
-
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、赔付与对账</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. 赔付页显示：销售总额 / 总赔付 / 净收入<br>
-        2. <b style="color:var(--modalText,#fff)">倍数</b>（默认47，按你的玩法改）→ 选特号 → <b style="color:var(--modalText,#fff)">按倍数记赔付</b><br>
-        3. 赔付记录列表可逐条删除，"清空赔付记录"一次清完<br>
-        4. 设置里 <b style="color:var(--modalText,#fff)">生成对账单</b> 一键出账<br>
-        5. 功能设置里 <b style="color:var(--modalText,#fff)">导出统计CSV</b> 可用表格打开
-      </div>
-
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">八、数据备份（重要）</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. 数据存本机，并<b style="color:var(--modalText,#fff)">自动双备份</b>（localStorage + IndexedDB），清缓存不容易丢<br>
-        2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把全部数据导出成文件，建议每天存一份<br>
-        3. <b style="color:var(--modalText,#fff)">导入备份</b>：换手机/重装后选JSON文件恢复<br>
-        4. <b style="color:var(--modalText,#fff)">一键恢复上次备份</b>：误操作后快速回滚<br>
-        5. <b style="color:var(--modalText,#fff)">清空全部数据</b>：全部清零且不可恢复，非必要别点
-      </div>
-
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">九、界面与产品设置</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. <b style="color:var(--modalText,#fff)">外观</b>：黑 / 白 / 灰 三套背景，随系统日夜模式自动切换（装App时）<br>
-        2. <b style="color:var(--modalText,#fff)">产品设置</b>三块：<br>
-        &nbsp;&nbsp;① 子产品 01-49：改颜色、备注名（默认1-49，可加编号）<br>
-        &nbsp;&nbsp;② 主产品/套餐：12个空位，点名字改成你的产品名，勾选包含哪些子产品<br>
-        &nbsp;&nbsp;③ 单品：12个空位，点名字改成商品名<br>
-        3. <b style="color:var(--modalText,#fff)">恢复默认</b>：外观和产品设置还原
-      </div>
-
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十、常见问题</div>
-      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
-        1. 一笔认不出来 → <b style="color:var(--modalText,#fff)">整笔报错</b>，不会只存一半，改好再存<br>
-        2. 按回车没保存？回车是换行，要点"保存"按钮<br>
-        3. 开奖后忘记归档 → 先结算，再点"今日归档"<br>
-        4. 换了手机 → 旧机"备份JSON"，新机"导入备份"<br>
-        5. 页面没更新 → 系统会自动比对云端版本并强制刷新，等几秒即可
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:#fff">六、注意事项</div>
+      <div style="font-size:13px;line-height:1.8;color:var(--modalLabel,#8E8E93)">
+        1. 无法识别的订单会整笔报错，不会只存一部分<br>
+        2. 保存后每行显示产品类型（特号/平特/连肖），方便核对<br>
+        3. 开奖：点"自动获取开奖"或输入"开"+7个号码<br>
+        4. 历史订单里"撤单"=删除该客户全部订单<br>
+        5. 数据存在本机，换手机需重新录入<br>
+        6. 每天点"今日归档"切换账单日
       </div>
 
       <button onclick="closeHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-top:20px">知道了</button>
@@ -502,7 +440,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.22';
+var APP_VER = 'v58.14';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -511,22 +449,9 @@ window.onerror = function(msg, url, line){
 };
 // 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
 function hardUpdateTo(v){
-  // 先清除PWA缓存
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      regs.forEach(function(reg){ reg.unregister(); });
-    });
-  }
-  // 清除所有缓存
-  if('caches' in window){
-    caches.keys().then(function(names){
-      names.forEach(function(name){ caches.delete(name); });
-    });
-  }
-  var ts = Date.now();
-  var url = location.pathname + '?v=' + encodeURIComponent(v) + '&_t=' + ts;
+  var url = location.pathname + '?v=' + encodeURIComponent(v);
   if(location.search && location.search.indexOf('v=')>=0){
-    url = location.pathname + location.search.replace(/([?&])v=[^&]*/,'$1v='+encodeURIComponent(v)).replace(/([?&])_t=[^&]*/,'$1_t='+ts);
+    url = location.pathname + location.search.replace(/([?&])v=[^&]*/,'$1v='+encodeURIComponent(v));
   }
   location.replace(url);
 }
@@ -548,13 +473,13 @@ document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
-// 每次打开都检查版本，不对就自动更新（不用sessionStorage限制，每次都检查）
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && v !== APP_VER){
-      // 云端版本和本地不一样，硬跳带版本号的网址拉新版
+    if(v && v !== APP_VER && !sessionStorage.getItem('vReloaded')){
+      // 云端版本和本地不一样，硬跳带版本号的网址拉新版（只跳一次防止循环）
+      sessionStorage.setItem('vReloaded','1');
       hardUpdateTo(v);
     }
   }).catch(function(){});
@@ -791,9 +716,9 @@ renderAll();
 var DEVICE_WHITELIST = [];
 // 生成设备指纹
 function getDeviceId(){
-  // 只根据屏幕分辨率算设备码，不看浏览器，这样换浏览器、换APP都一样
+  var ua = navigator.userAgent;
   var scr = screen.width + 'x' + screen.height + 'x' + window.devicePixelRatio;
-  var s = scr;
+  var s = ua + '|' + scr;
   var hash = 0;
   for(var i=0;i<s.length;i++){ hash = ((hash<<5)-hash+s.charCodeAt(i))|0; }
   return 'D' + Math.abs(hash).toString(36).toUpperCase();
@@ -3142,11 +3067,6 @@ function toPriceNum(tok){
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
   if(!text) return null;
-  // 预处理：修复点号分隔号码列表里的空格输入错误（在快速通道之前先做）
-  // 例："20.2 3.25" → "20.23.25"（被空格拆开的两位数自动合并）
-  // 例："45 .47" → "45.47"（去掉点号前后多余空格）
-  text = text.replace(/(\d)\s+\./g, '$1.');
-  text = text.replace(/(\.\d)\s+(\d\.)/g, '$1$2');
   // 快速通道：整行就是"一串号码 + 各/个 + 金额"，直接认，不走后面容易出错的转换
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
   // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
@@ -3197,11 +3117,6 @@ function parseLine(text){
   if(!(price > 0)) throw new Error('价格必须大于0');
   // 恢复保护的冒号格式代码
   codeText = codeText.replace(/『P(\d+)』/g, (m, idx) => protectedCodes[parseInt(idx)]);
-  // 预处理：修复点号分隔号码列表里的空格输入错误
-  // 例："20.2 3.25" → "20.23.25"（被空格拆开的两位数自动合并）
-  // 例："45 .47" → "45.47"（去掉点号前后多余空格）
-  codeText = codeText.replace(/(\d)\s+\./g, '$1.');
-  codeText = codeText.replace(/(\.\d)\s+(\d\.)/g, '$1$2');
   // 统一分隔符：各种横杠/中点/加号/顿号转空格；数字间英文句点转空格（不能动逗号，三中三:02,15,28 靠它分隔）
   codeText = codeText.replace(/[–—―·+、]+/g, ' ').replace(/(\d)\.(\d)/g, '$1 $2');
   // 数字间英文逗号转空格，但先保护"产品:号码,号码"里的逗号（三中三:02,15,28）
@@ -3512,59 +3427,6 @@ setInterval(function(){
     })
     .catch(function(){});
 }, 1000);
-// ========== 本地MNN Chat AI解析 ==========
-async function parseOrderByLocalAI(inputText) {
-  try {
-    const url = "http://127.0.0.1:8080/v1/chat/completions";
-    const systemPrompt = `
-你是订单解析器，只输出标准JSON，不要多余文字。
-规则：
-1. 识别生肖、玩法（平/特）、金额；
-2. "各X"代表每个生肖金额X；
-3. 识别不清楚、有歧义时返回 {"ok":false,"msg":"需要确认"};
-4. 输出格式固定：{"ok":true,"data":[{"type":"特","xiao":["马","兔"],"money":5}]}
-`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "qwen",
-        messages: [
-          {role:"system", content: systemPrompt},
-          {role:"user", content: inputText}
-        ],
-        temperature: 0.1
-      })
-    });
-    const json = await res.json();
-    const content = json.choices[0].message.content.trim();
-    // 提取JSON部分
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if(jsonMatch) return JSON.parse(jsonMatch[0]);
-    return {ok:false, msg:"AI返回格式错误"};
-  } catch(e) {
-    return {ok:false, msg:"本地AI服务未启动"};
-  }
-}
-
-// AI解析开关，默认关闭，需要时打开
-let _useLocalAI = false;
-
-function toggleLocalAI(){
-  _useLocalAI = !_useLocalAI;
-  const btn = document.getElementById('aiToggleBtn');
-  if(_useLocalAI){
-    btn.textContent = 'AI:开';
-    btn.style.background = '#7c3aed';
-    btn.style.color = '#fff';
-    alert('本地AI已开启！\n请确保MNN Chat的API服务已经启动');
-  } else {
-    btn.textContent = 'AI:关';
-    btn.style.background = '#eee';
-    btn.style.color = '#999';
-  }
-}
-
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
@@ -3573,31 +3435,6 @@ function handleSave(){
       autoPayout(); return;
     }
   }
-
-  // 如果开启了本地AI解析，先调AI
-  if(_useLocalAI){
-    parseOrderByLocalAI(raw0).then(ret => {
-      if(ret.ok){
-        // AI解析成功，把结果转回文本格式
-        let newText = ret.data.map(item => {
-          const type = item.type === '平' ? '平' : '特';
-          const xiao = item.xiao.join('');
-          return `${type}${xiao}各${item.money}`;
-        }).join('\n');
-        document.getElementById('input').value = newText;
-        // 继续原来的保存逻辑
-        doSave();
-      } else {
-        alert(ret.msg || 'AI解析失败');
-      }
-    });
-    return;
-  }
-
-  doSave();
-}
-
-function doSave(){
   try {
   let text = document.getElementById('input').value;
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
@@ -4383,8 +4220,8 @@ function renderOrdersList(){
     });
     // 特码飞单中奖：只有开的那个号上家赔47倍
     if(lastDraw){
-      const spKey = String(lastDraw.specialNum).padStart(2, '0');
-      const spFly = Math.max(0, (sales[spKey]||0) - splitTakeAll);
+      const sp = lastDraw.specialNum;
+      const spFly = Math.max(0, (sales[sp]||0) - splitTakeAll);
       flyBackTotal += spFly * 47;
     }
     // 平特飞单
