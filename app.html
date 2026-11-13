@@ -18,25 +18,27 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <title>AI云统计系统</title>
+<script>
+// 自动加载线上最新版（有网就跳线上，没网就用本地版）
+(function(){
+  var onlineUrl = "https://chujian596.github.io/ai-stats/app.html";
+  // 如果已经是线上地址，就不跳了
+  if(location.href.indexOf("chujian596.github.io") >= 0) return;
+  // 检查网络，有网就跳线上
+  fetch(onlineUrl + "?t=" + Date.now())
+    .then(function(){ location.href = onlineUrl; })
+    .catch(function(){ /* 没网，用本地版 */ });
+})();
+</script>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 .rank-btn{display:inline-block!important;margin:0 4px 6px 0}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);background-attachment:fixed;color:#e8e8e8;padding-bottom:120px;font-size:17px;min-height:100vh}
-
-/* 夜间模式：跟随系统 */
-@media (prefers-color-scheme: dark) {
-  body {
-    filter: invert(1) hue-rotate(180deg);
-  }
-  img, video, canvas, .no-invert {
-    filter: invert(1) hue-rotate(180deg);
-  }
-}
-header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif:#f5f5f5;background-attachment:fixed;color:#333;padding-bottom:120px;font-size:17px;min-height:100vh}
+header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;padding-top:max(env(safe-area-inset-top),24px);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .title{font-size:15px;font-weight:700}
 .totals{font-size:13px;margin-top:1px;opacity:.95;font-weight:700}
-main{padding:10px}
+main{padding:10px;padding-top:max(env(safe-area-inset-top),24px)}
 .card{background:rgba(255,255,255,.92);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.2);color:#1f2329}
 .lbl{display:block;font-size:15px;color:#555;margin:6px 0 3px}
 .input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:15px;background:#fafbfc;outline:none}
@@ -134,6 +136,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
+        <button class="btn" id="aiToggleBtn" style="flex:1;padding:5px;font-size:12px;background:#eee;color:#999" onclick="toggleLocalAI()">AI:关</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
@@ -788,14 +791,15 @@ renderAll();
   document.getElementById('input').value = '';
 }
 var DEVICE_WHITELIST = [];
-// 生成设备指纹
+// 生成设备指纹（固定UUID，存在localStorage，不随屏幕分辨率变化）
 function getDeviceId(){
-  // 只根据屏幕分辨率算设备码，不看浏览器，这样换浏览器、换APP都一样
-  var scr = screen.width + 'x' + screen.height + 'x' + window.devicePixelRatio;
-  var s = scr;
-  var hash = 0;
-  for(var i=0;i<s.length;i++){ hash = ((hash<<5)-hash+s.charCodeAt(i))|0; }
-  return 'D' + Math.abs(hash).toString(36).toUpperCase();
+  // 先读本地存好的设备码
+  var saved = localStorage.getItem('fixed_device_id');
+  if(saved) return saved;
+  // 没有就生成一个新的UUID
+  var uuid = 'D' + Math.random().toString(36).substring(2,10).toUpperCase();
+  localStorage.setItem('fixed_device_id', uuid);
+  return uuid;
 }
 var DEVICE_ID = getDeviceId();
 var whitelistActive = false; // 白名单是否已启用
@@ -3511,6 +3515,68 @@ setInterval(function(){
     })
     .catch(function(){});
 }, 1000);
+// ========== 本地MNN Chat AI解析 ==========
+async function parseOrderByLocalAI(inputText) {
+  try {
+    const url = "https://api.deepseek.com/v1/chat/completions";
+    const apiKey = "sk-56762bcda15e4244af0f8f2a0ba97523";
+    const systemPrompt = `你是订单解析器，只输出标准JSON，不要多余文字。
+
+支持的订单格式：
+1. 特码生肖：如"马兔各5米" → 特码，生肖马兔，每肖5元
+2. 平特生肖：如"平马龙8米" → 平特，生肖马龙，每肖8元
+3. 三中三：如"19 16 35三中三5" → 三个数字，每注5元
+4. 二中二：如"19 16二中二5" → 两个数字，每注5元
+5. 连肖：如"马连龙兔10米" → 连肖，马连龙兔，10元
+6. 分地区：如"澳门："、"香港" 开头的行，分别归属对应地区
+
+规则：
+- "各X"代表每个生肖/每注金额X
+- 识别不清楚、有歧义时返回 {"ok":false,"msg":"需要确认"}
+- 输出格式：{"ok":true,"data":[{"type":"特/平特/三中三/二中二/连肖","xiao":["马","兔"],"nums":[19,16,35],"money":5,"region":"澳门/香港"}]}
+- type只能是：特、平特、三中三、二中二、连肖
+- xiao字段是生肖数组，nums字段是数字数组，根据订单类型填对应字段
+- region字段：澳门/香港，默认澳门
+
+只输出JSON，不要解释！`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{role:"system", content:systemPrompt}, {role:"user", content:inputText}],
+        temperature: 0.1
+      })
+    });
+    const json = await res.json();
+    const content = json.choices[0].message.content.trim();
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if(jsonMatch) return JSON.parse(jsonMatch[0]);
+    return {ok:false, msg:"AI返回格式错误"};
+  } catch(e) {
+    return {ok:false, msg:"云端AI服务连接失败"};
+  }
+}
+
+let _useLocalAI = false;
+function toggleLocalAI(){
+  _useLocalAI = !_useLocalAI;
+  const btn = document.getElementById('aiToggleBtn');
+  if(_useLocalAI){
+    btn.textContent = 'AI:开';
+    btn.style.background = '#7c3aed';
+    btn.style.color = '#fff';
+    alert('云端AI已开启！\n录单解析将自动调用DeepSeek');
+  } else {
+    btn.textContent = 'AI:关';
+    btn.style.background = '#eee';
+    btn.style.color = '#999';
+  }
+}
+
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
@@ -5510,50 +5576,42 @@ function applyTheme(){
   let lightCss = '';
   if(isDark){
     darkCss = `
-      /* Chrome风格暗色：全中性色，不要饱和紫 */
       body { color-scheme: dark; }
-      header { background: #2d2d2d !important; }
       
-      /* 顶部标题栏不要紫色 */
-      header, [style*="background:#7c3aed"][style*="color:#fff"][style*="text-align:center"] {
-        background: #2d2d2d !important;
+      /* 顶部标题栏黑色 */
+      header { background: #1a1a1a !important; }
+      
+      /* 卡片和背景同色，只用边框区分 */
+      .card, section, div[style*="background"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
       }
       
-      /* 卡片统一Chrome色 #2d2d2d */
-      div[style*="background"], section[style*="background"],
-      button[style*="background"], input[style*="background"],
-      .card, section {
-        background: #2d2d2d !important;
-        background-color: #2d2d2d !important;
-      }
-      
-      /* 大按钮（自动结算/保存等）不要紫色，改深灰 */
-      button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"],
-      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"],
-      .btn.primary, .tab.active {
-        background: #3d3d3d !important;
-        background-color: #3d3d3d !important;
+      /* 按钮黑色，文字白色 */
+      .btn, .tab, .chip, button[style*="background"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
         color: #fff !important;
-        border: none !important;
+        border: 1px solid #444 !important;
       }
       
-      /* 输入框更深 */
+      .btn.primary, .tab.active {
+        background: #333 !important;
+        background-color: #333 !important;
+        color: #fff !important;
+        border: 1px solid #555 !important;
+      }
+      
+      /* 输入框黑色，文字白色 */
       input, textarea, select, .input {
-        background: #1f1f1f !important;
-        color: rgba(255,255,255,.85) !important;
+        background: #1a1a1a !important;
+        color: #fff !important;
         border-color: #444 !important;
       }
       
-      /* tab和次要按钮 */
-      .tab, .btn:not(.primary):not(.danger), .chip {
-        background: #3d3d3d !important;
-        color: rgba(255,255,255,.7) !important;
-        border-color: #444 !important;
-      }
-      
-      /* 所有文字 */
+      /* 所有文字白色 */
       div, span, p, td, th, label, h1, h2, h3, h4 {
-        color: rgba(255,255,255,.85) !important;
+        color: #fff !important;
       }
       
       /* 红绿色调亮 */
@@ -5563,37 +5621,51 @@ function applyTheme(){
     `;
   } else {
     lightCss = `
-      /* 浅色模式：大标题栏不要紫色填充，改浅灰底深色字 */
-      div[style*="background:#7c3aed"][style*="border-radius:8px"][style*="cursor:pointer"],
-      div[style*="background:${color}"][style*="border-radius:8px"][style*="cursor:pointer"] {
-        background:#f5f5f5 !important; color:#333 !important;
+      /* 浅色模式：卡片和背景同色，只用边框区分 */
+      .card, section, div[style*="background"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
       }
-      /* 主按钮用浅色底+深色字，不要饱和填充 */
-      .btn.primary, .tab.active {
-        background: ${color}22 !important;
-        color: ${color} !important;
-        border: 1px solid ${color}44 !important;
-      }
-      button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"] {
-        background: ${color}22 !important;
-        color: ${color} !important;
-      }
-      /* 顶部header用浅灰 */
+      
+      /* 顶部header白色 */
       header {
+        background: #ffffff !important;
+        color: #000 !important;
+      }
+      
+      /* 按钮白色，文字黑色，细边框 */
+      .btn, .tab, .chip, button[style*="background"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000 !important;
+        border: 1px solid #ccc !important;
+      }
+      
+      .btn.primary, .tab.active {
         background: #f0f0f0 !important;
-        color: #333 !important;
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+        border: 1px solid #999 !important;
       }
-      /* 紫色标签改灰色 */
-      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"] {
-        background: #e0e0e0 !important;
-        color: #333 !important;
+      
+      /* 输入框白色，文字黑色 */
+      input, textarea, select, .input {
+        background: #ffffff !important;
+        color: #000 !important;
+        border-color: #ccc !important;
       }
-      /* 关键修复：浅色模式下所有白色/浅色文字强制改深色，否则白底白字看不见 */
+      
+      /* 所有文字黑色 */
+      div, span, p, td, th, label, h1, h2, h3, h4 {
+        color: #000 !important;
+      }
+      
+      /* 强制白色文字改黑色 */
       [style*="color:#fff"], [style*="color:white"],
       [style*="color:#FFF"], [style*="color:White"],
       [style*="color:rgba(255,255,255"], [style*="color: rgba(255, 255, 255"],
       [style*="color: rgb(255, 255, 255)"] {
-        color: #333 !important;
+        color: #000 !important;
       }
     `;
   }
