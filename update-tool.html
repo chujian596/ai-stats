@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>一键更新工具</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f5f5f5;padding:16px;font-size:16px}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+h1{font-size:20px;margin:0 0 16px;text-align:center}
+h2{font-size:16px;margin:0 0 10px;color:#333}
+.input,.textarea{width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px;outline:none}
+.textarea{min-height:200px;font-family:Consolas,monospace;font-size:12px;line-height:1.4}
+.btn{width:100%;border:none;border-radius:8px;padding:14px;font-size:16px;font-weight:700;margin-top:10px;cursor:pointer}
+.btn.primary{background:#7c3aed;color:#fff}
+.btn:active{opacity:.8}
+.status{padding:10px;border-radius:8px;margin-top:10px;font-size:14px;display:none}
+.status.ok{background:#e8f5e9;color:#2e7d32;display:block}
+.status.err{background:#ffebee;color:#c62828;display:block}
+.row{display:flex;gap:8px;margin-bottom:10px}
+.row .input{flex:1}
+select{flex:1;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px;background:#fff}
+.tip{font-size:12px;color:#999;margin-top:6px;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>🔧 一键更新工具</h1>
+
+<div class="card">
+  <h2>1. GitHub Token（只需要填一次）</h2>
+  <input type="password" class="input" id="token" placeholder="粘贴你的GitHub Personal Access Token">
+  <div class="tip">去 GitHub → Settings → Developer settings → Personal access tokens 生成，勾选repo权限</div>
+</div>
+
+<div class="card">
+  <h2>2. 选择要更新的文件</h2>
+  <select id="file">
+    <option value="app.html">app.html（录单系统）</option>
+    <option value="stats.html">stats.html（资料统计）</option>
+    <option value="version.txt">version.txt（版本号）</option>
+  </select>
+</div>
+
+<div class="card">
+  <h2>3. 粘贴新代码</h2>
+  <textarea class="textarea" id="newCode" placeholder="把MNN Chat输出的新代码粘贴在这里..."></textarea>
+</div>
+
+<button class="btn primary" onclick="update()">🚀 一键更新到GitHub</button>
+
+<div class="status" id="status"></div>
+
+<script>
+// 保存token
+const savedToken = localStorage.getItem('github_token');
+if(savedToken) document.getElementById('token').value = savedToken;
+
+async function update(){
+  const token = document.getElementById('token').value.trim();
+  const file = document.getElementById('file').value;
+  const newCode = document.getElementById('newCode').value;
+  
+  if(!token){ alert('请先填GitHub Token'); return; }
+  if(!newCode.trim()){ alert('请粘贴新代码'); return; }
+  
+  localStorage.setItem('github_token', token);
+  
+  const status = document.getElementById('status');
+  status.className = 'status';
+  status.textContent = '⏳ 正在更新...';
+  
+  try {
+    // 1. 获取当前文件的sha
+    const getRes = await fetch(`https://api.github.com/repos/chujian596/ai-stats/contents/${file}`, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    const getData = await getRes.json();
+    const sha = getData.sha;
+    
+    // 2. 更新文件
+    const putRes = await fetch(`https://api.github.com/repos/chujian596/ai-stats/contents/${file}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `更新${file}`,
+        content: btoa(unescape(encodeURIComponent(newCode))),
+        sha: sha
+      })
+    });
+    
+    if(putRes.ok){
+      status.className = 'status ok';
+      status.textContent = '✅ 更新成功！1分钟后生效';
+      document.getElementById('newCode').value = '';
+    } else {
+      const err = await putRes.json();
+      status.className = 'status err';
+      status.textContent = '❌ 更新失败：' + err.message;
+    }
+  } catch(e) {
+    status.className = 'status err';
+    status.textContent = '❌ 出错了：' + e.message;
+  }
+}
+</script>
+</body>
+</html>
