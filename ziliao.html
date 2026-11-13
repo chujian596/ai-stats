@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多站资料对比系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f5f5;color:#222;font-size:15px}
+.header{background:#1a1a1a;color:#fff;padding:10px 14px;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px;font-weight:600}
+.header .sub{font-size:12px;color:#999;margin-top:2px}
+.tabs{display:flex;background:#2a2a2a;overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:46px;z-index:99}
+.tab{padding:10px 14px;color:#888;font-size:13px;white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent}
+.tab.active{color:#fff;border-bottom-color:#e63;font-weight:600}
+.content{padding:10px;padding-bottom:60px}
+.summary-bar{background:#fff;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-around;text-align:center}
+.summary-bar .item .num{font-size:20px;font-weight:700}
+.summary-bar .item .label{font-size:11px;color:#888;margin-top:2px}
+.card{background:#fff;border-radius:8px;margin-bottom:10px;overflow:hidden}
+.card-title{padding:10px 14px;border-bottom:1px solid #eee;font-weight:600;font-size:14px;background:#fafafa}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5f5}
+.row:last-child{border-bottom:none}
+.row .name{color:#444;font-size:14px;flex:1}
+.row .val{font-weight:600;font-size:14px;text-align:right}
+.val.hit{color:#0a0}
+.val.miss{color:#c00}
+.val.pending{color:#999}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 6px;text-align:center;border-bottom:1px solid #eee}
+th{background:#fafafa;font-weight:600;color:#555}
+td.name-cell{text-align:left;font-weight:500;color:#333}
+.note{font-size:12px;color:#666;padding:10px 14px;background:#fffbe6;border-radius:4px;margin-bottom:10px;line-height:1.6}
+.stat-good{color:#0a0;font-weight:600}
+.stat-bad{color:#c00;font-weight:600}
+.stat-warn{color:#e80;font-weight:600}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>多站资料对比系统</h1>
+  <div class="sub" id="subTitle">加载中...</div>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="content" id="content"></div>
+<script>
+const SITES = [{"id": "13069", "widgets": 199, "period": 316, "kill3": {"hit": 9, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 1, "miss": 5}, "history": {"5肖中特": {"316": "鼠羊兔鸡牛", "315": "龙牛鼠猴羊", "314": "虎牛羊蛇鼠", "313": "鸡马猴鼠蛇", "311": "猴鼠羊鸡牛"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "杀特3肖": {"316": "牛猴羊", "315": "狗虎猴", "314": "蛇猪狗", "313": "狗猪牛", "311": "鼠狗羊", "310": "羊蛇牛", "309": "兔狗鼠", "307": "兔狗龙", "305": "马鼠猪", "304": "牛羊鼠"}, "7肖中特": {"316": "龙狗马牛猪猴蛇", "315": "鼠蛇鸡猴羊狗兔", "314": "鼠虎狗蛇龙猪马", "313": "龙狗猪鸡牛鼠猴", "312": "兔羊蛇鼠牛猪虎"}, "杀特1肖": {"316": "蛇", "315": "鼠", "314": "猴", "313": "猴", "312": "狗", "311": "狗", "310": "猪", "309": "龙", "307": "羊", "306": "牛"}, "平特1肖": {"316": "猴", "315": "马", "313": "鼠", "312": "鸡", "311": "蛇", "309": "牛", "308": "牛"}}}, {"id": "13039", "widgets": 165, "period": 313, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 1}, "history": {"平特1肖": {"316": "鸡", "315": "羊", "314": "鸡"}, "杀特1肖": {"316": "兔", "315": "龙", "314": "兔", "313": "兔", "312": "猪", "310": "狗", "309": "鸡", "308": "蛇", "307": "猪", "306": "虎", "305": "猴"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "49042", "widgets": 163, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "杀特1肖": {"316": "鸡", "315": "牛", "314": "猴", "313": "龙", "312": "兔", "311": "猴", "310": "龙", "309": "蛇", "308": "蛇", "307": "狗", "306": "兔", "305": "兔", "303": "鸡", "302": "龙", "301": "狗", "300": "虎", "299": "兔", "297": "鼠", "296": "鼠", "295": "虎"}}}, {"id": "13037", "widgets": 162, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 1}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "猴", "315": "龙"}, "7肖中特": {"316": "狗牛龙猪蛇鸡猴", "315": "马狗龙猪羊虎兔", "313": "鼠羊猪鸡虎马龙", "312": "狗蛇猴虎羊鸡龙", "310": "羊猴虎鸡兔牛马", "308": "羊猴鼠马狗鸡蛇", "307": "龙羊蛇猴鸡牛兔", "306": "猴猪马龙鸡牛狗", "305": "蛇虎猪马鸡龙兔", "303": "鸡虎猴马羊鼠牛", "302": "狗牛兔鼠猴马蛇", "301": "羊猴马猪虎牛兔", "300": "兔蛇猴虎羊牛猪", "299": "狗蛇虎鼠龙猴牛", "298": "猴兔猪鼠狗蛇羊", "296": "龙鸡猪鼠猴羊兔", "295": "兔猴羊马牛狗蛇", "294": "虎狗兔牛羊蛇龙", "293": "兔蛇龙牛虎猪鼠", "292": "狗龙兔马猴羊鼠"}}}, {"id": "13081", "widgets": 162, "period": 316, "kill3": {"hit": 1, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "杀特3肖": {"316": "鼠马牛", "315": "鼠猴鸡"}, "7肖中特": {"316": "蛇牛猴羊虎马鼠", "315": "猪狗兔鼠虎羊龙", "313": "龙蛇猪鼠羊猴兔", "312": "牛鸡马猴狗蛇猪"}, "平特1肖": {"316": "虎", "315": "羊"}}}, {"id": "13327", "widgets": 162, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}}}, {"id": "49874", "widgets": 162, "period": 316, "kill3": {"hit": 18, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 2}, "history": {"杀特3肖": {"316": "猪蛇牛", "315": "龙马猪", "313": "猪狗鸡", "312": "鸡马鼠", "311": "马兔蛇", "310": "羊牛狗", "308": "蛇兔马", "307": "虎蛇狗", "306": "虎鸡鼠", "305": "狗牛鸡", "304": "牛鸡龙", "303": "猪羊蛇", "301": "蛇兔牛", "300": "牛兔虎", "299": "龙鼠鸡", "298": "兔猴龙", "297": "羊牛猪", "296": "猪羊马", "294": "牛鼠虎"}, "7肖中特": {"316": "虎猴兔鸡龙马蛇", "314": "鼠蛇猪马兔牛虎"}, "杀特1肖": {"316": "羊", "315": "蛇", "314": "龙", "313": "马", "311": "狗", "310": "蛇", "309": "狗", "308": "鼠", "306": "猪", "305": "羊", "304": "鼠", "303": "兔", "302": "虎", "300": "鸡", "299": "蛇", "298": "羊", "297": "虎", "296": "牛", "295": "猴", "294": "鸡"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "马", "315": "鸡", "313": "龙"}}}, {"id": "13056", "widgets": 159, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "7肖中特": {"316": "虎猴蛇鼠龙马狗", "315": "蛇龙猪羊虎猴兔"}}}, {"id": "453555", "widgets": 159, "period": 315, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"平特1肖": {"316": "龙"}, "7肖中特": {"316": "猪猴鸡龙马鼠牛", "315": "龙马鼠蛇鸡羊虎", "314": "马鼠猴狗牛虎猪", "313": "牛虎猪蛇鼠马龙", "312": "兔马狗蛇猪牛猴", "311": "马鸡牛鼠狗兔羊", "310": "鸡马虎羊牛猪龙", "309": "虎马狗羊龙猴蛇", "307": "羊牛兔马龙虎猴", "306": "狗马羊鸡龙猴兔", "305": "龙蛇兔猪马虎鸡", "303": "鸡猪羊蛇马牛虎", "301": "马虎鸡龙猴鼠牛", "300": "牛鼠龙鸡虎猴蛇", "299": "龙兔猴狗牛马鼠"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "杀特1肖": {"316": "虎", "315": "猪", "314": "龙", "313": "虎", "312": "牛", "311": "羊", "310": "鼠", "309": "羊", "308": "虎", "307": "虎", "306": "鸡", "305": "牛", "304": "鼠", "303": "牛", "302": "马", "301": "马", "300": "马", "299": "蛇", "298": "猴", "297": "龙"}}}, {"id": "13034", "widgets": 157, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "虎"}}}, {"id": "13087", "widgets": 157, "period": 316, "kill3": {"hit": 9, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "猪蛇羊", "314": "牛虎蛇", "312": "兔马龙", "311": "龙蛇兔", "309": "鸡羊猴", "308": "猴鼠狗", "306": "狗猪马", "305": "虎猪鼠", "304": "龙马蛇", "303": "马兔鸡"}, "杀特1肖": {"316": "虎", "315": "猴", "314": "猪", "313": "牛", "312": "马", "311": "羊", "310": "兔", "309": "兔", "308": "狗", "307": "猴"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "7肖中特": {"316": "兔猴鼠蛇牛龙羊"}}}, {"id": "16067", "widgets": 156, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "15087", "widgets": 153, "period": 316, "kill3": {"hit": 19, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 3}, "history": {"杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "杀特3肖": {"316": "鸡猪龙", "315": "虎牛马", "314": "猴猪鸡", "313": "兔龙猪", "312": "猴龙猪", "311": "马龙兔", "310": "羊鼠牛", "309": "蛇兔牛", "308": "龙牛马", "307": "马鸡羊", "306": "虎狗蛇", "305": "狗牛鸡", "304": "鸡牛马", "303": "鼠马羊", "302": "鼠龙鸡", "301": "马羊猴", "300": "鸡兔鼠", "299": "狗鸡马", "298": "兔龙牛", "296": "虎兔马"}, "平特1肖": {"316": "虎", "314": "蛇", "313": "猪", "312": "鸡"}}}, {"id": "315444", "widgets": 152, "period": 316, "kill3": {"hit": 2, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "鸡牛猴", "314": "龙兔猴", "313": "鸡牛龙"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "7肖中特": {"316": "猴狗蛇牛兔虎鸡", "314": "猪虎牛鼠龙马狗", "313": "猪龙牛马狗蛇鼠", "312": "龙蛇鸡牛猪马猴", "311": "虎鸡蛇龙猪猴羊", "310": "鸡兔鼠牛猪蛇狗"}}}, {"id": "49034", "widgets": 148, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 2}, "history": {"杀特1肖": {"316": "鼠"}, "平特1肖": {"316": "马", "315": "马", "314": "鼠", "313": "龙"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "130160", "widgets": 147, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "7肖中特": {"316": "猪龙马狗兔羊猴", "315": "狗猪兔蛇鸡龙羊", "313": "龙猪猴虎鼠蛇狗", "311": "鼠牛猴猪鸡狗兔"}, "杀特3肖": {"316": "马猴牛"}}}, {"id": "604444", "widgets": 147, "period": 316, "kill3": {"hit": 4, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "马羊猪", "315": "龙猴虎", "314": "猪猴龙", "313": "羊虎猪", "312": "鼠鸡狗"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "49979", "widgets": 144, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"平特1肖": {"316": "蛇"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}}}, {"id": "35045", "widgets": 141, "period": 316, "kill3": {"hit": 6, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "杀特3肖": {"316": "鼠鸡虎", "315": "猴兔鼠", "314": "鸡狗牛", "313": "虎鸡羊", "312": "猪马虎", "311": "兔蛇狗", "310": "猪牛马"}}}, {"id": "352555", "widgets": 140, "period": 315, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "13072", "widgets": 139, "period": 316, "kill3": {"hit": 16, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "羊蛇牛", "314": "马牛龙", "313": "狗龙蛇", "312": "虎鸡马", "311": "马兔牛", "310": "猪羊猴", "308": "马羊猪", "306": "羊鼠虎", "305": "牛猴兔", "303": "兔鸡猪", "301": "羊龙鸡", "300": "兔鼠羊", "298": "龙狗牛", "297": "蛇虎牛", "296": "鸡蛇鼠", "295": "牛猴龙", "293": "狗猪蛇"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "16024", "widgets": 135, "period": 316, "kill3": {"hit": 7, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "猴狗蛇", "314": "牛猴猪", "313": "猪龙兔", "312": "羊狗鼠", "311": "牛马狗", "310": "鼠马牛", "309": "鼠虎鸡", "308": "蛇兔鼠"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "130006", "widgets": 130, "period": 316, "kill3": {"hit": 8, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "龙鸡鼠", "315": "蛇狗虎", "314": "羊猴鸡", "312": "马兔羊", "311": "狗虎猪", "310": "虎蛇兔", "308": "蛇鼠牛", "307": "猴虎猪", "305": "羊猴鸡"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "49241", "widgets": 129, "period": 316, "kill3": {"hit": 11, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 3, "miss": 10}, "history": {"杀特3肖": {"316": "马羊猪", "315": "猴鼠马", "314": "马猪猴", "313": "猪牛猴", "312": "猪兔马", "310": "兔猴虎", "309": "羊虎鼠", "308": "狗鼠猴", "307": "兔马猪", "305": "鸡猴虎", "304": "鸡牛龙", "303": "鼠狗兔"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "猪", "315": "马", "313": "猪", "312": "蛇", "310": "猪", "308": "牛", "307": "马", "306": "猪", "305": "蛇", "304": "马", "303": "兔", "302": "马", "301": "虎", "300": "猴"}, "7肖中特": {"316": "鸡羊马虎兔狗蛇", "315": "羊龙蛇兔鸡马虎", "314": "牛猴蛇鼠猪兔龙", "312": "虎猪狗牛蛇鼠羊"}}}, {"id": "13695", "widgets": 122, "period": 316, "kill3": {"hit": 6, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "杀特3肖": {"316": "羊狗猴", "314": "狗猪龙", "313": "马兔鸡", "312": "鸡龙猪", "310": "兔羊猪", "308": "猴虎鼠", "307": "鼠羊虎"}, "7肖中特": {"316": "狗蛇猪虎牛龙鼠", "315": "狗兔虎马牛羊蛇"}}}, {"id": "13357", "widgets": 114, "period": 316, "kill3": {"hit": 16, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "鸡猪狗", "315": "猪猴蛇", "314": "鸡龙猴", "313": "猴猪马", "312": "马羊狗", "311": "羊蛇猪", "310": "猪狗鼠", "308": "龙狗鼠", "307": "猴羊龙", "306": "鼠虎鸡", "305": "马牛兔", "304": "马鸡猴", "303": "狗马猪", "302": "马兔龙", "301": "马牛鼠", "300": "狗猴兔", "299": "兔鸡马"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}}}, {"id": "311444", "widgets": 111, "period": 316, "kill3": {"hit": 3, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 1}, "history": {"平特1肖": {"316": "马", "315": "牛"}, "杀特3肖": {"316": "狗蛇兔", "315": "鼠龙虎", "314": "虎兔牛", "312": "虎牛鼠"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}}}, {"id": "338444", "widgets": 110, "period": 316, "kill3": {"hit": 12, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 7}, "history": {"平特1肖": {"316": "马", "315": "狗", "314": "马", "312": "龙", "311": "蛇", "310": "蛇", "309": "鸡", "308": "兔"}, "杀特3肖": {"316": "猴狗龙", "315": "猴鸡猪", "314": "猴蛇狗", "313": "鸡蛇兔", "311": "马鼠猪", "310": "羊龙马", "309": "猴狗牛", "308": "狗虎蛇", "307": "马猪兔", "306": "猪猴虎", "305": "猴猪羊", "304": "羊牛鼠", "303": "蛇兔狗"}, "杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}}}, {"id": "15026", "widgets": 109, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "羊"}}}, {"id": "49405", "widgets": 103, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特3肖": {"316": "牛狗鼠"}}}, {"id": "49347", "widgets": 103, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 8}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "5肖中特": {"316": "牛猪龙鸡狗", "315": "牛羊狗兔蛇", "314": "鸡鼠猴蛇龙"}, "平特1肖": {"316": "羊", "315": "鸡", "314": "狗", "313": "龙", "312": "蛇", "311": "兔", "310": "猪", "308": "兔", "306": "蛇", "304": "鼠"}}}, {"id": "14056", "widgets": 102, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 7, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "狗羊龙猴兔牛", "315": "猪牛鸡狗马鼠", "314": "猪虎牛羊马猴", "313": "兔鸡牛羊猪猴", "311": "牛鼠猪羊龙虎", "309": "鼠狗猴羊蛇龙", "307": "虎猪猴羊鸡兔", "306": "猴羊鸡狗虎牛"}, "7肖中特": {"316": "鼠牛鸡马狗兔虎", "314": "猴牛虎蛇鼠兔猪", "313": "虎鸡牛猴鼠羊兔", "312": "蛇羊牛龙猴鸡兔", "311": "马鸡猴虎牛狗猪", "310": "狗猪虎兔鸡马蛇"}}}, {"id": "49304", "widgets": 96, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 12}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "平特1肖": {"316": "牛", "314": "马", "312": "龙", "310": "猴", "308": "兔", "306": "兔", "305": "鼠", "303": "猪", "302": "蛇", "301": "猴", "300": "猴", "298": "羊", "297": "龙"}}}, {"id": "49715", "widgets": 96, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "7肖中特": {"316": "鸡鼠马蛇牛猴龙", "314": "羊鼠猪鸡狗兔牛", "313": "牛虎鸡鼠狗蛇猪"}}}, {"id": "19016", "widgets": 88, "period": 315, "kill3": {"hit": 10, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 3}, "history": {"平特1肖": {"316": "鼠", "315": "牛", "313": "狗", "312": "猪", "310": "鸡"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "5肖中特": {"316": "鼠牛龙兔马", "315": "龙羊狗虎猪", "314": "鸡牛鼠羊马", "313": "蛇鸡狗鼠猪", "312": "牛羊猪蛇兔", "311": "猪鸡虎牛龙", "310": "兔猪猴蛇鸡", "308": "鼠兔鸡蛇狗"}, "杀特3肖": {"316": "虎鸡牛", "315": "兔马狗", "314": "猴兔羊", "312": "猴虎狗", "311": "虎狗鼠", "309": "牛狗虎", "308": "狗猪鼠", "307": "虎马龙", "305": "猪牛鼠", "304": "鸡蛇猴", "303": "猴马兔"}}}, {"id": "0491", "widgets": 87, "period": 316, "kill3": {"hit": 16, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 1}, "history": {"平特1肖": {"316": "鸡", "314": "蛇", "313": "鼠"}, "5肖中特": {"316": "鼠羊虎马鸡"}, "杀特3肖": {"316": "马龙羊", "315": "虎兔鸡", "313": "蛇猪狗", "312": "牛鼠虎", "311": "兔狗鼠", "309": "狗龙鸡", "308": "虎狗猴", "307": "羊蛇龙", "306": "虎马鸡", "304": "兔龙蛇", "303": "兔马鸡", "302": "虎牛羊", "301": "兔鸡马", "299": "龙猪鼠", "298": "马羊鼠", "296": "兔猪龙", "295": "猪龙羊"}, "杀特6肖": {"316": "蛇虎猪鸡羊鼠"}}}, {"id": "49720", "widgets": 85, "period": 316, "kill3": {"hit": 3, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 3}, "history": {"杀特6肖": {"316": "蛇虎猪鸡羊鼠"}, "5肖中特": {"316": "狗龙羊蛇猴"}, "平特1肖": {"316": "猪", "315": "马", "314": "蛇", "313": "龙"}, "杀特3肖": {"316": "鼠虎猪", "315": "狗蛇猴", "314": "蛇猪马", "313": "羊虎蛇"}}}, {"id": "13021", "widgets": 62, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "49047", "widgets": 61, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "414999", "widgets": 50, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "49084", "widgets": 49, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "49041", "widgets": 44, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 1, "miss": 0}, "history": {"平特1肖": {"316": "虎", "315": "羊"}}}, {"id": "145345", "widgets": 41, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "12161", "widgets": 40, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "13685", "widgets": 40, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "13783", "widgets": 37, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "49966", "widgets": 26, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "187345", "widgets": 13, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}, {"id": "13635", "widgets": 11, "period": 316, "kill3": {"hit": 0, "miss": 0}, "kill6": {"hit": 0, "miss": 0}, "pingte": {"hit": 0, "miss": 0}, "history": {}}];
+let currentTab = "summary";
+
+function renderTabs(){
+  const t = document.getElementById("tabs");
+  let html = `<div class="tab ${currentTab==='summary'?'active':''}" onclick="switchTab('summary')">汇总</div>`;
+  SITES.forEach(s=>{
+    html += `<div class="tab ${currentTab===s.id?'active':''}" onclick="switchTab('${s.id}')">${s.id}</div>`;
+  });
+  t.innerHTML = html;
+}
+
+function switchTab(id){
+  currentTab = id;
+  renderTabs();
+  renderContent();
+}
+
+function renderContent(){
+  const c = document.getElementById("content");
+  if(currentTab === "summary"){
+    c.innerHTML = renderSummary();
+  } else {
+    c.innerHTML = renderSite(currentTab);
+  }
+}
+
+function pct(hit, miss){
+  const t = hit+miss;
+  if(t === 0) return '<span class="val pending">无数据</span>';
+  const p = hit/t*100;
+  const cls = p >= 80 ? 'stat-good' : p >= 60 ? 'stat-warn' : 'stat-bad';
+  return `<span class="${cls}">${hit}/${t} = ${p.toFixed(0)}%</span>`;
+}
+
+function renderSummary(){
+  let html = `<div class="note">同一运营方CDN体系，共${SITES.length}个站有数据。杀肖类栏目命中率普遍较高（杀3肖约75%随机基准），平特1肖接近随机水平（8%基准）。历史数据越多的站越有参考价值。</div>`;
+  
+  html += `<div class="summary-bar">
+    <div class="item"><div class="num">${SITES.length}</div><div class="label">站点数</div></div>
+    <div class="item"><div class="num">316</div><div class="label">当前期</div></div>
+    <div class="item"><div class="num" style="color:#e63">21:32</div><div class="label">开奖</div></div>
+  </div>`;
+
+  // 杀特3肖排名
+  html += `<div class="card"><div class="card-title">杀特3肖历史命中率排名</div><table><tr><th>站点</th><th>命中率</th><th>样本</th></tr>`;
+  const k3 = SITES.filter(s=>{const t=s.kill3.hit+s.kill3.miss;return t>=3}).sort((a,b)=>{
+    const pa=a.kill3.hit/(a.kill3.hit+a.kill3.miss), pb=b.kill3.hit/(b.kill3.hit+b.kill3.miss);
+    return pb-pa;
+  });
+  k3.forEach(s=>{
+    const t=s.kill3.hit+s.kill3.miss;
+    html += `<tr><td class="name-cell">${s.id}${s.id==='0491'?' (本站)':''}</td><td>${pct(s.kill3.hit,s.kill3.miss)}</td><td>${t}期</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // 杀特6肖排名
+  html += `<div class="card"><div class="card-title">杀特6肖历史命中率排名</div><table><tr><th>站点</th><th>命中率</th><th>样本</th></tr>`;
+  const k6 = SITES.filter(s=>{const t=s.kill6.hit+s.kill6.miss;return t>=3}).sort((a,b)=>{
+    const pa=a.kill6.hit/(a.kill6.hit+a.kill6.miss), pb=b.kill6.hit/(b.kill6.hit+b.kill6.miss);
+    return pb-pa;
+  });
+  k6.forEach(s=>{
+    const t=s.kill6.hit+s.kill6.miss;
+    html += `<tr><td class="name-cell">${s.id}${s.id==='0491'?' (本站)':''}</td><td>${pct(s.kill6.hit,s.kill6.miss)}</td><td>${t}期</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // 平特1肖排名
+  html += `<div class="card"><div class="card-title">平特1肖历史命中率（随机基准8%）</div><table><tr><th>站点</th><th>命中率</th><th>样本</th></tr>`;
+  const pt = SITES.filter(s=>{const t=s.pingte.hit+s.pingte.miss;return t>=3}).sort((a,b)=>{
+    const pa=a.pingte.hit/(a.pingte.hit+a.pingte.miss), pb=b.pingte.hit/(b.pingte.hit+b.pingte.miss);
+    return pb-pa;
+  });
+  pt.forEach(s=>{
+    const t=s.pingte.hit+s.pingte.miss;
+    html += `<tr><td class="name-cell">${s.id}${s.id==='0491'?' (本站)':''}</td><td>${pct(s.pingte.hit,s.pingte.miss)}</td><td>${t}期</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // 全部站点列表
+  html += `<div class="card"><div class="card-title">全部${SITES.length}个站</div><table><tr><th>站点</th><th>栏目数</th><th>当前期</th></tr>`;
+  SITES.forEach(s=>{
+    html += `<tr><td class="name-cell">${s.id}${s.id==='0491'?' (本站)':''}</td><td>${s.widgets}</td><td>${s.period}</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  return html;
+}
+
+function renderSite(siteId){
+  const s = SITES.find(x=>x.id===siteId);
+  let html = `<div class="note">siteKey=${s.id} · ${s.widgets}个栏目 · 当前期=${s.period}${s.id==='0491'?' · 本站':''}</div>`;
+  
+  html += `<div class="card"><div class="card-title">历史命中率</div>
+    <div class="row"><span class="name">杀特3肖</span><span class="val">${pct(s.kill3.hit,s.kill3.miss)}</span></div>
+    <div class="row"><span class="name">杀特6肖</span><span class="val">${pct(s.kill6.hit,s.kill6.miss)}</span></div>
+    <div class="row"><span class="name">平特1肖</span><span class="val">${pct(s.pingte.hit,s.pingte.miss)}</span></div>
+  </div>`;
+
+  // 历史明细
+  if(s.history && Object.keys(s.history).length > 0){
+    html += `<div class="card"><div class="card-title">历史推荐明细</div>`;
+    for(const [col, data] of Object.entries(s.history)){
+      html += `<div class="card-title" style="background:#f0f0f0">${col}</div>`;
+      for(const [issue, val] of Object.entries(data).sort((a,b)=>parseInt(b[0])-parseInt(a[0]))){
+        html += `<div class="row"><span class="name">${issue}期</span><span class="val">${val}</span></div>`;
+      }
+    }
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+document.getElementById("subTitle").textContent = `${SITES.length}站 · 316期 · 新澳门六合彩`;
+renderTabs();
+renderContent();
+</script>
+</body>
+</html>

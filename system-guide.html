@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统总览说明书</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f5f5;color:#222;font-size:15px;line-height:1.6}
+.header{background:#1a1a2e;color:#fff;padding:16px}
+.header h1{font-size:18px}
+.header .sub{font-size:12px;color:#8899aa;margin-top:4px}
+.content{padding:14px;max-width:600px;margin:0 auto}
+.card{background:#fff;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.card-title{padding:12px 14px;font-weight:700;font-size:15px;background:#fafafa;border-bottom:1px solid #eee}
+.card-body{padding:12px 14px;font-size:14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px}
+.tag-live{background:#c8e6c9;color:#2e7d32}
+.tag-auto{background:#bbdefb;color:#1565c0}
+.tag-local{background:#fff3e0;color:#e65100}
+.tag-done{background:#e0e0e0;color:#757575}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.row:last-child{border-bottom:none}
+.row .k{color:#666}
+.row .v{font-weight:500;text-align:right}
+.note{font-size:12px;color:#888;margin-top:8px;padding:8px;background:#f9f9f9;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>系统总览说明书</h1>
+  <div class="sub">所有系统、定时任务、数据源一览</div>
+</div>
+<div class="content">
+
+<div class="card">
+  <div class="card-title">一、PWA录单系统 <span class="tag tag-live">线上运行</span></div>
+  <div class="card-body">
+    <div class="row"><span class="k">稳定版</span><span class="v">v58.14 · chujian596.github.io/ai-stats</span></div>
+    <div class="row"><span class="k">测试版</span><span class="v">v58.21-test · chujian596.github.io/ai-stats-test</span></div>
+    <div class="row"><span class="k">做什么</span><span class="v">录单、结算、波色单双、风控</span></div>
+    <div class="note">这是日常用的业务系统，手机打开就能录单。</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">二、资料记录系统 ziliao.html <span class="tag tag-local">本地</span></div>
+  <div class="card-body">
+    <div class="row"><span class="k">做什么</span><span class="v">49个站每期推荐记录+命中率排名</span></div>
+    <div class="row"><span class="k">数据源</span><span class="v">h2.wanpz.com CDN直连</span></div>
+    <div class="row"><span class="k">网站数量</span><span class="v">49个（全部同一家运营方）</span></div>
+    <div class="note">每个站一个tab，点进去看历史推荐和命中率。汇总页看跨站对比。</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">三、AI分析工具 ai-analysis.html <span class="tag tag-local">本地</span></div>
+  <div class="card-body">
+    <div class="row"><span class="k">做什么</span><span class="v">49站杀肖共识+冷热分析+站点排名</span></div>
+    <div class="row"><span class="k">核心功能</span><span class="v">共识杀肖、热号冷号、推荐参考</span></div>
+    <div class="note">比网站自带的"小彩"AI强——那个只会导航，这个有真实数据统计。</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">四、定时任务（自动执行）<span class="tag tag-auto">每天自动跑</span></div>
+  <div class="card-body">
+    <div class="row"><span class="k">19:00 改料监控</span><span class="v">对比本站0491推荐有没有改</span></div>
+    <div class="row"><span class="k">18:00 49站快照</span><span class="v">拉49站开奖前数据+共识分析</span></div>
+    <div class="row"><span class="k">22:30 49站对账</span><span class="v">开奖后自动对账+更新排名</span></div>
+    <div class="note">三个任务全自动，跑完自动告诉你结果。不需要手动操作。</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">五、数据源说明</div>
+  <div class="card-body">
+    <div class="row"><span class="k">49站来源</span><span class="v">全部同一家（wanpz CDN）</span></div>
+    <div class="row"><span class="k">本站</span><span class="v">0491 = 澳门中特网4901988</span></div>
+    <div class="row"><span class="k">其他站</span><span class="v">同一运营方不同推荐人</span></div>
+    <div class="row"><span class="k">彩种</span><span class="v">新澳彩=新澳门六合彩</span></div>
+    <div class="row"><span class="k">开奖时间</span><span class="v">每天21:32</span></div>
+    <div class="note">不是49个不同公司，是同一家公司开了49个门面，每个门面挂不同的"大师"。</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">六、每天流程</div>
+  <div class="card-body">
+    <div class="row"><span class="k">白天</span><span class="v">PWA录单系统正常用</span></div>
+    <div class="row"><span class="k">18:00</span><span class="v">自动拉49站数据，告诉你共识杀肖</span></div>
+    <div class="row"><span class="k">19:00</span><span class="v">自动检测本站有没有改料</span></div>
+    <div class="row"><span class="k">21:32</span><span class="v">开奖</span></div>
+    <div class="row"><span class="k">22:30</span><span class="v">自动对账，告诉你哪个站准</span></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
