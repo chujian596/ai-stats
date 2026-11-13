@@ -520,8 +520,8 @@ function hardUpdateTo(v){
   }
   location.replace(url);
 }
-// 自动检查新版本
-setTimeout(function(){
+// 自动检查新版本（客户版关闭：避免每次打开被跳去更新版本）
+if(false) setTimeout(function(){
   fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
     v=v.trim();
     if(v && v!==APP_VER){
@@ -538,8 +538,8 @@ document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
-// 每次打开都检查版本，不对就自动更新（不用sessionStorage限制，每次都检查）
-fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
+// 客户版关闭自动硬跳更新（版本固定，绝不把客户跳到旧/新版本去）
+if(false) fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
@@ -3201,6 +3201,12 @@ function parseLine(text){
   codeText = codeText.replace(/(\d),(?=\d)/g, '$1 ');
   codeText = codeText.replace(/『K(\d+)』/g, (m,i)=>keepCodes[parseInt(i)]);
   // 开头裸产品前缀：特码: / 特: / 特码 / 特 （后面跟数字的，只是说明这是特码单）
+  // 折叠连续"特"、把"特号/特碼/特码"统一成"特"
+  codeText = codeText.replace(/特号|特碼/g, '特');
+  codeText = codeText.replace(/特{2,}/g, '特');
+  // 裸"单/双"（前面不是波色/合数）补成"单数/双数"，避免无产品可匹配
+  codeText = codeText.replace(/(^|[^红蓝绿波合数黑])单(?=\s*\d|\s*$)/g, '$1单数');
+  codeText = codeText.replace(/(^|[^红蓝绿波合数黑])双(?=\s*\d|\s*$)/g, '$1双数');
   codeText = codeText.replace(/^\s*特码?[:：]?\s*(?=\d)/, ' ');
   // "特红波"→"红波"、"特蓝波单"→"蓝波单"、"特单"→"单"、"特大"→"大"
   // 「特」只是说明买特码，波色/单双/大小产品本身默认就是特码，去掉它才不会报"无法识别：特红波"
