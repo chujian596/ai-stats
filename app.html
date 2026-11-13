@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.35';
+var APP_VER = 'v58.36';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -722,7 +722,8 @@ function autoPayout(){
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
       + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">排行榜</div>'
-      + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+      + '<div style="padding:0 20px 6px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+    + '<div style="padding:0 20px 16px;font-size:11px;text-align:center;color:#bbb">版本 ' + APP_VER + '</div>'
       + '<div style="display:flex;border-top:1px solid #eee">'
       + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
       + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">记入赔付</button>'
