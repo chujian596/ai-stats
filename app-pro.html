@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.30-Pro';
+var APP_VER = 'v58.31-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3202,6 +3202,9 @@ function parseLine(text){
   codeText = codeText.replace(/『K(\d+)』/g, (m,i)=>keepCodes[parseInt(i)]);
   // 开头裸产品前缀：特码: / 特: / 特码 / 特 （后面跟数字的，只是说明这是特码单）
   codeText = codeText.replace(/^\s*特码?[:：]?\s*(?=\d)/, ' ');
+  // "特红波"→"红波"、"特蓝波单"→"蓝波单"、"特单"→"单"、"特大"→"大"
+  // 「特」只是说明买特码，波色/单双/大小产品本身默认就是特码，去掉它才不会报"无法识别：特红波"
+  codeText = codeText.replace(/特码?(?=红波|蓝波|绿波|红波单|红波双|蓝波|红波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数)/g, '');
   const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
@@ -3226,10 +3229,12 @@ function parseLine(text){
   if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
-  // 5. 连肖识别：2-4个生肖
+  // 5. 连肖识别：2-4个生肖（顺序：平连 → X连YZ → 连X）
+  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
+  // "马连龙兔"→"连肖马龙兔"（生肖+连+生肖串，必须先于下面的"连XX"规则）
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,4})/g, (m, a, b) => '连肖' + a + b);
   codeText = codeText.replace(/连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   codeText = codeText.replace(/([三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
-  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([二三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
@@ -3819,11 +3824,8 @@ function doSave(){
     // 合数单/合数双 特殊处理
     if(text.includes('合数单')){ wave=null; sd='合数单'; dx=null; }
     else if(text.includes('合数双')){ wave=null; sd='合数双'; dx=null; }
-    // 单数/双数单独（无波色）
-    if(!wave && sd && (sd==='单'||sd==='双')){
-      // 检查是否就是"单数"或"双数"产品
-      if(text.match(/^[\s]*(单数|双数)/)) sd = sd+'数';
-    }
+    // 单数/双数单独（无波色）：系统里产品名是"单数""双数"，裸"单/双"要补成"数"
+    if(!wave && sd && (sd==='单'||sd==='双')){ sd = sd+'数'; }
     if(wave || sd || dx){
       let canonical = '';
       if(wave) canonical += wave;
@@ -3978,7 +3980,12 @@ function doSave(){
       }
     }
   } else {
-    rawLines = text.split(/[\r\n。；;]+/);
+    // 混合订单：一行里用逗号/顿号写多注单时拆成多行（先保护"二中二:02,15"里的号码逗号）
+    var _mix = text, _keepMix = [];
+    _mix = _mix.replace(/(二中二|三中三|三中二):([0-9,]+)/g, function(m, p, n){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
+    _mix = _mix.replace(/[，,]+/g, '\n');
+    _mix = _mix.replace(/§(\d+)§/g, function(m, i){ return _keepMix[parseInt(i)]; });
+    rawLines = _mix.split(/[\r\n。；;]+/);
   }
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ myAlert('请先粘贴订单内容'); return; }
