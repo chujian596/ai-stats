@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.32-Pro';
+var APP_VER = 'v58.33-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3717,6 +3717,85 @@ function handleSave(){
   doSave();
 }
 
+function showFixDialog(rawLine, msg){
+  var src = String(rawLine||'').trim();
+  if(!src) return false;
+  // 1) 找金额（各/每/单位词/末尾数字）
+  var price = null, priceTxt = '';
+  var pe = src.match(/(\d+(?:\.\d+)?)\s*(?:元|米|块|钱|圆|RMB|rmb)/);
+  if(pe){ price = parseFloat(pe[1]); priceTxt = pe[0]; }
+  if(price === null){
+    var pe2 = src.match(/(?:各|每)(?:数|号|个|肖|组)?\s*(\d+(?:\.\d+)?)/);
+    if(pe2){ price = parseFloat(pe2[1]); priceTxt = pe2[0]; }
+  }
+  var body = priceTxt ? src.replace(priceTxt, ' ') : src;
+  // 2) 抽号码 01-49
+  var nums = [], seen = {};
+  var re = /(\d{1,2})(?:\.(\d{1,2}))?/g, m;
+  while((m = re.exec(body)) !== null){
+    var cand = [m[1]];
+    if(m[2]) cand.push(m[2]);
+    cand.forEach(function(c){
+      var n = parseInt(c, 10);
+      if(n >= 1 && n <= 49 && !seen[n]){ seen[n] = 1; nums.push(('0'+n).slice(-2)); }
+    });
+  }
+  // 3) 抽生肖
+  var zods = [], zseen = {};
+  (src.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g) || []).forEach(function(z){
+    if(!zseen[z]){ zseen[z] = 1; zods.push(z); }
+  });
+  // 4) 什么都没有就不补救
+  if(nums.length === 0 && zods.length === 0) return false;
+  if(!price){
+    // 没金额：默认 10？不给乱猜，提示用户补金额
+    var amt = prompt('这行没找到金额，输入每个多少钱：', '10');
+    if(!amt) return false;
+    price = parseFloat(amt);
+    if(!price) return false;
+  }
+  var kind = (nums.length > 0 && zods.length === 0) ? '号码' :
+             (zods.length > 0 && nums.length === 0) ? '生肖' : '号码';
+  var preview = '', teLine = '', pingLine = '';
+  if(kind === '号码'){
+    preview = '特号 ' + nums.join(' ') + '（' + nums.length + '个）各 ' + price + '米';
+    teLine = '特' + nums.join('.') + '各' + price + '米';
+    pingLine = '平特' + nums.join('.') + '各' + price + '米';
+  } else {
+    preview = '生肖 ' + zods.join('') + '（' + zods.length + '肖）各 ' + price + '米';
+    teLine = '特' + zods.join('') + '各' + price + '米';
+    pingLine = '平特' + zods.join('') + '各' + price + '米';
+  }
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:18px 20px 6px;font-size:16px;font-weight:700;text-align:center;color:#333">这行没认出来</div>'
+    + '<div style="padding:0 20px 8px;font-size:12px;color:#999;text-align:center;word-break:break-all">' + src + '</div>'
+    + '<div style="padding:0 20px 16px;font-size:14px;color:#333;text-align:center">我认成：<b>' + preview + '</b><br><span style="font-size:12px;color:#888">这样存对吗？</span></div>'
+    + '<div style="border-top:1px solid #eee">'
+    + '<button id="fxTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#c0392b;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
+    + '<button id="fxPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#2471a3;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
+    + '<button id="fxCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  function apply(line){
+    ov.remove();
+    var box = document.getElementById('input');
+    var arr = box.value.split('\n');
+    var idx = -1;
+    for(var i = 0; i < arr.length; i++){
+      if(arr[i].trim() === src){ idx = i; break; }
+    }
+    if(idx < 0) idx = 0;
+    arr[idx] = line;
+    box.value = arr.join('\n');
+    doSave();
+  }
+  ov.querySelector('#fxTe').onclick = function(){ apply(teLine); };
+  ov.querySelector('#fxPing').onclick = function(){ apply(pingLine); };
+  ov.querySelector('#fxCancel').onclick = function(){ ov.remove(); };
+  return true;
+}
 function showAIConfirmDialog(rawText, reason){
   var ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -4162,14 +4241,20 @@ renderAll();
         } catch(e2){}
       }
       errors.push(`第${i+1}行：${e.message}`);
+      if(!window.__failedLines) window.__failedLines = [];
+      window.__failedLines.push({ idx: i+1, raw: line, msg: e.message });
     }
   });
 
   if(window.__ambigAbort){ window.__ambigAbort = false; return; }
   if(errors.length > 0){
+    var _fail = (window.__failedLines || [])[0];
+    window.__failedLines = [];
+    if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
     myAlert('无法识别：' + errors[0]);
     return;
   }
+  window.__failedLines = [];
 
   const notes = [];
   if(mode === 'bundle'){
