@@ -22,21 +22,11 @@
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 .rank-btn{display:inline-block!important;margin:0 4px 6px 0}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);background-attachment:fixed;color:#e8e8e8;padding-bottom:120px;font-size:17px;min-height:100vh}
-
-/* 夜间模式：跟随系统 */
-@media (prefers-color-scheme: dark) {
-  body {
-    filter: invert(1) hue-rotate(180deg);
-  }
-  img, video, canvas, .no-invert {
-    filter: invert(1) hue-rotate(180deg);
-  }
-}
-header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif:#f5f5f5;background-attachment:fixed;color:#333;padding-bottom:120px;font-size:17px;min-height:100vh}
+header{background:rgba(124,58,237,.9);color:#fff;padding:6px 10px;padding-top:max(env(safe-area-inset-top),24px);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .title{font-size:15px;font-weight:700}
 .totals{font-size:13px;margin-top:1px;opacity:.95;font-weight:700}
-main{padding:10px}
+main{padding:10px;padding-top:max(env(safe-area-inset-top),24px)}
 .card{background:rgba(255,255,255,.92);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.2);color:#1f2329}
 .lbl{display:block;font-size:15px;color:#555;margin:6px 0 3px}
 .input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:15px;background:#fafbfc;outline:none}
@@ -135,6 +125,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
       </div>
+      <div id="aiStatus" style="text-align:center;font-size:11px;color:#999;margin-top:4px">AI:就绪</div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
   </section>
@@ -501,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.21';
+var APP_VER = 'v58.30-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -788,14 +779,15 @@ renderAll();
   document.getElementById('input').value = '';
 }
 var DEVICE_WHITELIST = [];
-// 生成设备指纹
+// 生成设备指纹（固定UUID，存在localStorage，不随屏幕分辨率变化）
 function getDeviceId(){
-  // 只根据屏幕分辨率算设备码，不看浏览器，这样换浏览器、换APP都一样
-  var scr = screen.width + 'x' + screen.height + 'x' + window.devicePixelRatio;
-  var s = scr;
-  var hash = 0;
-  for(var i=0;i<s.length;i++){ hash = ((hash<<5)-hash+s.charCodeAt(i))|0; }
-  return 'D' + Math.abs(hash).toString(36).toUpperCase();
+  // 先读本地存好的设备码
+  var saved = localStorage.getItem('fixed_device_id');
+  if(saved) return saved;
+  // 没有就生成一个新的UUID
+  var uuid = 'D' + Math.random().toString(36).substring(2,10).toUpperCase();
+  localStorage.setItem('fixed_device_id', uuid);
+  return uuid;
 }
 var DEVICE_ID = getDeviceId();
 var whitelistActive = false; // 白名单是否已启用
@@ -3442,6 +3434,7 @@ function autoFetchDraw(){
 }
 // 号码颜色：红/蓝/绿
 function ballColor(n){
+  n = parseInt(n); // 转成数字
   var red=[1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
   var blue=[3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
   if(red.indexOf(n)>=0) return '#e74c3c';
@@ -3453,11 +3446,27 @@ function renderLiveBalls(nums, specialFlag){
   if(!box) return;
   if(!nums || nums.length === 0){ box.style.display='none'; return; }
   box.style.display='flex';
-  box.innerHTML = nums.map(function(n, i){
+  // 加深的波色
+  var redNums = [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
+  var blueNums = [3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
+  var html = '';
+  for(var i=0; i<nums.length; i++){
+    var n = parseInt(nums[i]);
     var isSpecial = specialFlag && i === nums.length-1 && nums.length >= 7;
-    var c = ballColor(n);
-    return '<div style="width:32px;height:32px;border-radius:50%;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;'+(isSpecial?'box-shadow:0 0 0 2px #f1c40f;':'')+'">'+String(n).padStart(2,'0')+'</div>';
-  }).join('');
+    var color = '#1e8449'; // 深绿
+    for(var j=0; j<redNums.length; j++){
+      if(redNums[j] == n){ color = '#c0392b'; break; } // 深红
+    }
+    if(color == '#1e8449'){
+      for(var j=0; j<blueNums.length; j++){
+        if(blueNums[j] == n){ color = '#2471a3'; break; } // 深蓝
+      }
+    }
+    // 特号加粗，不加圈圈
+    var fontWeight = isSpecial ? '900' : '700';
+    html += '<span style="font-size:20px;font-weight:'+fontWeight+';color:'+color+' !important;margin:0 6px;">'+String(n).padStart(2,'0')+'</span>';
+  }
+  box.innerHTML = html;
 }
 // 自动定时获取开奖：21:33-21:35每秒刷新，号码逐个出来实时显示，稳定后才结算
 var _liveDrawLast = '';
@@ -3511,6 +3520,146 @@ setInterval(function(){
     })
     .catch(function(){});
 }, 1000);
+// ========== 本地MNN Chat AI解析 ==========
+async function parseOrderByLocalAI(inputText) {
+  try {
+    const url = "https://api.deepseek.com/v1/chat/completions";
+    const apiKey = "sk-56762bcda15e4244af0f8f2a0ba97523";
+    const systemPrompt = `你是订单解析器，只输出标准JSON，不要多余文字。
+
+例子：
+输入：特马兔各5米 → 输出：{"ok":true,"data":[{"type":"特","xiao":["马","兔"],"money":5,"region":"澳门"}]}
+输入：平龙马10米 → 输出：{"ok":true,"data":[{"type":"平特","xiao":["龙","马"],"money":10,"region":"澳门"}]}
+输入：09.21.33.45各10 → 输出：{"ok":true,"data":[{"type":"特","nums":[9,21,33,45],"money":10,"region":"澳门"}]}
+输入：红波单10块 → 输出：{"ok":true,"data":[{"type":"特","play":"红波单","money":10,"region":"澳门"}]}
+输入：蓝波大5块 → 输出：{"ok":true,"data":[{"type":"特","play":"蓝波大","money":5,"region":"澳门"}]}
+输入：绿波小单20块 → 输出：{"ok":true,"data":[{"type":"特","play":"绿波小单","money":20,"region":"澳门"}]}
+输入：马连龙兔10块 → 输出：{"ok":true,"data":[{"type":"连肖","xiao":["马","龙","兔"],"money":10,"region":"澳门"}]}
+输入：19 16 35三中三8 → 输出：{"ok":true,"data":[{"type":"三中三","nums":[19,16,35],"money":8,"region":"澳门"}]}
+输入：19 35二中二10 → 输出：{"ok":true,"data":[{"type":"二中二","nums":[19,35],"money":10,"region":"澳门"}]}
+输入：马兔各5米 → 输出：{"ok":false,"need_confirm":true,"reason":"请选择：特码还是平特？"}
+
+规则：
+1. 写了特/特码 → type=特
+2. 写了平特 → type=平特
+3. 数字单（比如09.21.33.45各10）→ 默认就是特码，不需要确认！
+4. 波色+单双大小组合（比如红波单、蓝波大、绿波小单）→ 用play字段，type默认特
+5. 连肖 → type=连肖
+6. 三中三、二中二 → type=三中三/二中二
+7. 只有生肖单（比如马兔各10），没写特也没写平特 → 才需要确认
+8. region：澳门/香港，默认澳门
+
+只输出JSON，不要解释！`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{role:"system", content:systemPrompt}, {role:"user", content:inputText}],
+        temperature: 0.1
+      })
+    });
+    const json = await res.json();
+    const content = json.choices[0].message.content.trim();
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if(jsonMatch) return JSON.parse(jsonMatch[0]);
+    return {ok:false, msg:"AI返回格式错误"};
+  } catch(e) {
+    return {ok:false, msg:"云端AI服务连接失败"};
+  }
+}
+
+let _useLocalAI = true; // 默认开启AI
+function toggleLocalAI(){
+  _useLocalAI = !_useLocalAI;
+  const btn = document.getElementById('aiToggleBtn');
+  if(_useLocalAI){
+    btn.textContent = 'AI:开';
+    btn.style.background = '#7c3aed';
+    btn.style.color = '#fff';
+    alert('云端AI已开启！\n录单解析将自动调用DeepSeek');
+  } else {
+    btn.textContent = 'AI:关';
+    btn.style.background = '#eee';
+    btn.style.color = '#999';
+  }
+}
+
+// 测试AI连接
+async function testAIConnection(){
+  const statusEl = document.getElementById('aiStatus');
+  statusEl.textContent = 'AI:连接中...';
+  statusEl.style.color = '#f59e0b';
+  try {
+    const url = "https://api.deepseek.com/v1/chat/completions";
+    const apiKey = "sk-56762bcda15e4244af0f8f2a0ba97523";
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{role:"user", content:"你好"}],
+        max_tokens: 10
+      })
+    });
+    if(res.ok){
+      statusEl.textContent = 'AI:已连接';
+      statusEl.style.color = '#10b981';
+    } else {
+      statusEl.textContent = 'AI:连接失败';
+      statusEl.style.color = '#ef4444';
+    }
+  } catch(e) {
+    statusEl.textContent = 'AI:连接失败';
+    statusEl.style.color = '#ef4444';
+  }
+}
+
+// 页面加载完成后自动测试AI连接
+window.onload = function(){
+  testAIConnection();
+  // 简单的下拉刷新：在页面顶部往下滑，刷新开奖数据
+  var startY = 0;
+  document.addEventListener('touchstart', function(e){
+    startY = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    var endY = e.changedTouches[0].clientY;
+    var diff = endY - startY;
+    if(window.scrollY < 50 && diff > 120){
+      // 显示提示
+      var btn = document.getElementById('drawFetchBtn');
+      if(btn){
+        var oldText = btn.textContent;
+        btn.textContent = '刷新中...';
+        btn.style.opacity = '0.6';
+        // 重新获取开奖数据
+        fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            var m = d.latest && d.latest.macao;
+            if(m && m.winner_numbers){
+              renderLiveBalls(m.winner_numbers, true);
+              document.getElementById('drawInfoTxt').textContent = '期' + m.draw + ' 特' + m.winner_numbers[6] + ' ' + m.winner_numbers.slice(0,6).join(' ');
+            }
+            btn.textContent = oldText;
+            btn.style.opacity = '1';
+          })
+          .catch(function(){
+            btn.textContent = oldText;
+            btn.style.opacity = '1';
+          });
+      }
+    }
+  });
+};
+
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
@@ -3519,6 +3668,67 @@ function handleSave(){
       autoPayout(); return;
     }
   }
+  
+  // 如果开启了AI模式，先调用AI解析
+  if(_useLocalAI){
+    parseOrderByLocalAI(raw0).then(function(ret){
+      if(ret.ok && ret.data){
+        // AI解析成功，把结果转成文本，走原来的保存逻辑
+        var text = ret.data.map(function(item){
+          if(item.play) return (item.type === '平特' ? '平特' : '特') + item.play + item.money;
+          if(item.type === '特' && item.xiao) return '特' + item.xiao.join('') + '各' + item.money;
+          if(item.type === '平特' && item.xiao) return '平特' + item.xiao.join('') + '各' + item.money;
+          if(item.type === '特' && item.nums) return '特' + item.nums.join('.') + '各' + item.money;
+          if(item.type === '三中三') return item.nums.join(' ') + '三中三' + item.money;
+          if(item.type === '二中二') return item.nums.join(' ') + '二中二' + item.money;
+          if(item.type === '连肖') return item.xiao[0] + '连' + item.xiao.slice(1).join('') + item.money;
+          return '';
+        }).filter(function(t){return t;}).join('\n');
+        document.getElementById('input').value = text;
+        // 继续走原来的保存逻辑
+        doSave();
+      } else if(ret.need_confirm){
+        // AI要求确认，弹窗让用户选
+        showAIConfirmDialog(raw0, ret.reason || '请选择玩法');
+      } else {
+        alert(ret.msg || 'AI解析失败');
+      }
+    });
+    return;
+  }
+  
+  doSave();
+}
+
+function showAIConfirmDialog(rawText, reason){
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px;font-size:15px;color:#333;text-align:center">' + reason + '</div>'
+    + '<div style="border-top:1px solid #eee">'
+    + '<button id="aiConfirmTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
+    + '<button id="aiConfirmPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
+    + '<button id="aiConfirmCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#aiConfirmTe').onclick = function(){
+    ov.remove();
+    // 用户选了特码，把原文加个"特"字，再走AI
+    document.getElementById('input').value = '特' + rawText;
+    handleSave();
+  };
+  ov.querySelector('#aiConfirmPing').onclick = function(){
+    ov.remove();
+    // 用户选了平特，把原文加个"平特"字，再走AI
+    document.getElementById('input').value = '平特' + rawText;
+    handleSave();
+  };
+  ov.querySelector('#aiConfirmCancel').onclick = function(){
+    ov.remove();
+  };
+}
+
+function doSave(){
   try {
   let text = document.getElementById('input').value;
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
@@ -5510,50 +5720,42 @@ function applyTheme(){
   let lightCss = '';
   if(isDark){
     darkCss = `
-      /* Chrome风格暗色：全中性色，不要饱和紫 */
       body { color-scheme: dark; }
-      header { background: #2d2d2d !important; }
       
-      /* 顶部标题栏不要紫色 */
-      header, [style*="background:#7c3aed"][style*="color:#fff"][style*="text-align:center"] {
-        background: #2d2d2d !important;
+      /* 顶部标题栏黑色 */
+      header { background: #1a1a1a !important; }
+      
+      /* 卡片和背景同色，只用边框区分 */
+      .card, section, div[style*="background"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
       }
       
-      /* 卡片统一Chrome色 #2d2d2d */
-      div[style*="background"], section[style*="background"],
-      button[style*="background"], input[style*="background"],
-      .card, section {
-        background: #2d2d2d !important;
-        background-color: #2d2d2d !important;
-      }
-      
-      /* 大按钮（自动结算/保存等）不要紫色，改深灰 */
-      button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"],
-      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"],
-      .btn.primary, .tab.active {
-        background: #3d3d3d !important;
-        background-color: #3d3d3d !important;
+      /* 按钮黑色，文字白色 */
+      .btn, .tab, .chip, button[style*="background"] {
+        background: #1a1a1a !important;
+        background-color: #1a1a1a !important;
         color: #fff !important;
-        border: none !important;
+        border: 1px solid #444 !important;
       }
       
-      /* 输入框更深 */
+      .btn.primary, .tab.active {
+        background: #333 !important;
+        background-color: #333 !important;
+        color: #fff !important;
+        border: 1px solid #555 !important;
+      }
+      
+      /* 输入框黑色，文字白色 */
       input, textarea, select, .input {
-        background: #1f1f1f !important;
-        color: rgba(255,255,255,.85) !important;
+        background: #1a1a1a !important;
+        color: #fff !important;
         border-color: #444 !important;
       }
       
-      /* tab和次要按钮 */
-      .tab, .btn:not(.primary):not(.danger), .chip {
-        background: #3d3d3d !important;
-        color: rgba(255,255,255,.7) !important;
-        border-color: #444 !important;
-      }
-      
-      /* 所有文字 */
+      /* 所有文字白色 */
       div, span, p, td, th, label, h1, h2, h3, h4 {
-        color: rgba(255,255,255,.85) !important;
+        color: #fff !important;
       }
       
       /* 红绿色调亮 */
@@ -5563,37 +5765,51 @@ function applyTheme(){
     `;
   } else {
     lightCss = `
-      /* 浅色模式：大标题栏不要紫色填充，改浅灰底深色字 */
-      div[style*="background:#7c3aed"][style*="border-radius:8px"][style*="cursor:pointer"],
-      div[style*="background:${color}"][style*="border-radius:8px"][style*="cursor:pointer"] {
-        background:#f5f5f5 !important; color:#333 !important;
+      /* 浅色模式：卡片和背景同色，只用边框区分 */
+      .card, section, div[style*="background"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
       }
-      /* 主按钮用浅色底+深色字，不要饱和填充 */
-      .btn.primary, .tab.active {
-        background: ${color}22 !important;
-        color: ${color} !important;
-        border: 1px solid ${color}44 !important;
-      }
-      button[style*="background:#7c3aed"], button[style*="background-color:#7c3aed"] {
-        background: ${color}22 !important;
-        color: ${color} !important;
-      }
-      /* 顶部header用浅灰 */
+      
+      /* 顶部header白色 */
       header {
+        background: #ffffff !important;
+        color: #000 !important;
+      }
+      
+      /* 按钮白色，文字黑色，细边框 */
+      .btn, .tab, .chip, button[style*="background"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #000 !important;
+        border: 1px solid #ccc !important;
+      }
+      
+      .btn.primary, .tab.active {
         background: #f0f0f0 !important;
-        color: #333 !important;
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+        border: 1px solid #999 !important;
       }
-      /* 紫色标签改灰色 */
-      span[style*="background:#7c3aed"], span[style*="background-color:#7c3aed"] {
-        background: #e0e0e0 !important;
-        color: #333 !important;
+      
+      /* 输入框白色，文字黑色 */
+      input, textarea, select, .input {
+        background: #ffffff !important;
+        color: #000 !important;
+        border-color: #ccc !important;
       }
-      /* 关键修复：浅色模式下所有白色/浅色文字强制改深色，否则白底白字看不见 */
+      
+      /* 所有文字黑色 */
+      div, span, p, td, th, label, h1, h2, h3, h4 {
+        color: #000 !important;
+      }
+      
+      /* 强制白色文字改黑色 */
       [style*="color:#fff"], [style*="color:white"],
       [style*="color:#FFF"], [style*="color:White"],
       [style*="color:rgba(255,255,255"], [style*="color: rgba(255, 255, 255"],
       [style*="color: rgb(255, 255, 255)"] {
-        color: #333 !important;
+        color: #000 !important;
       }
     `;
   }
