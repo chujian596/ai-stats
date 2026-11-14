@@ -1,0 +1,462 @@
+[
+ {
+  "name": "点分隔+各数",
+  "input": "05.17.29.09.21.33.45各数10米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 70,
+    "qty": 7,
+    "codes": [
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "横杠+特",
+  "input": "特05-17-29-09-21-33-45各10米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 70,
+    "qty": 7,
+    "codes": [
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "空格分隔",
+  "input": "05 17 29 09 21 33 45 各10米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 70,
+    "qty": 7,
+    "codes": [
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "顿号分隔",
+  "input": "05、17、29各10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "斜杠分隔",
+  "input": "05/17/29各10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "逗号分隔",
+  "input": "05,17,29各10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "两个号",
+  "input": "05 17各10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 20,
+    "qty": 2,
+    "codes": [
+     "05",
+     "17"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "单个号",
+  "input": "特05各10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 10,
+    "qty": 1,
+    "codes": [
+     "05"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "带标题+汇总",
+  "input": "澳特：\n05-17-29-09-21-33-45各数10米\n共70米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 70,
+    "qty": 7,
+    "codes": [
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "三组重复",
+  "input": "05-17-29-09-21-33-45各数10米\n05-17-29-09-21-33-45各数10米\n05-17-29-09-21-33-45各数10米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 210,
+    "qty": 21,
+    "codes": [
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45",
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45",
+     "05",
+     "17",
+     "29",
+     "09",
+     "21",
+     "33",
+     "45"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "一行两注",
+  "input": "05 17各10，21 33各5",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 4,
+    "codes": [
+     "05",
+     "17",
+     "21",
+     "33"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "中文金额",
+  "input": "05 17 29各十米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "元单位",
+  "input": "05 17 29各10元",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "块单位",
+  "input": "05 17 29各10块",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "特肖各",
+  "input": "特马兔各5米",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "平特肖各",
+  "input": "平特马兔各10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "多肖三个",
+  "input": "特马兔狗各10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "裸肖各(需确认)",
+  "input": "马兔各5",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "单肖",
+  "input": "特马各10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "X连YZ",
+  "input": "马连龙兔10块",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 10,
+    "qty": 1,
+    "codes": [
+     "连肖马龙兔"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "连肖二",
+  "input": "连肖龙虎兔100",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 100,
+    "qty": 1,
+    "codes": [
+     "连肖龙虎兔"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "三连肖",
+  "input": "龙虎兔三连肖100",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 100,
+    "qty": 1,
+    "codes": [
+     "连肖龙虎兔"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "平连",
+  "input": "平连龙虎100",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 100,
+    "qty": 1,
+    "codes": [
+     "连肖龙虎"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "二中二",
+  "input": "19 35二中二10",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 10,
+    "qty": 1,
+    "codes": [
+     "二中二:19,35"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "三中三",
+  "input": "19 16 35三中三8",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 24,
+    "qty": 3,
+    "codes": [
+     "19",
+     "35",
+     "三中三"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "纯波色",
+  "input": "红波10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "波色+特前缀",
+  "input": "特红波10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "波色单",
+  "input": "蓝波单10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "波色大",
+  "input": "蓝波大5块",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "波色小单",
+  "input": "绿波小单20块",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "波色单大",
+  "input": "蓝波单大10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "合数单",
+  "input": "合数单10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "裸单",
+  "input": "特单50",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "裸双",
+  "input": "特双50",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "大",
+  "input": "特大100",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "号码+生肖两行",
+  "input": "05 17 29各10\n特马兔各5",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "三行混合",
+  "input": "05 17 29各10\n特马兔各5\n19 35二中二10",
+  "ok": true,
+  "need_confirm": true
+ },
+ {
+  "name": "带共字行",
+  "input": "05 17 29各10\n共30米",
+  "ok": true,
+  "orders": [
+   {
+    "amount": 30,
+    "qty": 3,
+    "codes": [
+     "05",
+     "17",
+     "29"
+    ]
+   }
+  ]
+ }
+]

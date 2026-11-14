@@ -387,7 +387,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         7. <b style="color:var(--modalText,#fff)">裸号码 2 个以上</b>（05 17 29 10 → 各号10／共10）<br>
         8. <b style="color:var(--modalText,#fff)">头数、尾数</b>（3头10、尾3 10）<br>
         9. <b style="color:var(--modalText,#fff)">4 个数字</b>（两笔／各X／共X／重新编辑）<br>
-        10. <b style="color:var(--modalText,#fff)">一行多项只弹一次</b><br>
+        10. <b style="color:var(--modalText,#fff)">"每一个"的写法都认</b><br>
+        &nbsp;&nbsp;各5 / 各号5 / 各数5 / 每个5 / 个5 都一样：每个号码各5<br>
+        &nbsp;&nbsp;共5 / 总共5 / 合5 都一样：总数5，摊到各号<br><br>
+        11. <b style="color:var(--modalText,#fff)">一行多项只弹一次</b><br>
         &nbsp;&nbsp;整批里只有"没写单位的"才进多选题：平龙马250（多肖）、红波10（17号）<br>
         &nbsp;&nbsp;弹窗一次列全部，每项点一下选"共X／每肖X"，选中变黑底白字带 ✓，<br>
         &nbsp;&nbsp;全部选完"确定"才亮，只弹这一次<br><br>
@@ -545,7 +548,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.63-Pro';
+var APP_VER = 'v58.64-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4267,10 +4270,11 @@ function showMultiDlg(items, text){
       ov.querySelectorAll('button[data-i="' + i + '"]').forEach(function(x){
         var on = (x === b);
         x.textContent = x.getAttribute('data-base') + (on ? '  ✓' : '');
-        x.style.setProperty('background', on ? '#1a1a1a' : '#fff', 'important');
-        x.style.setProperty('color', on ? '#fff' : '#333', 'important');
-        x.style.setProperty('border-color', on ? '#1a1a1a' : '#ddd', 'important');
-        x.style.setProperty('border-width', on ? '3px' : '1px', 'important');
+        x.style.setProperty('background', on ? '#ececec' : '#fff', 'important');
+        x.style.setProperty('color', on ? '#111' : '#666', 'important');
+        x.style.setProperty('border-color', on ? '#111' : '#ddd', 'important');
+        x.style.setProperty('border-width', on ? '2px' : '1px', 'important');
+        x.style.setProperty('font-weight', on ? '700' : '400', 'important');
       });
       var left = items.length - ans.filter(function(x){ return x; }).length;
       var ok = ov.querySelector('#miOk');
@@ -4391,7 +4395,7 @@ function doSave(overrideText){
   if(!_texiaoChoice){
     const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
     // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
-    if(txMatch && /[数号]/.test(txMatch[2])){
+    if(txMatch && /[数号各]/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
     } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
       const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
@@ -4880,8 +4884,28 @@ renderAll();
       if(c0.indexOf('平特') !== 0 && c0.indexOf('连肖') !== 0 && /^\d{2}$/.test(c0)) label = '特号 ';
       display = `${label}${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`;
     }
-    results.push(display);
+    results.push({ d: display, price: p.price, isPer: !!p.isPer, qty: qty });
   });
+  // 相邻同价单号项（≥6 个）合并成一行："17个号 每号20 = 340元"
+  {
+    const merged = [];
+    let i0 = 0;
+    while(i0 < results.length){
+      let j0 = i0;
+      if(results[i0].qty === 1){
+        while(j0+1 < results.length && results[j0+1].qty === 1 && results[j0+1].price === results[i0].price) j0++;
+      }
+      const cnt0 = j0 - i0 + 1;
+      if(cnt0 >= 6){
+        merged.push(cnt0 + '个号 每号' + results[i0].price + ' = ' + (cnt0 * results[i0].price).toFixed(2) + '元');
+      } else {
+        for(let k0 = i0; k0 <= j0; k0++) merged.push(results[k0].d);
+      }
+      i0 = j0 + 1;
+    }
+    results.length = 0;
+    merged.forEach(x => results.push(x));
+  }
   orders.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     customer,

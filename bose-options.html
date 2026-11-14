@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>号码样式方案</title>
+<style>
+  :root{
+    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c;
+    --ink:#111; --sub:#777; --line:#e6e6e6; --bg:#f5f5f5;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:20px 16px 26px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:20px;font-weight:700}
+  .sub{font-size:12.5px;color:var(--sub);margin-bottom:16px}
+
+  .opt{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 16px;margin-bottom:11px}
+  .tag{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+  .tag b{font-size:13.5px}
+  .tag span{font-size:11.5px;color:var(--sub)}
+  .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+
+  /* 方案 A 实心圆 */
+  .A .n{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        color:#fff;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .A .sp{box-shadow:0 0 0 2px #111}
+
+  /* 方案 B 空心圈 */
+  .B .n{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        background:#fff;border:2px solid;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .B .sp{outline:2px solid #111;outline-offset:2px}
+
+  /* 方案 C 圆角方块 */
+  .C .n{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+        color:#fff;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .C .sp{box-shadow:0 0 0 2px #111}
+
+  /* 方案 D 黑字 + 底部色条 */
+  .D .n{width:38px;padding:7px 0 5px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .D .n i{font-style:normal;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .D .n u{display:block;width:22px;height:3px;border-radius:2px}
+  .D .sp i{background:#111;color:#fff;padding:2px 4px;border-radius:3px}
+
+  /* 方案 E 白底黑字 + 左上角波色点 */
+  .E .n{position:relative;width:42px;height:42px;border-radius:8px;background:#fff;border:1px solid #ddd;
+        display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .E .n em{position:absolute;top:-4px;left:-4px;width:9px;height:9px;border-radius:50%;border:1.5px solid #fff}
+  .E .sp{background:#111;color:#fff;border-color:#111}
+
+  /* 方案 F 左侧竖条 */
+  .F .n{display:flex;align-items:center;gap:7px;padding:6px 9px 6px 7px;border-radius:7px;background:#fafafa;border:1px solid #eee}
+  .F .n s{display:block;width:3px;height:20px;border-radius:2px}
+  .F .n b{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .F .sp{background:#111;border-color:#111;color:#fff}
+  .F .sp b{color:#fff}
+  .F .sp s{background:#fff}
+
+  .lbl{font-size:11px;color:var(--sub);margin-right:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>开奖号码样式 · 六套方案</h1>
+  <div class="sub">真实数据 第317期 ｜ 特 26 ｜ 平特 31 49 30 22 43 24</div>
+
+  <div class="opt A">
+    <div class="tag"><b>方案 1 · 实心圆</b><span>现在在用的样子，一眼分清波色</span></div>
+    <div class="row">
+      <span class="lbl">特</span>
+      <div class="n sp" style="background:var(--blue)">26</div>
+      <div style="width:10px"></div>
+      <div class="n" style="background:var(--blue)">31</div>
+      <div class="n" style="background:var(--green)">49</div>
+      <div class="n" style="background:var(--red)">30</div>
+      <div class="n" style="background:var(--green)">22</div>
+      <div class="n" style="background:var(--green)">43</div>
+      <div class="n" style="background:var(--red)">24</div>
+    </div>
+  </div>
+
+  <div class="opt B">
+    <div class="tag"><b>方案 2 · 空心圈</b><span>更轻，不压眼；打印/截图都清楚</span></div>
+    <div class="row">
+      <span class="lbl">特</span>
+      <div class="n sp" style="border-color:var(--blue);color:var(--blue)">26</div>
+      <div style="width:10px"></div>
+      <div class="n" style="border-color:var(--blue);color:var(--blue)">31</div>
+      <div class="n" style="border-color:var(--green);color:var(--green)">49</div>
+      <div class="n" style="border-color:var(--red);color:var(--red)">30</div>
+      <div class="n" style="border-color:var(--green);color:var(--green)">22</div>
+      <div class="n" style="border-color:var(--green);color:var(--green)">43</div>
+      <div class="n" style="border-color:var(--red);color:var(--red)">24</div>
+    </div>
+  </div>
+
+  <div class="opt C">
+    <div class="tag"><b>方案 3 · 圆角方块</b><span>更像票面，号码占位整齐</span></div>
+    <div class="row">
+      <span class="lbl">特</span>
+      <div class="n sp" style="background:var(--blue)">26</div>
+      <div style="width:10px"></div>
+      <div class="n" style="background:var(--blue)">31</div>
+      <div class="n" style="background:var(--green)">49</div>
+      <div class="n" style="background:var(--red)">30</div>
+      <div class="n" style="background:var(--green)">22</div>
+      <div class="n" style="background:var(--green)">43</div>
+      <div class="n" style="background:var(--red)">24</div>
+    </div>
+  </div>
+
+  <div class="opt D">
+    <div class="tag"><b>方案 4 · 黑字 + 底部色条</b><span>号码全黑好认，波色只在下面一条</span></div>
+    <div class="row">
+      <span class="lbl">特</span>
+      <div class="n"><i style="color:#111;background:#111;color:#fff;padding:1px 4px;border-radius:3px">26</i><u style="background:var(--blue)"></u></div>
+      <div style="width:6px"></div>
+      <div class="n"><i>31</i><u style="background:var(--blue)"></u></div>
+      <div class="n"><i>49</i><u style="background:var(--green)"></u></div>
+      <div class="n"><i>30</i><u style="background:var(--red)"></u></div>
+      <div class="n"><i>22</i><u style="background:var(--green)"></u></div>
+      <div class="n"><i>43</i><u style="background:var(--green)"></u></div>
+      <div class="n"><i>24</i><u style="background:var(--red)"></u></div>
+    </div>
+  </div>
+
+  <div class="opt E">
+    <div class="tag"><b>方案 5 · 白底黑字 + 波色小点</b><span>最克制，黑白灰为主，波色只一个点</span></div>
+    <div class="row">
+      <span class="lbl">特</span>
+      <div class="n sp">26<em style="background:var(--blue)"></em></div>
+      <div style="width:10px"></div>
+      <div class="n">31<em style="background:var(--blue)"></em></div>
+      <div class="n">49<em style="background:var(--green)"></em></div>
+      <div class="n">30<em style="background:var(--red)"></em></div>
+      <div class="n">22<em style="background:var(--green)"></em></div>
+      <div class="n">43<em style="background:var(--green)"></em></div>
+      <div class="n">24<em style="background:var(--red)"></em></div>
+    </div>
+  </div>
+
+  <div class="opt F">
+    <div class="tag"><b>方案 6 · 左侧竖条标签</b><span>适合一行字里混排，密度最高</span></div>
+    <div class="row">
+      <div class="n sp"><b>特26</b><s style="background:#fff"></s></div>
+      <div class="n"><b>31</b><s style="background:var(--blue)"></s></div>
+      <div class="n"><b>49</b><s style="background:var(--green)"></s></div>
+      <div class="n"><b>30</b><s style="background:var(--red)"></s></div>
+      <div class="n"><b>22</b><s style="background:var(--green)"></s></div>
+      <div class="n"><b>43</b><s style="background:var(--green)"></s></div>
+      <div class="n"><b>24</b><s style="background:var(--red)"></s></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

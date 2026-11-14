@@ -50,10 +50,29 @@ for z, ns in [("马", [1, 13, 25, 37, 49]), ("蛇", [2, 14, 26, 38]), ("龙", [3
 
 KILL_RE = re.compile(r"杀|亡|禁|绝|稳杀")
 REC_RE = re.compile(r"肖|码|中特|平特")
-# 非生肖维度标题（读不出生肖或本就不是肖）
-NONZOD_RE = re.compile(r"尾|波|头|段|单双|大小|五行|三合|东南|西北|家禽|野兽|成语|琴棋|三国|四季|风雨|雷电|天地|朝夕|日夜|男女|黑白|前后|左右|胆大|胆小|合数|两季|吉美|凶丑|文房|买啥|一行|二字|三字|六四二|吃肉|吃草|肉菜草")
+
+# 分类 -> 生肖 映射（六合彩行业通用分类，用于把「白肖/女肖/家禽/天肖」等换算成具体生肖）
+CAT2ZOD = {
+    "白肖": ["鼠", "牛", "虎", "鸡", "狗", "猪"],
+    "黑肖": ["兔", "龙", "蛇", "马", "羊", "猴"],
+    "男肖": ["鼠", "牛", "虎", "龙", "马", "猴", "狗"],
+    "女肖": ["兔", "蛇", "羊", "鸡", "猪"],
+    "家禽": ["牛", "马", "羊", "鸡", "狗", "猪"],
+    "野兽": ["鼠", "虎", "兔", "龙", "蛇", "猴"],
+    "天肖": ["兔", "马", "猴", "猪", "牛", "龙"],
+    "地肖": ["鼠", "虎", "蛇", "羊", "鸡", "狗"],
+    "前肖": ["鼠", "牛", "虎", "兔", "龙", "蛇"],
+    "后肖": ["马", "羊", "猴", "鸡", "狗", "猪"],
+    "左肖": ["鼠", "牛", "虎", "兔", "龙", "蛇"],
+    "右肖": ["马", "羊", "猴", "鸡", "狗", "猪"],
+}
+
+# 非生肖维度标题（本就不是肖维度，无法换算成生肖）
+NONZOD_RE = re.compile(r"尾|波|头数|头】|一段|段】|单双|大小|五行|三合|东南|西北|成语|琴棋|三国|四季|风雨|雷电|朝夕|日夜|胆大|胆小|合数|两季|吉美|凶丑|文房|买啥|一行|二字|三字|六四二|吃肉|吃草|肉菜草")
 
 TAG_RE = re.compile(r"<[^>]+>")
+# 文本里就写着生肖的栏目（成语/两字/三字/六四二/明文肖）
+TEXT_ZOD_RE = re.compile(r"成语|两字|三字|六四二|明文|生肖|平特")
 
 
 def curl(url, timeout=15):
@@ -104,25 +123,69 @@ def clean_title(h):
     return re.sub(r"\s+", " ", t).strip()
 
 
-def parse_rows(h):
-    """解析 HTML 行 -> [{period, zods, openedText, openedZod, selfMark}]。"""
+def parse_rows(h, title=""):
+    """解析 HTML 行 -> [{period, zods, openedText, openedZod, selfMark, src}]。"""
+    title_guess = title or ""
     rows = []
     for li in re.findall(r"<li[^>]*>(.*?)</li>", h, re.S):
         mp = re.search(r"(\d+)期", li)
         if not mp:
             continue
         period = int(mp.group(1))
-        mo = re.search(r"开[:：]\s*<span[^>]*>([^<]+)</span>", li)
+        mo = re.search(r"开[:：]\s*(?:<[^>]+>)*\s*([^<<]+)", li)
         opened_text = mo.group(1).strip() if mo else ""
+        if not opened_text:
+            mo2 = re.search(r"[開开][:：]\s*(?:<[^>]+>)*\s*([？?]?\d*)", li)
+            opened_text = mo2.group(1) if mo2 else ""
         opened_zod = next((z for z in ZOD if z in opened_text), None)
         if "？" in opened_text or "?" in opened_text:
             opened_zod = None
-        # 生肖取「开:」之前所有 span 里的生肖字（部分栏生肖在 <i> 外，如三肖+五码）
-        pick_part = li.split("开")[0]
-        zods = [s for s in re.findall(r"<span[^>]*>([^<]+)</span>", pick_part) if s in ZOD]
+        # 只取「开:」之前的部分作为预测区
+        pick_part = re.split(r"[開开][:：]", li)[0]
+
+        zods = []
+        src = "zod"
+        # 1) span 里直接写的生肖字
+        for s in re.findall(r"<span[^>]*>([^<]+)</span>", pick_part):
+            if s.strip() in ZOD:
+                zods.append(s.strip())
+        # 2) 号码 -> 生肖（六码复式/⑨码/精准16码/一波②码 这类只给号码）
+        if not zods:
+            num_part = TAG_RE.sub(" ", pick_part)
+            nums = re.findall(r"(?<!\d)([0-4]\d)(?!\d)", num_part)
+            if not nums:
+                # 有些栏目「开:」在号码前面（如精准16码），号码写在开奖结果后面
+                full = TAG_RE.sub(" ", li)
+                nums = re.findall(r"(?<!\d)([0-4]\d)(?!\d)", full)
+                # 剔除开奖结果里那个数（开:后面的号码）
+                opened_nums = re.findall(r"[開开][:：][^0-9]{0,30}([0-4]\d)", full)
+                for n in opened_nums:
+                    if n in nums:
+                        nums.remove(n)
+            conv = [NUM2Z[int(n)] for n in nums if 1 <= int(n) <= 49]
+            if conv:
+                zods = conv
+                src = "num2zod"
+        # 3) 分类词 -> 生肖（白肖/女肖/家禽/天肖/前后左右）
+        if not zods:
+            txt = TAG_RE.sub("", pick_part)
+            for cat, zs in CAT2ZOD.items():
+                if cat in txt:
+                    zods = list(zs)
+                    src = "cat2zod"
+                    break
+        # 4) 成语/两字/三字/明文含生肖字（如「虎嘴拔牙」含虎）
+        if not zods and TEXT_ZOD_RE.search(title_guess):
+            txt = TAG_RE.sub("", pick_part)
+            hitzs = [ch for ch in txt if ch in ZOD]
+            zods = list(dict.fromkeys(hitzs))[:8]
+            if zods:
+                src = "text2zod"
+        # 去重保序
+        zods = list(dict.fromkeys(zods))
         self_mark = "准" if "准" in li else ("错" if "错" in li else "")
         rows.append({"period": period, "zods": zods, "openedText": opened_text,
-                     "openedZod": opened_zod, "selfMark": self_mark})
+                     "openedZod": opened_zod, "selfMark": self_mark, "src": src})
     return rows
 
 
@@ -241,7 +304,7 @@ def fetch_all():
         title = clean_title(h) or link_title
         col["title"] = title
         col["kind"] = classify(title)
-        rows = parse_rows(h)
+        rows = parse_rows(h, title)
 
         changed_periods = []
         old_rows = prev.get(rule_id, {})
