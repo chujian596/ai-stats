@@ -498,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.53-Pro';
+var APP_VER = 'v58.54-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4042,7 +4042,12 @@ function doSave(overrideText){
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
     const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
-    if(pingMatch && !/[数号]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
+    if(pingMatch && !/[数号]/.test(pingMatch[2]) && pingMatch[1].length === 1){
+      // 单个平特肖：单一对象，不问，直接按每肖
+      const pzs1 = pingMatch[1], pps1 = parseFloat(pingMatch[3]);
+      text = text.replace(new RegExp('平特?(' + pzs1 + ')\\s*(?:各|数|号|个)*\\s*' + pps1), '平' + pzs1 + pps1);
+      document.getElementById('input').value = text;
+    } else if(pingMatch && !/[数号]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
       const pz2 = pingMatch[1], pp2 = parseFloat(pingMatch[3]);
       text = text.replace(new RegExp('平特?(' + pz2 + ')\\s*(?:各|数|号|个)*\\s*' + pp2),
         () => pz2.split('').map(z => '平' + z + pp2).join('\n'));
@@ -4085,6 +4090,9 @@ function doSave(overrideText){
     const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
     // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
     if(txMatch && /[数号]/.test(txMatch[2])){
+      _texiaoChoice = 'perNum';
+    } else if(txMatch && txMatch[1].length === 1){
+      // 单个特肖：只有一个对象，不存在分摊歧义，直接按每号算
       _texiaoChoice = 'perNum';
     } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
       const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
