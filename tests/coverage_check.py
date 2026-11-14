@@ -17,7 +17,15 @@ def grab(pat, optional=False):
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
-i2=s.index('return [{"code": "01"'); j=s.index(';', i2); prods=s[i2+len('return '):j]
+i2=s.index('return [{"code": "01"')
+_b=i2+s[i2:].index('['); _d=0; _k=_b
+while _k<len(s):
+    if s[_k]=='[': _d+=1
+    elif s[_k]==']':
+        _d-=1
+        if _d==0: break
+    _k+=1
+prods=s[_b:_k+1]
 
 pre = """
 const window={}; const els={};
@@ -78,12 +86,26 @@ CASES = [
  ("号码+生肖两行", "05 17 29各10\n特马兔各5"),
  ("三行混合", "05 17 29各10\n特马兔各5\n19 35二中二10"),
  ("带共字行", "05 17 29各10\n共30米"),
+ # ===== 金额断言：不该弹的必须直接算对 =====
+ ("断言-平特单肖", "平特马80", 80),
+ ("断言-单号", "05 10", 10),
+ ("断言-连肖", "连马龙兔10", 10),
+ ("断言-二中二", "02 15二中二10", 10),
+ ("断言-三中三", "19 16 35三中三8", 8),
+ ("断言-特马各5", "特马各5", 25),
+ ("断言-特马各数5", "特马各数5", 25),
+ ("断言-特马各号5", "特马各号5", 25),
+ ("断言-特马每个5", "特马每个5", 25),
+ ("断言-狗各数5", "狗各数5", 20),
+ ("断言-09各5", "09各5", 5),
+ ("断言-平龙马各号5", "平龙马各号5", 10),
+
 ]
 
 runner = pre + parseLine + "\n" + fix + "\n" + doSave + "\n" + """
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
-for(const [name, text] of CASES){
+for(const [name, text, expAmt] of CASES){
   orders=[]; _popupCount=0; _texiaoChoice=null; window._waveChoice=null; window._failedLines=[];
   let alertMsg='';
   const _origAlert = myAlert; myAlert = function(m){ alertMsg=m; };
@@ -91,8 +113,10 @@ for(const [name, text] of CASES){
   let threw=null;
   try{ doSave(); }catch(e){ threw=e.message; }
   myAlert = _origAlert;
-  if(orders.length > 0){
-    ok++; console.log('✅ '+name+' ⇒ '+orders.length+'单 共'+orders[0].amount+'米 '+orders[0].qty+'号');
+  if(orders.length > 0 && expAmt !== undefined && Math.abs(orders.reduce(function(a,o){return a+o.amount;},0) - expAmt) > 0.01){
+    fail++; console.log('❌ '+name+' ⇒ 金额不符：期望 '+expAmt+'，实得 '+orders.reduce(function(a,o){return a+o.amount;},0));
+  } else if(orders.length > 0){
+    ok++; console.log('✅ '+name+' ⇒ '+orders.length+'单 共'+orders[0].amount+'米 '+orders[0].qty+'号'+(expAmt!==undefined?'（期望 '+expAmt+' ✓）':''));
   } else if(_popupCount > 0){
     needConfirm++; console.log('🟡 '+name+' ⇒ 弹窗需确认（正常流程）');
   } else {
