@@ -548,7 +548,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.64-Pro';
+var APP_VER = 'v58.65-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4259,7 +4259,7 @@ function showMultiDlg(items, text){
     + '<div style="padding:0 16px">' + rows + '</div>'
     + '<div style="padding:12px 16px 16px;display:flex;gap:8px;border-top:1px solid #eee">'
     + '<button id="miCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;color:#666">取消</button>'
-    + '<button id="miOk" disabled style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#eee;color:#999;font-size:14px;font-weight:700">确定</button>'
+    + '<button id="miOk" disabled style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#aaa;font-size:14px;font-weight:700">确定</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelectorAll('button[data-i]').forEach(function(b){
@@ -4280,8 +4280,10 @@ function showMultiDlg(items, text){
       var ok = ov.querySelector('#miOk');
       ok.disabled = (left > 0);
       ok.textContent = (left > 0) ? ('确定（还差' + left + '项）') : '确定';
-      ok.style.setProperty('background', left > 0 ? '#eee' : '#1a1a1a', 'important');
-      ok.style.setProperty('color', left > 0 ? '#999' : '#fff', 'important');
+      ok.style.setProperty('background', '#fff', 'important');
+      ok.style.setProperty('color', left > 0 ? '#aaa' : '#111', 'important');
+      ok.style.setProperty('border-color', left > 0 ? '#ddd' : '#111', 'important');
+      ok.style.setProperty('border-width', left > 0 ? '1px' : '2px', 'important');
     };
   });
   ov.querySelector('#miCancel').onclick = function(){ ov.remove(); };
