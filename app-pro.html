@@ -61,6 +61,11 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <div style="max-width:320px;width:100%;text-align:center">
     <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#1a1a1a">会员验证</div>
     <div id="lockMsg" style="font-size:15px;color:#666;margin-bottom:8px"></div>
+    <div id="lockCodeWrap" style="display:none">
+      <div style="font-size:12px;color:#999;line-height:1.6;margin-bottom:10px;text-align:left">输入管理员给你的授权码。<br>一次输入长期有效，换手机输入同一个码照样能用。</div>
+      <input id="lockCodeInput" type="text" autocomplete="off" autocapitalize="characters" placeholder="例如 D8Z0DFIYO" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:18px;box-sizing:border-box;margin-bottom:10px;letter-spacing:2px;text-align:center" onkeydown="if(event.key==='Enter')activateCode()">
+      <button onclick="activateCode()" style="width:100%;border:none;background:#111;color:#fff;border-radius:8px;padding:13px;font-size:16px;font-weight:700">使用此码</button>
+    </div>
     <div id="lockPwdWrap">
       <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:17px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
       <button onclick="unlock()" style="width:100%;border:1px solid #ccc;background:#fff;color:#333;border-radius:8px;padding:12px;font-size:16px;font-weight:600">进入</button>
@@ -492,7 +497,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.42-Pro';
+var APP_VER = 'v58.43-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -772,30 +777,27 @@ renderAll();
 }
 var DEVICE_WHITELIST = [];
 // 生成设备指纹（固定UUID，存在localStorage，不随屏幕分辨率变化）
+function activateCode(){
+  var raw = (document.getElementById('lockCodeInput').value || '').trim().toUpperCase();
+  var code = raw.replace(/[^A-Z0-9]/g, '');
+  if(!code){ alert('请输入授权码'); return; }
+  if(code.length < 6 || code.length > 20){ alert('授权码格式不对，应为 6-20 位字母数字'); return; }
+  if(code.charAt(0) !== 'D') code = 'D' + code;
+  try {
+    localStorage.setItem('fixed_device_id', code);
+    location.reload();
+  } catch(e) { alert('保存失败，请检查浏览器存储权限'); }
+}
+function resetCode(){
+  if(!confirm('清除本机授权码，重新输入？')) return;
+  try { localStorage.removeItem('fixed_device_id'); } catch(e){}
+  location.reload();
+}
 function getDeviceId(){
-  // 已有就直接用（不打断已授权设备）
+  // 授权码由用户自己输入，不再自动生成；换手机输入同一个码即可继续用
   var saved = localStorage.getItem('fixed_device_id');
   if(saved && saved.length >= 6) return saved;
-  // 没有则按设备特征生成稳定指纹：同一台手机、同一浏览器，重装也得到同一个码
-  var seed = [
-    navigator.userAgent || '',
-    (screen.width || 0) + 'x' + (screen.height || 0) + 'x' + (window.devicePixelRatio || 1),
-    screen.colorDepth || 0,
-    navigator.language || '',
-    navigator.hardwareConcurrency || 0,
-    (function(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch(e){ return ''; } })()
-  ].join('|');
-  var h1 = 0x811c9dc5, h2 = 0x01000193;
-  for (var i = 0; i < seed.length; i++) {
-    var c = seed.charCodeAt(i);
-    h1 = ((h1 ^ c) * 16777619) >>> 0;
-    h2 = ((h2 + c) * 2654435761) >>> 0;
-  }
-  var s36 = (h1.toString(36) + h2.toString(36)).toUpperCase();
-  var code = ('D' + s36).substring(0, 9);
-  while (code.length < 9) code += 'X';
-  localStorage.setItem('fixed_device_id', code);
-  return code;
+  return '';
 }
 var DEVICE_ID = getDeviceId();
 var whitelistActive = false; // 白名单是否已启用
@@ -826,6 +828,7 @@ fetch('whitelist.json?t=' + Date.now())
   .then(function(){ applyMemberExpire(); showLock(); reportDevice(); });
 // 自动上报设备码到邮箱（未授权设备每天报一次，已授权不报）
 function reportDevice(){
+  if(!DEVICE_ID) return; // 还没输码，不上报
   // 测试模式(?nock=1)不上报
   try { if(new URLSearchParams(location.search).get('nock')==='1') return; } catch(e){}
   // 桌面/电脑浏览器不上报，只报真机，避免测试噪音
@@ -857,6 +860,15 @@ var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
 
 function showLock(){
   if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
+  // 本机还没有授权码 → 让他先输入
+  if(!DEVICE_ID){
+    document.getElementById('lockCodeWrap').style.display = 'block';
+    document.getElementById('lockPwdWrap').style.display = 'none';
+    document.getElementById('lockEnterBtn').style.display = 'none';
+    document.getElementById('lockMsg').innerHTML = '<div style="font-size:16px;font-weight:700;color:#333">这台设备还没有授权码</div>';
+    document.getElementById('lockScreen').style.display = 'flex';
+    return;
+  }
   var lv = document.getElementById('lockVer'); if(lv) lv.textContent = APP_VER;
   var now = Date.now();
   var left = lockData.expire - now;
@@ -879,7 +891,7 @@ function showLock(){
     document.getElementById('lockEnterBtn').style.display = 'none';
     var inp = document.getElementById('lockPwd');
     inp.placeholder = '此设备未授权';
-    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#7c3aed">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
+    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此授权码未开通</div>当前码：<b style="font-size:20px;color:#333">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把这个码发给管理员开通</span><br><a href="javascript:resetCode()" style="font-size:12px;color:#999;text-decoration:underline;display:inline-block;margin-top:8px">换个码试试</a>';
     document.getElementById('lockScreen').style.display = 'flex';
     return;
   }
@@ -911,7 +923,7 @@ function unlock(){
     return;
   }
   // 设备未授权
-  if(whitelistActive && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
+  if(!(MEMBERS && MEMBERS[DEVICE_ID]) && whitelistActive && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
     alert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }
