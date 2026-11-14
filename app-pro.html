@@ -498,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.55-Pro';
+var APP_VER = 'v58.56-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4300,7 +4300,7 @@ function doSave(overrideText){
       // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
       var _nums = _t.match(/\d{1,2}/g);
       var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
-      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function'){
+      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
         var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
         window.__ambigAbort = true;
         myChoice('这4个数字怎么算？', _a1+' '+_a2+' '+_a3+' '+_a4, [
