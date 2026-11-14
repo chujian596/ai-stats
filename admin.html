@@ -207,7 +207,7 @@ body{
 <div class="top">
   <div class="top-in">
     <div>
-      <h1>会员管理</h1>
+      <h1>会员管理<span style="font-size:11px;font-weight:400;color:#9a9a9a;margin-left:6px;letter-spacing:.5px">admin 58.8</span></h1>
       <div class="sub" id="topSub">正在读取…</div>
     </div>
     <button class="iconbtn" onclick="openSettings()" aria-label="设置">
@@ -905,10 +905,16 @@ function doDelete(){
 
 /* ---------- 新建 ---------- */
 function focusCodeInput(){
-  var el = $('newCode');
-  el.value = '';
-  try { el.focus(); } catch(e){}
-  toast('框已清空，粘客户的码进来');
+  var v = null;
+  try { v = window.prompt('把客户报给你的授权码粘到这里（D 开头那串）', ''); } catch(e){}
+  if(v === null) return;
+  var c = (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(c.length >= 6){
+    $('newCode').value = c;
+    toast('已填入 ' + c);
+  } else if(c.length){
+    toast('码太短，检查一下再填');
+  }
 }
 
 function openNewWithCode(){
