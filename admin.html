@@ -638,6 +638,7 @@ function loadData(){
 }
 
 function reloadData(){
+  if(dirty && !confirm('这会丢掉本机还没同步的改动，确定重新读取云端？')) return;
   closeSheet();
   dirty = false;
   try { localStorage.removeItem(LOCAL_KEY); } catch(e){}
@@ -695,9 +696,18 @@ function syncWhitelist(){
 
 function syncNow(){
   if(!PAT){ toast('先去设置填仓库密钥'); openSettings(); return; }
-  toast('正在重新同步…');
-  reloadData();
-  setTimeout(function(){ persist('重新同步 ' + fmtDate(today()), function(){ toast('同步成功，客户约 1 分钟后生效'); }); }, 1200);
+  if(!DATA || !DATA.devices){ toast('名单还没读出来，稍等'); return; }
+  toast('正在把本机改动推上去…');
+  fetch('https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE + '?ref=main', {
+    headers: { Authorization: 'Bearer ' + PAT, Accept: 'application/vnd.github+json' }
+  }).then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if(j && j.sha) SHA = j.sha;
+      persist('同步本机改动 ' + fmtDate(today()), function(){ toast('同步成功，客户约 1 分钟后生效'); });
+    })
+    .catch(function(){
+      persist('同步本机改动 ' + fmtDate(today()), function(){});
+    });
 }
 
 /* ===================== 渲染 ===================== */
