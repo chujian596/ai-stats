@@ -19,11 +19,14 @@ fi
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
-for f in app.html app-pro.html admin58.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json admin.html version.txt; do
+for f in index.html app.html app-pro.html admin.html admin58.html portal.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json version.txt system-guide.html 0491.html ai-analysis.html shengxiao.html update-tool.html zhengpiao.html ziliao.html; do
   [ -f "$f" ] && cp -f "$f" "$DEPLOY/"
 done
 
 # Pages Functions（/api/draw 让 Cloudflare 自己抓开奖）
+rm -rf "$DEPLOY/versions"
+[ -d "$SRC/versions" ] && cp -rf "$SRC/versions" "$DEPLOY/"
+
 rm -rf "$DEPLOY/functions"
 [ -d "$SRC/functions" ] && cp -rf "$SRC/functions" "$DEPLOY/"
 
