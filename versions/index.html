@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>录单Pro 版本目录</title>
+<style>
+:root{--bg:#f5f5f5;--card:#fff;--line:#e3e3e3;--txt:#1a1a1a;--sub:#7a7a7a;--acc:#1f7a4c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;padding:16px 14px 40px}
+h1{font-size:19px;margin:6px 0 4px;letter-spacing:.5px}
+.sub{font-size:12px;color:var(--sub);margin-bottom:18px;line-height:1.7}
+.group-title{font-size:12px;color:var(--sub);margin:22px 4px 8px;letter-spacing:1px}
+.list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.ver{font-size:15px;font-weight:700;min-width:86px;font-variant-numeric:tabular-nums}
+.desc{font-size:12px;color:var(--sub);flex:1;line-height:1.6;min-width:0}
+.open{flex:0 0 auto;padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:#fff;color:#333;font-size:13px;text-decoration:none;font-weight:600}
+.open:active{background:#eee}
+.cur{background:#f2f8f4}
+.cur .ver::after{content:"当前";font-size:10px;font-weight:500;color:var(--acc);border:1px solid var(--acc);border-radius:3px;padding:1px 4px;margin-left:6px;vertical-align:2px}
+.warn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:12px;color:var(--sub);line-height:1.9;margin-top:18px}
+.warn b{color:var(--txt)}
+footer{margin-top:22px;font-size:11px;color:#a0a0a0;text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<h1>录单Pro 版本目录</h1>
+<div class="sub">点版本号右边的「打开」即可进入该版本。所有版本都自带顶部标识，不会自动跳转、不会弹更新提示。</div>
+
+<div class="group-title">主线上（跟着更新）</div>
+<div class="list">
+  <div class="row"><div class="ver">v58.58</div><div class="desc">主页面，最新</div><a class="open" href="../app-pro.html">打开</a></div>
+  <div class="row"><div class="ver">备用版</div><div class="desc">应急用，功能同 v58.58</div><a class="open" href="../app-pro-backup.html">打开</a></div>
+</div>
+
+<div class="group-title">历史版本（固定不动）</div>
+<div class="list">
+  <div class="row cur"><div class="ver">v58.58</div><div class="desc">金额歧义规则写进说明 + 代码注释</div><a class="open" href="./app-pro-v58.58-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.57</div><div class="desc">三中三/二中二 一组按一组算（修 24 元问题）</div><a class="open" href="./app-pro-v58.57-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.56</div><div class="desc">组合玩法不参与 4 数字弹窗</div><a class="open" href="./app-pro-v58.56-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.55</div><div class="desc">特肖单肖也弹窗</div><a class="open" href="./app-pro-v58.55-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.54</div><div class="desc">单肖免弹（这版被推翻，仅留档）</div><a class="open" href="./app-pro-v58.54-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.53</div><div class="desc">波色/平特/裸号码全弹窗 + 报错复位</div><a class="open" href="./app-pro-v58.53-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.50</div><div class="desc">特马兔各5 也弹窗</div><a class="open" href="./app-pro-v58.50-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.49</div><div class="desc">特肖没写单位时弹窗</div><a class="open" href="./app-pro-v58.49-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.48</div><div class="desc">去掉刷新按钮，只留下拉收起号码</div><a class="open" href="./app-pro-v58.48-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.46</div><div class="desc">波色实心球 + 可锁定版本（老稳定版）</div><a class="open" href="./app-pro-v58.46-Pro.html">打开</a></div>
+  <div class="row"><div class="ver">v58.45</div><div class="desc">四个默认算法写死（弹窗前的老逻辑）</div><a class="open" href="./app-pro-v58.45-Pro.html">打开</a></div>
+</div>
+
+<div class="warn">
+<b>数据说明：</b>所有版本共用同一份本地数据（同一个域名下），用哪个版本录的单，换回来都能看到。历史版本只读留档，不建议长期使用，只在你确认新版有问题时用来过渡。
+</div>
+
+<footer>录单Pro · 版本留档目录<br>每次改动都会自动存一份快照到这里</footer>
+</body>
+</html>
