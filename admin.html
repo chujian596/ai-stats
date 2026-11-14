@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会员管理</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231C1C1E'/%3E%3Ctext x='16' y='22' font-size='17' font-family='-apple-system,sans-serif' font-weight='600' text-anchor='middle' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#F2F2F7; --card:#FFFFFF; --line:#E3E3E8; --ink:#1C1C1E; --sub:#8E8E93;
+  --faint:#C7C7CC; --press:#EDEDF2; --danger:#B4232A;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+.num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+
+/* ---------- 顶栏 ---------- */
+.top{
+  position:sticky;top:0;z-index:20;background:rgba(242,242,247,.86);
+  backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
+  border-bottom:.5px solid var(--line);
+}
+.top-in{max-width:560px;margin:0 auto;padding:14px 16px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.top h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.top .sub{font-size:12px;color:var(--sub);margin-top:2px}
+.iconbtn{
+  width:34px;height:34px;border:none;background:transparent;border-radius:9px;display:grid;place-items:center;
+  color:var(--ink);cursor:pointer;flex:0 0 auto;
+}
+.iconbtn:active{background:var(--press)}
+.iconbtn svg{width:21px;height:21px}
+
+/* ---------- 概览 ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 16px}
+.stat{background:var(--card);border-radius:10px;padding:11px 12px}
+.stat .k{font-size:11px;color:var(--sub);margin-bottom:3px}
+.stat .v{font-size:20px;font-weight:700;letter-spacing:-.4px}
+
+/* ---------- 搜索 ---------- */
+.search{position:relative;margin-bottom:14px}
+.search input{
+  width:100%;border:none;background:var(--card);border-radius:10px;
+  padding:11px 14px 11px 36px;font-size:15px;color:var(--ink);outline:none;font-family:inherit;
+}
+.search input::placeholder{color:var(--faint)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--sub)}
+
+/* ---------- 列表 ---------- */
+.sec-title{font-size:12px;color:var(--sub);margin:0 0 7px 4px;font-weight:500}
+.list{background:var(--card);border-radius:12px;overflow:hidden}
+.row{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;
+  border-bottom:.5px solid var(--line);transition:background .12s;
+}
+.row:last-child{border-bottom:none}
+.row:active{background:var(--press)}
+.avatar{
+  width:36px;height:36px;border-radius:9px;background:#EFEFF4;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:var(--ink);flex:0 0 auto;letter-spacing:-.5px;
+}
+.rmain{flex:1;min-width:0}
+.rname{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rname.empty{color:var(--faint);font-weight:500}
+.rcode{font-size:12px;color:var(--sub);letter-spacing:.6px;margin-top:2px;font-variant-numeric:tabular-nums}
+.rside{text-align:right;flex:0 0 auto}
+.rday{font-size:19px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.rday small{font-size:11px;font-weight:500;color:var(--sub);margin-left:1px}
+.rdate{font-size:11px;color:var(--sub);margin-top:2px}
+.over .rday{color:var(--danger)}
+.soon .rday{color:var(--ink)}
+.badge{
+  display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#EFEFF4;color:var(--sub);
+  margin-left:5px;vertical-align:2px;font-weight:500;
+}
+
+/* ---------- 空态 ---------- */
+.list-empty{padding:44px 20px;text-align:center;color:var(--sub);font-size:14px}
+.list-empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px;font-weight:600}
+
+/* ---------- 底部主按钮 ---------- */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(242,242,247,.98) 62%,rgba(242,242,247,0));
+}
+.dock-in{max-width:560px;margin:0 auto}
+.primary{
+  width:100%;border:none;background:var(--ink);color:#fff;border-radius:11px;
+  padding:15px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;
+}
+.primary:active{opacity:.82}
+.primary.ghost{background:var(--card);color:var(--ink);border:.5px solid var(--line)}
+.primary[disabled]{opacity:.4}
+
+/* ---------- 底部抽屉 ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:40;opacity:0;pointer-events:none;
+  transition:opacity .18s;
+}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg);
+  border-radius:16px 16px 0 0;transform:translateY(102%);transition:transform .24s cubic-bezier(.32,.72,0,1);
+  max-height:92vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -1px 0 var(--line);
+}
+.sheet.on{transform:translateY(0)}
+.sheet-in{max-width:560px;margin:0 auto;padding:0 16px}
+.grab{width:36px;height:5px;border-radius:3px;background:#D8D8DE;margin:8px auto 0}
+.sheet h2{margin:12px 0 2px;font-size:17px;font-weight:700}
+.sheet .hint{font-size:12px;color:var(--sub);margin:0 0 14px}
+
+.card{background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.field{display:flex;align-items:center;padding:12px 14px;border-bottom:.5px solid var(--line);gap:10px}
+.field:last-child{border-bottom:none}
+.field label{font-size:13px;color:var(--sub);flex:0 0 66px}
+.field input,.field select{
+  flex:1;min-width:0;border:none;background:transparent;font-size:16px;color:var(--ink);
+  outline:none;font-family:inherit;text-align:right;
+}
+.field input::placeholder{color:var(--faint)}
+.field .ro{flex:1;text-align:right;font-size:15px;color:var(--sub)}
+
+/* 套餐选择 */
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:12px 14px}
+.plan{
+  border:.5px solid var(--line);background:var(--card);border-radius:9px;padding:9px 2px;
+  font-size:13px;font-family:inherit;color:var(--ink);cursor:pointer;text-align:center;line-height:1.3;
+}
+.plan span{display:block;font-size:10px;color:var(--sub);margin-top:2px}
+.plan.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.plan.on span{color:rgba(255,255,255,.65)}
+
+/* 结果预览 */
+.preview{
+  background:var(--card);border-radius:12px;padding:13px 14px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.preview .l{font-size:12px;color:var(--sub)}
+.preview .v{font-size:17px;font-weight:700;margin-top:2px;letter-spacing:-.3px}
+.preview .arrow{color:var(--faint);flex:0 0 auto}
+.preview .to{text-align:right}
+.preview .to .v{color:var(--ink)}
+
+.sheet-actions{display:grid;gap:8px;margin-top:4px}
+.dangerlink{
+  width:100%;border:none;background:var(--card);color:var(--danger);border-radius:11px;
+  padding:14px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;
+}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translate(-50%,8px);
+  background:rgba(28,28,30,.94);color:#fff;font-size:13.5px;padding:9px 16px;border-radius:9px;
+  z-index:90;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:86vw;text-align:center;line-height:1.5;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* 解锁门 */
+.gate{
+  position:fixed;inset:0;z-index:100;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;padding:24px;
+}
+.gate.on{display:flex}
+.gate-box{width:100%;max-width:330px}
+.gate h1{font-size:20px;font-weight:700;text-align:center;margin:0 0 6px}
+.gate p{font-size:13px;color:var(--sub);text-align:center;margin:0 0 20px;line-height:1.6}
+.gate input{
+  width:100%;border:.5px solid var(--line);background:var(--card);border-radius:10px;
+  padding:13px;font-size:16px;text-align:center;outline:none;font-family:inherit;margin-bottom:10px;letter-spacing:1px;
+}
+.gate .err{color:var(--danger);font-size:12px;text-align:center;height:16px;margin-bottom:8px}
+
+/* 同步状态 */
+.syncbar{
+  display:none;align-items:center;gap:8px;background:var(--card);border-radius:10px;
+  padding:10px 13px;margin-bottom:12px;font-size:12.5px;color:var(--sub);line-height:1.5;
+}
+.syncbar.on{display:flex}
+.syncbar b{color:var(--ink);font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.dot.ok{background:#2E7D4F}
+.dot.warn{background:#B4232A}
+</style>
+</head>
+<body>
+
+<!-- 解锁门 -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <h1>会员管理</h1>
+    <p>请输入管理员密码进入</p>
+    <input id="gatePwd" type="password" placeholder="管理员密码" autocomplete="off" onkeydown="if(event.key==='Enter')gateGo()">
+    <div class="err" id="gateErr"></div>
+    <button class="primary" onclick="gateGo()">进入</button>
+  </div>
+</div>
+
+<!-- 顶栏 -->
+<div class="top">
+  <div class="top-in">
+    <div>
+      <h1>会员管理</h1>
+      <div class="sub" id="topSub">正在读取…</div>
+    </div>
+    <button class="iconbtn" onclick="openSettings()" aria-label="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="syncbar" id="syncbar">
+    <span class="dot" id="syncDot"></span>
+    <span id="syncTxt"></span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">客户</div><div class="v num" id="stTotal">—</div></div>
+    <div class="stat"><div class="k">30天内到期</div><div class="v num" id="stSoon">—</div></div>
+    <div class="stat"><div class="k">已到期</div><div class="v num" id="stOver">—</div></div>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/>
+    </svg>
+    <input id="q" type="search" placeholder="搜索备注或授权码" autocomplete="off" oninput="render()">
+  </div>
+
+  <div class="sec-title" id="listTitle">客户名单</div>
+  <div class="list" id="list"></div>
+</div>
+
+<!-- 底部按钮 -->
+<div class="dock">
+  <div class="dock-in">
+    <button class="primary" onclick="openNew()">新建客户</button>
+  </div>
+</div>
+
+<!-- 遮罩 -->
+<div class="mask" id="mask" onclick="closeSheet()"></div>
+
+<!-- 充值 / 编辑 抽屉 -->
+<div class="sheet" id="sheetEdit">
+  <div class="sheet-in">
+    <div class="grab"></div>
+    <h2 id="edTitle">充值</h2>
+    <p class="hint" id="edHint"></p>
+
+    <div class="card">
+      <div class="field">
+        <label>授权码</label>
+        <input id="edCode" type="text" readonly style="letter-spacing:.6px;font-variant-numeric:tabular-nums">
+      </div>
+      <div class="field">
+        <label>备注</label>
+        <input id="edNote" type="text" placeholder="客户名字，方便自己认" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="sec-title" style="margin-left:4px">选择套餐</div>
+    <div class="card">
+      <div class="plans" id="edPlans"></div>
+      <div class="field">
+        <label>自定天数</label>
+        <input id="edDays" type="number" inputmode="numeric" placeholder="不选套餐时填这里" oninput="onDaysInput()">
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="l"><div>当前到期</div><div class="v num" id="pvFrom">—</div></div>
+      <div class="arrow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+      </div>
+      <div class="to"><div class="l">充值后</div><div class="v num" id="pvTo">—</div></div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="primary" id="edSave" onclick="doRecharge()">确认充值</button>
+      <button class="dangerlink" id="edDel" onclick="doDelete()">删除这个客户</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新建客户 抽屉 -->
+<div class="sheet" id="sheetNew">
+  <div class="sheet-in">
+    <div class="grab"></div>
+    <h2>新建客户</h2>
+    <p class="hint">系统自动生成一个授权码，发给客户在会员页输入即可使用。</p>
+
+    <div class="card">
+      <div class="field">
+        <label>授权码</label>
+        <input id="newCode" type="text" readonly style="letter-spacing:.6px;font-variant-numeric:tabular-nums">
+      </div>
+      <div class="field">
+        <label>备注</label>
+        <input id="newNote" type="text" placeholder="客户名字" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="sec-title" style="margin-left:4px">开通套餐</div>
+    <div class="card">
+      <div class="plans" id="newPlans"></div>
+      <div class="field">
+        <label>自定天数</label>
+        <input id="newDays" type="number" inputmode="numeric" placeholder="留空则按套餐天数" oninput="onNewDaysInput()">
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="l"><div>开通后到期</div><div class="v num" id="newTo">—</div></div>
+      <div class="to"><div class="l">天数</div><div class="v num" id="newSpan">—</div></div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="primary" onclick="doCreate()">创建并生效</button>
+      <button class="primary ghost" onclick="regenCode()">换一个码</button>
+    </div>
+  </div>
+</div>
+
+<!-- 设置 抽屉 -->
+<div class="sheet" id="sheetSet">
+  <div class="sheet-in">
+    <div class="grab"></div>
+    <h2>同步设置</h2>
+    <p class="hint">填了仓库密钥就能直接改云端名单，改完客户立刻生效；不填只能在本机暂存再导出。</p>
+
+    <div class="card">
+      <div class="field">
+        <label>仓库</label>
+        <div class="ro">chujian596/ai-stats</div>
+      </div>
+      <div class="field" style="align-items:flex-start;flex-direction:column;gap:8px">
+        <label style="flex:none">仓库密钥</label>
+        <input id="setPat" type="password" placeholder="github_pat_..." autocomplete="off"
+          style="width:100%;text-align:left;font-size:13px;letter-spacing:0;border:.5px solid var(--line);border-radius:8px;padding:10px">
+      </div>
+      <div class="field">
+        <label>状态</label>
+        <div class="ro" id="setState">未配置</div>
+      </div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="primary" onclick="savePat()">保存并测试连接</button>
+      <button class="primary ghost" onclick="exportJson()">导出名单 JSON</button>
+      <button class="primary ghost" onclick="reloadData()">重新读取云端</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 常量 ===================== */
+var REPO = 'chujian596/ai-stats';
+var DATAFILE = 'members.json';
+var PAGES_BASE = 'https://chujian596.github.io/ai-stats/';
+var GATE_KEY = 'admin_gate_ok';
+var ADMIN_CODE = 'xg2024!oa';
+var PAT_KEY = 'admin_gh_pat';
+var LOCAL_KEY = 'admin_local_members';
+
+/* ===================== 状态 ===================== */
+var PAT = '';
+var DATA = null;
+var SHA = null;
+var dirty = false;
+var editing = null;
+var curPlan = null;
+var newPlan = null;
+var PLAN_DAYS = { '月费': 30, '季费': 90, '半年': 180, '年费': 365 };
+
+/* ===================== 工具 ===================== */
+function $(id){ return document.getElementById(id); }
+function pad(n){ return n < 10 ? '0' + n : '' + n; }
+function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function today(){ return ymd(new Date()); }
+function parseYMD(s){
+  if(!s) return null;
+  var p = String(s).split('-');
+  if(p.length !== 3) return null;
+  var d = new Date(+p[0], +p[1]-1, +p[2], 12, 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+function addDays(s, n){
+  var d = parseYMD(s) || parseYMD(today());
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+}
+function daysBetween(a, b){
+  var x = parseYMD(a), y = parseYMD(b);
+  if(!x || !y) return 0;
+  return Math.round((y - x) / 86400000);
+}
+function fmtDate(s){
+  var d = parseYMD(s);
+  if(!d) return '—';
+  return d.getFullYear() + '/' + pad(d.getMonth()+1) + '/' + pad(d.getDate());
+}
+function daysLeft(s){
+  return daysBetween(today(), s);
+}
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function toast(msg){
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(function(){ t.classList.remove('on'); }, 2200);
+}
+function b64enc(str){
+  var bytes = new TextEncoder().encode(str);
+  var bin = '';
+  for(var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64dec(b64){
+  var bin = atob(String(b64).replace(/\s/g,''));
+  var bytes = Uint8Array.from(bin, function(c){ return c.charCodeAt(0); });
+  return new TextDecoder().decode(bytes);
+}
+function genCode(){
+  var CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var code, guard = 0;
+  do {
+    code = 'D';
+    for(var i=0;i<8;i++) code += CH[Math.floor(Math.random()*CH.length)];
+    guard++;
+  } while(DATA && DATA.devices && DATA.devices[code] && guard < 50);
+  return code;
+}
+
+/* ===================== 解锁门 ===================== */
+(function(){
+  var ok = false;
+  try { ok = localStorage.getItem(GATE_KEY) === '1'; } catch(e){}
+  if(ok){ boot(); }
+  else { $('gate').classList.add('on'); }
+})();
+function gateGo(){
+  var v = ($('gatePwd').value || '').trim();
+  if(v !== ADMIN_CODE){
+    $('gateErr').textContent = '密码不对';
+    return;
+  }
+  $('gateErr').textContent = '';
+  try { localStorage.setItem(GATE_KEY, '1'); } catch(e){}
+  $('gate').classList.remove('on');
+  boot();
+}
+
+/* ===================== 读取 ===================== */
+function boot(){
+  try { PAT = localStorage.getItem(PAT_KEY) || ''; } catch(e){ PAT = ''; }
+  updateSyncBar();
+  loadData();
+
+  // 没配密钥时，先看本机有没有未同步的暂存
+  if(!PAT){
+    try {
+      var local = localStorage.getItem(LOCAL_KEY);
+      if(local){
+        var d = JSON.parse(local);
+        if(d && d.devices && Object.keys(d.devices).length){
+          dirty = true;
+          DATA = d;
+          render();
+          toast('已载入本机暂存（尚未同步云端）');
+        }
+      }
+    } catch(e){}
+  }
+}
+
+function loadData(){
+  $('topSub').textContent = '正在读取…';
+  var url, opts = {};
+  if(PAT){
+    url = 'https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE + '?ref=main';
+    opts = { headers: { Authorization: 'Bearer ' + PAT, Accept: 'application/vnd.github+json' } };
+  } else {
+    url = DATAFILE + '?t=' + Date.now();
+  }
+  fetch(url, opts).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(j){
+    if(PAT){
+      SHA = j.sha;
+      DATA = JSON.parse(b64dec(j.content));
+    } else {
+      DATA = j;
+    }
+    DATA.devices = DATA.devices || {};
+    DATA.plan_days = DATA.plan_days || PLAN_DAYS;
+    dirty = false;
+    updateSyncBar();
+    render();
+  }).catch(function(e){
+    $('topSub').textContent = '读取失败';
+    toast('读取失败：' + e.message);
+    if(!DATA) DATA = { devices: {}, plan_days: PLAN_DAYS };
+    render();
+  });
+}
+
+function reloadData(){
+  closeSheet();
+  dirty = false;
+  try { localStorage.removeItem(LOCAL_KEY); } catch(e){}
+  loadData();
+}
+
+function updateSyncBar(){
+  var bar = $('syncbar'), dot = $('syncDot'), txt = $('syncTxt');
+  if(PAT){
+    bar.classList.add('on');
+    dot.className = 'dot ok';
+    txt.innerHTML = '已连接云端 · 改动<b>立即生效</b>';
+    $('setState').textContent = '已配置';
+  } else if(dirty){
+    bar.classList.add('on');
+    dot.className = 'dot warn';
+    txt.innerHTML = '本机暂存 · <b>未同步到云端</b>，客户看不到变化';
+    $('setState').textContent = '未配置';
+  } else {
+    bar.classList.remove('on');
+    $('setState').textContent = '未配置';
+  }
+}
+
+/* ===================== 渲染 ===================== */
+function render(){
+  if(!DATA) return;
+  var devs = DATA.devices || {};
+  var codes = Object.keys(devs);
+  var q = ($('q').value || '').trim().toUpperCase();
+
+  var rows = codes.map(function(c){
+    var r = devs[c] || {};
+    return { code: c, note: r.note || '', plan: r.plan || '', expire: r.expire || '', left: daysLeft(r.expire || '') };
+  });
+
+  if(q){
+    rows = rows.filter(function(r){
+      return r.code.indexOf(q) >= 0 || r.note.toUpperCase().indexOf(q) >= 0;
+    });
+  }
+
+  // 排序：快到期的在前，已过期最前
+  rows.sort(function(a, b){
+    if(a.left !== b.left) return a.left - b.left;
+    return a.code < b.code ? -1 : 1;
+  });
+
+  // 概览
+  var all = codes.map(function(c){ return daysLeft((devs[c] || {}).expire || ''); });
+  $('stTotal').textContent = codes.length;
+  $('stSoon').textContent = all.filter(function(n){ return n >= 0 && n <= 30; }).length;
+  $('stOver').textContent = all.filter(function(n){ return n < 0; }).length;
+  $('topSub').textContent = dirty ? '本机暂存 · ' + codes.length + ' 位客户' : '云端已同步 · ' + codes.length + ' 位客户';
+  $('listTitle').textContent = q ? '搜索结果（' + rows.length + '）' : '客户名单';
+
+  if(!rows.length){
+    $('list').innerHTML = '<div class="list-empty"><b>' + (q ? '没有匹配的客户' : '还没有客户') + '</b>' +
+      (q ? '换个关键词试试' : '点下面的“新建客户”生成第一个授权码') + '</div>';
+    return;
+  }
+
+  $('list').innerHTML = rows.map(function(r){
+    var cls = r.left < 0 ? 'over' : (r.left <= 30 ? 'soon' : '');
+    var dayTxt = r.left < 0 ? ('逾期' + Math.abs(r.left)) : r.left;
+    var dayUnit = r.left < 0 ? '天' : '天';
+    var ini = (r.note || r.code).slice(-2).toUpperCase();
+    return '<div class="row ' + cls + '" onclick="openEdit(\'' + r.code + '\')">' +
+      '<div class="avatar">' + esc(ini) + '</div>' +
+      '<div class="rmain">' +
+        '<div class="rname' + (r.note ? '' : ' empty') + '">' + esc(r.note || '未命名客户') +
+          (r.plan ? '<span class="badge">' + esc(r.plan) + '</span>' : '') + '</div>' +
+        '<div class="rcode num">' + esc(r.code) + '</div>' +
+      '</div>' +
+      '<div class="rside">' +
+        '<div class="rday num">' + dayTxt + '<small>' + dayUnit + '</small></div>' +
+        '<div class="rdate num">' + fmtDate(r.expire) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ===================== 抽屉 ===================== */
+function openSheet(id){
+  $('mask').classList.add('on');
+  $(id).classList.add('on');
+}
+function closeSheet(){
+  $('mask').classList.remove('on');
+  ['sheetEdit','sheetNew','sheetSet'].forEach(function(i){ $(i).classList.remove('on'); });
+}
+
+/* ---------- 充值 / 编辑 ---------- */
+function openEdit(code){
+  var rec = DATA.devices[code] || {};
+  editing = code;
+  curPlan = rec.plan && PLAN_DAYS[rec.plan] ? rec.plan : null;
+  $('edCode').value = code;
+  $('edNote').value = rec.note || '';
+  $('edDays').value = '';
+  $('edTitle').textContent = rec.note || code;
+  $('edHint').textContent = '当前套餐：' + (rec.plan || '未设置') + ' · 到期 ' + fmtDate(rec.expire);
+  $('edDel').style.display = Object.keys(DATA.devices).length > 1 ? '' : 'none';
+  renderPlans('edPlans', curPlan, function(p){ curPlan = p; $('edDays').value = ''; updatePreview(); });
+  updatePreview();
+  openSheet('sheetEdit');
+}
+
+function renderPlans(host, active, onPick){
+  var host = $(host);
+  host.innerHTML = Object.keys(PLAN_DAYS).map(function(p){
+    return '<button class="plan' + (p === active ? ' on' : '') + '" data-p="' + p + '">' +
+      p + '<span>' + PLAN_DAYS[p] + '天</span></button>';
+  }).join('');
+  Array.prototype.forEach.call(host.querySelectorAll('.plan'), function(btn){
+    btn.onclick = function(){
+      var p = btn.dataset.p;
+      Array.prototype.forEach.call(host.querySelectorAll('.plan'), function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      onPick(p);
+    };
+  });
+}
+
+function onDaysInput(){
+  var v = parseInt($('edDays').value || '0', 10);
+  if(v > 0){
+    curPlan = null;
+    Array.prototype.forEach.call($('edPlans').querySelectorAll('.plan'), function(b){ b.classList.remove('on'); });
+  }
+  updatePreview();
+}
+
+function planDays(){
+  var custom = parseInt($('edDays').value || '0', 10);
+  if(custom > 0) return custom;
+  if(curPlan && PLAN_DAYS[curPlan]) return PLAN_DAYS[curPlan];
+  return 0;
+}
+
+function updatePreview(){
+  var rec = DATA.devices[editing] || {};
+  var from = rec.expire || today();
+  var days = planDays();
+  $('pvFrom').textContent = fmtDate(from);
+  if(days > 0){
+    var base = (daysBetween(today(), from) > 0) ? from : today();
+    var to = addDays(base, days);
+    $('pvTo').textContent = fmtDate(to) + '（+' + days + '天）';
+    $('pvFrom').textContent = fmtDate(base);
+    $('edSave').disabled = false;
+    $('edSave').textContent = '确认充值 ' + days + ' 天';
+  } else {
+    $('pvTo').textContent = '—';
+    $('edSave').disabled = true;
+    $('edSave').textContent = '请先选套餐或填天数';
+  }
+}
+
+function doRecharge(){
+  var days = planDays();
+  if(days <= 0){ toast('请先选套餐或填天数'); return; }
+  var rec = DATA.devices[editing] || {};
+  var from = rec.expire || today();
+  var base = (daysBetween(today(), from) > 0) ? from : today();
+  var to = addDays(base, days);
+  DATA.devices[editing] = {
+    plan: curPlan || (rec.plan || '自定'),
+    expire: to,
+    note: ($('edNote').value || '').trim() || (rec.note || '')
+  };
+  var note = DATA.devices[editing].note || editing;
+  closeSheet();
+  render();
+  persist('充值 ' + note + ' +' + days + '天 → ' + to, function(){
+    toast(note + ' 已充 ' + days + ' 天，到期 ' + fmtDate(to));
+  });
+}
+
+function doDelete(){
+  if(!editing) return;
+  var note = (DATA.devices[editing] || {}).note || editing;
+  if(!confirm('确定删除「' + note + '」？删除后这个码将无法使用。')) return;
+  delete DATA.devices[editing];
+  closeSheet();
+  render();
+  persist('删除客户 ' + note + ' (' + editing + ')', function(){
+    toast('已删除 ' + note);
+  });
+}
+
+/* ---------- 新建 ---------- */
+function openNew(){
+  newPlan = '月费';
+  $('newCode').value = genCode();
+  $('newNote').value = '';
+  $('newDays').value = '';
+  renderPlans('newPlans', newPlan, function(p){ newPlan = p; $('newDays').value = ''; updateNewPreview(); });
+  updateNewPreview();
+  openSheet('sheetNew');
+}
+function regenCode(){
+  $('newCode').value = genCode();
+}
+function onNewDaysInput(){
+  var v = parseInt($('newDays').value || '0', 10);
+  if(v > 0){
+    newPlan = null;
+    Array.prototype.forEach.call($('newPlans').querySelectorAll('.plan'), function(b){ b.classList.remove('on'); });
+  }
+  updateNewPreview();
+}
+function newDaysCount(){
+  var c = parseInt($('newDays').value || '0', 10);
+  if(c > 0) return c;
+  return (newPlan && PLAN_DAYS[newPlan]) ? PLAN_DAYS[newPlan] : 0;
+}
+function updateNewPreview(){
+  var days = newDaysCount();
+  if(days > 0){
+    $('newTo').textContent = fmtDate(addDays(today(), days));
+    $('newSpan').textContent = days + ' 天';
+  } else {
+    $('newTo').textContent = '—';
+    $('newSpan').textContent = '—';
+  }
+}
+function doCreate(){
+  var days = newDaysCount();
+  if(days <= 0){ toast('请先选套餐或填天数'); return; }
+  var code = ($('newCode').value || '').trim().toUpperCase();
+  if(!code || code.length < 6){ toast('码不对，点“换一个码”重试'); return; }
+  if(DATA.devices[code]){ toast('这个码已存在，点“换一个码”'); return; }
+  var note = ($('newNote').value || '').trim();
+  DATA.devices[code] = {
+    plan: newPlan || '自定',
+    expire: addDays(today(), days),
+    note: note
+  };
+  closeSheet();
+  render();
+  persist('新建客户 ' + (note || code) + ' · ' + days + '天', function(){
+    toast('已创建：' + code + ' · ' + days + ' 天');
+  });
+}
+
+/* ---------- 设置 ---------- */
+function openSettings(){
+  $('setPat').value = PAT;
+  $('setState').textContent = PAT ? '已配置' : '未配置';
+  openSheet('sheetSet');
+}
+function savePat(){
+  var v = ($('setPat').value || '').trim();
+  if(!v){ toast('请填写密钥'); return; }
+  if(!/^(github_pat_|ghp_)/.test(v)){ toast('密钥格式不对，应以 github_pat_ 或 ghp_ 开头'); return; }
+  PAT = v;
+  try { localStorage.setItem(PAT_KEY, v); } catch(e){}
+  dirty = false;
+  try { localStorage.removeItem(LOCAL_KEY); } catch(e){}
+  closeSheet();
+  updateSyncBar();
+  toast('正在测试连接…');
+  fetch('https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE + '?ref=main', {
+    headers: { Authorization: 'Bearer ' + PAT, Accept: 'application/vnd.github+json' }
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 ? '（密钥无效或已过期）' : r.status === 404 ? '（没有这个仓库的读取权限）' : ''));
+    return r.json();
+  }).then(function(j){
+    SHA = j.sha;
+    DATA = JSON.parse(b64dec(j.content));
+    DATA.devices = DATA.devices || {};
+    render();
+    toast('连接成功，已接管云端名单');
+  }).catch(function(e){
+    toast('连接失败：' + e.message);
+  });
+}
+function exportJson(){
+  var txt = JSON.stringify(DATA, null, 2);
+  var blob = new Blob([txt], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'members.json';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  toast('已导出 members.json');
+}
+
+/* ---------- 写回云端 ---------- */
+function persist(msg, done){
+  if(!PAT){
+    dirty = true;
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(e){}
+    updateSyncBar();
+    render();
+    toast('已记在本机，尚未同步云端');
+    return;
+  }
+  toast('正在保存…');
+  var body = {
+    message: msg,
+    content: b64enc(JSON.stringify(DATA, null, 2)),
+    branch: 'main'
+  };
+  if(SHA) body.sha = SHA;
+
+  fetch('https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE, {
+    method: 'PUT',
+    headers: {
+      Authorization: 'Bearer ' + PAT,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  }).then(function(r){
+    if(!r.ok) return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ' ' + t.slice(0,120)); });
+    return r.json();
+  }).then(function(j){
+    if(j && j.content && j.content.sha) SHA = j.content.sha;
+    dirty = false;
+    updateSyncBar();
+    render();
+    if(done) done();
+    toast('已同步云端 · 客户约 1 分钟后生效');
+  }).catch(function(e){
+    dirty = true;
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(err){}
+    updateSyncBar();
+    toast('保存失败：' + e.message);
+  });
+}
+
+/* ===================== 启动 ===================== */
+render();
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeSheet();
+});
+</script>
+</body>
+</html>
