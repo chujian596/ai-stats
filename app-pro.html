@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.37-Pro';
+var APP_VER = 'v58.38-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -520,32 +520,23 @@ function hardUpdateTo(v){
   }
   location.replace(url);
 }
-// 自动检查新版本
-setTimeout(function(){
-  fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
-    v=v.trim();
-    if(v && v!==APP_VER){
-      var bar=document.createElement('div');
-      bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
-      bar.textContent='发现新版本 '+v+'，点这里更新';
-      bar.onclick=function(){ hardUpdateTo(v); };
-      document.body.appendChild(bar);
-    }
-  }).catch(()=>{});
-},2000);
+// 版本检查统一由下方 fetch 处理（仅提示、不自动跳转）
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
-// 每次打开都检查版本，不对就自动更新（不用sessionStorage限制，每次都检查）
+// 版本检查：只提示，绝不自动跳转
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
     if(v && v !== APP_VER){
-      // 云端版本和本地不一样，硬跳带版本号的网址拉新版
-      hardUpdateTo(v);
+      var bar=document.createElement('div');
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
+      bar.textContent='发现新版本 '+v+'，点这里更新';
+      bar.onclick=function(){ hardUpdateTo(v); };
+      document.body.appendChild(bar);
     }
   }).catch(function(){});
 // 生肖映射：号码→生肖
