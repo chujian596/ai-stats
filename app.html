@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.38';
+var APP_VER = 'v58.39';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -834,7 +834,12 @@ fetch('whitelist.json?t=' + Date.now())
   .then(function(){ applyMemberExpire(); showLock(); reportDevice(); });
 // 自动上报设备码到邮箱（未授权设备每天报一次，已授权不报）
 function reportDevice(){
-  var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  // 测试模式(?nock=1)不上报
+  try { if(new URLSearchParams(location.search).get('nock')==='1') return; } catch(e){}
+  // 桌面/电脑浏览器不上报，只报真机，避免测试噪音
+  var ua = navigator.userAgent || '';
+  if(/Linux x86_64|Windows NT|Macintosh|CrOS/i.test(ua)) return;
+  var deviceAllowed = (MEMBERS && MEMBERS[DEVICE_ID]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0);
   if(deviceAllowed) return; // 已授权的不上报，不打扰
   var lastReport = parseInt(localStorage.getItem('lastReport_' + DEVICE_ID) || '0');
   var now = Date.now();
