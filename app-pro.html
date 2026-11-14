@@ -45,7 +45,8 @@ main{padding:10px;padding-top:max(env(safe-area-inset-top),24px)}
 .lbl{display:block;font-size:15px;color:#555;margin:6px 0 3px}
 .input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:15px;background:#fafbfc;outline:none}
 .textarea{resize:vertical;min-height:60px;font-family:Consolas,monospace}
-.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.btn-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.btn-row .btn{min-width:0;padding:8px 4px;font-size:13px;line-height:1.35}
 .btn{flex:1 1 auto;min-width:80px;border:1px solid #d9dde3;background:#fff;color:#1f2329;border-radius:8px;padding:8px 6px;font-size:14px;font-weight:600}
 .btn.primary{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .btn.danger{background:#fff2f0;border-color:#ffccc7;color:#cf1322}
@@ -540,7 +541,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.60-Pro';
+var APP_VER = 'v58.61-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
