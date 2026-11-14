@@ -498,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.50-Pro';
+var APP_VER = 'v58.53-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4017,13 +4017,14 @@ function doSave(overrideText){
      pingZod    : 平特马龙兔80          → 'perZod' 每肖80（3单共240）
                                        → 'pingTotal' 共80平分                                    */
   var PARSE_DEFAULTS = (typeof window !== 'undefined' && window.PARSE_DEFAULTS) || {
-    waveAmount: 'perNum',
+    waveAmount: null,
     teZod: 'perZod',
-    pingZod: 'perZod',
-    bareNumAmount: 'perNum'
+    pingZod: null,
+    bareNumAmount: null
   };
   try {
   var _isOverride = (overrideText !== undefined && overrideText !== null);
+  var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
@@ -4058,7 +4059,15 @@ function doSave(overrideText){
         + '<button id="pC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
         + '</div></div>';
       document.body.appendChild(ov);
-      ov.querySelector('#pA').onclick = () => { ov.remove(); _texiaoChoice='pingTotal'; handleSave(); };
+      ov.querySelector('#pA').onclick = () => {
+        ov.remove();
+        const _pun = pp / pz.length;
+        text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
+          () => pz.split('').map(z => '平' + z + _pun.toFixed(4)).join('\n'));
+        document.getElementById('input').value = text;
+        _texiaoChoice = 'pingPerZod';
+        handleSave();
+      };
       ov.querySelector('#pB').onclick = () => {
         ov.remove();
         // 拆成每个肖一行：平虎80 平龙80 平兔80
@@ -4205,10 +4214,18 @@ function doSave(overrideText){
             if(m==='各') return m;
             return window._waveCanonical;
           });
+          const _wcChoice = window._waveChoice;
           window._waveChoice = null;
           const wc = window._waveCanonical;
           window._waveCanonical = null;
-          if(window._waveLastPerNum){
+          if(_wcChoice === 'total'){
+            const _wp = products.find(function(x){ return x.code === wc; });
+            const _wn = _wp && _wp.links ? _wp.links.length : 0;
+            const _wre = new RegExp(wc + '\\s*(?:各|数|号|个)?\\s*([0-9]+(?:\\.[0-9]+)?)');
+            if(_wn > 0){
+              text = text.replace(_wre, function(m, amt){ return wc + '各' + (parseFloat(amt)/_wn).toFixed(4); });
+            }
+          } else if(window._waveLastPerNum){
             text = text.replace(wc, wc+'各');
             window._waveLastPerNum = false;
           }
@@ -4278,6 +4295,27 @@ function doSave(overrideText){
       // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
       var _nums = _t.match(/\d{1,2}/g);
       var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
+      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function'){
+        var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
+        window.__ambigAbort = true;
+        myChoice('这4个数字怎么算？', _a1+' '+_a2+' '+_a3+' '+_a4, [
+          '两笔：'+_a1+'号'+_a2+'元 + '+_a3+'号'+_a4+'元',
+          '一笔：'+_a1+' '+_a2+' '+_a3+' 各'+_a4+'元（3号共'+(3*parseFloat(_a4))+'元）',
+          '一笔：'+_a1+' '+_a2+' '+_a3+' 共'+_a4+'元（3号分）',
+          '重新编辑'
+        ], function(pick){
+          window.__ambigAbort = false;
+          var inp = document.getElementById('input');
+          if(pick===0){
+            window.__skipPair = true; handleSave();
+          } else if(pick===1){
+            inp.value = _a1+' '+_a2+' '+_a3+'各'+_a4; handleSave();
+          } else if(pick===2){
+            inp.value = _a1+' '+_a2+' '+_a3+'各'+(parseFloat(_a4)/3).toFixed(4); handleSave();
+          }
+        });
+        return;
+      }
       if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0){
         var _positions = [];
         var _re2 = /\d{1,2}/g; var _mm;
@@ -4297,6 +4335,7 @@ function doSave(overrideText){
     _mix = _mix.replace(/§(\d+)§/g, function(m, i){ return _keepMix[parseInt(i)]; });
     rawLines = _mix.split(/[\r\n。；;]+/);
   }
+  window.__skipPair = false;
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ myAlert('请先粘贴订单内容'); return; }
 
@@ -4469,6 +4508,14 @@ renderAll();
 
   if(window.__ambigAbort){ window.__ambigAbort = false; return; }
   if(errors.length > 0){
+    // 报错后复位：一次识别失败不再拖累下一次
+    _texiaoChoice = null;
+    window.__ambigAbort = false;
+    window._waveChoice = null;
+    window._waveCanonical = null;
+    window._waveLastPerNum = false;
+    var _inp = document.getElementById('input');
+    if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
     var _fail = (window.__failedLines || [])[0];
     window.__failedLines = [];
     if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
