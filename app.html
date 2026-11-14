@@ -553,7 +553,9 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.71-Pro';
+var APP_VER = 'v58.71';
+/* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
+function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -592,7 +594,7 @@ fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && v !== APP_VER){
+    if(v && normVer(v) !== normVer(APP_VER)){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
       bar.textContent='发现新版本 '+v+'，点这里更新';
@@ -3713,7 +3715,7 @@ function refreshPage(){
     .then(function(r){ return r.text(); })
     .then(function(v){
       var remote = String(v || '').trim();
-      if(remote && remote !== APP_VER){
+      if(remote && normVer(remote) !== normVer(APP_VER)){
         if(btn) btn.textContent = '刷新';
         myChoice('有新版本',
           '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
