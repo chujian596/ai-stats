@@ -377,6 +377,13 @@ body{
       </div>
     </div>
 
+    <div class="sec-title" style="margin-left:4px">批量录入授权码</div>
+    <div class="card">
+      <div class="hint" style="margin:0 0 8px;line-height:1.6">把手上那几张码粘进来（一行一个也行，空格逗号隔开也行）。能对上名单的会自动绑定，名单以后就显示这串码；对不上的说明这码还没开通，可以去「新建客户」把它填进去直接开通。</div>
+      <textarea id="batchCodes" placeholder="DYO0UVGV2&#10;D3GHQDF&#10;D5ZFVCWQ9" style="width:100%;height:120px;border:.5px solid var(--line);border-radius:8px;padding:10px;font-size:13px;font-family:-apple-system,monospace;box-sizing:border-box;resize:vertical"></textarea>
+      <button class="primary" style="margin-top:8px" onclick="batchBind()">开始绑定</button>
+    </div>
+
     <div class="sheet-actions">
       <button class="primary" onclick="savePat()">保存并测试连接</button>
       <button class="primary ghost" onclick="exportJson()">导出名单 JSON</button>
@@ -663,6 +670,11 @@ function render(){
     });
   }
 
+  // 搜索框里粘的是完整设备码、且名单里正好对上一条 → 顺手记住这串码
+  if(q && qfp && rows.length === 1 && rows[0].code === qfp && !CODE_MAP[qfp]){
+    mapCode(qfp, q);
+  }
+
   // 排序：快到期的在前，已过期最前
   rows.sort(function(a, b){
     if(a.left !== b.left) return a.left - b.left;
@@ -905,6 +917,24 @@ function openSettings(){
   $('setState').textContent = PAT ? '已配置' : '未配置';
   openSheet('sheetSet');
 }
+function batchBind(){
+  if(!DATA || !DATA.devices){ toast('名单还没读出来，稍等一下'); return; }
+  var raw = ($('batchCodes').value || '').toUpperCase();
+  var list = raw.split(/[^A-Z0-9]+/).filter(function(x){ return x.length >= 6 && x.length <= 12; });
+  if(!list.length){ toast('还没粘码'); return; }
+  var ok = [], miss = [];
+  list.forEach(function(c){
+    var fp = fpOf(c);
+    if(DATA.devices[fp]){ mapCode(fp, c); ok.push(c); }
+    else if(miss.indexOf(c) < 0){ miss.push(c); }
+  });
+  render();
+  var msg = '绑定成功 ' + ok.length + ' 个';
+  if(miss.length) msg += '；名单里没有：' + miss.join('、') + '（可去新建客户开通）';
+  toast(msg);
+  if(!miss.length) $('batchCodes').value = '';
+}
+
 function savePat(){
   var v = ($('setPat').value || '').trim();
   if(!v){ toast('请填写密钥'); return; }
