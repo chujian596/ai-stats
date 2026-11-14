@@ -553,7 +553,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.71';
+var APP_VER = 'v58.72';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
@@ -854,7 +854,32 @@ renderAll();
     var q = (location.search||'').replace(/([?&])sync=[^&]*/,'').replace(/^&/,'?');
     if(q==='?') q='';
     try{ history.replaceState(null,'',location.pathname+q); }catch(e){}
-    setTimeout(function(){ try{ alert('授权码已同步到本地址，可以直接使用了'); }catch(e){} }, 200);
+    var showTip = function(){
+      try{
+        var st = document.getElementById('syncTipStyle');
+        if(!st){ st = document.createElement('style'); st.id = 'syncTipStyle'; document.head.appendChild(st); }
+        st.textContent =
+          '#syncTipMask{position:fixed;left:0;top:0;right:0;bottom:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(0,0,0,.45)!important}'
+          + '#syncTipMask .st-card{border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-sizing:border-box;background:#fff!important}'
+          + '#syncTipMask .st-title{font-size:17px;font-weight:700;color:#1a1a1a!important;margin-bottom:12px}'
+          + '#syncTipMask .st-body{font-size:14px;line-height:1.9;color:#555!important}'
+          + '#syncTipMask .st-note{font-size:13px;line-height:1.8;color:#888!important;margin-top:14px}'
+          + '#syncTipMask .st-ok{width:100%;margin-top:18px;padding:13px;border:1px solid #ddd;border-radius:10px;background:#fff!important;color:#333!important;font-size:15px;font-weight:600;font-family:inherit}';
+        var d = document.createElement('div');
+        d.id = 'syncTipMask';
+        d.innerHTML = '<div class="st-card">'
+          + '<div class="st-title">已切到备用地址</div>'
+          + '<div class="st-body">授权码已经带过来了，这个地址可以直接用。以后主地址打不开，点一下就能打开这个。</div>'
+          + '<div class="st-note">两个地址的订单各自存在本机，不互通。当期建议只在一个地址里录。</div>'
+          + '<button class="st-ok" id="syncTipOk">知道了</button>'
+          + '</div>';
+        var ok = d.querySelector('#syncTipOk');
+        if(ok) ok.onclick = function(){ if(d.parentNode) d.parentNode.removeChild(d); };
+        document.body.appendChild(d);
+      }catch(e){}
+    };
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', showTip); }
+    else { setTimeout(showTip, 120); }
   }catch(e){}
 })();
 var DEVICE_WHITELIST = [];
