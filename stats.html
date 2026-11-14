@@ -58,21 +58,22 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.18</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.19</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 12px"></div>
 
-  <div class="tabs">
-    <div class="tab on" id="tabOverview" onclick="switchTab('overview')">总览</div>
-    <div class="tab" id="tabKill" onclick="switchTab('kill')">杀肖追踪</div>
+  <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
+    <div class="tab on" id="tabOverview" onclick="switchTab('overview')">本期共识</div>
+    <div class="tab" id="tabRank" onclick="switchTab('rank')">谁准谁差</div>
+    <div class="tab" id="tabKill" onclick="switchTab('kill')">杀肖票数</div>
     <div class="tab" id="tabRec" onclick="switchTab('rec')">推荐肖</div>
-    <div class="tab" id="tabTw" onclick="switchTab('tw')">文字墙</div>
-    <div class="tab" id="tabForum" onclick="switchTab('forum')">论坛</div>
-    <div class="tab" id="tabHot" onclick="switchTab('hot')">冷热号</div>
-    <div class="tab" id="tabRank" onclick="switchTab('rank')">命中率排行</div>
-    <div class="tab" id="tabDoc" onclick="switchTab('doc')">说明</div>
+    <div class="tab" id="tabTw" onclick="switchTab('tw')">站点栏目</div>
+    <div class="tab" id="tabForum" onclick="switchTab('forum')">论坛帖子</div>
+    <div class="tab" id="tabHot" onclick="switchTab('hot')">开奖记录</div>
+    <div class="tab" id="tabDoc" onclick="switchTab('doc')">帮助</div>
   </div>
+  <div class="muted" id="tabHint" style="margin:-8px 0 12px;padding:8px 10px;background:#f0f0f0;border-radius:8px;font-size:13px">下一期哪些肖最该避开、哪些被推荐最多——只看这一页就够了</div>
 
   <div id="panelOverview"></div>
   <div id="panelKill" style="display:none"></div>
@@ -287,11 +288,22 @@ function authorStats(a){
 function classifyLabel(cls){ return cls==='good'?'准的':cls==='bad'?'差的':'观察'; }
 
 var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', doc:'Doc' };
+var TAB_HINT={
+  overview: '下一期哪些肖最该避开、哪些被推荐最多——只看这一页就够了',
+  rank: '所有资料源按命中率从高到低排，绿色=准的，红色=差的，灰色=样本不足',
+  kill: '各资料源本期杀了哪些肖，按票数排——杀得越多的肖越该避开',
+  rec: '各资料源本期推荐了哪些肖，以及排第一的肖历史上命中率多少',
+  tw: '联盟站各栏目明细：每个栏目每期杀什么、准了几期错了几期',
+  forum: '论坛各帖子明细：每个作者每期杀什么、准了几期错了几期',
+  hot: '最近开了哪些特号、哪些号出得多（热号）哪些没出过（冷号）',
+  doc: '这页是什么、数据从哪来、怎么判断准不准'
+};
 function switchTab(t){
   Object.keys(TAB_MAP).forEach(function(k){
     $('panel'+TAB_MAP[k]).style.display = k===t?'':'none';
     $('tab'+TAB_MAP[k]).className='tab'+(k===t?' on':'');
   });
+  $('tabHint').textContent = TAB_HINT[t] || '';
 }
 
 function renderAll(){
@@ -969,55 +981,34 @@ function renderOverview(){
   $('panelOverview').innerHTML=html;
 }
 
-// 内置说明书
+// 内置说明书（通俗版）
 function renderDoc(){
-  var html='<div class="card"><h2>一、这页是做什么的</h2><div class="muted" style="line-height:1.7">从公开论坛抓取杀肖、推荐肖资料，用官方开奖历史自行对账算命中率，把发布者分成「准的 / 差的 / 观察」，并统计第一肖命中率、冷热号。只对标特号那一个生肖（特肖），不看平号平肖。</div></div>';
+  var html='<div class="card"><h2>这个页面是干嘛的</h2><div class="muted" style="line-height:1.7">自动收集网上各站/各作者发的杀肖和推荐肖资料，用官方开奖结果自己对账，算出每个资料源的命中率，帮你分辨哪些可信、哪些该反着看。<br><br>
+  <b>杀肖</b>=这个资料说"下期不会开这个肖"，对了就是准，错了就是被杀的肖真的开了。<br>
+  <b>推荐肖</b>=这个资料说"下期可能开这几个肖"，里面包含特肖就是中。<br>
+  <b>特肖</b>=每期最后开的那个特码对应的生肖。</div></div>';
 
-  html+='<div class="card"><h2>二、数据从哪来（公开接口）</h2>'
-    +'<div class="row"><span>最新开奖</span><span style="font-size:12px">/api/v1/about/home-cache</span></div>'
-    +'<div class="row"><span>历史开奖</span><span style="font-size:12px">/api/v1/lotteries/macao/histories?year=2026</span></div>'
-    +'<div class="row"><span>论坛列表</span><span style="font-size:12px">/api/v1/forums?lottery=macao&page=1&per_page=100</span></div>'
-    +'<div class="row"><span>帖子详情</span><span style="font-size:12px">/api/v1/forums/{id}</span></div>'
-    +'<div class="row"><span>论坛后台汇总</span><span style="font-size:12px">forum-summary.json（forum_reader.py 生成）</span></div>'
-    +'<div class="muted" style="margin-top:6px">接口跨域已放开（CORS *），无需登录 token，网页可直接读取。</div></div>';
+  html+='<div class="card"><h2>各标签页看什么</h2><div style="line-height:1.9;font-size:14px">'
+    +'<b>本期共识</b> — 最重要，直接看下一期哪些肖被杀得最多（避开）、哪些被推得最多（参考）<br>'
+    +'<b>谁准谁差</b> — 所有资料源按命中率排名，看哪些源靠谱<br>'
+    +'<b>杀肖票数</b> — 每个肖被多少个源杀了，票数越多越该避开<br>'
+    +'<b>推荐肖</b> — 每个肖被多少个源推荐了，排第一的肖历史命中率<br>'
+    +'<b>站点栏目</b> — 联盟站每个栏目的逐期明细<br>'
+    +'<b>论坛帖子</b> — 论坛每个作者的逐期明细<br>'
+    +'<b>开奖记录</b> — 最近开了什么号、热号冷号统计<br>'
+    +'</div></div>';
 
-  html+='<div class="card"><h2>三、站点接入记录</h2><div style="line-height:1.8;font-size:14px">'
-    +'<b>已接入（可直接读取，澳门）：</b><br>1. 17图库公开论坛接口（lottery=macao）：后台 forum_reader.py 翻全部分页 → 按标题归类杀肖/推荐 → 按帖子 id 拉详情历史 → 对照官方特肖对账；每帖登记来源接口、抓取时间、内容指纹、命中率/错误率、自标不符，全量明细存 forum-snapshot.json，精简汇总 forum-summary.json 供本页加载。<br>2. 4901996 联盟站文字墙：栏目页 book-detail?ruleId=…，数据为静态 JS h3.wanpz.com/script/490137/dynamic_{ruleId}_1.js，base64 解码后再解二层 JSON；页面首屏有滑块，但数据 JS 不随滑块。对账快照存 textwall-snapshot.json。<br><br>'
-    +'<b>待接入 / 暂不可直读：</b><br>'
-    +'· zzxxww0491.4901988gg.app:8450/ok.html — 滑块拼图验证，需人工过验证后才能进；<br>'
-    +'· 47.129.67.181:8074（曾夫人论坛）— 前端与接口均加密，静态网页暂不能直接读；<br>'
-    +'· 800tk08075.g1omeksxto.cyou（600图库）— 同一加密后端（api.bdmijg.com / tkapi.352722.com），暂未接入。<br><br>'
-    +'<span class="muted">口径：只采集新澳门/澳门数据，香港彩、快乐8一律不取。</span></div></div>';
+  html+='<div class="card"><h2>怎么判断一个资料源准不准</h2><div style="line-height:1.8;font-size:14px">'
+    +'· <b style="color:#2e7d32">准的（绿色）</b>：至少10期样本，命中率≥70%<br>'
+    +'· <b style="color:#c62828">差的（红色）</b>：至少10期样本，命中率&lt;70%<br>'
+    +'· <b style="color:#777">观察（灰色）</b>：样本不足10期，还看不出规律<br>'
+    +'<br>差的资料源的杀肖结论，可以反着参考——它杀的肖反而可能开。</div></div>';
 
-  html+='<div class="card"><h2>四、操作流程</h2><div style="line-height:1.8;font-size:14px">'
-    +'1. 打开页面，先读手机本地快照快速显示；<br>'
-    +'2. 后台自动拉取官方历史开奖 + 论坛列表 + 各帖详情；<br>'
-    +'3. 解析每帖按期号切段，取出预测生肖和结果；<br>'
-    +'4. 用官方特肖自行对账，算每个发布者命中率；<br>'
-    +'5. 按阈值分类，渲染三个板块；<br>'
-    +'6. 点「刷新」重新抓取并更新本地快照。</div></div>';
-
-  html+='<div class="card"><h2>五、对错口径</h2><div style="line-height:1.8;font-size:14px">'
-    +'· 杀肖：被杀的肖 = 当期特肖 → 错；没中特肖 → 准。<br>'
-    +'· 推荐肖：列表含当期特肖 → 中；否则 → 没中。<br>'
-    +'· 一律以官方开奖为准，不采用帖子自标的准/错；帖子自标仅在无官方结果时作回退。</div></div>';
-
-  html+='<div class="card"><h2>六、分类阈值</h2><div style="line-height:1.8;font-size:14px">'
-    +'· 有效样本 ≥10 期：命中率 ≥70% 记「准的」，&lt;70% 记「差的」；<br>'
-    +'· 样本不足 10 期：记「观察」。<br>'
-    +'· 第一肖命中率：推荐列表排第一的肖，历史上开出特肖的比例；随机基准约 1/12 ≈ 8.3%。</div></div>';
-
-  html+='<div class="card"><h2>七、复制整套做法需要什么</h2><div style="line-height:1.8;font-size:14px">'
-    +'1. 一个可公开访问、跨域放开的开奖历史接口；<br>'
-    +'2. 一个资料/论坛列表接口 + 帖子详情接口；<br>'
-    +'3. 一套生肖与号码对应表、球色规则；<br>'
-    +'4. 一个静态 HTML 页面即可跑，无需服务器。<br>'
-    +'换其他站点：改接口地址和正文解析规则即可；接口结构差别大时需调整切段和取肖逻辑。</div></div>';
-
-  html+='<div class="card"><h2>八、自动化与云端</h2><div style="line-height:1.8;font-size:14px">'
-    +'· 纯静态网页只能在打开页面时抓取，不能自己定时跑；要无人值守定时抓取，需要一个后端定时任务（或云函数）定时拉取、对账后存成 JSON。<br>'
-    +'· 当前数据存手机本地快照；可把结果 JSON 备份到 GitHub 仓库或飞书云盘做中转。<br>'
-    +'· 历史目前只拉 2026 年；跨年份对账、平号平肖命中率为后续可选项。</div></div>';
+  html+='<div class="card"><h2>数据来源</h2><div style="line-height:1.8;font-size:14px">'
+    +'· 联盟站文字墙（4901996等站点各栏目）<br>'
+    +'· 公开论坛各作者发帖<br>'
+    +'· 官方开奖结果（自动对账）<br>'
+    +'<br><span class="muted">只采集新澳门彩数据，香港彩、快乐8不采集。</span></div></div>';
 
   html+='<div class="muted" style="line-height:1.6">注：以上均为历史数据统计，开奖为随机事件，过往命中率不代表以后结果，仅供参考。</div>';
   $('panelDoc').innerHTML=html;
