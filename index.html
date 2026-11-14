@@ -245,7 +245,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-split" class="card tab-panel" style="display:none">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
-      <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();var s2=document.getElementById('sideSplitTh');if(s2)s2.value=splitTakeAll;renderSplit();refreshFlySummary();">
+      <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};var s2=document.getElementById('sideSplitTh');if(s2)s2.value=splitTakeAll;flyThChanged();">
       <button class="btn primary" style="font-size:16px;padding:10px 20px" onclick="toggleSplit()">飞单统计</button>
     </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
@@ -551,7 +551,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.74';
+var APP_VER = 'v58.75';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
@@ -1717,9 +1717,9 @@ function renderSplitSide(){
   if(!box) return;
   let h = '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">特号</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" onchange="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();var s2=document.getElementById('splitTakeAll');if(s2)s2.value=splitTakeAll;refreshFlySummary();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" onchange="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;refreshFlySummary();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" onchange="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;refreshFlySummary();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">特号</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};var s2=document.getElementById('splitTakeAll');if(s2&&s2!==this)s2.value=splitTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" oninput="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" oninput="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="showAllFlyDir()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px;font-weight:600">飞单目录</button>';
@@ -2168,6 +2168,15 @@ function grandOrderTotal(){
     if(typeof c==='string' && (c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)) g += codeSalesForOrder(o,c);
   });});
   return g;
+}
+// 阈值改动后实时重算（防连续按键抖动）
+var _flyThTimer = null;
+function flyThChanged(){
+  clearTimeout(_flyThTimer);
+  _flyThTimer = setTimeout(function(){
+    try { renderRisk(); } catch(e){}
+    try { refreshFlySummary(); } catch(e){}
+  }, 150);
 }
 function refreshFlySummary(){
   try {
@@ -5890,7 +5899,11 @@ function renderRisk(){
   h += '</div>';
   h += '</div>';
   h += '</div>';
-  box.innerHTML = h;
+    h = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-bottom:6px;background:#fff;border:1px solid #e5e5e5;border-radius:6px;font-size:13px;color:#666">'
+    + '<span>当前飞单阈值（实时）</span>'
+    + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span>'
+    + '</div>' + h;
+box.innerHTML = h;
 }
 
 function renderAll(){

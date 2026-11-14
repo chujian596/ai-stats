@@ -12,6 +12,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -52,8 +53,28 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyLightBars();
         buildUi();
         load(HOME_URL);
+    }
+
+    /** 状态栏、导航栏统一白底黑字，跟页面白底对齐 */
+    private void applyLightBars() {
+        try {
+            android.view.Window w = getWindow();
+            if (Build.VERSION.SDK_INT >= 21) {
+                w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                w.setStatusBarColor(0xFFFFFFFF);
+                w.setNavigationBarColor(0xFFFFFFFF);
+            }
+            if (Build.VERSION.SDK_INT >= 26) {
+                w.getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+            } else if (Build.VERSION.SDK_INT >= 23) {
+                w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void buildUi() {
