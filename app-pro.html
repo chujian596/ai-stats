@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.39-Pro';
+var APP_VER = 'v58.40-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -773,13 +773,29 @@ renderAll();
 var DEVICE_WHITELIST = [];
 // 生成设备指纹（固定UUID，存在localStorage，不随屏幕分辨率变化）
 function getDeviceId(){
-  // 先读本地存好的设备码
+  // 已有就直接用（不打断已授权设备）
   var saved = localStorage.getItem('fixed_device_id');
-  if(saved) return saved;
-  // 没有就生成一个新的UUID
-  var uuid = 'D' + Math.random().toString(36).substring(2,10).toUpperCase();
-  localStorage.setItem('fixed_device_id', uuid);
-  return uuid;
+  if(saved && saved.length >= 6) return saved;
+  // 没有则按设备特征生成稳定指纹：同一台手机、同一浏览器，重装也得到同一个码
+  var seed = [
+    navigator.userAgent || '',
+    (screen.width || 0) + 'x' + (screen.height || 0) + 'x' + (window.devicePixelRatio || 1),
+    screen.colorDepth || 0,
+    navigator.language || '',
+    navigator.hardwareConcurrency || 0,
+    (function(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch(e){ return ''; } })()
+  ].join('|');
+  var h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (var i = 0; i < seed.length; i++) {
+    var c = seed.charCodeAt(i);
+    h1 = ((h1 ^ c) * 16777619) >>> 0;
+    h2 = ((h2 + c) * 2654435761) >>> 0;
+  }
+  var s36 = (h1.toString(36) + h2.toString(36)).toUpperCase();
+  var code = ('D' + s36).substring(0, 9);
+  while (code.length < 9) code += 'X';
+  localStorage.setItem('fixed_device_id', code);
+  return code;
 }
 var DEVICE_ID = getDeviceId();
 var whitelistActive = false; // 白名单是否已启用
@@ -852,6 +868,9 @@ function showLock(){
     document.getElementById('lockPwdWrap').style.display = 'none';
     document.getElementById('lockEnterBtn').style.display = '';
   }
+  var md = Math.floor(left/86400000), mh = Math.floor((left%86400000)/3600000), mm = Math.floor((left%3600000)/60000);
+  var mem = document.getElementById('memInfo');
+  if(mem) mem.innerHTML = (expired ? '会员已到期' : '会员剩' + md + '天' + mh + '时' + mm + '分') + ' <span style="opacity:0.6">' + APP_VER + '</span>';
   document.getElementById('lockScreen').style.display = 'flex';
 }
 function unlock(){
@@ -877,25 +896,10 @@ function unlock(){
   }
 }
 function skipLock(){ document.getElementById('lockScreen').style.display = 'none'; }
-// 每秒倒计时
+// 会员信息只在打开展示时算一次，不再每秒刷新（避免文字跳动、便于选中复制设备码）
 setInterval(function(){
-  var left = lockData.expire - Date.now();
-  if(left <= 0){
-    showLock();
-    return;
-  }
-  var d = Math.floor(left/86400000);
-  var h = Math.floor((left%86400000)/3600000);
-  var m = Math.floor((left%3600000)/60000);
-  var s = Math.floor((left%60000)/1000);
-  var txt = d + '天 ' + h + '时 ' + m + '分 ' + s + '秒';
-  var el = document.getElementById('lockMsg');
-  if(el && document.getElementById('lockScreen').style.display !== 'none'){
-    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
-  }
-  var mem = document.getElementById('memInfo');
-  if(mem) mem.innerHTML = '会员剩' + d + '天' + h + '时' + m + '分 <span style="opacity:0.6">'+APP_VER+'</span>';
-}, 1000);
+  if(lockData.expire - Date.now() <= 0) showLock();
+}, 3600000);
 
 var shop = localStorage.getItem('current_shop') || 'A';
 var shopNames = { A: '澳门🇲🇴', B: '香港🇭🇰' };
