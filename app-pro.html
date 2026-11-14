@@ -498,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.49-Pro';
+var APP_VER = 'v58.50-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4077,11 +4077,6 @@ function doSave(overrideText){
     // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
     if(txMatch && /[数号]/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
-    } else if(txMatch && PARSE_DEFAULTS.teZod === 'perZod' && txMatch[2]){
-      const zods2 = txMatch[1], pp3 = parseFloat(txMatch[3]);
-      text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g,
-        () => zods2.split('').map(z => '特' + z + pp3).join(' '));
-      document.getElementById('input').value = text;
     } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
       const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
       const allNums2 = [];
@@ -4105,7 +4100,7 @@ function doSave(overrideText){
           + '<button id="txC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
           + '</div></div>';
         document.body.appendChild(ov);
-        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='perZod'; handleSave(); };
+        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='total'; handleSave(); };
         ov.querySelector('#txB').onclick = () => { ov.remove(); _texiaoChoice='perNum'; handleSave(); };
         ov.querySelector('#txC').onclick = () => { ov.remove(); _texiaoChoice=null; };
         return;
@@ -4232,17 +4227,16 @@ function doSave(overrideText){
     _texiaoChoice = null;
     text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
       const p = parseFloat(price);
-      if(choice === 'perZod'){
-        // 各肖：每肖一个数，各肖数
-        return zods.split('').map(z => '特' + z + p).join(' ');
-      } else {
-        // 各数：所有号码各X
-        const allNums = [];
-        zods.split('').forEach(z => {
-          (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums.push(String(n).padStart(2,'0')));
-        });
-        return allNums.join(' ') + '各' + p;
+      const allNums = [];
+      zods.split('').forEach(z => {
+        (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums.push(String(n).padStart(2,'0')));
+      });
+      if(choice === 'total'){
+        // 平分：总额摊到每个号码
+        return allNums.join(' ') + '各' + (p / allNums.length).toFixed(4);
       }
+      // 各号：每个号 X
+      return allNums.join(' ') + '各' + p;
     });
   }
   // 智能拆分：按金额锚点切分一行里的多笔订单
