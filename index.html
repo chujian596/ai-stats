@@ -6076,6 +6076,10 @@ function switchTab(name){
 }
 
 function download(filename, content, type){
+  // App（WebView）内走原生保存，浏览器里照旧用 Blob 下载
+  if(window.AndroidAi && typeof window.AndroidAi.saveFile === 'function'){
+    try{ window.AndroidAi.saveFile(filename, String(content)); return; }catch(e){}
+  }
   const blob = new Blob([content], { type });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
