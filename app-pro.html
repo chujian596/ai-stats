@@ -387,8 +387,10 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         7. <b style="color:var(--modalText,#fff)">裸号码 2 个以上</b>（05 17 29 10 → 各号10／共10）<br>
         8. <b style="color:var(--modalText,#fff)">头数、尾数</b>（3头10、尾3 10）<br>
         9. <b style="color:var(--modalText,#fff)">4 个数字</b>（两笔／各X／共X／重新编辑）<br>
-        10. <b style="color:var(--modalText,#fff)">一行多项</b>：红波10 单20 大15 → 一次弹窗列出 3 项，<br>
-        &nbsp;&nbsp;每项各选"共X／每号X"，全选完点确定，只弹一次<br><br>
+        10. <b style="color:var(--modalText,#fff)">一行多项只弹一次</b><br>
+        &nbsp;&nbsp;整批里只有"没写单位的"才进多选题：平龙马250（多肖）、红波10（17号）<br>
+        &nbsp;&nbsp;弹窗一次列全部，每项点一下选"共X／每肖X"，选中变黑底白字带 ✓，<br>
+        &nbsp;&nbsp;全部选完"确定"才亮，只弹这一次<br><br>
 
         <b style="color:var(--modalText,#fff)">不弹窗（单选题）</b><br>
         1. <b style="color:var(--modalText,#fff)">平特单肖</b>：平特马80 = 80<br>
@@ -543,7 +545,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.62-Pro';
+var APP_VER = 'v58.63-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -3487,7 +3489,7 @@ function parseLine(text){
   // 纯号码之间的横杠改空格（特号连写：09-19-29-39-49 → 09 19 29 39 49，链式横杠也要全转）
   codeText = codeText.replace(/(\d)\s*-\s*(?=\d)/g, '$1 ');
   // 号码组后面写"各<金额>"：09 19 29 39 49 各40 → 09 40 19 40 ...（生肖"马龙兔各50"前无数字，不受影响）
-  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+)/g, function(_, group, amt){
+  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+(?:\.\d+)?)/g, function(_, group, amt){
     var nums = group.split(/[\s、.。;；-]+/).filter(Boolean);
     return nums.map(function(n){ return n.padStart(2,'0') + ' ' + amt; }).join(' ');
   });
@@ -4189,38 +4191,47 @@ function manualSave(ov){
 
 /* ===== 一行多项：多个"多号产品+金额"合并成一次多选弹窗 ===== */
 function _miProducts(){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   return products.filter(function(p){
     return p.code && !/^\d{2}$/.test(p.code) && (p.links || []).length > 1
+      && !new RegExp('^[' + ZODS + ']$').test(p.code)
       && !/平特|连肖|二中二|三中三|三中二/.test(p.code);
   });
 }
 function scanMultiItems(text){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  var out = [], m, prod;
   var list = _miProducts();
-  if(!list.length) return [];
-  var names = list.map(function(p){ return p.code; }).sort(function(a,b){ return b.length - a.length; });
-  var esc = names.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
-  var re = new RegExp('(' + esc.join('|') + ')\\s*([0-9]+(?:\\.[0-9]+)?)', 'g');
-  var out = [], m;
-  while((m = re.exec(text))){
-    var prod = list.filter(function(p){ return p.code === m[1]; })[0];
-    var cnt = prod ? (prod.links || []).length : 0;
-    if(cnt < 2) continue;
-    var tail = text.slice(m.index + m[1].length, m.index + m[0].length - m[2].length);
-    if(/各|共|号|数|个/.test(tail)) continue;
-    out.push({ name: m[1], disp: m[1], amt: parseFloat(m[2]), count: cnt, idx: m.index, len: m[0].length });
+  if(list.length){
+    var names = list.map(function(p){ return p.code; }).sort(function(a,b){ return b.length - a.length; });
+    var esc = names.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    var re = new RegExp('(' + esc.join('|') + ')\\s*([0-9]+(?:\\.[0-9]+)?)', 'g');
+    while((m = re.exec(text))){
+      prod = list.filter(function(p){ return p.code === m[1]; })[0];
+      if(!prod) continue;
+      var tail = text.slice(m.index + m[1].length, m.index + m[0].length - m[2].length);
+      if(/各|共|号|数|个/.test(tail)) continue;
+      out.push({ kind:'wave', name:m[1], disp:m[1], amt:parseFloat(m[2]), count:prod.links.length, idx:m.index, len:m[0].length });
+    }
   }
-  // 裸写"单20""双15"也算（产品名是单数/双数）
+  var reP = new RegExp('平特?([' + ZODS + ']{2,})\\s*([0-9]+(?:\\.[0-9]+)?)', 'g');
+  while((m = reP.exec(text))){
+    if(out.some(function(o){ return m.index >= o.idx && m.index < o.idx + o.len; })) continue;
+    var mid = text.slice(m.index + 1 + m[1].length, m.index + m[0].length - m[2].length);
+    if(/各|共|号|数|个/.test(mid)) continue;
+    if(m[1].length < 2) continue;
+    out.push({ kind:'ping', name:'平' + m[1], disp:'平' + m[1], amt:parseFloat(m[2]), count:m[1].length, idx:m.index, len:m[0].length, zods:m[1].split('') });
+  }
   var re2 = /([单双])\s*([0-9]+(?:\.[0-9]+)?)/g;
   while((m = re2.exec(text))){
-    var idx2 = m.index;
-    if(text.slice(idx2 - 1, idx2) === '数') continue;
-    if(out.some(function(o){ return idx2 >= o.idx && idx2 < o.idx + o.len; })) continue;
+    if(text.slice(m.index - 1, m.index) === '数') continue;
+    if(out.some(function(o){ return m.index >= o.idx && m.index < o.idx + o.len; })) continue;
     var code2 = (m[1] === '单') ? '单数' : '双数';
-    var prod2 = list.filter(function(p){ return p.code === code2; })[0];
-    if(!prod2) continue;
-    out.push({ name: code2, disp: m[1], amt: parseFloat(m[2]), count: prod2.links.length, idx: idx2, len: m[0].length });
+    prod = products.filter(function(p){ return p.code === code2; })[0];
+    if(!prod) continue;
+    out.push({ kind:'wave', name:code2, disp:m[1], amt:parseFloat(m[2]), count:prod.links.length, idx:m.index, len:m[0].length });
   }
-  out.sort(function(a, b){ return a.idx - b.idx; });
+  out.sort(function(a,b){ return a.idx - b.idx; });
   return out;
 }
 function showMultiDlg(items, text){
@@ -4229,11 +4240,14 @@ function showMultiDlg(items, text){
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   var rows = '';
   items.forEach(function(it, i){
+    var unit = (it.kind === 'ping') ? '肖' : '个号';
+    var aLabel = (it.kind === 'ping') ? ('共' + it.amt + '（每肖' + (it.amt / it.count).toFixed(2) + '）') : ('共' + it.amt + '（每号' + (it.amt / it.count).toFixed(2) + '）');
+    var bLabel = (it.kind === 'ping') ? ('每肖' + it.amt + '（共' + (it.count * it.amt) + '）') : ('每号' + it.amt + '（共' + (it.count * it.amt) + '）');
     rows += '<div style="padding:10px 0;border-top:1px solid #eee">'
-      + '<div style="font-size:13px;color:#666;margin-bottom:6px">' + (it.disp || it.name) + ' ' + it.amt + '元（' + it.count + '个号）</div>'
+      + '<div style="font-size:13px;color:#666;margin-bottom:6px">' + (it.disp || it.name) + ' ' + it.amt + '元（' + it.count + unit + '）</div>'
       + '<div style="display:flex;gap:6px">'
-      + '<button data-i="' + i + '" data-v="total" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">共' + it.amt + '（每号' + (it.amt / it.count).toFixed(2) + '）</button>'
-      + '<button data-i="' + i + '" data-v="per" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">每号' + it.amt + '（共' + (it.count * it.amt) + '）</button>'
+      + '<button data-i="' + i + '" data-v="total" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + aLabel + '</button>'
+      + '<button data-i="' + i + '" data-v="per" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + bLabel + '</button>'
       + '</div></div>';
   });
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
@@ -4246,20 +4260,24 @@ function showMultiDlg(items, text){
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelectorAll('button[data-i]').forEach(function(b){
+    b.setAttribute('data-base', b.textContent);
     b.onclick = function(){
       var i = parseInt(b.getAttribute('data-i'), 10), v = b.getAttribute('data-v');
       ans[i] = v;
       ov.querySelectorAll('button[data-i="' + i + '"]').forEach(function(x){
         var on = (x === b);
-        x.style.background = on ? '#333' : '#fff';
-        x.style.color = on ? '#fff' : '#333';
-        x.style.borderColor = on ? '#333' : '#ddd';
+        x.textContent = x.getAttribute('data-base') + (on ? '  ✓' : '');
+        x.style.setProperty('background', on ? '#1a1a1a' : '#fff', 'important');
+        x.style.setProperty('color', on ? '#fff' : '#333', 'important');
+        x.style.setProperty('border-color', on ? '#1a1a1a' : '#ddd', 'important');
+        x.style.setProperty('border-width', on ? '3px' : '1px', 'important');
       });
+      var left = items.length - ans.filter(function(x){ return x; }).length;
       var ok = ov.querySelector('#miOk');
-      var done = ans.filter(function(x){ return x; }).length === items.length;
-      ok.disabled = !done;
-      ok.style.background = done ? '#333' : '#eee';
-      ok.style.color = done ? '#fff' : '#999';
+      ok.disabled = (left > 0);
+      ok.textContent = (left > 0) ? ('确定（还差' + left + '项）') : '确定';
+      ok.style.setProperty('background', left > 0 ? '#eee' : '#1a1a1a', 'important');
+      ok.style.setProperty('color', left > 0 ? '#999' : '#fff', 'important');
     };
   });
   ov.querySelector('#miCancel').onclick = function(){ ov.remove(); };
@@ -4270,20 +4288,23 @@ function showMultiDlg(items, text){
                      .sort(function(a, b){ return b.it.idx - a.it.idx; });
     var newText = text;
     pairs.forEach(function(p){
-      var it = p.it;
+      var it = p.it, rep = '';
       var per = (p.v === 'per') ? it.amt : (it.amt / it.count);
       var s = per.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
-      var prod = products.filter(function(x){ return x.code === it.name; })[0];
-      var links = (prod && prod.links) || [];
-      var rep = links.length
-        ? links.map(function(n){ return n + '各' + s; }).join(' ')
-        : it.name + '各' + s;
-      newText = newText.slice(0, it.idx) + rep + newText.slice(it.idx + it.len);
+      if(it.kind === 'ping'){
+        rep = (it.zods || []).map(function(z){ return '平' + z + s; }).join(String.fromCharCode(10));
+      } else {
+        var pd = products.filter(function(x){ return x.code === it.name; })[0];
+        var lk = (pd && pd.links) || [];
+        rep = lk.length ? lk.map(function(n){ return n + ' ' + s; }).join(String.fromCharCode(10))
+                        : (it.name + '各' + s);
+      }
+      var NL = String.fromCharCode(10);
+      newText = newText.slice(0, it.idx) + NL + rep + NL + newText.slice(it.idx + it.len);
     });
     doSave(newText);
   };
 }
-
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
