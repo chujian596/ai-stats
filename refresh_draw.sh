@@ -33,3 +33,6 @@ if git push -q origin main 2>>"$LOG"; then
 else
   echo "$(date '+%F %T') 推送失败" >> "$LOG"
 fi
+
+# 同步到备用地址 chujian596/ai-luandan
+bash "$REPO/push_client_mirror.sh"
