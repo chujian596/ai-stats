@@ -121,7 +121,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
       <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:4px;padding:8px 2px;justify-content:center;align-items:center;min-height:44px"></div>
-      <div id="hideBallsRow" style="display:none;text-align:right;padding:0 8px 4px"><span id="refreshBtn" onclick="refreshPage()" style="cursor:pointer;font-size:11px;color:#999;border:1px solid #e0e0e0;border-radius:10px;padding:2px 9px;background:#fff">刷新</span></div>
+      
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
         <span id="drawInfoTxt">未获取开奖数据</span>
@@ -498,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.47-Pro';
+var APP_VER = 'v58.48-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -3609,8 +3609,6 @@ function renderLiveBalls(nums, specialFlag){
          + 'color:#fff !important;font-variant-numeric:tabular-nums;">'+String(n).padStart(2,'0')+'</span>';
   }
   box.innerHTML = html;
-  var hr = document.getElementById('hideBallsRow');
-  if(hr) hr.style.display = 'block';
 }
 // 下拉刷新 / 点「刷新」：收起号码 + 检查线上有没有新版，不碰开奖数据
 function refreshPage(){
@@ -3652,8 +3650,6 @@ function refreshPage(){
 function hideLiveBalls(){
   var box = document.getElementById('liveBalls');
   if(box){ box.style.display = 'none'; box.innerHTML = ''; }
-  var hr = document.getElementById('hideBallsRow');
-  if(hr) hr.style.display = 'none';
 }
 // 自动定时获取开奖：21:33-21:35每秒刷新，号码逐个出来实时显示，稳定后才结算
 var _liveDrawLast = '';
