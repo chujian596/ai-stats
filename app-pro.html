@@ -497,7 +497,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.43-Pro';
+var APP_VER = 'v58.44-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -793,6 +793,69 @@ function resetCode(){
   try { localStorage.removeItem('fixed_device_id'); } catch(e){}
   location.reload();
 }
+/* SHA-256（纯JS，无依赖）：把授权码算成固定指纹，云端只存指纹不存明文码 */
+function sha256(str){
+  function rightRotate(v,a){ return (v>>>a)|(v<<(32-a)); }
+  var maxWord = Math.pow(2,32);
+  var result='', words=[], asciiBitLength = str.length*8;
+  var hash = sha256.h = sha256.h || [];
+  var k = sha256.k = sha256.k || [];
+  var primeCounter = k.length;
+  var isComposite = {};
+  for(var candidate=2; primeCounter<64; candidate++){
+    if(!isComposite[candidate]){
+      for(var i=0;i<313;i+=candidate){ isComposite[i]=candidate; }
+      hash[primeCounter] = (Math.pow(candidate,.5)*maxWord)|0;
+      k[primeCounter++] = (Math.pow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  str += '\x80';
+  while(str.length%64 - 56) str += '\x00';
+  for(var i=0;i<str.length;i++){
+    var j = str.charCodeAt(i);
+    if(j>>8) return '';
+    words[i>>2] |= j << ((3-i)%4)*8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for(var j=0;j<words.length;){
+    var w = words.slice(j, j+=16);
+    var oldHash = hash;
+    hash = hash.slice(0,8);
+    for(var i=0;i<64;i++){
+      var w15 = w[i-15], w2 = w[i-2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25))
+        + ((e&hash[5])^((~e)&hash[6]))
+        + k[i]
+        + (w[i] = (i<16) ? w[i] : (
+            w[i-16]
+            + (rightRotate(w15,7)^rightRotate(w15,18)^(w15>>>3))
+            + w[i-7]
+            + (rightRotate(w2,17)^rightRotate(w2,19)^(w2>>>10))
+          )|0
+        );
+      var temp2 = (rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22))
+        + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash = [(temp1+temp2)|0].concat(hash);
+      hash[4] = (hash[4]+temp1)|0;
+    }
+    for(var i=0;i<8;i++) hash[i] = (hash[i]+oldHash[i])|0;
+  }
+  for(var i=0;i<8;i++){
+    for(var j=3;j+1;j--){
+      var b = (hash[i] >> (j*8)) & 255;
+      result += ((b<16)?0:'') + b.toString(16);
+    }
+  }
+  return result;
+}
+function fpOf(code){
+  var s = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(!s) return '';
+  return sha256('ai-stats|' + s).substring(0, 16);
+}
 function getDeviceId(){
   // 授权码由用户自己输入，不再自动生成；换手机输入同一个码即可继续用
   var saved = localStorage.getItem('fixed_device_id');
@@ -806,7 +869,7 @@ var whitelistActive = false; // 白名单是否已启用
 var MEMBERS = null;
 function applyMemberExpire(){
   if(!MEMBERS) return;
-  var rec = MEMBERS[DEVICE_ID];
+  var rec = MEMBERS[fpOf(DEVICE_ID)];
   if(rec && rec.expire){
     var exp = new Date(rec.expire + 'T23:59:59+08:00').getTime();
     if(!isNaN(exp)){
@@ -817,7 +880,7 @@ function applyMemberExpire(){
 }
 fetch('whitelist.json?t=' + Date.now())
   .then(r => r.json())
-  .then(data => { DEVICE_WHITELIST = data.whitelist || []; whitelistActive = DEVICE_WHITELIST.length > 0; })
+  .then(data => { DEVICE_WHITELIST = data.whitelist_fp || []; whitelistActive = DEVICE_WHITELIST.length > 0; })
   .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; })
   .then(function(){
     return fetch('members.json?t=' + Date.now())
@@ -834,7 +897,8 @@ function reportDevice(){
   // 桌面/电脑浏览器不上报，只报真机，避免测试噪音
   var ua = navigator.userAgent || '';
   if(/Linux x86_64|Windows NT|Macintosh|CrOS/i.test(ua)) return;
-  var deviceAllowed = (MEMBERS && MEMBERS[DEVICE_ID]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0);
+  var fp = fpOf(DEVICE_ID);
+  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
   if(deviceAllowed) return; // 已授权的不上报，不打扰
   var lastReport = parseInt(localStorage.getItem('lastReport_' + DEVICE_ID) || '0');
   var now = Date.now();
@@ -885,7 +949,8 @@ function showLock(){
   }
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
-  var deviceAllowed = (MEMBERS && MEMBERS[DEVICE_ID]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0);
+  var fp = fpOf(DEVICE_ID);
+  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
   if(!deviceAllowed){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
@@ -923,7 +988,7 @@ function unlock(){
     return;
   }
   // 设备未授权
-  if(!(MEMBERS && MEMBERS[DEVICE_ID]) && whitelistActive && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
+  if(!(MEMBERS && MEMBERS[fpOf(DEVICE_ID)]) && whitelistActive && DEVICE_WHITELIST.indexOf(fpOf(DEVICE_ID)) < 0){
     alert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }

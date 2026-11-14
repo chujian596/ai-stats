@@ -300,6 +300,7 @@ body{
     <h2>新建客户</h2>
     <p class="hint">系统自动生成一个授权码，发给客户在会员页输入即可使用。</p>
 
+    <div id="newForm">
     <div class="card">
       <div class="field">
         <label>授权码</label>
@@ -328,6 +329,19 @@ body{
     <div class="sheet-actions">
       <button class="primary" onclick="doCreate()">创建并生效</button>
       <button class="primary ghost" onclick="regenCode()">换一个码</button>
+    </div>
+    </div>
+
+    <div id="newResult" style="display:none">
+      <div class="card" style="padding:22px 14px;text-align:center">
+        <div style="font-size:12px;color:var(--sub);margin-bottom:8px">把这个码发给客户，让他输在会员页</div>
+        <div id="nrCode" style="font-size:25px;font-weight:700;letter-spacing:2.5px;font-variant-numeric:tabular-nums"></div>
+        <div id="nrNote" style="font-size:12px;color:var(--sub);margin-top:8px"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="primary" onclick="copyCode()">复制授权码</button>
+        <button class="primary ghost" onclick="closeSheet()">完成</button>
+      </div>
     </div>
   </div>
 </div>
@@ -387,6 +401,70 @@ var PLAN_DAYS = { '月费': 30, '季费': 90, '半年': 180, '年费': 365 };
 
 /* ===================== 工具 ===================== */
 function $(id){ return document.getElementById(id); }
+function sha256(str){
+  function rightRotate(v,a){ return (v>>>a)|(v<<(32-a)); }
+  var maxWord = Math.pow(2,32);
+  var result='', words=[], asciiBitLength = str.length*8;
+  var hash = sha256.h = sha256.h || [];
+  var k = sha256.k = sha256.k || [];
+  var primeCounter = k.length;
+  var isComposite = {};
+  for(var candidate=2; primeCounter<64; candidate++){
+    if(!isComposite[candidate]){
+      for(var i=0;i<313;i+=candidate){ isComposite[i]=candidate; }
+      hash[primeCounter] = (Math.pow(candidate,.5)*maxWord)|0;
+      k[primeCounter++] = (Math.pow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  str += '\x80';
+  while(str.length%64 - 56) str += '\x00';
+  for(var i=0;i<str.length;i++){
+    var j = str.charCodeAt(i);
+    if(j>>8) return '';
+    words[i>>2] |= j << ((3-i)%4)*8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for(var j=0;j<words.length;){
+    var w = words.slice(j, j+=16);
+    var oldHash = hash;
+    hash = hash.slice(0,8);
+    for(var i=0;i<64;i++){
+      var w15 = w[i-15], w2 = w[i-2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25))
+        + ((e&hash[5])^((~e)&hash[6]))
+        + k[i]
+        + (w[i] = (i<16) ? w[i] : (
+            w[i-16]
+            + (rightRotate(w15,7)^rightRotate(w15,18)^(w15>>>3))
+            + w[i-7]
+            + (rightRotate(w2,17)^rightRotate(w2,19)^(w2>>>10))
+          )|0
+        );
+      var temp2 = (rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22))
+        + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash = [(temp1+temp2)|0].concat(hash);
+      hash[4] = (hash[4]+temp1)|0;
+    }
+    for(var i=0;i<8;i++) hash[i] = (hash[i]+oldHash[i])|0;
+  }
+  for(var i=0;i<8;i++){
+    for(var j=3;j+1;j--){
+      var b = (hash[i] >> (j*8)) & 255;
+      result += ((b<16)?0:'') + b.toString(16);
+    }
+  }
+  return result;
+}
+/* 授权码 → 云端指纹：云端只存指纹，别人扒表也拿不到能用的码 */
+function fpOf(code){
+  var s = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(!s) return '';
+  return sha256('ai-stats|' + s).substring(0, 16);
+}
+
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
 function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
 function today(){ return ymd(new Date()); }
@@ -445,7 +523,7 @@ function genCode(){
     code = 'D';
     for(var i=0;i<8;i++) code += CH[Math.floor(Math.random()*CH.length)];
     guard++;
-  } while(DATA && DATA.devices && DATA.devices[code] && guard < 50);
+  } while(DATA && DATA.devices && DATA.devices[fpOf(code)] && guard < 50);
   return code;
 }
 
@@ -561,8 +639,11 @@ function render(){
   });
 
   if(q){
+    var qfp = q.replace(/[^A-Z0-9]/g, '').length >= 6 ? fpOf(q) : '';
     rows = rows.filter(function(r){
-      return r.code.indexOf(q) >= 0 || r.note.toUpperCase().indexOf(q) >= 0;
+      return r.code.indexOf(q) >= 0
+        || r.note.toUpperCase().indexOf(q) >= 0
+        || (qfp && r.code === qfp);
     });
   }
 
@@ -596,7 +677,7 @@ function render(){
       '<div class="rmain">' +
         '<div class="rname' + (r.note ? '' : ' empty') + '">' + esc(r.note || '未命名客户') +
           (r.plan ? '<span class="badge">' + esc(r.plan) + '</span>' : '') + '</div>' +
-        '<div class="rcode num">' + esc(r.code) + '</div>' +
+        '<div class="rcode num" style="letter-spacing:.2px">' + esc(r.code) + '</div>' +
       '</div>' +
       '<div class="rside">' +
         '<div class="rday num">' + dayTxt + '<small>' + dayUnit + '</small></div>' +
@@ -722,8 +803,20 @@ function openNew(){
   $('newNote').value = '';
   $('newDays').value = '';
   renderPlans('newPlans', newPlan, function(p){ newPlan = p; $('newDays').value = ''; updateNewPreview(); });
+  $('newForm').style.display = '';
+  $('newResult').style.display = 'none';
   updateNewPreview();
   openSheet('sheetNew');
+}
+function copyCode(){
+  var t = $('nrCode').textContent || '';
+  if(!t){ toast('没有可复制的码'); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast('已复制，发给客户即可'); },
+      function(){ toast('复制失败，长按选中码手动复制'); });
+  } else {
+    toast('长按选中码手动复制');
+  }
 }
 function regenCode(){
   $('newCode').value = genCode();
@@ -758,16 +851,19 @@ function doCreate(){
   if(!code || code.length < 6){ toast('码不对，点“换一个码”重试'); return; }
   if(DATA.devices[code]){ toast('这个码已存在，点“换一个码”'); return; }
   var note = ($('newNote').value || '').trim();
-  DATA.devices[code] = {
+  var fp = fpOf(code);
+  DATA.devices[fp] = {
     plan: newPlan || '自定',
     expire: addDays(today(), days),
     note: note
   };
-  closeSheet();
   render();
-  persist('新建客户 ' + (note || code) + ' · ' + days + '天', function(){
-    toast('已创建：' + code + ' · ' + days + ' 天');
-  });
+  persist('新建客户 ' + (note || code) + ' · ' + days + '天', function(){});
+  // 码只在这里显示一次，让用户发给客户
+  $('nrCode').textContent = code;
+  $('nrNote').textContent = (note ? note + ' · ' : '') + days + '天 · 到期 ' + fmtDate(addDays(today(), days));
+  $('newForm').style.display = 'none';
+  $('newResult').style.display = 'block';
 }
 
 /* ---------- 设置 ---------- */
@@ -820,7 +916,6 @@ function persist(msg, done){
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(e){}
     updateSyncBar();
     render();
-    toast('已记在本机，尚未同步云端');
     return;
   }
   toast('正在保存…');
