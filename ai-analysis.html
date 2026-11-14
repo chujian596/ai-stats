@@ -52,12 +52,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
 <div class="period-bar">
   <div>
-    <div class="issue">第316期</div>
-    <div class="time">新澳门六合彩 · 今晚21:32开奖</div>
+    <div class="issue" id="pbIssue">第318期</div>
+    <div class="time" id="pbTime">新澳门六合彩 · 今晚21:32开奖</div>
   </div>
   <div style="text-align:right">
-    <div style="font-size:13px;color:#888">315期开奖</div>
-    <div style="font-weight:700">06牛 09狗 25马 27龙 33狗 22鸡 + 48羊</div>
+    <div style="font-size:13px;color:#888" id="pbLastLabel">317期开奖</div>
+    <div style="font-weight:700" id="pbLastNums">31鼠 49马 30牛 22鸡 43鼠 24羊 + 26蛇</div>
   </div>
 </div>
 
@@ -140,7 +140,7 @@ document.getElementById('aiText').innerHTML = `
 `;
 
 document.getElementById('verdict').innerHTML = `
-<strong>316期综合判断：</strong><br>
+<strong><span id="verdictIssue">318</span>期综合判断：</strong><br>
 最不可能开的肖：<strong>${heavyKill.slice(0,4).join('、')}</strong><br>
 相对看好的肖：<strong>${lightKill.join('、')}</strong>（少站杀+冷号回补）<br>
 建议关注：${lightKill.filter(z=>hotZods.includes(z)).join('、') || '无明显交叉'}（少站杀+近期热）
@@ -177,6 +177,29 @@ function showTab(name){
   document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
   document.getElementById('tab-'+name).style.display='block';
 }
+
+// ===== 期号与开奖号码：读 draw-latest.json，开奖一更新页面自动跟上 =====
+(function syncDraw(){
+  const Z = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
+  const zod = n => Z[(n-1)%12];
+  const pad = n => String(n).padStart(2,'0');
+  fetch('draw-latest.json?t='+Date.now(), {cache:'no-cache'})
+    .then(r => r.json())
+    .then(d => {
+      const m = d.macao || {};
+      if(!m.numbers || !m.numbers.length) return;
+      const next = (d.next && d.next.macao && d.next.macao.draw) || (m.draw + 1);
+      document.getElementById('pbIssue').textContent = '第' + next + '期';
+      const dt = (d.next && d.next.macao && d.next.macao.draw_at) || '';
+      document.getElementById('pbTime').textContent = '新澳门六合彩 · ' + (dt ? dt.slice(11,16) + ' 开奖' : '待开奖');
+      document.getElementById('pbLastLabel').textContent = m.draw + '期开奖';
+      const ns = m.numbers.slice(0,-1).map(n => pad(n) + zod(n));
+      const sp = m.numbers[m.numbers.length-1];
+      document.getElementById('pbLastNums').textContent = ns.join(' ') + ' + ' + pad(sp) + zod(sp);
+      document.getElementById('verdictIssue').textContent = next;
+    })
+    .catch(() => {});
+})();
 </script>
 </body>
 </html>

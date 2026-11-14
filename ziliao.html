@@ -84,7 +84,7 @@ function renderSummary(){
   
   html += `<div class="summary-bar">
     <div class="item"><div class="num">${SITES.length}</div><div class="label">站点数</div></div>
-    <div class="item"><div class="num">316</div><div class="label">当前期</div></div>
+    <div class="item"><div class="num" id="curIssue">318</div><div class="label">当前期</div></div>
     <div class="item"><div class="num" style="color:#e63">21:32</div><div class="label">开奖</div></div>
   </div>`;
 
@@ -159,7 +159,15 @@ function renderSite(siteId){
   return html;
 }
 
-document.getElementById("subTitle").textContent = `${SITES.length}站 · 316期 · 新澳门六合彩`;
+(function syncIssue(){
+  const maxP = Math.max.apply(null, SITES.map(s=>s.period));
+  document.getElementById("subTitle").textContent = `${SITES.length}站 · 资料至 ${maxP} 期 · 新澳门六合彩`;
+  fetch('draw-latest.json?t='+Date.now(), {cache:'no-cache'}).then(r=>r.json()).then(d=>{
+    const next = (d.next && d.next.macao && d.next.macao.draw) || ((d.macao && d.macao.draw) + 1);
+    const el = document.getElementById("curIssue");
+    if(el && next) el.textContent = next;
+  }).catch(()=>{});
+})();
 renderTabs();
 renderContent();
 </script>
