@@ -552,7 +552,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.80-Pro';
+var APP_VER = 'v58.81-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -1001,15 +1001,16 @@ var whitelistActive = false; // 白名单是否已启用
 // 设备级会员账本：每台设备各一套到期时间
 var MEMBERS = null;
 function applyMemberExpire(){
-  if(!MEMBERS) return;
-  var rec = MEMBERS[fpOf(DEVICE_ID)];
+  if(!MEMBERS || !DEVICE_ID) return;   // 云端没读到就沿用上次缓存，断网照样能用
+  var fp = fpOf(DEVICE_ID);
+  var rec = MEMBERS[fp];
+  var exp = 0;
   if(rec && rec.expire){
-    var exp = new Date(rec.expire + 'T23:59:59+08:00').getTime();
-    if(!isNaN(exp)){
-      lockData.expire = exp;
-      localStorage.setItem(LOCK_KEY, JSON.stringify({expire: exp, pwd: lockData.pwd || ''}));
-    }
+    var t = new Date(rec.expire + 'T23:59:59+08:00').getTime();
+    if(!isNaN(t)) exp = t;
   }
+  lockData.expire = exp;               // 名单里没有这台设备 → 立即失效（删了就是删了）
+  try { localStorage.setItem(LOCK_KEY, JSON.stringify({expire: exp, pwd: lockData.pwd || ''})); } catch(e){}
 }
 function loadAccessData(cb){
   var isGH = location.hostname.indexOf('github.io') >= 0;
@@ -1044,7 +1045,7 @@ function reportDevice(){
   var ua = navigator.userAgent || '';
   if(/Linux x86_64|Windows NT|Macintosh|CrOS/i.test(ua)) return;
   var fp = fpOf(DEVICE_ID);
-  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
+  var deviceAllowed = MEMBERS ? !!MEMBERS[fp] : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);  // 名单读到就以名单为准
   if(deviceAllowed) return; // 已授权的不上报，不打扰
   var lastReport = parseInt(localStorage.getItem('lastReport_' + DEVICE_ID) || '0');
   var now = Date.now();
@@ -1062,11 +1063,11 @@ function reportDevice(){
     })
   }).catch(function(){});
 }
-var BAKE_EXPIRE;
-var savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}');
-BAKE_EXPIRE = new Date('2027-12-31T00:00:00+08:00').getTime();
-localStorage.setItem(LOCK_KEY, JSON.stringify({expire: BAKE_EXPIRE, pwd: savedLock.pwd || ''}));
-var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
+// 默认没有任何授权：真实到期时间只由云端名单决定；断网时沿用上一次缓存的时间
+var BAKE_EXPIRE = 0;
+var savedLock = {};
+try { savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}'); } catch(e){ savedLock = {}; }
+var lockData = { pwd: savedLock.pwd || '', expire: savedLock.expire || 0 };
 
 function showLock(){
   if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
@@ -1096,7 +1097,7 @@ function showLock(){
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
   var fp = fpOf(DEVICE_ID);
-  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
+  var deviceAllowed = MEMBERS ? !!MEMBERS[fp] : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);  // 名单读到就以名单为准
   if(!deviceAllowed){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
@@ -1134,7 +1135,7 @@ function unlock(){
     return;
   }
   // 设备未授权
-  if(!(MEMBERS && MEMBERS[fpOf(DEVICE_ID)]) && whitelistActive && DEVICE_WHITELIST.indexOf(fpOf(DEVICE_ID)) < 0){
+  if(MEMBERS ? !MEMBERS[fpOf(DEVICE_ID)] : (whitelistActive && DEVICE_WHITELIST.indexOf(fpOf(DEVICE_ID)) < 0)){
     myAlert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }

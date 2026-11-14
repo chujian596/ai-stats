@@ -657,6 +657,31 @@ function updateSyncBar(){
   if(btn) btn.style.display = 'none';
   $('setState').textContent = '已配置';
 }
+function syncWhitelist(){
+  if(!PAT || !DATA || !DATA.devices) return;
+  var f = 'whitelist.json';
+  var hdr = { Authorization: 'Bearer ' + PAT, Accept: 'application/vnd.github+json' };
+  fetch('https://api.github.com/repos/' + REPO + '/contents/' + f + '?ref=main', { headers: hdr })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if(!j) return;
+      var w = {};
+      try { w = JSON.parse(b64dec(j.content)) || {}; } catch(e){ w = {}; }
+      w.whitelist_fp = Object.keys(DATA.devices);
+      return fetch('https://api.github.com/repos/' + REPO + '/contents/' + f, {
+        method: 'PUT',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, hdr),
+        body: JSON.stringify({
+          message: '白名单随名单同步（' + w.whitelist_fp.length + ' 台）',
+          content: b64enc(JSON.stringify(w, null, 2)),
+          branch: 'main',
+          sha: j.sha
+        })
+      });
+    })
+    .catch(function(){});
+}
+
 function syncNow(){
   if(!PAT){ toast('先去设置填仓库密钥'); openSettings(); return; }
   toast('正在重新同步…');
@@ -1032,6 +1057,7 @@ function persist(msg, done){
     lastSyncErr = '';
     updateSyncBar();
     render();
+    syncWhitelist();
     if(done) done();
     toast('已同步云端 · 客户约 1 分钟后生效');
   }).catch(function(e){
