@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>论坛推荐</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink-2:#4a4a4a; --ink-3:#8a8a8a;
+    --line:#e5e5e5; --bg:#fafafa; --card:#fff;
+    --hot:#c0281e; --cold:#1f4f8a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.5;padding-bottom:32px}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px 12px;z-index:5}
+  h1{margin:0;font-size:19px;font-weight:600;letter-spacing:.5px}
+  .sub{margin-top:4px;font-size:12px;color:var(--ink-3)}
+  main{padding:14px 16px 0;max-width:760px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px;margin-bottom:12px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .note{font-size:12px;color:var(--ink-3);margin-bottom:10px;line-height:1.55}
+  .row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #f2f2f2}
+  .row:first-of-type{border-top:0}
+  .zod{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:600;background:#f3f3f3;flex:none}
+  .zod.top{background:var(--ink);color:#fff}
+  .zod.k{background:#fff;border:1px solid var(--hot);color:var(--hot)}
+  .bar{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--ink);border-radius:4px}
+  .bar i.k{background:var(--hot)}
+  .num{font-size:13px;color:var(--ink-2);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  .num b{font-size:15px;color:var(--ink)}
+  .empty{color:var(--ink-3);font-size:13px;padding:14px 0}
+  .warn{background:#fdf1ef;border:1px solid #f3d3cd;border-radius:8px;padding:10px 12px;
+    font-size:12.5px;color:#8a2a1f;line-height:1.65;margin-bottom:12px}
+  .kv{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--ink-2)}
+  .kv span:last-child{color:var(--ink);font-variant-numeric:tabular-nums}
+  footer{max-width:760px;margin:0 auto;padding:6px 16px 0;font-size:12px;color:var(--ink-3);line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <h1>论坛推荐</h1>
+  <div class="sub" id="sub">正在读取资料…</div>
+</header>
+
+<main>
+  <div id="alert"></div>
+
+  <div class="card">
+    <h2>单肖推荐（发布者投票）</h2>
+    <div class="note" id="recNote">—</div>
+    <div id="recList"></div>
+  </div>
+
+  <div class="card">
+    <h2>单肖杀（发布者投票）</h2>
+    <div class="note" id="killNote">—</div>
+    <div id="killList"></div>
+  </div>
+
+  <div class="card">
+    <h2>这组数字能用来做什么</h2>
+    <div class="note" style="margin-bottom:8px">用 315 期已开奖数据回测过，结论如实写在下面，别把它当命中率用。</div>
+    <div class="kv"><span>单肖推荐票最多的一肖命中</span><span>8.3%（随机 8.3%）</span></div>
+    <div class="kv"><span>杀肖票最多的一肖真的没开</span><span>93.7%（随机 91.7%）</span></div>
+    <div class="kv"><span>被杀最少 3 肖覆盖开奖</span><span>28.9%（随机 25.0%）</span></div>
+    <div class="note" style="margin-top:8px">跟随机基线差 2~4 个百分点，属于噪声级别。这页的用途是看“市场上多数人在押什么、怕什么”，不是照着下注。</div>
+  </div>
+
+  <div class="card">
+    <h2>统计口径</h2>
+    <div class="kv"><span>数据来源</span><span>公开论坛文字帖</span></div>
+    <div class="kv"><span>当期期号</span><span id="kvPeriod">—</span></div>
+    <div class="kv"><span>抓取时间</span><span id="kvTime">—</span></div>
+    <div class="kv"><span>当期有效帖子</span><span id="kvPosts">—</span></div>
+    <div class="kv"><span>剔除项</span><span>多肖中特/灌水栏目</span></div>
+    <div class="note" style="margin-top:8px">每位发布者只算 1 票；同一帖子重复收录不重复计。多肖类（五肖、六肖、九肖中特）不进榜单，因为 12 个肖里必然覆盖一大半，票数没有区分度。</div>
+  </div>
+</main>
+
+<footer>
+  本页只做资料汇总与统计，不构成任何投注建议。开奖为随机事件，历史统计不代表以后结果。
+</footer>
+
+<script>
+var ZOD = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
+var state = { tw: null, forum: null, official: {} };
+
+function load(url){
+  return fetch(url, {cache:'no-cache'}).then(function(r){
+    if(!r.ok) throw new Error(url + ' ' + r.status);
+    return r.json();
+  });
+}
+
+Promise.all([
+  load('forum-summary.json').catch(function(){ return null; }),
+  load('official-history.json').catch(function(){ return null; })
+]).then(function(res){
+  var f = res[0], o = res[1];
+  if(o){
+    Object.keys(o).forEach(function(p){
+      var v = o[p];
+      if(v && v.specialZod) state.official[p] = v.specialZod;
+    });
+  }
+  state.forum = f;
+  render();
+}).catch(function(e){
+  document.getElementById('sub').textContent = '资料读取失败：' + e.message;
+});
+
+function isSingleRecTopic(t){
+  if(!t) return false;
+  if(t.indexOf('杀') >= 0) return false;
+  if(t.indexOf('一肖') < 0 && t.indexOf('单肖') < 0 && t.indexOf('独肖') < 0) return false;
+  return t.length < 14;
+}
+
+function render(){
+  var f = state.forum;
+  if(!f || !f.columns || !f.columns.length){
+    document.getElementById('sub').textContent = '暂无论坛资料';
+    document.getElementById('recList').innerHTML = '<div class="empty">暂无数据</div>';
+    document.getElementById('killList').innerHTML = '<div class="empty">暂无数据</div>';
+    return;
+  }
+  var offP = Object.keys(state.official).map(Number);
+  var cur = offP.length ? Math.max.apply(null, offP) + 1 : null;
+
+  var recVote = {}, killVote = {};
+  ZOD.forEach(function(z){ recVote[z] = 0; killVote[z] = 0; });
+  var recPosts = 0, killPosts = 0, totalCur = 0, staleCols = 0;
+
+  f.columns.forEach(function(c){
+    var cur1 = c.current || {};
+    if(cur && cur1.period === cur){
+      totalCur++;
+    } else {
+      staleCols++;
+      return;
+    }
+    var zs = cur1.zods || [];
+    if(!zs.length) return;
+    if(c.kind === 'kill'){
+      if(zs.length !== 1) return;
+      killPosts++;
+      if(killVote[zs[0]] !== undefined) killVote[zs[0]]++;
+    } else if(c.kind === 'rec'){
+      if(!isSingleRecTopic(c.topic)) return;
+      if(zs.length !== 1) return;
+      recPosts++;
+      if(recVote[zs[0]] !== undefined) recVote[zs[0]]++;
+    }
+  });
+
+  document.getElementById('sub').textContent = (cur || '当期') + ' 期 · 更新 ' + (f.fetchedAt || '—');
+  document.getElementById('kvPeriod').textContent = (cur || '—') + ' 期';
+  document.getElementById('kvTime').textContent = f.fetchedAt || '—';
+  document.getElementById('kvPosts').textContent = totalCur + ' 条（其余 ' + staleCols + ' 条仍是旧期，不计入）';
+
+  document.getElementById('recNote').textContent =
+    '共 ' + recPosts + ' 位发布者给出单肖推荐，每人 1 票。多肖类栏目不参与。';
+  document.getElementById('killNote').textContent =
+    '共 ' + killPosts + ' 位发布者给出单肖杀，每人 1 票。每人只杀 1 肖的帖子才计入。';
+
+  drawList('recList', recVote, recPosts, false);
+  drawList('killList', killVote, killPosts, true);
+
+  var alertBox = document.getElementById('alert');
+  var topRec = topN(recVote, 2);
+  var topKill = topN(killVote, 2);
+  var gap = topRec.length ? (topRec[0].n - (topRec[1] ? topRec[1].n : 0)) : 0;
+  if(recPosts < 20){
+    alertBox.innerHTML = '<div class="warn">当期样本太少（' + recPosts + ' 票），榜单只能看个大概，别当依据。</div>';
+  } else if(gap <= 1){
+    alertBox.innerHTML = '<div class="warn">票数几乎平分（第一 ' + topRec[0].n + ' 票 / 第二 ' + (topRec[1] ? topRec[1].n : 0) +
+      ' 票），说明这批资料本身没有形成主张，参考价值低。</div>';
+  }
+}
+
+function topN(map, n){
+  return ZOD.map(function(z){ return {z:z, n:map[z]}; })
+    .filter(function(x){ return x.n > 0; })
+    .sort(function(a,b){ return b.n - a.n; })
+    .slice(0, n);
+}
+
+function drawList(id, vote, total, isKill){
+  var arr = ZOD.map(function(z){ return {z:z, n:vote[z]}; })
+    .filter(function(x){ return x.n > 0; })
+    .sort(function(a,b){ return b.n - a.n; });
+  if(!arr.length){
+    document.getElementById(id).innerHTML = '<div class="empty">当期暂无此类资料</div>';
+    return;
+  }
+  var max = arr[0].n;
+  var html = '';
+  arr.forEach(function(x, i){
+    var w = Math.max(6, Math.round(x.n / max * 100));
+    var cls = isKill ? 'k' : (i === 0 ? '' : '');
+    html += '<div class="row">'
+      + '<div class="zod ' + (isKill ? 'k' : (i === 0 ? 'top' : '')) + '">' + x.z + '</div>'
+      + '<div class="bar"><i class="' + cls + '" style="width:' + w + '%"></i></div>'
+      + '<div class="num"><b>' + x.n + '</b> 票 · ' + Math.round(x.n / Math.max(total,1) * 100) + '%</div>'
+      + '</div>';
+  });
+  document.getElementById(id).innerHTML = html;
+}
+</script>
+</body>
+</html>

@@ -322,15 +322,22 @@ function renderKill(){
   var twKillCount = {};
   var twKillCols = 0;
   var twDetails = []; // 栏目明细
+  var twSiteSet = {};
+  var twOffP = Object.keys(state.official||{}).map(Number);
+  var twNext = twOffP.length ? Math.max.apply(null, twOffP) + 1 : null;
   if(state.tw && state.tw.columns){
     state.tw.columns.forEach(function(col){
+      if(col.siteNo) twSiteSet[col.siteNo] = 1;
       if(col.title && (col.title.indexOf('杀')>=0 || col.title.indexOf('绝')>=0)){
         if(col.rows && col.rows.length){
-          var last = col.rows[col.rows.length-1];
-          if(last.zods && last.zods.length){
+          var row = null;
+          for(var ri=col.rows.length-1; ri>=0; ri--){
+            if(twNext && col.rows[ri].period === twNext){ row = col.rows[ri]; break; }
+          }
+          if(row && row.zods && row.zods.length){
             twKillCols++;
-            twDetails.push({title: col.title, zods: last.zods});
-            last.zods.forEach(function(z){
+            twDetails.push({title: col.title, zods: row.zods});
+            row.zods.forEach(function(z){
               twKillCount[z] = (twKillCount[z]||0) + 1;
             });
           }
@@ -338,8 +345,9 @@ function renderKill(){
       }
     });
   }
+  var twSiteN = Object.keys(twSiteSet).length;
   // 栏目明细（每个栏目杀了哪几个肖）
-  html+='<div class="card"><h2>网站推荐杀肖（文字墙栏目明细）</h2><div class="muted">共'+twKillCols+'个杀肖栏目本期有数据</div><div style="margin-top:10px">';
+  html+='<div class="card"><h2>网站推荐杀肖（文字墙栏目明细）</h2><div class="muted">共'+twKillCols+' 个杀肖栏目在 '+(twNext||'当期')+' 期有数据 · 来源站点 '+twSiteN+' 个</div><div style="margin-top:10px">';
   twDetails.forEach(function(d){
     var shortTitle = d.title.replace(/澳门香港大联盟【|】4901996.com/g, '').replace(/澳门大联盟【|】/g, '');
     html+='<div class="row"><span style="font-size:14px">'+esc(shortTitle)+'</span><span>';
@@ -353,7 +361,12 @@ function renderKill(){
 
   // 票数汇总
   var twSorted = Object.keys(twKillCount).sort(function(a,b){return twKillCount[b]-twKillCount[a];});
-  html+='<div class="card"><h2>网站推荐杀肖票数汇总</h2><div class="muted">所有栏目合计，票数越高越建议避开</div><div style="margin-top:10px">';
+  html+='<div class="card"><h2>网站推荐杀肖票数汇总</h2>'
+    +'<div class="muted">'
+    +(twSiteN<=1
+        ? '来源只有 1 个站点（同站开了多个栏目），票数＝该站自己投自己，<b>不能当多站共识</b>。'
+        : '来源 '+twSiteN+' 个站点，票数按栏目计。')
+    +'</div><div style="margin-top:10px">';
   twSorted.forEach(function(z){
     var n = twKillCount[z];
     var pct = Math.round(n/Math.max(twKillCols,1)*100);
@@ -364,23 +377,25 @@ function renderKill(){
 
   // ===== 论坛杀肖票数 =====
   var forumKillCount = {};
+  var forumKillPosts = 0;
   list.forEach(function(a){
     var s = authorStats(a);
-    if(s.curRow && s.curRow.zods){
+    if(s.curRow && s.curRow.zods && (twNext ? s.curRow.period === twNext : true)){
+      forumKillPosts++;
       s.curRow.zods.forEach(function(z){
         forumKillCount[z] = (forumKillCount[z]||0) + 1;
       });
     }
   });
   var forumSorted = Object.keys(forumKillCount).sort(function(a,b){return forumKillCount[b]-forumKillCount[a];});
-  html+='<div class="card"><h2>论坛杀肖票数（111帖）</h2><div class="muted">共'+list.length+'个杀肖帖本期有数据，票数越高越建议避开</div><div style="margin-top:10px">';
+  html+='<div class="card"><h2>论坛杀肖票数</h2><div class="muted">共 '+forumKillPosts+' 个杀肖帖在 '+(twNext||'当期')+' 期有数据（总数 '+list.length+'） · 每条来自不同发布者，各自算 1 票</div><div style="margin-top:10px">';
   forumSorted.forEach(function(z){
     var n = forumKillCount[z];
-    var pct = Math.round(n/Math.max(list.length,1)*100);
+    var pct = Math.round(n/Math.max(forumKillPosts,1)*100);
     var color = n>=10?'#c62828':(n>=6?'#e65100':'#666');
     html+='<div class="row"><span class="zod kill">'+z+'</span><span style="color:'+color+';font-weight:700">'+n+'票（'+pct+'%）</span></div>';
   });
-  if(forumSorted.length===0) html+='<div class="muted">本期暂无论坛杀肖数据</div>';
+  if(forumSorted.length===0) html+='<div class="muted">本期暂无论坛杀肖数据（资料还没更新到该期）</div>';
   html+='</div></div>';
 
   // 作者列表
@@ -731,26 +746,41 @@ function renderOverview(){
     }
   }
   
-  // ===== 1. 文字墙杀肖统计 =====
+  // 下一期（正在收注的那期）：共识只对下一期有意义
+  var nextPeriod = parseInt(latestPeriod, 10) ? parseInt(latestPeriod, 10) + 1 : '';
+
+  // ===== 1. 文字墙杀肖统计（只取与下一期同期的行；文字墙滞后就标出来，不用旧期冒充） =====
   var twKillVote = {};
   for(var i=0; i<ZOD.length; i++){ twKillVote[ZOD[i]] = 0; }
   var twKillTotal = 0;
-  
-  if(state.tw && state.tw.columns){
-    for(var j=0; j<state.tw.columns.length; j++){
-      var col = state.tw.columns[j];
-      if(col.kind === 'kill' && col.rows && col.rows.length > 0){
-        var lastRow = col.rows[col.rows.length-1];
-        if(lastRow.zods){
-          twKillTotal++;
-          for(var k=0; k<lastRow.zods.length; k++){
-            var z = lastRow.zods[k];
-            if(twKillVote[z] !== undefined) twKillVote[z]++;
-          }
-        }
+  var twStaleCols = 0, twStaleLatest = 0;
+  var twSiteSet = {};
+  var twAllCols = (state.tw && state.tw.columns) || [];
+  twAllCols.forEach(function(c){ if(c.siteNo) twSiteSet[c.siteNo] = 1; });
+
+  for(var j=0; j<twAllCols.length; j++){
+    var col = twAllCols[j];
+    if(col.kind !== 'kill' || !col.rows || !col.rows.length) continue;
+    var rowMatch = null;
+    for(var r=col.rows.length-1; r>=0; r--){
+      if(col.rows[r] && col.rows[r].period === nextPeriod){ rowMatch = col.rows[r]; break; }
+    }
+    if(!rowMatch){
+      twStaleCols++;
+      var maxP = 0;
+      col.rows.forEach(function(rr){ if(rr.period && rr.period > maxP) maxP = rr.period; });
+      if(maxP > twStaleLatest) twStaleLatest = maxP;
+      continue;
+    }
+    if(rowMatch.zods && rowMatch.zods.length){
+      twKillTotal++;
+      for(var k=0; k<rowMatch.zods.length; k++){
+        var z = rowMatch.zods[k];
+        if(twKillVote[z] !== undefined) twKillVote[z]++;
       }
     }
   }
+  var twSiteCount = Object.keys(twSiteSet).length;
   
   // 文字墙按票数排序
   var twArr = [];
@@ -759,23 +789,24 @@ function renderOverview(){
   }
   twArr.sort(function(a,b){ return b.n - a.n; });
   
-  // ===== 2. 论坛杀肖统计 =====
+  // ===== 2. 论坛杀肖统计（只取与下一期同期；不同发布者，才算独立票） =====
   var forumKillVote = {};
   for(var f=0; f<ZOD.length; f++){ forumKillVote[ZOD[f]] = 0; }
   var forumKillTotal = 0;
-  
+  var forumStaleCols = 0;
+
   if(state.forum && state.forum.columns){
     for(var m=0; m<state.forum.columns.length; m++){
       var fcol = state.forum.columns[m];
-      if(fcol.kind === 'kill' && fcol.current && fcol.current.zods){
-        // 只统计最新期的
-        if(latestPeriod && fcol.current.period == parseInt(latestPeriod)){
-          forumKillTotal++;
-          for(var n=0; n<fcol.current.zods.length; n++){
-            var fz = fcol.current.zods[n];
-            if(forumKillVote[fz] !== undefined) forumKillVote[fz]++;
-          }
+      if(fcol.kind !== 'kill' || !fcol.current || !fcol.current.zods) continue;
+      if(nextPeriod && fcol.current.period == nextPeriod){
+        forumKillTotal++;
+        for(var n=0; n<fcol.current.zods.length; n++){
+          var fz = fcol.current.zods[n];
+          if(forumKillVote[fz] !== undefined) forumKillVote[fz]++;
         }
+      } else {
+        forumStaleCols++;
       }
     }
   }
@@ -788,19 +819,28 @@ function renderOverview(){
   forumArr.sort(function(a,b){ return b.n - a.n; });
   
   var html = '';
-  
+
   // ===== 本期结论总卡片 =====
   html += '<div class="card" style="border:2px solid #333">';
-  html += '<h2 style="text-align:center">🎯 '+latestPeriod+' 杀肖共识</h2>';
-  
-  // --- 文字墙（49站） ---
+  html += '<h2 style="text-align:center">'+(nextPeriod||latestPeriod)+' 期杀肖共识</h2>';
+  html += '<div class="muted" style="text-align:center;margin-bottom:12px">只统计已更新到该期的资料；来源标注见每块下方</div>';
+
+  // --- 文字墙（单一站点自投票） ---
   html += '<div style="margin:15px 0">';
-  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">📺 文字墙（49站 '+twKillTotal+'个栏目）</div>';
+  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">文字墙（独立站点 '+twSiteCount+' 个 · 本期 '+twKillTotal+' 个栏目）</div>';
+  if(twKillTotal === 0){
+    html += '<div style="background:#fff4f4;padding:10px;border-radius:8px;color:#c62828;font-size:14px;line-height:1.6">'
+      + '该源未更新到 '+(nextPeriod||'当期')+' 期'+(twStaleLatest?('（最新只到 '+twStaleLatest+' 期）'):'')
+      + '，本期不参与统计，避免用旧期充数。</div>';
+  } else {
   html += '<div style="background:#f8f9fa;padding:10px;border-radius:8px">';
+  if(twSiteCount <= 1){
+    html += '<div style="color:#c62828;font-size:13px;margin-bottom:6px">注意：这 '+twKillTotal+' 个栏目全部来自同 1 个站点，属于该站自己开多个栏目投票，不能当「多站共识」使用。</div>';
+  }
   
   // 文字墙Top3杀得最多的
   var twTop3 = twArr.slice(0, 3);
-  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">🔴 杀得最多：</div>';
+  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">杀得最多：</div>';
   for(var tt=0; tt<twTop3.length; tt++){
     var titem = twTop3[tt];
     if(titem.n > 0){
@@ -809,16 +849,23 @@ function renderOverview(){
     }
   }
   html += '</div>';
+  }
   html += '</div>';
-  
-  // --- 论坛 ---
+
+  // --- 论坛（不同发布者，才算票） ---
   html += '<div style="margin:15px 0">';
-  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">💬 论坛（'+forumKillTotal+'个帖子）</div>';
+  html += '<div style="font-weight:700;font-size:16px;margin-bottom:8px">论坛（不同发布者 '+forumKillTotal+' 个帖子）</div>';
+  if(forumKillTotal === 0){
+    html += '<div style="background:#fff4f4;padding:10px;border-radius:8px;color:#c62828;font-size:14px;line-height:1.6">'
+      + '论坛资料还未更新到 '+(nextPeriod||'当期')+' 期（'+forumStaleCols+' 个栏目仍是旧期），本期不参与统计。</div>'
+      + '</div>';
+  } else {
   html += '<div style="background:#f8f9fa;padding:10px;border-radius:8px">';
-  
+  html += '<div style="color:#666;font-size:13px;margin-bottom:6px">来源：公开论坛不同作者各自发的帖，每人算 1 票；比单站多栏目自投票更接近「多方意见」。</div>';
+
   // 论坛Top3杀得最多的
   var forumTop3 = forumArr.slice(0, 3);
-  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">🔴 杀得最多：</div>';
+  html += '<div style="color:#dc2626;font-size:14px;margin-bottom:5px">杀得最多：</div>';
   for(var ft=0; ft<forumTop3.length; ft++){
     var fitem = forumTop3[ft];
     if(fitem.n > 0){
@@ -827,8 +874,9 @@ function renderOverview(){
     }
   }
   html += '</div>';
+  }
   html += '</div>';
-  
+
   html += '</div>';
   
   // ===== 下面是原来的详细统计 =====
@@ -844,10 +892,12 @@ function renderOverview(){
   rec.forEach(function(a){ var s=authorStats(a); if(s.curRow&&s.curRow.zods[0]) firstCount[s.curRow.zods[0]]=(firstCount[s.curRow.zods[0]]||0)+1; });
   var offN=Object.keys(state.official).length;
 
-  html+='<div class="card"><h2>📊 详细统计</h2>'
-    +'<div class="row"><span>接入数据源</span><span>1 个（公开论坛）</span></div>'
+  html+='<div class="card"><h2>详细统计</h2>'
+    +'<div class="row"><span>接入数据源</span><span>2 类（公开论坛 + 文字墙联盟站）</span></div>'
+    +'<div class="row"><span>论坛独立发布者</span><span>'+auth.length+' 个</span></div>'
+    +'<div class="row"><span>文字墙独立站点</span><span>'+twSiteCount+' 个（'+((state.tw&&state.tw.columns)||[]).length+' 个栏目）</span></div>'
     +'<div class="row"><span>已对账官方开奖</span><span>'+offN+' 期</span></div>'
-    +'<div class="muted" style="margin-top:6px">每个帖子记为一份资料、一个发布者；后续接入新网址会按源分组累计。</div></div>';
+    +'<div class="muted" style="margin-top:6px">票数按「独立来源」计：论坛一条帖算 1 票，文字墙同一站点的多个栏目只算 1 个来源，不能当多站共识。</div></div>';
 
   html+='<div class="card"><h2>资料数量</h2>'
     +'<div class="row"><span>资料总数（发布者）</span><span>'+auth.length+' 份</span></div>'

@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<!--
+  ========== 金额识别规则（改代码前必读，改完必须回归本条）==========
+  原则：一笔钱要分给 2 个以上对象、且没写明单位（各号/各数/各肖）→ 必须弹窗；
+        只有 1 个对象，或写明了单位 → 直接算。
+  会弹窗：特肖(含单肖)、平特多肖、红/蓝/绿波、单数/双数、大/小、
+          波色+单双、波色+大小、合数单/双、裸号码≥2、头数、尾数、4个数字
+  不弹窗：平特单肖、单个号码、三中三/二中二/三中二(1组1价)、连肖(几肖都是1注)
+  组合玩法排除：整行含 三中三|二中二|三中二 时，禁止走"4个数字拆分/弹窗"逻辑
+                 （有一处漏判就会把 "19 16 35三中三8" 拆成两笔算成 24 元）
+  识别顺序：①末尾取金额 → ②剩余按空格拆段 → ③每段依次匹配
+            组合格式(三中三:xx,yy) → 连肖 → 产品长名 → 单个号码
+  ================================================================
+-->
+
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -31,7 +45,8 @@ main{padding:10px;padding-top:max(env(safe-area-inset-top),24px)}
 .lbl{display:block;font-size:15px;color:#555;margin:6px 0 3px}
 .input,.textarea{width:100%;border:1px solid #d9dde3;border-radius:8px;padding:10px;font-size:15px;background:#fafbfc;outline:none}
 .textarea{resize:vertical;min-height:60px;font-family:Consolas,monospace}
-.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.btn-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.btn-row .btn{min-width:0;padding:8px 4px;font-size:13px;line-height:1.35}
 .btn{flex:1 1 auto;min-width:80px;border:1px solid #d9dde3;background:#fff;color:#1f2329;border-radius:8px;padding:8px 6px;font-size:14px;font-weight:600}
 .btn.primary{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .btn.danger{background:#fff2f0;border-color:#ffccc7;color:#cf1322}
@@ -57,10 +72,16 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </style>
 </head>
 <body>
+
 <div id="lockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#f5f5f5;z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
   <div style="max-width:320px;width:100%;text-align:center">
     <div style="font-size:17px;font-weight:700;margin-bottom:16px;color:#1a1a1a">会员验证</div>
     <div id="lockMsg" style="font-size:15px;color:#666;margin-bottom:8px"></div>
+    <div id="lockCodeWrap" style="display:none">
+      <div style="font-size:12px;color:#999;line-height:1.6;margin-bottom:10px;text-align:left">输入管理员给你的授权码。<br>一次输入长期有效，换手机输入同一个码照样能用。</div>
+      <input id="lockCodeInput" type="text" autocomplete="off" autocapitalize="characters" placeholder="例如 D8Z0DFIYO" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:18px;box-sizing:border-box;margin-bottom:10px;letter-spacing:2px;text-align:center" onkeydown="if(event.key==='Enter')activateCode()">
+      <button onclick="activateCode()" style="width:100%;border:none;background:#111;color:#fff;border-radius:8px;padding:13px;font-size:16px;font-weight:700">使用此码</button>
+    </div>
     <div id="lockPwdWrap">
       <input id="lockPwd" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:17px;box-sizing:border-box;margin-bottom:10px" onkeydown="if(event.key==='Enter')unlock()">
       <button onclick="unlock()" style="width:100%;border:1px solid #ccc;background:#fff;color:#333;border-radius:8px;padding:12px;font-size:16px;font-weight:600">进入</button>
@@ -115,7 +136,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 4px;justify-content:center;align-items:center;min-height:44px"></div>
+      <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:4px;padding:8px 2px;justify-content:center;align-items:center;min-height:44px"></div>
+      
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
         <span id="drawInfoTxt">未获取开奖数据</span>
@@ -123,8 +145,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
+        <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
-        <button class="btn" id="aiToggleBtn" style="flex:1;padding:5px;font-size:12px;background:#eee;color:#999" onclick="toggleLocalAI()">AI:关</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
@@ -269,7 +291,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border-radius:12px 12px 0 0;box-shadow:0 -2px 10px rgba(0,0,0,.1);background:#fff">
+  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border:none;box-shadow:none;background:transparent !important;padding:0 0 4px">
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
     <div onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:2px;cursor:pointer;font-size:11px;color:#999;line-height:1.2">
       功能设置 <span class="arrow">▼</span>
@@ -345,10 +367,46 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">多笔一行：</b>虎500羊400（自动拆成两笔）<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">中文金额：</b>虎两百　龙一百　马三百<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">单位后缀：</b>元/块/米/块钱 都忽略，如 虎500元<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">金额怎么算：</b>见下面第三节「金额歧义规则」<br><br><b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、开奖与自动结算</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、金额歧义规则（什么时候弹窗）</div>
+      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
+        <b style="color:var(--modalText,#fff)">原则：一笔钱要分给 2 个以上对象、又没写明单位（各号/各数/各肖），就弹窗让你选；只有一个对象，或写清了单位，直接算。</b><br><br>
+
+        <b style="color:var(--modalText,#fff)">会弹窗（多选题）</b><br>
+        1. <b style="color:var(--modalText,#fff)">特肖</b>（按号码算，一个肖也弹）<br>
+        &nbsp;&nbsp;特马5 → 平分5（5号共5）／每号各5（25）<br>
+        2. <b style="color:var(--modalText,#fff)">平特多肖</b>（按肖算，多肖要问）<br>
+        &nbsp;&nbsp;平特马龙50 → 共50（每肖25）／每肖50（共100）<br>
+        3. <b style="color:var(--modalText,#fff)">红波/蓝波/绿波</b><br>
+        &nbsp;&nbsp;红波10 → 总额10（摊17号）／各号10（170）<br>
+        4. <b style="color:var(--modalText,#fff)">单数/双数、大/小</b><br>
+        5. <b style="color:var(--modalText,#fff)">波色+单双、波色+大小</b>（红波单10、绿波大5）<br>
+        6. <b style="color:var(--modalText,#fff)">合数单/合数双</b><br>
+        7. <b style="color:var(--modalText,#fff)">裸号码 2 个以上</b>（05 17 29 10 → 各号10／共10）<br>
+        8. <b style="color:var(--modalText,#fff)">头数、尾数</b>（3头10、尾3 10）<br>
+        9. <b style="color:var(--modalText,#fff)">4 个数字</b>（两笔／各X／共X／重新编辑）<br>
+        10. <b style="color:var(--modalText,#fff)">"每一个"的写法都认</b><br>
+        &nbsp;&nbsp;各5 / 各号5 / 各数5 / 每个5 / 个5 都一样：每个号码各5<br>
+        &nbsp;&nbsp;共5 / 总共5 / 合5 都一样：总数5，摊到各号<br><br>
+        11. <b style="color:var(--modalText,#fff)">一行多项只弹一次</b><br>
+        &nbsp;&nbsp;整批里只有"没写单位的"才进多选题：平龙马250（多肖）、红波10（17号）<br>
+        &nbsp;&nbsp;弹窗一次列全部，每项点一下选"共X／每肖X"，选中变浅灰底黑框带 ✓，<br>
+        &nbsp;&nbsp;全部选完"确定"才可点，只弹这一次<br><br>
+        12. <b style="color:var(--modalText,#fff)">想用旧版本</b><br>
+        &nbsp;&nbsp;不加就永远是最新版；AI 识别已撤销，现在只走本地解析<br><br>
+
+        <b style="color:var(--modalText,#fff)">不弹窗（单选题）</b><br>
+        1. <b style="color:var(--modalText,#fff)">平特单肖</b>：平特马80 = 80<br>
+        2. <b style="color:var(--modalText,#fff)">单个号码</b>：05 10 = 10<br>
+        3. <b style="color:var(--modalText,#fff)">三中三/二中二/三中二</b>：一组一个价，三中三:19,16,35 8 = 8元<br>
+        4. <b style="color:var(--modalText,#fff)">连肖</b>：不管几个肖都是一注，连马龙兔各10 = 10元（不按复式展开）<br><br>
+
+        <b style="color:var(--modalText,#fff)">识别顺序：</b>①末尾取金额 → ②剩余按空格拆段 → ③每段依次匹配 组合格式(三中三:xx,yy) → 连肖 → 产品长名 → 单个号码
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">四、开奖与自动结算</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 点 <b style="color:var(--modalText,#fff)">自动获取开奖</b> → 拉最新号码并结算<br>
         2. <b style="color:var(--modalText,#fff)">每天 21:33-21:35 自动获取</b>：号码逐个跳出，稳定后自动结算<br>
@@ -358,7 +416,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         6. 结算错了 → 设置 → <b style="color:var(--modalText,#fff)">撤销开奖记录</b> 重来
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">四、客户 / 订单 / 账单日</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">五、客户 / 订单 / 账单日</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">客户统计</b>：按客户看单量和金额<br>
         2. <b style="color:var(--modalText,#fff)">历史订单</b>：每个客户右侧"复制 / 撤单"，点客户名展开明细<br>
@@ -368,7 +426,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. <b style="color:var(--modalText,#fff)">清除订单</b>：清空当期订单（不可恢复，谨慎）
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">五、飞单统计（分批飞单）</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、飞单统计（分批飞单）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">阈值</b> = 每个号码最多自留多少，超出的才飞<br>
         2. 阈值填 <b style="color:var(--modalText,#fff)">0</b> = 全飞（一点不留）<br>
@@ -380,7 +438,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. 配套查看：<b style="color:var(--modalText,#fff)">持仓分析（飞单后）、特号持仓、飞单明细</b>
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、统计与风控</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、统计与风控</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">排行榜</b>：特号累计，左右两栏对照<br>
         2. <b style="color:var(--modalText,#fff)">AI统计</b>：风险/集中度分析（开奖前预测）<br>
@@ -389,7 +447,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. <b style="color:var(--modalText,#fff)">产品累计</b>：按产品看总量
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、赔付与对账</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">八、赔付与对账</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 赔付页显示：销售总额 / 总赔付 / 净收入<br>
         2. <b style="color:var(--modalText,#fff)">倍数</b>（默认47，按你的玩法改）→ 选特号 → <b style="color:var(--modalText,#fff)">按倍数记赔付</b><br>
@@ -492,7 +550,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.21';
+var APP_VER = 'v58.70-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -520,32 +578,23 @@ function hardUpdateTo(v){
   }
   location.replace(url);
 }
-// 自动检查新版本
-setTimeout(function(){
-  fetch('version.txt?cb='+Date.now()).then(r=>r.text()).then(v=>{
-    v=v.trim();
-    if(v && v!==APP_VER){
-      var bar=document.createElement('div');
-      bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
-      bar.textContent='发现新版本 '+v+'，点这里更新';
-      bar.onclick=function(){ hardUpdateTo(v); };
-      document.body.appendChild(bar);
-    }
-  }).catch(()=>{});
-},2000);
+// 版本检查统一由下方 fetch 处理（仅提示、不自动跳转）
 // 自动同步版本号到标题栏，杜绝硬编码
 document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
-// 每次打开都检查版本，不对就自动更新（不用sessionStorage限制，每次都检查）
+// 版本检查：只提示，绝不自动跳转
 fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
     if(v && v !== APP_VER){
-      // 云端版本和本地不一样，硬跳带版本号的网址拉新版
-      hardUpdateTo(v);
+      var bar=document.createElement('div');
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
+      bar.textContent='发现新版本 '+v+'，点这里更新';
+      bar.onclick=function(){ hardUpdateTo(v); };
+      document.body.appendChild(bar);
     }
   }).catch(function(){});
 // 生肖映射：号码→生肖
@@ -586,6 +635,15 @@ function autoPayout(){
       regularNums = allNums.slice(-7, -1);
     } else {
       regularNums = allNums.slice(0, -1);
+    }
+  }
+
+  // 防止把更旧的期当成新开奖重复结算
+  if(period){
+    var settledP = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+    if(period < settledP){
+      myAlert('这期（' + period + '）已经结算过了。\n当前已结算到 ' + settledP + ' 期，请核对后再录入。');
+      return;
     }
   }
 
@@ -722,7 +780,8 @@ function autoPayout(){
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
       + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">排行榜</div>'
-      + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+      + '<div style="padding:0 20px 6px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
+    + '<div style="padding:0 20px 16px;font-size:11px;text-align:center;color:#bbb">版本 ' + APP_VER + '</div>'
       + '<div style="display:flex;border-top:1px solid #eee">'
       + '<button id="mcCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
       + '<button id="mcOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">记入赔付</button>'
@@ -780,25 +839,128 @@ renderAll();
 }
 var DEVICE_WHITELIST = [];
 // 生成设备指纹（固定UUID，存在localStorage，不随屏幕分辨率变化）
+function activateCode(){
+  var raw = (document.getElementById('lockCodeInput').value || '').trim().toUpperCase();
+  var code = raw.replace(/[^A-Z0-9]/g, '');
+  if(!code){ alert('请输入授权码'); return; }
+  if(code.length < 6 || code.length > 20){ alert('授权码格式不对，应为 6-20 位字母数字'); return; }
+  if(code.charAt(0) !== 'D') code = 'D' + code;
+  try {
+    localStorage.setItem('fixed_device_id', code);
+    location.reload();
+  } catch(e) { alert('保存失败，请检查浏览器存储权限'); }
+}
+function resetCode(){
+  if(!confirm('清除本机授权码，重新输入？')) return;
+  try { localStorage.removeItem('fixed_device_id'); } catch(e){}
+  location.reload();
+}
+/* SHA-256（纯JS，无依赖）：把授权码算成固定指纹，云端只存指纹不存明文码 */
+function sha256(str){
+  function rightRotate(v,a){ return (v>>>a)|(v<<(32-a)); }
+  var maxWord = Math.pow(2,32);
+  var result='', words=[], asciiBitLength = str.length*8;
+  var hash = sha256.h = sha256.h || [];
+  var k = sha256.k = sha256.k || [];
+  var primeCounter = k.length;
+  var isComposite = {};
+  for(var candidate=2; primeCounter<64; candidate++){
+    if(!isComposite[candidate]){
+      for(var i=0;i<313;i+=candidate){ isComposite[i]=candidate; }
+      hash[primeCounter] = (Math.pow(candidate,.5)*maxWord)|0;
+      k[primeCounter++] = (Math.pow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  str += '\x80';
+  while(str.length%64 - 56) str += '\x00';
+  for(var i=0;i<str.length;i++){
+    var j = str.charCodeAt(i);
+    if(j>>8) return '';
+    words[i>>2] |= j << ((3-i)%4)*8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for(var j=0;j<words.length;){
+    var w = words.slice(j, j+=16);
+    var oldHash = hash;
+    hash = hash.slice(0,8);
+    for(var i=0;i<64;i++){
+      var w15 = w[i-15], w2 = w[i-2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25))
+        + ((e&hash[5])^((~e)&hash[6]))
+        + k[i]
+        + (w[i] = (i<16) ? w[i] : (
+            w[i-16]
+            + (rightRotate(w15,7)^rightRotate(w15,18)^(w15>>>3))
+            + w[i-7]
+            + (rightRotate(w2,17)^rightRotate(w2,19)^(w2>>>10))
+          )|0
+        );
+      var temp2 = (rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22))
+        + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash = [(temp1+temp2)|0].concat(hash);
+      hash[4] = (hash[4]+temp1)|0;
+    }
+    for(var i=0;i<8;i++) hash[i] = (hash[i]+oldHash[i])|0;
+  }
+  for(var i=0;i<8;i++){
+    for(var j=3;j+1;j--){
+      var b = (hash[i] >> (j*8)) & 255;
+      result += ((b<16)?0:'') + b.toString(16);
+    }
+  }
+  return result;
+}
+function fpOf(code){
+  var s = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(!s) return '';
+  return sha256('ai-stats|' + s).substring(0, 16);
+}
 function getDeviceId(){
-  // 先读本地存好的设备码
+  // 授权码由用户自己输入，不再自动生成；换手机输入同一个码即可继续用
   var saved = localStorage.getItem('fixed_device_id');
-  if(saved) return saved;
-  // 没有就生成一个新的UUID
-  var uuid = 'D' + Math.random().toString(36).substring(2,10).toUpperCase();
-  localStorage.setItem('fixed_device_id', uuid);
-  return uuid;
+  if(saved && saved.length >= 6) return saved;
+  return '';
 }
 var DEVICE_ID = getDeviceId();
 var whitelistActive = false; // 白名单是否已启用
 // 拉取远程白名单
+// 设备级会员账本：每台设备各一套到期时间
+var MEMBERS = null;
+function applyMemberExpire(){
+  if(!MEMBERS) return;
+  var rec = MEMBERS[fpOf(DEVICE_ID)];
+  if(rec && rec.expire){
+    var exp = new Date(rec.expire + 'T23:59:59+08:00').getTime();
+    if(!isNaN(exp)){
+      lockData.expire = exp;
+      localStorage.setItem(LOCK_KEY, JSON.stringify({expire: exp, pwd: lockData.pwd || ''}));
+    }
+  }
+}
 fetch('whitelist.json?t=' + Date.now())
   .then(r => r.json())
-  .then(data => { DEVICE_WHITELIST = data.whitelist || []; whitelistActive = DEVICE_WHITELIST.length > 0; showLock(); reportDevice(); })
-  .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; showLock(); });
+  .then(data => { DEVICE_WHITELIST = data.whitelist_fp || []; whitelistActive = DEVICE_WHITELIST.length > 0; })
+  .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; })
+  .then(function(){
+    return fetch('members.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(d => { MEMBERS = d.devices || {}; })
+      .catch(() => { MEMBERS = null; });
+  })
+  .then(function(){ applyMemberExpire(); showLock(); reportDevice(); });
 // 自动上报设备码到邮箱（未授权设备每天报一次，已授权不报）
 function reportDevice(){
-  var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  if(!DEVICE_ID) return; // 还没输码，不上报
+  // 测试模式(?nock=1)不上报
+  try { if(new URLSearchParams(location.search).get('nock')==='1') return; } catch(e){}
+  // 桌面/电脑浏览器不上报，只报真机，避免测试噪音
+  var ua = navigator.userAgent || '';
+  if(/Linux x86_64|Windows NT|Macintosh|CrOS/i.test(ua)) return;
+  var fp = fpOf(DEVICE_ID);
+  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
   if(deviceAllowed) return; // 已授权的不上报，不打扰
   var lastReport = parseInt(localStorage.getItem('lastReport_' + DEVICE_ID) || '0');
   var now = Date.now();
@@ -824,6 +986,15 @@ var lockData = { pwd: savedLock.pwd || '', expire: BAKE_EXPIRE };
 
 function showLock(){
   if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
+  // 本机还没有授权码 → 让他先输入
+  if(!DEVICE_ID){
+    document.getElementById('lockCodeWrap').style.display = 'block';
+    document.getElementById('lockPwdWrap').style.display = 'none';
+    document.getElementById('lockEnterBtn').style.display = 'none';
+    document.getElementById('lockMsg').innerHTML = '<div style="font-size:16px;font-weight:700;color:#333">这台设备还没有授权码</div>';
+    document.getElementById('lockScreen').style.display = 'flex';
+    return;
+  }
   var lv = document.getElementById('lockVer'); if(lv) lv.textContent = APP_VER;
   var now = Date.now();
   var left = lockData.expire - now;
@@ -840,13 +1011,14 @@ function showLock(){
   }
   document.getElementById('lockMsg').innerHTML = timeTxt + '<br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
   // 设备白名单检查（白名单为空时不限制）
-  var deviceAllowed = !whitelistActive || DEVICE_WHITELIST.indexOf(DEVICE_ID) >= 0;
+  var fp = fpOf(DEVICE_ID);
+  var deviceAllowed = (MEMBERS && MEMBERS[fp]) ? true : (!whitelistActive || DEVICE_WHITELIST.indexOf(fp) >= 0);
   if(!deviceAllowed){
     document.getElementById('lockPwdWrap').style.display = '';
     document.getElementById('lockEnterBtn').style.display = 'none';
     var inp = document.getElementById('lockPwd');
     inp.placeholder = '此设备未授权';
-    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此设备未授权</div>设备码：<b style="font-size:20px;color:#7c3aed">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把此码发给管理员开通</span>';
+    document.getElementById('lockMsg').innerHTML = '<div style="color:#cf1322;font-weight:700;margin-bottom:10px">此授权码未开通</div>当前码：<b style="font-size:20px;color:#333">' + DEVICE_ID + '</b><br><span style="font-size:12px;color:#999">请把这个码发给管理员开通</span><br><a href="javascript:resetCode()" style="font-size:12px;color:#999;text-decoration:underline;display:inline-block;margin-top:8px">换个码试试</a>';
     document.getElementById('lockScreen').style.display = 'flex';
     return;
   }
@@ -860,6 +1032,12 @@ function showLock(){
     document.getElementById('lockPwdWrap').style.display = 'none';
     document.getElementById('lockEnterBtn').style.display = '';
   }
+  var md = Math.floor(left/86400000), mh = Math.floor((left%86400000)/3600000), mm = Math.floor((left%3600000)/60000);
+  var mem = document.getElementById('memInfo');
+  if(mem) mem.innerHTML = (expired ? '会员已到期' : '会员剩' + md + '天' + mh + '时' + mm + '分') + ' <span style="opacity:0.6">' + APP_VER + '</span>';
+  var md = Math.floor(left/86400000), mh = Math.floor((left%86400000)/3600000), mm = Math.floor((left%3600000)/60000);
+  var mem = document.getElementById('memInfo');
+  if(mem) mem.innerHTML = (expired ? '会员已到期' : '会员剩' + md + '天' + mh + '时' + mm + '分') + ' <span style="opacity:0.6">' + APP_VER + '</span>';
   document.getElementById('lockScreen').style.display = 'flex';
 }
 function unlock(){
@@ -872,7 +1050,7 @@ function unlock(){
     return;
   }
   // 设备未授权
-  if(whitelistActive && DEVICE_WHITELIST.indexOf(DEVICE_ID) < 0){
+  if(!(MEMBERS && MEMBERS[fpOf(DEVICE_ID)]) && whitelistActive && DEVICE_WHITELIST.indexOf(fpOf(DEVICE_ID)) < 0){
     alert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }
@@ -885,25 +1063,10 @@ function unlock(){
   }
 }
 function skipLock(){ document.getElementById('lockScreen').style.display = 'none'; }
-// 每秒倒计时
+// 会员信息只在打开展示时算一次，不再每秒刷新（避免文字跳动、便于选中复制设备码）
 setInterval(function(){
-  var left = lockData.expire - Date.now();
-  if(left <= 0){
-    showLock();
-    return;
-  }
-  var d = Math.floor(left/86400000);
-  var h = Math.floor((left%86400000)/3600000);
-  var m = Math.floor((left%3600000)/60000);
-  var s = Math.floor((left%60000)/1000);
-  var txt = d + '天 ' + h + '时 ' + m + '分 ' + s + '秒';
-  var el = document.getElementById('lockMsg');
-  if(el && document.getElementById('lockScreen').style.display !== 'none'){
-    el.innerHTML = '会员剩余<br><b style="font-size:17px;color:#7c3aed">' + txt + '</b><br>到期：' + new Date(lockData.expire).toLocaleString() + '<br><span style="font-size:12px;color:#999">设备码：<b style="color:#333;font-size:14px">' + DEVICE_ID + '</b></span>';
-  }
-  var mem = document.getElementById('memInfo');
-  if(mem) mem.innerHTML = '会员剩' + d + '天' + h + '时' + m + '分 <span style="opacity:0.6">'+APP_VER+'</span>';
-}, 1000);
+  if(lockData.expire - Date.now() <= 0) showLock();
+}, 3600000);
 
 var shop = localStorage.getItem('current_shop') || 'A';
 var shopNames = { A: '澳门🇲🇴', B: '香港🇭🇰' };
@@ -3201,7 +3364,16 @@ function parseLine(text){
   codeText = codeText.replace(/(\d),(?=\d)/g, '$1 ');
   codeText = codeText.replace(/『K(\d+)』/g, (m,i)=>keepCodes[parseInt(i)]);
   // 开头裸产品前缀：特码: / 特: / 特码 / 特 （后面跟数字的，只是说明这是特码单）
+  // 折叠连续"特"、把"特号/特碼/特码"统一成"特"
+  codeText = codeText.replace(/特号|特碼/g, '特');
+  codeText = codeText.replace(/特{2,}/g, '特');
+  // 裸"单/双"（前面不是波色/合数）补成"单数/双数"，避免无产品可匹配
+  codeText = codeText.replace(/(^|[^红蓝绿波合数黑])单(?=\s*\d|\s*$)/g, '$1单数');
+  codeText = codeText.replace(/(^|[^红蓝绿波合数黑])双(?=\s*\d|\s*$)/g, '$1双数');
   codeText = codeText.replace(/^\s*特码?[:：]?\s*(?=\d)/, ' ');
+  // "特红波"→"红波"、"特蓝波单"→"蓝波单"、"特单"→"单"、"特大"→"大"
+  // 「特」只是说明买特码，波色/单双/大小产品本身默认就是特码，去掉它才不会报"无法识别：特红波"
+  codeText = codeText.replace(/特码?(?=红波|蓝波|绿波|红波单|红波双|蓝波|红波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数)/g, '');
   const zodia = ['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
   // 预处理：统一把输入转成标准产品名
   // 先保护"平特"不被后面的特X替换误删
@@ -3217,6 +3389,9 @@ function parseLine(text){
   codeText = codeText.replace(/平(?![特肖])([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
   // 恢复"平特"
   codeText = codeText.replace(/『PT』/g, '平特');
+  // 2.5 "平特一肖猴"/"平特一肖 猴"/"平特肖猴"/"平特肖 猴"→"平特猴"
+  codeText = codeText.replace(/平特一肖\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
+  codeText = codeText.replace(/平特肖\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
   // 3. "平特马龙兔"→"平特马平特龙平特兔"
   codeText = codeText.replace(/平特([马蛇龙兔虎牛鼠猪狗鸡猴羊]+)/g, (m, zs) => {
     return zs.split('').map(c => '平特' + c).join('');
@@ -3226,10 +3401,12 @@ function parseLine(text){
   if(em && /^[马蛇龙兔虎牛鼠猪狗鸡猴羊]+$/.test(em[1])){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
-  // 5. 连肖识别：2-4个生肖
+  // 5. 连肖识别：2-4个生肖（顺序：平连 → X连YZ → 连X）
+  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
+  // "马连龙兔"→"连肖马龙兔"（生肖+连+生肖串，必须先于下面的"连XX"规则）
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,4})/g, (m, a, b) => '连肖' + a + b);
   codeText = codeText.replace(/连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   codeText = codeText.replace(/([三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
-  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([二三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
@@ -3317,7 +3494,7 @@ function parseLine(text){
   // 纯号码之间的横杠改空格（特号连写：09-19-29-39-49 → 09 19 29 39 49，链式横杠也要全转）
   codeText = codeText.replace(/(\d)\s*-\s*(?=\d)/g, '$1 ');
   // 号码组后面写"各<金额>"：09 19 29 39 49 各40 → 09 40 19 40 ...（生肖"马龙兔各50"前无数字，不受影响）
-  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+)/g, function(_, group, amt){
+  codeText = codeText.replace(/((?:\d{1,2}[\s、.。;；-]+)+\d{1,2})\s*各(\d+(?:\.\d+)?)/g, function(_, group, amt){
     var nums = group.split(/[\s、.。;；-]+/).filter(Boolean);
     return nums.map(function(n){ return n.padStart(2,'0') + ' ' + amt; }).join(' ');
   });
@@ -3398,42 +3575,60 @@ function updateDrawInfoBar(){
     el.textContent = '未获取开奖数据';
   }
 }
-function autoFetchDraw(){
-  var btn = event.target;
+function autoFetchDraw(retry){
+  var btn = document.getElementById('drawFetchBtn');
+  if(!btn) return;
   btn.textContent = '获取中...';
   btn.disabled = true;
-  fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
-    .then(function(r){ return r.json(); })
+  function done(){ btn.textContent = '自动获取开奖'; btn.disabled = false; }
+  function applyMacao(m){
+    if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
+      myAlert('未获取到开奖数据');
+      return;
+    }
+    var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
+    var settled = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+    var incoming = parseInt(m.draw);
+    // 服务器给的是更旧的期：不覆盖、不结算，避免把上一天的开奖当成当期
+    if(incoming < settled){
+      myAlert('已结算到 ' + settled + ' 期。\n服务器这次返回的是旧数据（' + incoming + ' 期），请过一两分钟再点一次。');
+      return;
+    }
+    renderLiveBalls(m.winner_numbers, true);
+    if(incoming === settled){
+      // 同一期重复获取：只刷新显示，不重复结算
+      lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
+      updateDrawInfoBar();
+      if(typeof renderOrdersList==='function') renderOrdersList();
+      return;
+    }
+    var drawStr = '开' + m.draw + ' ' + nums.join('.');
+    document.getElementById('input').value = drawStr;
+    localStorage.setItem('lastDrawPeriod', String(incoming));
+    autoPayout();
+  }
+  var tries = retry || 0;
+  // 只读同源快照：不跨域、不受代理干扰；失败自动重试，不长时间卡住
+  fetch('draw-latest.json?t=' + Date.now(), {cache: 'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('snapshot missing'); return r.json(); })
     .then(function(d){
-      btn.textContent = '自动获取开奖';
-      btn.disabled = false;
-      var m = d.latest && d.latest.macao;
-      if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
-        myAlert('未获取到开奖数据');
-        return;
-      }
-      var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
-      var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
-      renderLiveBalls(m.winner_numbers, true);
-      if(parseInt(m.draw) <= already){
-        // 已结算过，更新显示但不重复结算
-        lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
-        updateDrawInfoBar();
-        if(typeof renderOrdersList==='function') renderOrdersList();
-        return;
-      }
-      var drawStr = '开' + m.draw + ' ' + nums.join('.');
-      document.getElementById('input').value = drawStr;
-      autoPayout();
+      var snap = d && d.macao;
+      if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('snapshot empty');
+      done();
+      applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
     })
-    .catch(function(e){
-      btn.textContent = '自动获取开奖';
-      btn.disabled = false;
-      myAlert('获取失败，请检查网络');
+    .catch(function(){
+      if(tries < 2){
+        setTimeout(function(){ autoFetchDraw(tries + 1); }, 1500);
+        return;
+      }
+      done();
+      myAlert('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，或手动粘贴，例如：开318 10.36.02.09.26.37.38');
     });
 }
 // 号码颜色：红/蓝/绿
 function ballColor(n){
+  n = parseInt(n); // 转成数字
   var red=[1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
   var blue=[3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
   if(red.indexOf(n)>=0) return '#e74c3c';
@@ -3445,11 +3640,70 @@ function renderLiveBalls(nums, specialFlag){
   if(!box) return;
   if(!nums || nums.length === 0){ box.style.display='none'; return; }
   box.style.display='flex';
-  box.innerHTML = nums.map(function(n, i){
+  // 加深的波色
+  var redNums = [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
+  var blueNums = [3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
+  var html = '';
+  for(var i=0; i<nums.length; i++){
+    var n = parseInt(nums[i]);
     var isSpecial = specialFlag && i === nums.length-1 && nums.length >= 7;
-    var c = ballColor(n);
-    return '<div style="width:32px;height:32px;border-radius:50%;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;'+(isSpecial?'box-shadow:0 0 0 2px #f1c40f;':'')+'">'+String(n).padStart(2,'0')+'</div>';
-  }).join('');
+    var color = '#1f7a4c'; // 深绿
+    for(var j=0; j<redNums.length; j++){
+      if(redNums[j] == n){ color = '#c8322b'; break; } // 深红
+    }
+    if(color == '#1f7a4c'){
+      for(var j=0; j<blueNums.length; j++){
+        if(blueNums[j] == n){ color = '#2456a6'; break; } // 深蓝
+      }
+    }
+    // 特号与其他号码同样大小，不加圈、不加粗，靠下方「特xx」文字区分
+    html += '<span style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:'+color+';'
+         + 'display:flex;align-items:center;justify-content:center;'
+         + 'font-size:23px;font-weight:700;line-height:1;letter-spacing:-.4px;'
+         + 'color:#fff !important;font-variant-numeric:tabular-nums;">'+String(n).padStart(2,'0')+'</span>';
+  }
+  box.innerHTML = html;
+}
+// 下拉刷新 / 点「刷新」：收起号码 + 检查线上有没有新版，不碰开奖数据
+function refreshPage(){
+  hideLiveBalls();
+  var btn = document.getElementById('refreshBtn');
+  if(btn) btn.textContent = '检查中…';
+  fetch('version.txt?t=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(function(v){
+      var remote = String(v || '').trim();
+      if(remote && remote !== APP_VER){
+        if(btn) btn.textContent = '刷新';
+        myChoice('有新版本',
+          '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
+          ['现在更新到最新', '保持当前版本，以后不提醒', '这次先不动'],
+          function(i){
+            if(i === 0){
+              localStorage.removeItem('aiProPinVer');
+              location.replace('./app.html?v=' + Date.now());
+            } else if(i === 1){
+              localStorage.setItem('aiProPinVer', APP_VER);
+              myAlert('已锁定 ' + APP_VER + '。\n以后打开都停在这个版本，不会再自动变。\n想换回最新版：点刷新，选「现在更新到最新」。');
+            }
+          });
+      } else if(btn){
+        btn.textContent = '已是最新';
+        setTimeout(function(){ if(btn) btn.textContent = '刷新'; }, 1600);
+      } else {
+        if(btn) btn.textContent = '已是最新';
+        setTimeout(function(){ if(btn) btn.textContent = '刷新'; }, 1600);
+      }
+    })
+    .catch(function(){
+      if(btn) btn.textContent = '刷新';
+      myAlert('检查更新失败（网络暂时不通）。\n不影响录单，过一会儿再点刷新即可。');
+    });
+}
+// 收起号码球（开奖记录和已结算的数据都不动）
+function hideLiveBalls(){
+  var box = document.getElementById('liveBalls');
+  if(box){ box.style.display = 'none'; box.innerHTML = ''; }
 }
 // 自动定时获取开奖：21:33-21:35每秒刷新，号码逐个出来实时显示，稳定后才结算
 var _liveDrawLast = '';
@@ -3503,63 +3757,20 @@ setInterval(function(){
     })
     .catch(function(){});
 }, 1000);
-// ========== 本地MNN Chat AI解析 ==========
-async function parseOrderByLocalAI(inputText) {
-  try {
-    const url = "http://127.0.0.1:8080/v1/chat/completions";
-    const systemPrompt = `你是订单解析器，只输出标准JSON，不要多余文字。
-
-支持的订单格式：
-1. 特码生肖：如"马兔各5米" → 特码，生肖马兔，每肖5元
-2. 平特生肖：如"平马龙8米" → 平特，生肖马龙，每肖8元
-3. 三中三：如"19 16 35三中三5" → 三个数字，每注5元
-4. 二中二：如"19 16二中二5" → 两个数字，每注5元
-5. 连肖：如"马连龙兔10米" → 连肖，马连龙兔，10元
-6. 分地区：如"澳门："、"香港" 开头的行，分别归属对应地区
-
-规则：
-- "各X"代表每个生肖/每注金额X
-- 识别不清楚、有歧义时返回 {"ok":false,"msg":"需要确认"}
-- 输出格式：{"ok":true,"data":[{"type":"特/平特/三中三/二中二/连肖","xiao":["马","兔"],"nums":[19,16,35],"money":5,"region":"澳门/香港"}]}
-- type只能是：特、平特、三中三、二中二、连肖
-- xiao字段是生肖数组，nums字段是数字数组，根据订单类型填对应字段
-- region字段：澳门/香港，默认澳门
-
-只输出JSON，不要解释！`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "qwen",
-        messages: [{role:"system", content:systemPrompt}, {role:"user", content:inputText}],
-        temperature: 0.1
-      })
-    });
-    const json = await res.json();
-    const content = json.choices[0].message.content.trim();
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if(jsonMatch) return JSON.parse(jsonMatch[0]);
-    return {ok:false, msg:"AI返回格式错误"};
-  } catch(e) {
-    return {ok:false, msg:"本地AI服务未启动"};
-  }
-}
-
-let _useLocalAI = false;
-function toggleLocalAI(){
-  _useLocalAI = !_useLocalAI;
-  const btn = document.getElementById('aiToggleBtn');
-  if(_useLocalAI){
-    btn.textContent = 'AI:开';
-    btn.style.background = '#7c3aed';
-    btn.style.color = '#fff';
-    alert('本地AI已开启！\n请确保MNN Chat的API服务已经启动');
-  } else {
-    btn.textContent = 'AI:关';
-    btn.style.background = '#eee';
-    btn.style.color = '#999';
-  }
-}
+// 页面加载完成后自动测试AI连接
+window.onload = function(){
+  // 下拉刷新：收起号码 + 查线上版本；开奖号码仍然只能点按钮手动获取
+  var stY = 0, pulled = false;
+  document.addEventListener('touchstart', function(e){
+    stY = e.touches[0].clientY;
+    pulled = false;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    if(pulled) return;
+    var diff = e.changedTouches[0].clientY - stY;
+    if(window.scrollY < 60 && diff > 110){ pulled = true; refreshPage(); }
+  }, {passive: true});
+};
 
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
@@ -3569,8 +3780,355 @@ function handleSave(){
       autoPayout(); return;
     }
   }
+  
+  doSave();
+}
+
+function showFixDialog(rawLine, msg){
+  var src = String(rawLine||'').trim();
+  if(!src) return false;
+  // 1) 找金额（各/每/单位词/末尾数字）
+  var price = null, priceTxt = '';
+  var pe = src.match(/(\d+(?:\.\d+)?)\s*(?:元|米|块|钱|圆|RMB|rmb)/);
+  if(pe){ price = parseFloat(pe[1]); priceTxt = pe[0]; }
+  if(price === null){
+    var pe2 = src.match(/(?:各|每)(?:数|号|个|肖|组)?\s*(\d+(?:\.\d+)?)/);
+    if(pe2){ price = parseFloat(pe2[1]); priceTxt = pe2[0]; }
+  }
+  var body = priceTxt ? src.replace(priceTxt, ' ') : src;
+  // 2) 抽号码 01-49
+  var nums = [], seen = {};
+  var re = /(\d{1,2})(?:\.(\d{1,2}))?/g, m;
+  while((m = re.exec(body)) !== null){
+    var cand = [m[1]];
+    if(m[2]) cand.push(m[2]);
+    cand.forEach(function(c){
+      var n = parseInt(c, 10);
+      if(n >= 1 && n <= 49 && !seen[n]){ seen[n] = 1; nums.push(('0'+n).slice(-2)); }
+    });
+  }
+  // 3) 抽生肖
+  var zods = [], zseen = {};
+  (src.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g) || []).forEach(function(z){
+    if(!zseen[z]){ zseen[z] = 1; zods.push(z); }
+  });
+  // 4) 什么都没有就不补救
+  if(nums.length === 0 && zods.length === 0) return false;
+  if(!price){
+    // 没金额：默认 10？不给乱猜，提示用户补金额
+    var amt = prompt('这行没找到金额，输入每个多少钱：', '10');
+    if(!amt) return false;
+    price = parseFloat(amt);
+    if(!price) return false;
+  }
+  var kind = (nums.length > 0 && zods.length === 0) ? '号码' :
+             (zods.length > 0 && nums.length === 0) ? '生肖' : '号码';
+  var preview = '', teLine = '', pingLine = '';
+  if(kind === '号码'){
+    preview = '特号 ' + nums.join(' ') + '（' + nums.length + '个）各 ' + price + '米';
+    teLine = '特' + nums.join('.') + '各' + price + '米';
+    pingLine = '平特' + nums.join('.') + '各' + price + '米';
+  } else {
+    preview = '生肖 ' + zods.join('') + '（' + zods.length + '肖）各 ' + price + '米';
+    teLine = '特' + zods.join('') + '各' + price + '米';
+    pingLine = '平特' + zods.join('') + '各' + price + '米';
+  }
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:18px 20px 6px;font-size:16px;font-weight:700;text-align:center;color:#333">这行没认出来</div>'
+    + '<div style="padding:0 20px 8px;font-size:12px;color:#999;text-align:center;word-break:break-all">' + src + '</div>'
+    + '<div style="padding:0 20px 16px;font-size:14px;color:#333;text-align:center">我认成：<b>' + preview + '</b><br><span style="font-size:12px;color:#888">这样存对吗？</span></div>'
+    + '<div style="border-top:1px solid #eee">'
+    + '<button id="fxTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#c0392b;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
+    + '<button id="fxPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#2471a3;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
+    + '<button id="fxCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  function apply(line){
+    ov.remove();
+    var box = document.getElementById('input');
+    var arr = box.value.split('\n');
+    var idx = -1;
+    for(var i = 0; i < arr.length; i++){
+      if(arr[i].trim() === src){ idx = i; break; }
+    }
+    if(idx < 0) idx = 0;
+    arr[idx] = line;
+    box.value = arr.join('\n');
+    doSave();
+  }
+  ov.querySelector('#fxTe').onclick = function(){ apply(teLine); };
+  ov.querySelector('#fxPing').onclick = function(){ apply(pingLine); };
+  ov.querySelector('#fxCancel').onclick = function(){ ov.remove(); };
+  return true;
+}
+function _mtLabel(t){ for(var i=0;i<MANUAL_TYPES.length;i++){ if(MANUAL_TYPES[i][0]===t) return MANUAL_TYPES[i][1]; } return t; }
+function buildManualCodes(type, val){
+  val = String(val||'');
+  var zs = val.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g) || [];
+  var nums = (val.match(/\d{1,2}/g)||[]).map(function(n){return ('0'+n).slice(-2);}).filter(function(n){var v=parseInt(n,10);return v>=1&&v<=49;});
+  if(type==='num'){ if(!nums.length) return {err:'没填号码'}; return {codes:nums}; }
+  if(type==='tezod'){ if(!zs.length) return {err:'没填生肖'}; var out=[]; zs.forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ out.push(('0'+n).slice(-2)); }); }); return {codes:out}; }
+  if(type==='ping'){ if(!zs.length) return {err:'没填生肖'}; return {codes:zs.map(function(z){return '平特'+z;})}; }
+  if(type==='lian'){ if(zs.length<2) return {err:'连肖至少 2 个肖'}; if(zs.length>4) return {err:'连肖最多 4 个肖'}; return {codes:['连肖'+zs.join('')]}; }
+  if(type==='wave'){
+    var w = val.match(/红|蓝|绿/); if(!w) return {err:'没写红/蓝/绿'};
+    var c = w[0]+'波';
+    if(/单/.test(val)) c += '单'; else if(/双/.test(val)) c += '双';
+    if(/大/.test(val)) c += '大'; else if(/小/.test(val)) c += '小';
+    if(!products.find(function(p){return p.code===c;})) return {err:'没有「'+c+'」这个产品'};
+    return {codes:[c]};
+  }
+  if(type==='sd') return {codes:[/双/.test(val)?'双数':'单数']};
+  if(type==='big') return {codes:[/小/.test(val)?'小':'大']};
+  if(type==='he') return {codes:[/双/.test(val)?'合数双':'合数单']};
+  var m = val.match(/\d/);
+  if(type==='head'){
+    if(!m) return {err:'填一个数字 0-4'};
+    var h = parseInt(m[0],10); if(h>4) return {err:'头数只能 0-4'};
+    var hs=[]; for(var i=h*10+1; i<=h*10+9 && i<=49; i++) hs.push(('0'+i).slice(-2));
+    return {codes:hs};
+  }
+  if(type==='tail'){
+    if(!m) return {err:'填一个数字 0-9'};
+    var t = parseInt(m[0],10); var ts=[];
+    for(var j=1;j<=49;j++){ if(j%10===t) ts.push(('0'+j).slice(-2)); }
+    return {codes:ts};
+  }
+  if(type==='ez'){ if(nums.length<2) return {err:'二中二要 2 个号码'}; return {codes:['二中二:'+nums.slice(0,2).join(',')]}; }
+  if(type==='sz'){ if(nums.length<3) return {err:'三中三要 3 个号码'}; return {codes:['三中三:'+nums.slice(0,3).join(',')]}; }
+  return {err:'未知类型'};
+}
+function updateManualPreview(){
+  var el = document.getElementById('mtPreview'); if(!el) return;
+  var val = (document.getElementById('mtVal')||{}).value || '';
+  var price = parseFloat((document.getElementById('mtPrice')||{}).value || '0');
+  var mode = (document.getElementById('mtMode')||{}).value || 'per';
+  var r = buildManualCodes(_mtType, val);
+  if(r.err){ el.style.color='#cf1322'; el.textContent='提示：'+r.err; return; }
+  var qty = r.codes.length;
+  var total = (mode==='per') ? qty*price : price;
+  el.style.color='#666';
+  el.textContent = '将记成：' + r.codes.slice(0,6).join(' ') + (qty>6?' …':'') + '（共 '+qty+' 项）' + (price>0 ? ' · 合计 ' + (mode==='per'?(qty*price).toFixed(2):price.toFixed(2)) + '元' : '');
+}
+function openManualEntry(){
+  var old = document.getElementById('manualOverlay'); if(old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'manualOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px 16px 0 0;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:18px 16px 26px;color:#333">'
+    + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:4px">手动录入（应急）</div>'
+    + '<div style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;line-height:1.6">识别不了时用这个：选类型 → 填内容 → 填金额，系统不再猜</div>'
+    + '<div id="mtGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px"></div>'
+    + '<input id="mtVal" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;margin-bottom:8px">'
+    + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+    + '<input id="mtPrice" type="number" inputmode="decimal" placeholder="金额" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">'
+    + '<select id="mtMode" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff"><option value="per">每个各 X</option><option value="total">总共 X</option></select>'
+    + '</div>'
+    + '<div id="mtPreview" style="font-size:12px;color:#666;margin-bottom:10px;min-height:18px;line-height:1.6"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button id="mtCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:15px">取消</button>'
+    + '<button id="mtSave" style="flex:1;padding:12px;border:none;border-radius:10px;background:#1a1a1a;color:#fff;font-size:15px;font-weight:700">保存</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  var grid = document.getElementById('mtGrid');
+  MANUAL_TYPES.forEach(function(t){
+    var b = document.createElement('button');
+    b.textContent = t[1];
+    b.style.cssText = 'padding:9px 2px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;font-weight:600;color:#333';
+    if(t[0]===_mtType){ b.style.background='#1a1a1a'; b.style.color='#fff'; b.style.borderColor='#1a1a1a'; }
+    b.onclick = function(){
+      _mtType = t[0];
+      grid.querySelectorAll('button').forEach(function(x){ x.style.background='#fff'; x.style.color='#333'; x.style.borderColor='#ddd'; });
+      b.style.background='#1a1a1a'; b.style.color='#fff'; b.style.borderColor='#1a1a1a';
+      document.getElementById('mtVal').placeholder = MT_HINT[t[0]] || '';
+      updateManualPreview();
+    };
+    grid.appendChild(b);
+  });
+  document.getElementById('mtVal').placeholder = MT_HINT[_mtType] || '';
+  ['mtVal','mtPrice','mtMode'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', updateManualPreview);
+    el.addEventListener('change', updateManualPreview);
+  });
+  document.getElementById('mtCancel').onclick = function(){ ov.remove(); };
+  document.getElementById('mtSave').onclick = function(){ manualSave(ov); };
+  updateManualPreview();
+}
+function manualSave(ov){
+  var val = (document.getElementById('mtVal')||{}).value || '';
+  var price = parseFloat((document.getElementById('mtPrice')||{}).value || '0');
+  var mode = (document.getElementById('mtMode')||{}).value || 'per';
+  if(!(price > 0)){ myAlert('请填金额'); return; }
+  var r = buildManualCodes(_mtType, val);
+  if(r.err){ myAlert(r.err); return; }
+  var codes = r.codes.slice();
+  var qty = codes.length;
+  var unit = (mode==='per') ? price : (price/qty);
+  var amount = qty * unit;
+  var allCodes = [], codeAmts = {};
+  codes.forEach(function(c){ allCodes.push(c); codeAmts[c] = (codeAmts[c]||0) + unit; });
+  var customer = (document.getElementById('customerName').value || '').trim() || '散客';
+  orders.push({
+    id: String(Date.now()) + '-' + Math.random().toString(36).slice(2,7),
+    customer: customer,
+    raw: '[手动] ' + _mtLabel(_mtType) + ' ' + val + ' ' + (mode==='per'?'各':'共') + price,
+    price: amount,
+    qty: allCodes.length,
+    amount: amount,
+    codes: allCodes,
+    codeAmts: codeAmts,
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false })
+  });
+  if(customer !== '散客' && roster.indexOf(customer) < 0){ roster.push(customer); saveRoster(); }
+  saveOrders();
+  if(ov) ov.remove();
+  var msg = '已手动保存（' + _mtLabel(_mtType) + '）<br>' + allCodes.slice(0,8).join(' ') + (allCodes.length>8?' …':'') +
+            '<br>合计<span style="font-size:16px;font-weight:700">' + amount.toFixed(2) + '元</span>';
+  document.getElementById('saveMsg').innerHTML = msg;
+  renderAll();
+}
+
+
+/* ===== 一行多项：多个"多号产品+金额"合并成一次多选弹窗 ===== */
+function _miProducts(){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  return products.filter(function(p){
+    return p.code && !/^\d{2}$/.test(p.code) && (p.links || []).length > 1
+      && !new RegExp('^[' + ZODS + ']$').test(p.code)
+      && !/平特|连肖|二中二|三中三|三中二/.test(p.code);
+  });
+}
+function scanMultiItems(text){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  var out = [], m, prod;
+  var list = _miProducts();
+  if(list.length){
+    var names = list.map(function(p){ return p.code; }).sort(function(a,b){ return b.length - a.length; });
+    var esc = names.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    var re = new RegExp('(' + esc.join('|') + ')\\s*([0-9]+(?:\\.[0-9]+)?)', 'g');
+    while((m = re.exec(text))){
+      prod = list.filter(function(p){ return p.code === m[1]; })[0];
+      if(!prod) continue;
+      var tail = text.slice(m.index + m[1].length, m.index + m[0].length - m[2].length);
+      if(/各|共|号|数|个/.test(tail)) continue;
+      out.push({ kind:'wave', name:m[1], disp:m[1], amt:parseFloat(m[2]), count:prod.links.length, idx:m.index, len:m[0].length });
+    }
+  }
+  var reP = new RegExp('平特?([' + ZODS + ']{2,})\\s*([0-9]+(?:\\.[0-9]+)?)', 'g');
+  while((m = reP.exec(text))){
+    if(out.some(function(o){ return m.index >= o.idx && m.index < o.idx + o.len; })) continue;
+    var mid = text.slice(m.index + 1 + m[1].length, m.index + m[0].length - m[2].length);
+    if(/各|共|号|数|个/.test(mid)) continue;
+    if(m[1].length < 2) continue;
+    out.push({ kind:'ping', name:'平' + m[1], disp:'平' + m[1], amt:parseFloat(m[2]), count:m[1].length, idx:m.index, len:m[0].length, zods:m[1].split('') });
+  }
+  var re2 = /([单双])\s*([0-9]+(?:\.[0-9]+)?)/g;
+  while((m = re2.exec(text))){
+    if(text.slice(m.index - 1, m.index) === '数') continue;
+    if(out.some(function(o){ return m.index >= o.idx && m.index < o.idx + o.len; })) continue;
+    var code2 = (m[1] === '单') ? '单数' : '双数';
+    prod = products.filter(function(p){ return p.code === code2; })[0];
+    if(!prod) continue;
+    out.push({ kind:'wave', name:code2, disp:m[1], amt:parseFloat(m[2]), count:prod.links.length, idx:m.index, len:m[0].length });
+  }
+  out.sort(function(a,b){ return a.idx - b.idx; });
+  return out;
+}
+function showMultiDlg(items, text){
+  var ans = items.map(function(){ return null; });
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var rows = '';
+  items.forEach(function(it, i){
+    var unit = (it.kind === 'ping') ? '肖' : '个号';
+    var aLabel = (it.kind === 'ping') ? ('共' + it.amt + '（每肖' + (it.amt / it.count).toFixed(2) + '）') : ('共' + it.amt + '（每号' + (it.amt / it.count).toFixed(2) + '）');
+    var bLabel = (it.kind === 'ping') ? ('每肖' + it.amt + '（共' + (it.count * it.amt) + '）') : ('每号' + it.amt + '（共' + (it.count * it.amt) + '）');
+    rows += '<div style="padding:10px 0;border-top:1px solid #eee">'
+      + '<div style="font-size:13px;color:#666;margin-bottom:6px">' + (it.disp || it.name) + ' ' + it.amt + '元（' + it.count + unit + '）</div>'
+      + '<div style="display:flex;gap:6px">'
+      + '<button data-i="' + i + '" data-v="total" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + aLabel + '</button>'
+      + '<button data-i="' + i + '" data-v="per" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + bLabel + '</button>'
+      + '</div></div>';
+  });
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:16px 16px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">这个订单有 ' + items.length + ' 项要选</div>'
+    + '<div style="padding:0 16px 8px;font-size:12px;color:#999;text-align:center">每项选一个，全选完点确定</div>'
+    + '<div style="padding:0 16px">' + rows + '</div>'
+    + '<div style="padding:12px 16px 16px;display:flex;gap:8px;border-top:1px solid #eee">'
+    + '<button id="miCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;color:#666">取消</button>'
+    + '<button id="miOk" disabled style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#aaa;font-size:14px;font-weight:700">确定</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelectorAll('button[data-i]').forEach(function(b){
+    b.setAttribute('data-base', b.textContent);
+    b.onclick = function(){
+      var i = parseInt(b.getAttribute('data-i'), 10), v = b.getAttribute('data-v');
+      ans[i] = v;
+      ov.querySelectorAll('button[data-i="' + i + '"]').forEach(function(x){
+        var on = (x === b);
+        x.textContent = x.getAttribute('data-base') + (on ? '  ✓' : '');
+        x.style.setProperty('background', on ? '#ececec' : '#fff', 'important');
+        x.style.setProperty('color', on ? '#111' : '#666', 'important');
+        x.style.setProperty('border-color', on ? '#111' : '#ddd', 'important');
+        x.style.setProperty('border-width', on ? '2px' : '1px', 'important');
+        x.style.setProperty('font-weight', on ? '700' : '400', 'important');
+      });
+      var left = items.length - ans.filter(function(x){ return x; }).length;
+      var ok = ov.querySelector('#miOk');
+      ok.disabled = (left > 0);
+      ok.textContent = (left > 0) ? ('确定（还差' + left + '项）') : '确定';
+      ok.style.setProperty('background', '#fff', 'important');
+      ok.style.setProperty('color', left > 0 ? '#aaa' : '#111', 'important');
+      ok.style.setProperty('border-color', left > 0 ? '#ddd' : '#111', 'important');
+      ok.style.setProperty('border-width', left > 0 ? '1px' : '2px', 'important');
+    };
+  });
+  ov.querySelector('#miCancel').onclick = function(){ ov.remove(); };
+  ov.querySelector('#miOk').onclick = function(){
+    if(ov.querySelector('#miOk').disabled) return;
+    ov.remove();
+    var pairs = items.map(function(it, i){ return { it: it, v: ans[i] }; })
+                     .sort(function(a, b){ return b.it.idx - a.it.idx; });
+    var newText = text;
+    pairs.forEach(function(p){
+      var it = p.it, rep = '';
+      var per = (p.v === 'per') ? it.amt : (it.amt / it.count);
+      var s = per.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+      if(it.kind === 'ping'){
+        rep = (it.zods || []).map(function(z){ return '平' + z + s; }).join(String.fromCharCode(10));
+      } else {
+        var pd = products.filter(function(x){ return x.code === it.name; })[0];
+        var lk = (pd && pd.links) || [];
+        rep = lk.length ? lk.map(function(n){ return n + ' ' + s; }).join(String.fromCharCode(10))
+                        : (it.name + '各' + s);
+      }
+      var NL = String.fromCharCode(10);
+      newText = newText.slice(0, it.idx) + NL + rep + NL + newText.slice(it.idx + it.len);
+    });
+    doSave(newText);
+  };
+}
+function doSave(overrideText){
+  /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
+     waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
+                                       → 'total'  总额10（摊17号，每号0.59）
+     teZod      : 特马龙兔50            → 'perZod' 每肖50（4单共200）
+                                       → 'perNum' 该肖全部号码各50
+     pingZod    : 平特马龙兔80          → 'perZod' 每肖80（3单共240）
+                                       → 'pingTotal' 共80平分                                    */
+  var PARSE_DEFAULTS = (typeof window !== 'undefined' && window.PARSE_DEFAULTS) || {
+    waveAmount: null,
+    teZod: 'perZod',
+    pingZod: null,
+    bareNumAmount: null
+  };
   try {
-  let text = document.getElementById('input').value;
+  var _isOverride = (overrideText !== undefined && overrideText !== null);
+  var _rawIn = (document.getElementById('input') || {}).value || '';
+  let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
   text = text.split('\n').map(line => {
@@ -3583,11 +4141,26 @@ function handleSave(){
     }
     return line;
   }).filter(l => l !== '').join('\n');
-  document.getElementById('input').value = text;
+  if(!_isOverride) document.getElementById('input').value = text;
+  // 一行里出现多个"多号产品+金额" → 一次弹窗全选完，不用弹多次
+  try {
+    var _miItems = scanMultiItems(text);
+    if(_miItems.length >= 2){ showMultiDlg(_miItems, text); return; }
+  } catch(e){}
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
     const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
-    if(pingMatch && !/[数号]/.test(pingMatch[2])){
+    if(pingMatch && !/[数号]/.test(pingMatch[2]) && pingMatch[1].length === 1){
+      // 单个平特肖：单一对象，不问，直接按每肖
+      const pzs1 = pingMatch[1], pps1 = parseFloat(pingMatch[3]);
+      text = text.replace(new RegExp('平特?(' + pzs1 + ')\\s*(?:各|数|号|个)*\\s*' + pps1), '平' + pzs1 + pps1);
+      document.getElementById('input').value = text;
+    } else if(pingMatch && !/[数号]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
+      const pz2 = pingMatch[1], pp2 = parseFloat(pingMatch[3]);
+      text = text.replace(new RegExp('平特?(' + pz2 + ')\\s*(?:各|数|号|个)*\\s*' + pp2),
+        () => pz2.split('').map(z => '平' + z + pp2).join('\n'));
+      document.getElementById('input').value = text;
+    } else if(pingMatch && !/[数号]/.test(pingMatch[2])){
       const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
       const ov = document.createElement('div');
       ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -3599,7 +4172,15 @@ function handleSave(){
         + '<button id="pC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
         + '</div></div>';
       document.body.appendChild(ov);
-      ov.querySelector('#pA').onclick = () => { ov.remove(); _texiaoChoice='pingTotal'; handleSave(); };
+      ov.querySelector('#pA').onclick = () => {
+        ov.remove();
+        const _pun = pp / pz.length;
+        text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
+          () => pz.split('').map(z => '平' + z + _pun.toFixed(4)).join('\n'));
+        document.getElementById('input').value = text;
+        _texiaoChoice = 'pingPerZod';
+        handleSave();
+      };
       ov.querySelector('#pB').onclick = () => {
         ov.remove();
         // 拆成每个肖一行：平虎80 平龙80 平兔80
@@ -3616,13 +4197,21 @@ function handleSave(){
   if(!_texiaoChoice){
     const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
     // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
-    if(txMatch && /[数号]/.test(txMatch[2])){
+    if(txMatch && /[数号各]/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
+    } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
+      const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
+      const allNums2 = [];
+      zods3.split('').forEach(z => (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums2.push(String(n).padStart(2,'0'))));
+      text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g,
+        () => allNums2.join(' ') + '各' + pp4);
+      document.getElementById('input').value = text;
     } else if(txMatch){
       const zods = txMatch[1];
       const price = parseFloat(txMatch[3]);
       {
-        const numCount = zods.length * 4;
+        let numCount = 0;
+        zods.split('').forEach(z => { numCount += ((NUM2ZODIAC_REV[z] || []).length); });
         const ov = document.createElement('div');
         ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
         ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
@@ -3633,7 +4222,7 @@ function handleSave(){
           + '<button id="txC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
           + '</div></div>';
         document.body.appendChild(ov);
-        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='perZod'; handleSave(); };
+        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='total'; handleSave(); };
         ov.querySelector('#txB').onclick = () => { ov.remove(); _texiaoChoice='perNum'; handleSave(); };
         ov.querySelector('#txC').onclick = () => { ov.remove(); _texiaoChoice=null; };
         return;
@@ -3659,11 +4248,8 @@ function handleSave(){
     // 合数单/合数双 特殊处理
     if(text.includes('合数单')){ wave=null; sd='合数单'; dx=null; }
     else if(text.includes('合数双')){ wave=null; sd='合数双'; dx=null; }
-    // 单数/双数单独（无波色）
-    if(!wave && sd && (sd==='单'||sd==='双')){
-      // 检查是否就是"单数"或"双数"产品
-      if(text.match(/^[\s]*(单数|双数)/)) sd = sd+'数';
-    }
+    // 单数/双数单独（无波色）：系统里产品名是"单数""双数"，裸"单/双"要补成"数"
+    if(!wave && sd && (sd==='单'||sd==='双')){ sd = sd+'数'; }
     if(wave || sd || dx){
       let canonical = '';
       if(wave) canonical += wave;
@@ -3706,9 +4292,13 @@ function handleSave(){
         }
         if(!window._waveChoice){
           // 只有明确写了"各号"或"各数"才不弹窗
-          const hasExplicit = text.includes('各号') || text.includes('各数');
+          const hasExplicit = text.includes('各号') || text.includes('各数') || text.includes('各');
           if(hasExplicit){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
+          } else if(PARSE_DEFAULTS.waveAmount){
+            window._waveChoice = PARSE_DEFAULTS.waveAmount;
+            window._waveCanonical = canonical;
+            if(PARSE_DEFAULTS.waveAmount === 'perNum') window._waveLastPerNum = true;
           } else {
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
@@ -3737,10 +4327,18 @@ function handleSave(){
             if(m==='各') return m;
             return window._waveCanonical;
           });
+          const _wcChoice = window._waveChoice;
           window._waveChoice = null;
           const wc = window._waveCanonical;
           window._waveCanonical = null;
-          if(window._waveLastPerNum){
+          if(_wcChoice === 'total'){
+            const _wp = products.find(function(x){ return x.code === wc; });
+            const _wn = _wp && _wp.links ? _wp.links.length : 0;
+            const _wre = new RegExp(wc + '\\s*(?:各|数|号|个)?\\s*([0-9]+(?:\\.[0-9]+)?)');
+            if(_wn > 0){
+              text = text.replace(_wre, function(m, amt){ return wc + '各' + (parseFloat(amt)/_wn).toFixed(4); });
+            }
+          } else if(window._waveLastPerNum){
             text = text.replace(wc, wc+'各');
             window._waveLastPerNum = false;
           }
@@ -3759,17 +4357,16 @@ function handleSave(){
     _texiaoChoice = null;
     text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
       const p = parseFloat(price);
-      if(choice === 'perZod'){
-        // 各肖：每肖一个数，各肖数
-        return zods.split('').map(z => z + '数' + p).join(' ');
-      } else {
-        // 各数：所有号码各X
-        const allNums = [];
-        zods.split('').forEach(z => {
-          (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums.push(String(n).padStart(2,'0')));
-        });
-        return allNums.join(' ') + '各' + p;
+      const allNums = [];
+      zods.split('').forEach(z => {
+        (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums.push(String(n).padStart(2,'0')));
+      });
+      if(choice === 'total'){
+        // 平分：总额摊到每个号码
+        return allNums.join(' ') + '各' + (p / allNums.length).toFixed(4);
       }
+      // 各号：每个号 X
+      return allNums.join(' ') + '各' + p;
     });
   }
   // 智能拆分：按金额锚点切分一行里的多笔订单
@@ -3788,7 +4385,12 @@ function handleSave(){
       var _before = _t.substring(0, _m.index);
       var _last = _before.slice(-1);
       var _isAmt = false;
-      if(_num > 49) _isAmt = true;
+      var _after = _t.charAt(_m.index + _m[0].length);
+      // 点分隔号码（05.17.29）和横杠号码不算金额，避免把一行号码拆成两单
+      if(_last === '.' || _after === '.') _isAmt = false;
+      // 行首的"特"是玩法前缀，紧贴的数字是号码不是金额
+      else if(_last === '特' && _before.trim() === '特') _isAmt = false;
+      else if(_num > 49) _isAmt = true;
       else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头尾]/.test(_last)) _isAmt = true;
       if(_isAmt) _amts.push({i:_m.index, l:_m[0].length});
     }
@@ -3806,7 +4408,28 @@ function handleSave(){
       // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
       var _nums = _t.match(/\d{1,2}/g);
       var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
-      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0){
+      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
+        var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
+        window.__ambigAbort = true;
+        myChoice('这4个数字怎么算？', _a1+' '+_a2+' '+_a3+' '+_a4, [
+          '两笔：'+_a1+'号'+_a2+'元 + '+_a3+'号'+_a4+'元',
+          '一笔：'+_a1+' '+_a2+' '+_a3+' 各'+_a4+'元（3号共'+(3*parseFloat(_a4))+'元）',
+          '一笔：'+_a1+' '+_a2+' '+_a3+' 共'+_a4+'元（3号分）',
+          '重新编辑'
+        ], function(pick){
+          window.__ambigAbort = false;
+          var inp = document.getElementById('input');
+          if(pick===0){
+            window.__skipPair = true; handleSave();
+          } else if(pick===1){
+            inp.value = _a1+' '+_a2+' '+_a3+'各'+_a4; handleSave();
+          } else if(pick===2){
+            inp.value = _a1+' '+_a2+' '+_a3+'各'+(parseFloat(_a4)/3).toFixed(4); handleSave();
+          }
+        });
+        return;
+      }
+      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !/三中三|二中二|三中二/.test(_t)){
         var _positions = [];
         var _re2 = /\d{1,2}/g; var _mm;
         while((_mm = _re2.exec(_t)) !== null) _positions.push({i:_mm.index, l:_mm[0].length});
@@ -3818,8 +4441,14 @@ function handleSave(){
       }
     }
   } else {
-    rawLines = text.split(/[\r\n。；;]+/);
+    // 混合订单：一行里用逗号/顿号写多注单时拆成多行（先保护"二中二:02,15"里的号码逗号）
+    var _mix = text, _keepMix = [];
+    _mix = _mix.replace(/(二中二|三中三|三中二):([0-9,]+)/g, function(m, p, n){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
+    _mix = _mix.replace(/[，,]+/g, '\n');
+    _mix = _mix.replace(/§(\d+)§/g, function(m, i){ return _keepMix[parseInt(i)]; });
+    rawLines = _mix.split(/[\r\n。；;]+/);
   }
+  window.__skipPair = false;
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ myAlert('请先粘贴订单内容'); return; }
 
@@ -3925,7 +4554,9 @@ renderAll();
       if(r){
         // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）
         const allBareNums = !window.__skipAmbig && r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
-        if(allBareNums){
+        if(allBareNums && PARSE_DEFAULTS.bareNumAmount === 'perNum'){
+          r.isPer = true;
+        } else if(allBareNums){
           window.__ambigAbort = true;
           var _codes = r.codes.join(' ');
           var _price = r.price;
@@ -3983,14 +4614,28 @@ renderAll();
         } catch(e2){}
       }
       errors.push(`第${i+1}行：${e.message}`);
+      if(!window.__failedLines) window.__failedLines = [];
+      window.__failedLines.push({ idx: i+1, raw: line, msg: e.message });
     }
   });
 
   if(window.__ambigAbort){ window.__ambigAbort = false; return; }
   if(errors.length > 0){
+    // 报错后复位：一次识别失败不再拖累下一次
+    _texiaoChoice = null;
+    window.__ambigAbort = false;
+    window._waveChoice = null;
+    window._waveCanonical = null;
+    window._waveLastPerNum = false;
+    var _inp = document.getElementById('input');
+    if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
+    var _fail = (window.__failedLines || [])[0];
+    window.__failedLines = [];
+    if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
     myAlert('无法识别：' + errors[0]);
     return;
   }
+  window.__failedLines = [];
 
   const notes = [];
   if(mode === 'bundle'){
@@ -4041,8 +4686,28 @@ renderAll();
       if(c0.indexOf('平特') !== 0 && c0.indexOf('连肖') !== 0 && /^\d{2}$/.test(c0)) label = '特号 ';
       display = `${label}${p.codes.join(' ')} ${modeTxt} ${p.price} = ${amount.toFixed(2)}元`;
     }
-    results.push(display);
+    results.push({ d: display, price: p.price, isPer: !!p.isPer, qty: qty });
   });
+  // 相邻同价单号项（≥6 个）合并成一行："17个号 每号20 = 340元"
+  {
+    const merged = [];
+    let i0 = 0;
+    while(i0 < results.length){
+      let j0 = i0;
+      if(results[i0].qty === 1){
+        while(j0+1 < results.length && results[j0+1].qty === 1 && results[j0+1].price === results[i0].price) j0++;
+      }
+      const cnt0 = j0 - i0 + 1;
+      if(cnt0 >= 6){
+        merged.push(cnt0 + '个号 每号' + results[i0].price + ' = ' + (cnt0 * results[i0].price).toFixed(2) + '元');
+      } else {
+        for(let k0 = i0; k0 <= j0; k0++) merged.push(results[k0].d);
+      }
+      i0 = j0 + 1;
+    }
+    results.length = 0;
+    merged.forEach(x => results.push(x));
+  }
   orders.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     customer,
@@ -6096,6 +6761,9 @@ setInterval(function(){
     }
   }
 }, 1000);
+
+</script>
+<script>
 
 </script>
 </body>
