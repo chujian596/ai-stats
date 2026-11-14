@@ -143,6 +143,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
+        <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
       </div>
       <div id="aiStatus" style="text-align:center;font-size:11px;color:#999;margin-top:4px">AI:就绪</div>
@@ -539,7 +540,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.58-Pro';
+var APP_VER = 'v58.59-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
@@ -4047,6 +4048,139 @@ function showAIConfirmDialog(rawText, reason){
   ov.querySelector('#aiConfirmCancel').onclick = function(){
     ov.remove();
   };
+}
+
+
+// ===== 手动录入（应急模式）：不走解析，直接选类型+填金额 =====
+var MANUAL_TYPES = [['num','特号'],['tezod','特肖'],['ping','平特'],['lian','连肖'],['wave','波色'],['sd','单双'],['big','大小'],['he','合数'],['head','头数'],['tail','尾数'],['ez','二中二'],['sz','三中三']];
+var _mtType = 'num';
+var MT_HINT = {num:'号码，如 05 17 29', tezod:'生肖，如 马 或 马龙兔', ping:'生肖，如 马 或 马龙', lian:'生肖串（2-4个），如 马龙兔', wave:'红/蓝/绿，可加单双大小，如 红波单', sd:'填 单 或 双', big:'填 大 或 小', he:'填 单 或 双', head:'头数 0-4', tail:'尾数 0-9', ez:'两个号码，如 02 15', sz:'三个号码，如 19 16 35'};
+function _mtLabel(t){ for(var i=0;i<MANUAL_TYPES.length;i++){ if(MANUAL_TYPES[i][0]===t) return MANUAL_TYPES[i][1]; } return t; }
+function buildManualCodes(type, val){
+  val = String(val||'');
+  var zs = val.match(/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/g) || [];
+  var nums = (val.match(/\d{1,2}/g)||[]).map(function(n){return ('0'+n).slice(-2);}).filter(function(n){var v=parseInt(n,10);return v>=1&&v<=49;});
+  if(type==='num'){ if(!nums.length) return {err:'没填号码'}; return {codes:nums}; }
+  if(type==='tezod'){ if(!zs.length) return {err:'没填生肖'}; var out=[]; zs.forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ out.push(('0'+n).slice(-2)); }); }); return {codes:out}; }
+  if(type==='ping'){ if(!zs.length) return {err:'没填生肖'}; return {codes:zs.map(function(z){return '平特'+z;})}; }
+  if(type==='lian'){ if(zs.length<2) return {err:'连肖至少 2 个肖'}; if(zs.length>4) return {err:'连肖最多 4 个肖'}; return {codes:['连肖'+zs.join('')]}; }
+  if(type==='wave'){
+    var w = val.match(/红|蓝|绿/); if(!w) return {err:'没写红/蓝/绿'};
+    var c = w[0]+'波';
+    if(/单/.test(val)) c += '单'; else if(/双/.test(val)) c += '双';
+    if(/大/.test(val)) c += '大'; else if(/小/.test(val)) c += '小';
+    if(!products.find(function(p){return p.code===c;})) return {err:'没有「'+c+'」这个产品'};
+    return {codes:[c]};
+  }
+  if(type==='sd') return {codes:[/双/.test(val)?'双数':'单数']};
+  if(type==='big') return {codes:[/小/.test(val)?'小':'大']};
+  if(type==='he') return {codes:[/双/.test(val)?'合数双':'合数单']};
+  var m = val.match(/\d/);
+  if(type==='head'){
+    if(!m) return {err:'填一个数字 0-4'};
+    var h = parseInt(m[0],10); if(h>4) return {err:'头数只能 0-4'};
+    var hs=[]; for(var i=h*10+1; i<=h*10+9 && i<=49; i++) hs.push(('0'+i).slice(-2));
+    return {codes:hs};
+  }
+  if(type==='tail'){
+    if(!m) return {err:'填一个数字 0-9'};
+    var t = parseInt(m[0],10); var ts=[];
+    for(var j=1;j<=49;j++){ if(j%10===t) ts.push(('0'+j).slice(-2)); }
+    return {codes:ts};
+  }
+  if(type==='ez'){ if(nums.length<2) return {err:'二中二要 2 个号码'}; return {codes:['二中二:'+nums.slice(0,2).join(',')]}; }
+  if(type==='sz'){ if(nums.length<3) return {err:'三中三要 3 个号码'}; return {codes:['三中三:'+nums.slice(0,3).join(',')]}; }
+  return {err:'未知类型'};
+}
+function updateManualPreview(){
+  var el = document.getElementById('mtPreview'); if(!el) return;
+  var val = (document.getElementById('mtVal')||{}).value || '';
+  var price = parseFloat((document.getElementById('mtPrice')||{}).value || '0');
+  var mode = (document.getElementById('mtMode')||{}).value || 'per';
+  var r = buildManualCodes(_mtType, val);
+  if(r.err){ el.style.color='#cf1322'; el.textContent='提示：'+r.err; return; }
+  var qty = r.codes.length;
+  var total = (mode==='per') ? qty*price : price;
+  el.style.color='#666';
+  el.textContent = '将记成：' + r.codes.slice(0,6).join(' ') + (qty>6?' …':'') + '（共 '+qty+' 项）' + (price>0 ? ' · 合计 ' + (mode==='per'?(qty*price).toFixed(2):price.toFixed(2)) + '元' : '');
+}
+function openManualEntry(){
+  var old = document.getElementById('manualOverlay'); if(old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'manualOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px 16px 0 0;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:18px 16px 26px;color:#333">'
+    + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:4px">手动录入（应急）</div>'
+    + '<div style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;line-height:1.6">识别不了时用这个：选类型 → 填内容 → 填金额，系统不再猜</div>'
+    + '<div id="mtGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px"></div>'
+    + '<input id="mtVal" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;margin-bottom:8px">'
+    + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+    + '<input id="mtPrice" type="number" inputmode="decimal" placeholder="金额" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">'
+    + '<select id="mtMode" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff"><option value="per">每个各 X</option><option value="total">总共 X</option></select>'
+    + '</div>'
+    + '<div id="mtPreview" style="font-size:12px;color:#666;margin-bottom:10px;min-height:18px;line-height:1.6"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button id="mtCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:15px">取消</button>'
+    + '<button id="mtSave" style="flex:1;padding:12px;border:none;border-radius:10px;background:#1a1a1a;color:#fff;font-size:15px;font-weight:700">保存</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  var grid = document.getElementById('mtGrid');
+  MANUAL_TYPES.forEach(function(t){
+    var b = document.createElement('button');
+    b.textContent = t[1];
+    b.style.cssText = 'padding:9px 2px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;font-weight:600;color:#333';
+    if(t[0]===_mtType){ b.style.background='#1a1a1a'; b.style.color='#fff'; b.style.borderColor='#1a1a1a'; }
+    b.onclick = function(){
+      _mtType = t[0];
+      grid.querySelectorAll('button').forEach(function(x){ x.style.background='#fff'; x.style.color='#333'; x.style.borderColor='#ddd'; });
+      b.style.background='#1a1a1a'; b.style.color='#fff'; b.style.borderColor='#1a1a1a';
+      document.getElementById('mtVal').placeholder = MT_HINT[t[0]] || '';
+      updateManualPreview();
+    };
+    grid.appendChild(b);
+  });
+  document.getElementById('mtVal').placeholder = MT_HINT[_mtType] || '';
+  ['mtVal','mtPrice','mtMode'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', updateManualPreview);
+    el.addEventListener('change', updateManualPreview);
+  });
+  document.getElementById('mtCancel').onclick = function(){ ov.remove(); };
+  document.getElementById('mtSave').onclick = function(){ manualSave(ov); };
+  updateManualPreview();
+}
+function manualSave(ov){
+  var val = (document.getElementById('mtVal')||{}).value || '';
+  var price = parseFloat((document.getElementById('mtPrice')||{}).value || '0');
+  var mode = (document.getElementById('mtMode')||{}).value || 'per';
+  if(!(price > 0)){ myAlert('请填金额'); return; }
+  var r = buildManualCodes(_mtType, val);
+  if(r.err){ myAlert(r.err); return; }
+  var codes = r.codes.slice();
+  var qty = codes.length;
+  var unit = (mode==='per') ? price : (price/qty);
+  var amount = qty * unit;
+  var allCodes = [], codeAmts = {};
+  codes.forEach(function(c){ allCodes.push(c); codeAmts[c] = (codeAmts[c]||0) + unit; });
+  var customer = (document.getElementById('customerName').value || '').trim() || '散客';
+  orders.push({
+    id: String(Date.now()) + '-' + Math.random().toString(36).slice(2,7),
+    customer: customer,
+    raw: '[手动] ' + _mtLabel(_mtType) + ' ' + val + ' ' + (mode==='per'?'各':'共') + price,
+    price: amount,
+    qty: allCodes.length,
+    amount: amount,
+    codes: allCodes,
+    codeAmts: codeAmts,
+    createdAt: new Date().toLocaleString('zh-CN', { hour12: false })
+  });
+  if(customer !== '散客' && roster.indexOf(customer) < 0){ roster.push(customer); saveRoster(); }
+  saveOrders();
+  if(ov) ov.remove();
+  var msg = '已手动保存（' + _mtLabel(_mtType) + '）<br>' + allCodes.slice(0,8).join(' ') + (allCodes.length>8?' …':'') +
+            '<br>合计<span style="font-size:16px;font-weight:700">' + amount.toFixed(2) + '元</span>';
+  document.getElementById('saveMsg').innerHTML = msg;
+  renderAll();
 }
 
 function doSave(overrideText){
