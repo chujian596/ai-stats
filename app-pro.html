@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.38-Pro';
+var APP_VER = 'v58.39-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3402,37 +3402,52 @@ function updateDrawInfoBar(){
   }
 }
 function autoFetchDraw(){
-  var btn = event.target;
+  var btn = document.getElementById('drawFetchBtn');
+  if(!btn) return;
   btn.textContent = '获取中...';
   btn.disabled = true;
-  fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
-    .then(function(r){ return r.json(); })
+  function done(){ btn.textContent = '自动获取开奖'; btn.disabled = false; }
+  function applyMacao(m){
+    if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
+      myAlert('未获取到开奖数据');
+      return;
+    }
+    var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
+    var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+    renderLiveBalls(m.winner_numbers, true);
+    if(parseInt(m.draw) <= already){
+      // 已结算过，更新显示但不重复结算
+      lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
+      updateDrawInfoBar();
+      if(typeof renderOrdersList==='function') renderOrdersList();
+      return;
+    }
+    var drawStr = '开' + m.draw + ' ' + nums.join('.');
+    document.getElementById('input').value = drawStr;
+    autoPayout();
+  }
+  // 1) 优先读同源快照（GitHub 定时生成，不跨域，不受代理干扰）
+  fetch('draw-latest.json?t=' + Date.now(), {cache: 'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('snapshot missing'); return r.json(); })
     .then(function(d){
-      btn.textContent = '自动获取开奖';
-      btn.disabled = false;
-      var m = d.latest && d.latest.macao;
-      if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
-        myAlert('未获取到开奖数据');
-        return;
-      }
-      var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
-      var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
-      renderLiveBalls(m.winner_numbers, true);
-      if(parseInt(m.draw) <= already){
-        // 已结算过，更新显示但不重复结算
-        lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
-        updateDrawInfoBar();
-        if(typeof renderOrdersList==='function') renderOrdersList();
-        return;
-      }
-      var drawStr = '开' + m.draw + ' ' + nums.join('.');
-      document.getElementById('input').value = drawStr;
-      autoPayout();
+      var snap = d && d.macao;
+      if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('snapshot empty');
+      done();
+      applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
     })
-    .catch(function(e){
-      btn.textContent = '自动获取开奖';
-      btn.disabled = false;
-      myAlert('获取失败，请检查网络');
+    .catch(function(){
+      // 2) 回退：直接问原接口（可能被跨域拦掉）
+      fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          done();
+          applyMacao(d.latest && d.latest.macao);
+        })
+        .catch(function(){
+          // 3) 兜底：提示手动粘贴，不让人卡住
+          done();
+          myAlert('获取失败（网络受限）。可手动粘贴开奖，例如：开317 31.49.30.22.43.24.26');
+        });
     });
 }
 // 号码颜色：红/蓝/绿
