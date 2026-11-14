@@ -555,7 +555,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.84-Pro';
+var APP_VER = 'v58.85-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -3891,13 +3891,38 @@ window.onload = function(){
     stY = e.touches[0].clientY;
     pulled = false;
   }, {passive: true});
-  document.addEventListener('touchend', function(e){
-    if(pulled) return;
-    var endY = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : stY;
-    var diff = endY - stY;
+  // 改进版：必须在"已经滚到最顶"往下拖才认，拖到 110px 松手就刷新，并给一条可见提示
+  var armed = false, tip = null;
+  function pullTip(){
+    if(tip) return tip;
+    tip = document.getElementById('pullTip');
+    if(!tip){
+      tip = document.createElement('div');
+      tip.id = 'pullTip';
+      tip.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#222;color:#fff;text-align:center;font-size:13px;padding:8px 0;transform:translateY(-110%);transition:transform .16s;pointer-events:none;letter-spacing:.5px';
+      tip.textContent = '下拉刷新';
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+  document.addEventListener('touchmove', function(e){
+    if(!e.touches || !e.touches[0]) return;
     var sc = document.scrollingElement || document.documentElement;
     var top = window.scrollY || (sc && sc.scrollTop) || 0;
-    if(top < 80 && diff > 90){ pulled = true; refreshPage(); }
+    if(top > 5){ armed = false; return; }
+    var d = e.touches[0].clientY - stY;
+    if(d > 40){
+      var t = pullTip();
+      t.textContent = d > 110 ? '松手刷新' : '下拉刷新';
+      t.style.transform = 'translateY(0)';
+    }
+    armed = d > 110;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    var t = pullTip();
+    t.style.transform = 'translateY(-110%)';
+    if(pulled){ return; }
+    if(armed){ pulled = true; armed = false; refreshPage(); }
   }, {passive: true});
 };
 
