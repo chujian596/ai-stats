@@ -1,6 +1,6 @@
 /* 离线缓存：有网时取最新，没网时用上一次缓存，保证断网也能打开录单 */
 var CACHE_NAME = 'aistats-shell-v1';
-var SHELL = ['/app', '/app.html', '/manifest.json', '/icon-512.png'];
+var SHELL = ['/app', '/app.html', '/app-pro', '/app-pro.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
