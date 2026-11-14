@@ -906,7 +906,8 @@ function doCreate(){
   persist('新建客户 ' + (note || code) + ' · ' + days + '天', function(){});
   // 码只在这里显示一次，让用户发给客户
   $('nrCode').textContent = code;
-  $('nrNote').textContent = (note ? note + ' · ' : '') + days + '天 · 到期 ' + fmtDate(addDays(today(), days));
+  $('nrNote').innerHTML = (note ? note + ' · ' : '') + days + '天 · 到期 ' + fmtDate(addDays(today(), days))
+    + (PAT ? '' : '<div style="margin-top:10px;color:#c0392b;font-weight:700;line-height:1.6">还没同步到云端：先去设置填仓库密钥，不然客户那边输这个码进不去</div>');
   $('newForm').style.display = 'none';
   $('newResult').style.display = 'block';
 }

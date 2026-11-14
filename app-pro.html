@@ -552,7 +552,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.79-Pro';
+var APP_VER = 'v58.80-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -1011,17 +1011,30 @@ function applyMemberExpire(){
     }
   }
 }
-fetch('whitelist.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => { DEVICE_WHITELIST = data.whitelist_fp || []; whitelistActive = DEVICE_WHITELIST.length > 0; })
-  .catch(() => { DEVICE_WHITELIST = []; whitelistActive = false; })
-  .then(function(){
-    return fetch('members.json?t=' + Date.now())
-      .then(r => r.json())
-      .then(d => { MEMBERS = d.devices || {}; })
-      .catch(() => { MEMBERS = null; });
-  })
-  .then(function(){ applyMemberExpire(); showLock(); reportDevice(); });
+function loadAccessData(cb){
+  var isGH = location.hostname.indexOf('github.io') >= 0;
+  var t = Date.now();
+  function getFirst(urls, ok){
+    var i = 0;
+    (function next(){
+      if(i >= urls.length){ ok(null); return; }
+      fetch(urls[i++]).then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
+        .then(function(d){ ok(d); })
+        .catch(function(){ next(); });
+    })();
+  }
+  var W = isGH ? ['whitelist.json?t=' + t] : ['https://chujian596.github.io/ai-stats/whitelist.json?t=' + t, 'whitelist.json?t=' + t];
+  var M = isGH ? ['members.json?t=' + t] : ['https://chujian596.github.io/ai-stats/members.json?t=' + t, 'members.json?t=' + t];
+  getFirst(W, function(wd){
+    DEVICE_WHITELIST = (wd && wd.whitelist_fp) || [];
+    whitelistActive = DEVICE_WHITELIST.length > 0;
+    getFirst(M, function(md){
+      MEMBERS = (md && md.devices) ? md.devices : null;
+      cb();
+    });
+  });
+}
+loadAccessData(function(){ applyMemberExpire(); showLock(); reportDevice(); });
 // 自动上报设备码到邮箱（未授权设备每天报一次，已授权不报）
 function reportDevice(){
   if(!DEVICE_ID) return; // 还没输码，不上报
