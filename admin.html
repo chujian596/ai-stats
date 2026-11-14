@@ -730,8 +730,11 @@ function render(){
   $('listTitle').textContent = q ? '搜索结果（' + rows.length + '）' : '客户名单';
 
   if(!rows.length){
+    var qIsCode = q && /^[A-Z0-9]{6,20}$/.test(q);
     $('list').innerHTML = '<div class="list-empty"><b>' + (q ? '没有匹配的客户' : '还没有客户') + '</b>' +
-      (q ? '换个关键词试试' : '点下面的“新建客户”生成第一个授权码') + '</div>';
+      (q ? '换个关键词试试' : '点下面的“新建客户”生成第一个授权码') +
+      (qIsCode ? '<button class="primary" style="margin-top:14px;width:auto;display:inline-block;padding:10px 18px" onclick="openNewWithCode()">用 ' + q + ' 开一个新客户</button>' : '') +
+      '</div>';
     return;
   }
 
@@ -890,6 +893,13 @@ function doDelete(){
 }
 
 /* ---------- 新建 ---------- */
+function openNewWithCode(){
+  var c = ($('q').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  openNew();
+  if(c && c.length >= 6){ $('newCode').value = c; }
+  try { $('newNote').focus(); } catch(e){}
+}
+
 function openNew(){
   newPlan = '月费';
   $('newCode').value = genCode();
