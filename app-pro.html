@@ -120,7 +120,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 4px;justify-content:center;align-items:center;min-height:44px"></div>
+      <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:4px;padding:8px 2px;justify-content:center;align-items:center;min-height:44px"></div>
+      <div id="hideBallsRow" style="display:none;text-align:right;padding:0 8px 4px"><span onclick="hideLiveBalls()" style="cursor:pointer;font-size:11px;color:#999;border:1px solid #e0e0e0;border-radius:10px;padding:2px 9px;background:#fff">收起号码</span></div>
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
         <span id="drawInfoTxt">未获取开奖数据</span>
@@ -497,7 +498,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.45-Pro';
+var APP_VER = 'v58.46-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3580,20 +3581,31 @@ function renderLiveBalls(nums, specialFlag){
   for(var i=0; i<nums.length; i++){
     var n = parseInt(nums[i]);
     var isSpecial = specialFlag && i === nums.length-1 && nums.length >= 7;
-    var color = '#1e8449'; // 深绿
+    var color = '#1f7a4c'; // 深绿
     for(var j=0; j<redNums.length; j++){
-      if(redNums[j] == n){ color = '#c0392b'; break; } // 深红
+      if(redNums[j] == n){ color = '#c8322b'; break; } // 深红
     }
-    if(color == '#1e8449'){
+    if(color == '#1f7a4c'){
       for(var j=0; j<blueNums.length; j++){
-        if(blueNums[j] == n){ color = '#2471a3'; break; } // 深蓝
+        if(blueNums[j] == n){ color = '#2456a6'; break; } // 深蓝
       }
     }
-    // 特号加粗，不加圈圈
-    var fontWeight = isSpecial ? '900' : '700';
-    html += '<span style="font-size:20px;font-weight:'+fontWeight+';color:'+color+' !important;margin:0 6px;">'+String(n).padStart(2,'0')+'</span>';
+    // 特号与其他号码同样大小，不加圈、不加粗，靠下方「特xx」文字区分
+    html += '<span style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:'+color+';'
+         + 'display:flex;align-items:center;justify-content:center;'
+         + 'font-size:23px;font-weight:700;line-height:1;letter-spacing:-.4px;'
+         + 'color:#fff !important;font-variant-numeric:tabular-nums;">'+String(n).padStart(2,'0')+'</span>';
   }
   box.innerHTML = html;
+  var hr = document.getElementById('hideBallsRow');
+  if(hr) hr.style.display = 'block';
+}
+// 收起号码球（开奖记录和已结算的数据都不动）
+function hideLiveBalls(){
+  var box = document.getElementById('liveBalls');
+  if(box){ box.style.display = 'none'; box.innerHTML = ''; }
+  var hr = document.getElementById('hideBallsRow');
+  if(hr) hr.style.display = 'none';
 }
 // 自动定时获取开奖：21:33-21:35每秒刷新，号码逐个出来实时显示，稳定后才结算
 var _liveDrawLast = '';
@@ -3768,40 +3780,6 @@ async function testAIConnection(){
 // 页面加载完成后自动测试AI连接
 window.onload = function(){
   testAIConnection();
-  // 简单的下拉刷新：在页面顶部往下滑，刷新开奖数据
-  var startY = 0;
-  document.addEventListener('touchstart', function(e){
-    startY = e.touches[0].clientY;
-  }, {passive: true});
-  document.addEventListener('touchend', function(e){
-    var endY = e.changedTouches[0].clientY;
-    var diff = endY - startY;
-    if(window.scrollY < 50 && diff > 120){
-      // 显示提示
-      var btn = document.getElementById('drawFetchBtn');
-      if(btn){
-        var oldText = btn.textContent;
-        btn.textContent = '刷新中...';
-        btn.style.opacity = '0.6';
-        // 重新获取开奖数据
-        fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
-          .then(function(r){ return r.json(); })
-          .then(function(d){
-            var m = d.latest && d.latest.macao;
-            if(m && m.winner_numbers){
-              renderLiveBalls(m.winner_numbers, true);
-              document.getElementById('drawInfoTxt').textContent = '期' + m.draw + ' 特' + m.winner_numbers[6] + ' ' + m.winner_numbers.slice(0,6).join(' ');
-            }
-            btn.textContent = oldText;
-            btn.style.opacity = '1';
-          })
-          .catch(function(){
-            btn.textContent = oldText;
-            btn.style.opacity = '1';
-          });
-      }
-    }
-  });
 };
 
 function handleSave(){
