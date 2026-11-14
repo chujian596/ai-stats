@@ -221,7 +221,8 @@ body{
 <div class="wrap">
   <div class="syncbar" id="syncbar">
     <span class="dot" id="syncDot"></span>
-    <span id="syncTxt"></span>
+    <span id="syncTxt" style="flex:1;min-width:0"></span>
+    <button id="syncBtn" onclick="syncNow()" style="display:none;flex:none;border:.5px solid #c0392b;color:#c0392b;background:#fff;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600">重试同步</button>
   </div>
 
   <div class="stats">
@@ -632,22 +633,35 @@ function reloadData(){
   loadData();
 }
 
+var lastSyncErr = '';
 function updateSyncBar(){
-  var bar = $('syncbar'), dot = $('syncDot'), txt = $('syncTxt');
-  if(PAT){
-    bar.classList.add('on');
-    dot.className = 'dot ok';
-    txt.innerHTML = '已连接云端 · 改动<b>立即生效</b>';
-    $('setState').textContent = '已配置';
-  } else if(dirty){
-    bar.classList.add('on');
+  var bar = $('syncbar'), dot = $('syncDot'), txt = $('syncTxt'), btn = $('syncBtn');
+  if(!bar) return;
+  bar.classList.add('on');
+  if(!PAT){
     dot.className = 'dot warn';
-    txt.innerHTML = '本机暂存 · <b>未同步到云端</b>，客户看不到变化';
-    $('setState').textContent = '未配置';
-  } else {
-    bar.classList.remove('on');
-    $('setState').textContent = '未配置';
+    txt.innerHTML = '没填仓库密钥 · 你的改动<b>只存在这台手机</b>，客户那边看不到';
+    if(btn) btn.style.display = 'none';
+    $('setState').textContent = '未配置（客户收不到改动）';
+    return;
   }
+  if(dirty && lastSyncErr){
+    dot.className = 'dot warn';
+    txt.innerHTML = '同步失败：<b>' + lastSyncErr + '</b>';
+    if(btn) btn.style.display = '';
+    $('setState').textContent = '已配置，但这次没传上去';
+    return;
+  }
+  dot.className = 'dot ok';
+  txt.innerHTML = '已连接云端 · 改动<b>立即生效</b>';
+  if(btn) btn.style.display = 'none';
+  $('setState').textContent = '已配置';
+}
+function syncNow(){
+  if(!PAT){ toast('先去设置填仓库密钥'); openSettings(); return; }
+  toast('正在重新同步…');
+  reloadData();
+  setTimeout(function(){ persist('重新同步 ' + fmtDate(today()), function(){ toast('同步成功，客户约 1 分钟后生效'); }); }, 1200);
 }
 
 /* ===================== 渲染 ===================== */
@@ -687,7 +701,7 @@ function render(){
   $('stTotal').textContent = codes.length;
   $('stSoon').textContent = all.filter(function(n){ return n >= 0 && n <= 30; }).length;
   $('stOver').textContent = all.filter(function(n){ return n < 0; }).length;
-  $('topSub').textContent = dirty ? '本机暂存 · ' + codes.length + ' 位客户' : '云端已同步 · ' + codes.length + ' 位客户';
+  $('topSub').textContent = (PAT ? (dirty ? '本机暂存 · ' : '云端已同步 · ') : '本机编辑（未连云端） · ') + codes.length + ' 位客户';
   $('listTitle').textContent = q ? '搜索结果（' + rows.length + '）' : '客户名单';
 
   if(!rows.length){
@@ -990,6 +1004,7 @@ function persist(msg, done){
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(e){}
     updateSyncBar();
     render();
+    toast('只存在本机，还没同步云端 —— 客户现在用不了');
     return;
   }
   toast('正在保存…');
@@ -1014,12 +1029,14 @@ function persist(msg, done){
   }).then(function(j){
     if(j && j.content && j.content.sha) SHA = j.content.sha;
     dirty = false;
+    lastSyncErr = '';
     updateSyncBar();
     render();
     if(done) done();
     toast('已同步云端 · 客户约 1 分钟后生效');
   }).catch(function(e){
     dirty = true;
+    lastSyncErr = e.message;
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(err){}
     updateSyncBar();
     toast('保存失败：' + e.message);
