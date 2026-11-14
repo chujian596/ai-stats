@@ -350,7 +350,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">多笔一行：</b>虎500羊400（自动拆成两笔）<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">中文金额：</b>虎两百　龙一百　马三百<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">单位后缀：</b>元/块/米/块钱 都忽略，如 虎500元<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">默认算法：</b>红波10=每号10（17号共170）；特马兔各5=每肖5（共45）；平特马兔各10=每肖10<br><br><b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
       </div>
 
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、开奖与自动结算</div>
@@ -497,7 +497,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.44-Pro';
+var APP_VER = 'v58.45-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3976,6 +3976,19 @@ function showAIConfirmDialog(rawText, reason){
 }
 
 function doSave(overrideText){
+  /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
+     waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
+                                       → 'total'  总额10（摊17号，每号0.59）
+     teZod      : 特马龙兔50            → 'perZod' 每肖50（4单共200）
+                                       → 'perNum' 该肖全部号码各50
+     pingZod    : 平特马龙兔80          → 'perZod' 每肖80（3单共240）
+                                       → 'pingTotal' 共80平分                                    */
+  var PARSE_DEFAULTS = (typeof window !== 'undefined' && window.PARSE_DEFAULTS) || {
+    waveAmount: 'perNum',
+    teZod: 'perZod',
+    pingZod: 'perZod',
+    bareNumAmount: 'perNum'
+  };
   try {
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
@@ -3995,7 +4008,12 @@ function doSave(overrideText){
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
     const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
-    if(pingMatch && !/[数号]/.test(pingMatch[2])){
+    if(pingMatch && !/[数号]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
+      const pz2 = pingMatch[1], pp2 = parseFloat(pingMatch[3]);
+      text = text.replace(new RegExp('平特?(' + pz2 + ')\\s*(?:各|数|号|个)*\\s*' + pp2),
+        () => pz2.split('').map(z => '平' + z + pp2).join('\n'));
+      document.getElementById('input').value = text;
+    } else if(pingMatch && !/[数号]/.test(pingMatch[2])){
       const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
       const ov = document.createElement('div');
       ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -4026,6 +4044,18 @@ function doSave(overrideText){
     // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
     if(txMatch && /[数号]/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
+    } else if(txMatch && PARSE_DEFAULTS.teZod === 'perZod'){
+      const zods2 = txMatch[1], pp3 = parseFloat(txMatch[3]);
+      text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g,
+        () => zods2.split('').map(z => '特' + z + pp3).join(' '));
+      document.getElementById('input').value = text;
+    } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
+      const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
+      const allNums2 = [];
+      zods3.split('').forEach(z => (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums2.push(String(n).padStart(2,'0'))));
+      text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g,
+        () => allNums2.join(' ') + '各' + pp4);
+      document.getElementById('input').value = text;
     } else if(txMatch){
       const zods = txMatch[1];
       const price = parseFloat(txMatch[3]);
@@ -4114,6 +4144,10 @@ function doSave(overrideText){
           const hasExplicit = text.includes('各号') || text.includes('各数');
           if(hasExplicit){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
+          } else if(PARSE_DEFAULTS.waveAmount){
+            window._waveChoice = PARSE_DEFAULTS.waveAmount;
+            window._waveCanonical = canonical;
+            if(PARSE_DEFAULTS.waveAmount === 'perNum') window._waveLastPerNum = true;
           } else {
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
@@ -4166,7 +4200,7 @@ function doSave(overrideText){
       const p = parseFloat(price);
       if(choice === 'perZod'){
         // 各肖：每肖一个数，各肖数
-        return zods.split('').map(z => z + '数' + p).join(' ');
+        return zods.split('').map(z => '特' + z + p).join(' ');
       } else {
         // 各数：所有号码各X
         const allNums = [];
@@ -4340,7 +4374,9 @@ renderAll();
       if(r){
         // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）
         const allBareNums = !window.__skipAmbig && r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
-        if(allBareNums){
+        if(allBareNums && PARSE_DEFAULTS.bareNumAmount === 'perNum'){
+          r.isPer = true;
+        } else if(allBareNums){
           window.__ambigAbort = true;
           var _codes = r.codes.join(' ');
           var _price = r.price;
