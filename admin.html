@@ -296,6 +296,7 @@ body{
 
     <div class="sheet-actions">
       <button class="primary" id="edSave" onclick="doRecharge()">确认充值</button>
+      <button class="primary ghost" onclick="saveNote()">只存备注不充值</button>
       <button class="dangerlink" id="edDel" onclick="doDelete()">删除这个客户</button>
     </div>
   </div>
@@ -806,6 +807,15 @@ function updatePreview(){
     $('edSave').disabled = true;
     $('edSave').textContent = '请先选套餐或填天数';
   }
+}
+
+function saveNote(){
+  if(!editing) return;
+  var rec = DATA.devices[editing] || {};
+  rec.note = ($('edNote').value || '').trim();
+  DATA.devices[editing] = rec;
+  render();
+  persist('改备注 ' + (rec.note || editing), function(){ toast('备注已保存'); });
 }
 
 function doRecharge(){
