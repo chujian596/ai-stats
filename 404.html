@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>正在切换到备用地址…</title>
+<style>
+  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#fafafa;color:#1a1a1a}
+  .box{text-align:center;padding:24px;max-width:420px}
+  .t{font-size:17px;font-weight:600;margin-bottom:10px}
+  .d{font-size:13px;color:#8a8a8a;line-height:1.7}
+  a{color:#1a1a1a;font-size:13px;display:inline-block;margin-top:14px;border-bottom:1px solid #ddd;padding-bottom:2px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="t">正在切换到备用地址</div>
+  <div class="d">主站在更新版本，通常 1~2 分钟。已自动带你到备用地址，那边可以正常录单。</div>
+  <a id="manual" href="#">没跳转？点这里</a>
+</div>
+<script>
+(function(){
+  var q = location.search || '';
+  var p = location.pathname || '';
+  // 防循环：从备用站跳回来的不再跳
+  if(q.indexOf('from404=1') >= 0){ document.title = '暂时打不开'; return; }
+  // 只对录单入口做接管：app.html、根路径、以及任意指向 app 的路径
+  var looksApp = /app\.html$/.test(p) || p === '/' || p.substring(0,1) === '/';
+  var base = 'https://chujian596.github.io/ai-luandan/app.html';
+  var sep = q ? q + '&' : '?';
+  var target = base + sep + 'from404=1';
+  try {
+    document.getElementById('manual').href = target;
+    location.replace(target);
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
