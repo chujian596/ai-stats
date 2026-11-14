@@ -552,7 +552,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.78-Pro';
+var APP_VER = 'v58.79-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -798,7 +798,7 @@ function autoPayout(){
     msg += (realNet >= 0 ? '实际盈利：' : '实际亏损：') + Math.abs(realNet).toFixed(2);
     // 自定义弹窗，标题"排行榜"
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
       + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">排行榜</div>'
       + '<div style="padding:0 20px 6px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
@@ -3934,7 +3934,7 @@ function showFixDialog(rawLine, msg){
     pingLine = '平特' + zods.join('') + '各' + price + '米';
   }
   var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:18px 20px 6px;font-size:16px;font-weight:700;text-align:center;color:#333">这行没认出来</div>'
     + '<div style="padding:0 20px 8px;font-size:12px;color:#999;text-align:center;word-break:break-all">' + src + '</div>'
@@ -4016,7 +4016,7 @@ function openManualEntry(){
   var old = document.getElementById('manualOverlay'); if(old) old.remove();
   var ov = document.createElement('div');
   ov.id = 'manualOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px 16px 0 0;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:18px 16px 26px;color:#333">'
     + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:4px">手动录入（应急）</div>'
     + '<div style="font-size:12px;color:#888;text-align:center;margin-bottom:14px;line-height:1.6">识别不了时用这个：选类型 → 填内容 → 填金额，系统不再猜</div>'
@@ -4140,7 +4140,7 @@ function scanMultiItems(text){
 function showMultiDlg(items, text){
   var ans = items.map(function(){ return null; });
   var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   var rows = '';
   items.forEach(function(it, i){
     var unit = (it.kind === 'ping') ? '肖' : '个号';
@@ -4263,7 +4263,7 @@ function doSave(overrideText){
     } else if(pingMatch && !/[数号]/.test(pingMatch[2])){
       const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
       const ov = document.createElement('div');
-      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+      ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
       ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
         + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">平特' + pz + ' ' + pp + '元，怎么算？</div>'
         + '<div style="border-top:1px solid #eee;margin-top:10px">'
@@ -4313,7 +4313,7 @@ function doSave(overrideText){
         let numCount = 0;
         zods.split('').forEach(z => { numCount += ((NUM2ZODIAC_REV[z] || []).length); });
         const ov = document.createElement('div');
-        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+        ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
         ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
           + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">特肖' + zods + ' ' + price + '元，怎么算？</div>'
           + '<div style="border-top:1px solid #eee;margin-top:10px">'
@@ -4403,7 +4403,7 @@ function doSave(overrideText){
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
           const ov = document.createElement('div');
-          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+          ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
           ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
             + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">请选择注单方式</div>'
             + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + canonical + ' ' + price + '元（' + numCount + '个号）</div>'
@@ -5808,7 +5808,9 @@ function renderRisk(){
   const breakevenThreshold = totalSales / payMult;
   h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
   // 飞单清单折叠预览
-  h += `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="padding:6px 12px;background:#f3f4f6;color:#374151;border-radius:6px;margin-top:6px;cursor:pointer;font-size:13px;font-weight:700">📄 飞单明细 ▶</div>`;
+  h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#f3f4f6;border-radius:6px;margin-top:6px;font-size:13px">`
+    + `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="cursor:pointer;font-weight:700;color:#374151">📄 飞单明细 ▶</div>`
+    + `<div style="color:#6b7280;white-space:nowrap">阈值 特 <b style="color:#333">${splitTakeAll||0}</b> ｜ 平 <b style="color:#333">${pteFlyTakeAll||0}</b> ｜ 连 <b style="color:#333">${lxFlyAmt||0}</b></div></div>`;
   h += `<div id="flyListPreview" style="display:none;background:#f9fafb;border-radius:6px;padding:8px;font-size:12px;line-height:1.7">`;
   const flySales = getSplitSales();
   const flyKeys = Object.keys(flySales).sort();
@@ -6178,7 +6180,7 @@ function exportBackup(){
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">'
     + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+orders.length+'单）</div>'
     + '<div style="margin:12px 12px 0;padding:10px;background:#e8f7ee;color:#16a34a;border-radius:8px;font-size:14px;font-weight:700;text-align:center;line-height:1.5">✓ 已自动存到 app 内部<br><span style="font-weight:400;font-size:12px">以后点绿色「一键恢复上次备份」即可找回，不用找文件</span></div>'
@@ -6227,7 +6229,7 @@ function openPasteImport(){
   var old = document.getElementById('pasteImportOv'); if(old) old.remove();
   var ov = document.createElement('div');
   ov.id = 'pasteImportOv';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:flex-end;justify-content:center';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999999;display:flex;align-items:flex-end;justify-content:center';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px 16px 0 0;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:18px 16px 26px;color:#333">'
     + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:4px">粘贴导入备份</div>'
     + '<div style="font-size:12px;color:#888;text-align:center;margin-bottom:12px;line-height:1.6">把备份的全部内容粘进来（以 { 开头），点导入即可</div>'
@@ -6265,9 +6267,39 @@ function restoreLastBackup(){
   });
 }
 
+// 返回键/侧滑返回：先关掉最上层的弹层，没有弹层才交给系统退出
+window.__closeTopOverlay = function(){
+  try {
+    var cand = [];
+    // 记账单的遮罩是挂在容器内层的，容器本身没有高度，存在即算
+    ['billHistMask','billViewMask'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) cand.push(el);
+    });
+    ['settingsModal','helpModal','pasteImportOv'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none' && el.offsetHeight > 0) cand.push(el);
+    });
+    var ovs = document.querySelectorAll('.ai-ov');
+    for(var i=0;i<ovs.length;i++){
+      var el = ovs[i];
+      if(!document.body.contains(el)) continue;
+      if(getComputedStyle(el).display === 'none' || el.offsetHeight === 0) continue;
+      cand.push(el);
+    }
+    if(!cand.length) return 'none';
+    var top = cand[0];
+    cand.forEach(function(el){ if(parseFloat(getComputedStyle(el).zIndex||0) >= parseFloat(getComputedStyle(top).zIndex||0)) top = el; });
+    var tid = top.id;
+    if(tid === 'settingsModal'){ if(typeof closeSettings === 'function') closeSettings(); else top.style.display = 'none'; return 'closed'; }
+    if(tid === 'helpModal'){ if(typeof closeHelp === 'function') closeHelp(); else top.style.display = 'none'; return 'closed'; }
+    top.remove();
+    return 'closed';
+  } catch(e){ return 'none'; }
+};
 function myAlert(msg){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
@@ -6280,7 +6312,7 @@ function myAlert(msg){
 // app 内确认框（不显示网址），用法：myConfirm('确定?', () => { 确定后做的事 })
 function myConfirm(msg, onOk){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
@@ -6295,7 +6327,7 @@ function myConfirm(msg, onOk){
 
 function myConfirm(msg, cb){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">提示</div>'
     + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6">' + msg.replace(/\n/g,'<br>') + '</div>'
@@ -6311,7 +6343,7 @@ function myConfirm(msg, cb){
 // 多选项弹窗：myChoice('标题', '说明', ['选项1','选项2'], pick=>{pick为下标})
 function myChoice(title, msg, opts, cb){
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   let btns = '';
   opts.forEach((o,i)=>{ btns += '<button data-i="'+i+'" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:16px;color:#333;font-weight:600">'+o+'</button>'; });
   ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
@@ -6582,7 +6614,7 @@ function genStatement(){
   var text = header + '\n' + lines.join('\n');
 
   var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
   ov.innerHTML = '<div style="background:#fff;border-radius:20px 20px 0 0;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">'
     + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:14px">客户对账单</div>'
     + '<div style="font-size:14px;line-height:2;white-space:pre-wrap;color:#333;margin-bottom:16px">' + text + '</div>'

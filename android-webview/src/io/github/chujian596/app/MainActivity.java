@@ -324,15 +324,33 @@ public class MainActivity extends Activity {
                 web.goBack();
                 return true;
             }
-            long now = System.currentTimeMillis();
-            if (now - lastBackPress < 2000) {
-                return super.onKeyDown(keyCode, event);
+            // 页面里有弹层（历史账单、设置、提示框等）时，先关弹层，不退出
+            if (web != null) {
+                web.evaluateJavascript(
+                        "(window.__closeTopOverlay ? window.__closeTopOverlay() : 'none')",
+                        new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String value) {
+                                if (value != null && value.indexOf("closed") >= 0) return;
+                                handleExit();
+                            }
+                        });
+                return true;
             }
-            lastBackPress = now;
-            Toast.makeText(this, "再按一次退出", Toast.LENGTH_SHORT).show();
+            handleExit();
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private void handleExit() {
+        long now = System.currentTimeMillis();
+        if (now - lastBackPress < 2000) {
+            finish();
+            return;
+        }
+        lastBackPress = now;
+        Toast.makeText(this, "再按一次退出", Toast.LENGTH_SHORT).show();
     }
 
     /** 页面调用：导出备份等文件落地到手机 Download/AI统计/ */
