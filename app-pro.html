@@ -121,7 +121,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
       <div id="liveBalls" style="display:none;flex-wrap:wrap;gap:4px;padding:8px 2px;justify-content:center;align-items:center;min-height:44px"></div>
-      <div id="hideBallsRow" style="display:none;text-align:right;padding:0 8px 4px"><span onclick="hideLiveBalls()" style="cursor:pointer;font-size:11px;color:#999;border:1px solid #e0e0e0;border-radius:10px;padding:2px 9px;background:#fff">收起号码</span></div>
+      <div id="hideBallsRow" style="display:none;text-align:right;padding:0 8px 4px"><span id="refreshBtn" onclick="refreshPage()" style="cursor:pointer;font-size:11px;color:#999;border:1px solid #e0e0e0;border-radius:10px;padding:2px 9px;background:#fff">刷新</span></div>
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
         <span id="drawInfoTxt">未获取开奖数据</span>
@@ -498,7 +498,19 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.46-Pro';
+var APP_VER = 'v58.47-Pro';
+// 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
+(function(){
+  try{
+    if((location.search || '').indexOf('pin=1') >= 0) return;
+    var pin = localStorage.getItem('aiProPinVer');
+    if(!pin || pin === APP_VER) return;
+    var f = './app-pro-' + pin + '.html?pin=1';
+    fetch(f, {method:'HEAD', cache:'no-store'}).then(function(r){
+      if(r.ok) location.replace(f);
+    }).catch(function(){});
+  }catch(e){}
+})();
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3600,6 +3612,42 @@ function renderLiveBalls(nums, specialFlag){
   var hr = document.getElementById('hideBallsRow');
   if(hr) hr.style.display = 'block';
 }
+// 下拉刷新 / 点「刷新」：收起号码 + 检查线上有没有新版，不碰开奖数据
+function refreshPage(){
+  hideLiveBalls();
+  var btn = document.getElementById('refreshBtn');
+  if(btn) btn.textContent = '检查中…';
+  fetch('version.txt?t=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(function(v){
+      var remote = String(v || '').trim();
+      if(remote && remote !== APP_VER){
+        if(btn) btn.textContent = '刷新';
+        myChoice('有新版本',
+          '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
+          ['现在更新到最新', '保持当前版本，以后不提醒', '这次先不动'],
+          function(i){
+            if(i === 0){
+              localStorage.removeItem('aiProPinVer');
+              location.replace('./app-pro.html?v=' + Date.now());
+            } else if(i === 1){
+              localStorage.setItem('aiProPinVer', APP_VER);
+              myAlert('已锁定 ' + APP_VER + '。\n以后打开都停在这个版本，不会再自动变。\n想换回最新版：点刷新，选「现在更新到最新」。');
+            }
+          });
+      } else if(btn){
+        btn.textContent = '已是最新';
+        setTimeout(function(){ if(btn) btn.textContent = '刷新'; }, 1600);
+      } else {
+        if(btn) btn.textContent = '已是最新';
+        setTimeout(function(){ if(btn) btn.textContent = '刷新'; }, 1600);
+      }
+    })
+    .catch(function(){
+      if(btn) btn.textContent = '刷新';
+      myAlert('检查更新失败，网络不通');
+    });
+}
 // 收起号码球（开奖记录和已结算的数据都不动）
 function hideLiveBalls(){
   var box = document.getElementById('liveBalls');
@@ -3780,6 +3828,17 @@ async function testAIConnection(){
 // 页面加载完成后自动测试AI连接
 window.onload = function(){
   testAIConnection();
+  // 下拉刷新：收起号码 + 查线上版本；开奖号码仍然只能点按钮手动获取
+  var stY = 0, pulled = false;
+  document.addEventListener('touchstart', function(e){
+    stY = e.touches[0].clientY;
+    pulled = false;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e){
+    if(pulled) return;
+    var diff = e.changedTouches[0].clientY - stY;
+    if(window.scrollY < 60 && diff > 110){ pulled = true; refreshPage(); }
+  }, {passive: true});
 };
 
 function handleSave(){
