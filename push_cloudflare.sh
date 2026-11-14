@@ -19,7 +19,7 @@ fi
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
-for f in app.html app-pro.html admin58.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json admin.html; do
+for f in app.html app-pro.html admin58.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json admin.html version.txt; do
   [ -f "$f" ] && cp -f "$f" "$DEPLOY/"
 done
 

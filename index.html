@@ -554,7 +554,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.82';
+var APP_VER = 'v58.83';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
@@ -3775,9 +3775,10 @@ function refreshPage(){
   var btn = document.getElementById('refreshBtn');
   if(btn) btn.textContent = '检查中…';
   fetch('version.txt?t=' + Date.now(), {cache:'no-store'})
-    .then(function(r){ return r.text(); })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(function(v){
       var remote = String(v || '').trim();
+      if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
       if(remote && normVer(remote) !== normVer(APP_VER)){
         if(btn) btn.textContent = '刷新';
         myChoice('有新版本',
@@ -3801,8 +3802,11 @@ function refreshPage(){
       }
     })
     .catch(function(){
-      if(btn) btn.textContent = '刷新';
-      myAlert('检查更新失败（网络暂时不通）。\n不影响录单，过一会儿再点刷新即可。');
+      // 版本检查只是顺带的事，连不上就安静收场，不打断录单
+      if(btn){
+        btn.textContent = '没连上·稍后再试';
+        setTimeout(function(){ if(btn) btn.textContent = '刷新'; }, 2000);
+      }
     });
 }
 // 收起号码球（开奖记录和已结算的数据都不动）

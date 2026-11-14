@@ -550,9 +550,12 @@ if('serviceWorker' in navigator && (location.protocol === 'https:' || location.h
 // 会员锁 - 每次打开都显示验证页
 var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
+// 管理员码只在这两台自己的设备上有效，别人抄走这串码也用不了
+var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
+function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.81-Pro';
+var APP_VER = 'v58.82-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -1070,7 +1073,8 @@ try { savedLock = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}'); } catch(e)
 var lockData = { pwd: savedLock.pwd || '', expire: savedLock.expire || 0 };
 
 function showLock(){
-  if(new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
+  var __local = (location.hostname === '127.0.0.1' || location.hostname === 'localhost');
+  if(__local && new URLSearchParams(location.search).get('nock')==='1'){ document.getElementById('lockScreen').style.display='none'; return; }
   // 本机还没有授权码 → 让他先输入
   if(!DEVICE_ID){
     document.getElementById('lockCodeWrap').style.display = 'block';
@@ -1128,7 +1132,7 @@ function showLock(){
 function unlock(){
   var p = document.getElementById('lockPwd').value;
   // 管理员码：延期30天 + 绕过设备检查
-  if(p === ADMIN_CODE){
+  if(p === ADMIN_CODE && isOwnerDevice()){
     lockData.expire = Date.now() + 30 * 86400000;
     localStorage.setItem(LOCK_KEY, JSON.stringify(lockData));
     document.getElementById('lockScreen').style.display = 'none';
