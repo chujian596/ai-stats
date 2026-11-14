@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<!--
+  ========== 金额识别规则（改代码前必读，改完必须回归本条）==========
+  原则：一笔钱要分给 2 个以上对象、且没写明单位（各号/各数/各肖）→ 必须弹窗；
+        只有 1 个对象，或写明了单位 → 直接算。
+  会弹窗：特肖(含单肖)、平特多肖、红/蓝/绿波、单数/双数、大/小、
+          波色+单双、波色+大小、合数单/双、裸号码≥2、头数、尾数、4个数字
+  不弹窗：平特单肖、单个号码、三中三/二中二/三中二(1组1价)、连肖(几肖都是1注)
+  组合玩法排除：整行含 三中三|二中二|三中二 时，禁止走"4个数字拆分/弹窗"逻辑
+                 （有一处漏判就会把 "19 16 35三中三8" 拆成两笔算成 24 元）
+  识别顺序：①末尾取金额 → ②剩余按空格拆段 → ③每段依次匹配
+            组合格式(三中三:xx,yy) → 连肖 → 产品长名 → 单个号码
+  ================================================================
+-->
+
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -351,10 +365,37 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">多笔一行：</b>虎500羊400（自动拆成两笔）<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">中文金额：</b>虎两百　龙一百　马三百<br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">单位后缀：</b>元/块/米/块钱 都忽略，如 虎500元<br>
-        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">默认算法：</b>红波10=每号10（17号共170）；特马兔各5=每肖5（共45）；平特马兔各10=每肖10<br><br><b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">金额怎么算：</b>见下面第三节「金额歧义规则」<br><br><b style="color:var(--modalText,#fff)">前缀：</b>"新澳"、"澳" 自动去掉；"特码:"、"特:" 只是标记不参与计算
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、开奖与自动结算</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">三、金额歧义规则（什么时候弹窗）</div>
+      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
+        <b style="color:var(--modalText,#fff)">原则：一笔钱要分给 2 个以上对象、又没写明单位（各号/各数/各肖），就弹窗让你选；只有一个对象，或写清了单位，直接算。</b><br><br>
+
+        <b style="color:var(--modalText,#fff)">会弹窗（多选题）</b><br>
+        1. <b style="color:var(--modalText,#fff)">特肖</b>（按号码算，一个肖也弹）<br>
+        &nbsp;&nbsp;特马5 → 平分5（5号共5）／每号各5（25）<br>
+        2. <b style="color:var(--modalText,#fff)">平特多肖</b>（按肖算，多肖要问）<br>
+        &nbsp;&nbsp;平特马龙50 → 共50（每肖25）／每肖50（共100）<br>
+        3. <b style="color:var(--modalText,#fff)">红波/蓝波/绿波</b><br>
+        &nbsp;&nbsp;红波10 → 总额10（摊17号）／各号10（170）<br>
+        4. <b style="color:var(--modalText,#fff)">单数/双数、大/小</b><br>
+        5. <b style="color:var(--modalText,#fff)">波色+单双、波色+大小</b>（红波单10、绿波大5）<br>
+        6. <b style="color:var(--modalText,#fff)">合数单/合数双</b><br>
+        7. <b style="color:var(--modalText,#fff)">裸号码 2 个以上</b>（05 17 29 10 → 各号10／共10）<br>
+        8. <b style="color:var(--modalText,#fff)">头数、尾数</b>（3头10、尾3 10）<br>
+        9. <b style="color:var(--modalText,#fff)">4 个数字</b>（两笔／各X／共X／重新编辑）<br><br>
+
+        <b style="color:var(--modalText,#fff)">不弹窗（单选题）</b><br>
+        1. <b style="color:var(--modalText,#fff)">平特单肖</b>：平特马80 = 80<br>
+        2. <b style="color:var(--modalText,#fff)">单个号码</b>：05 10 = 10<br>
+        3. <b style="color:var(--modalText,#fff)">三中三/二中二/三中二</b>：一组一个价，三中三:19,16,35 8 = 8元<br>
+        4. <b style="color:var(--modalText,#fff)">连肖</b>：不管几个肖都是一注，连马龙兔各10 = 10元（不按复式展开）<br><br>
+
+        <b style="color:var(--modalText,#fff)">识别顺序：</b>①末尾取金额 → ②剩余按空格拆段 → ③每段依次匹配 组合格式(三中三:xx,yy) → 连肖 → 产品长名 → 单个号码
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">四、开奖与自动结算</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 点 <b style="color:var(--modalText,#fff)">自动获取开奖</b> → 拉最新号码并结算<br>
         2. <b style="color:var(--modalText,#fff)">每天 21:33-21:35 自动获取</b>：号码逐个跳出，稳定后自动结算<br>
@@ -364,7 +405,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         6. 结算错了 → 设置 → <b style="color:var(--modalText,#fff)">撤销开奖记录</b> 重来
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">四、客户 / 订单 / 账单日</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">五、客户 / 订单 / 账单日</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">客户统计</b>：按客户看单量和金额<br>
         2. <b style="color:var(--modalText,#fff)">历史订单</b>：每个客户右侧"复制 / 撤单"，点客户名展开明细<br>
@@ -374,7 +415,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. <b style="color:var(--modalText,#fff)">清除订单</b>：清空当期订单（不可恢复，谨慎）
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">五、飞单统计（分批飞单）</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、飞单统计（分批飞单）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">阈值</b> = 每个号码最多自留多少，超出的才飞<br>
         2. 阈值填 <b style="color:var(--modalText,#fff)">0</b> = 全飞（一点不留）<br>
@@ -386,7 +427,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. 配套查看：<b style="color:var(--modalText,#fff)">持仓分析（飞单后）、特号持仓、飞单明细</b>
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、统计与风控</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、统计与风控</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">排行榜</b>：特号累计，左右两栏对照<br>
         2. <b style="color:var(--modalText,#fff)">AI统计</b>：风险/集中度分析（开奖前预测）<br>
@@ -395,7 +436,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. <b style="color:var(--modalText,#fff)">产品累计</b>：按产品看总量
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、赔付与对账</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">八、赔付与对账</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 赔付页显示：销售总额 / 总赔付 / 净收入<br>
         2. <b style="color:var(--modalText,#fff)">倍数</b>（默认47，按你的玩法改）→ 选特号 → <b style="color:var(--modalText,#fff)">按倍数记赔付</b><br>
@@ -498,7 +539,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.57-Pro';
+var APP_VER = 'v58.58-Pro';
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
 (function(){
   try{
