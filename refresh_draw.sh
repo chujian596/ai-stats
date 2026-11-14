@@ -1,16 +1,29 @@
 #!/bin/bash
-# 每 30 分钟刷新开奖快照并推送（由 crontab 调用）
+# 开奖快照刷新（crontab：21:33 起 sleep 30 秒 → 21:33:30 开抓）
+# 只在开奖号码真正变化时才 commit/push，避免每次刷新都触发整站重建
 set -u
 REPO="/home/user/Doubao/chats/36344898080638210/ai-stats"
 LOG="/tmp/draw_refresh.log"
 
 cd "$REPO" || { echo "$(date '+%F %T') 找不到仓库" >> "$LOG"; exit 1; }
 
+KEY() { python3 -c "import json;d=json.load(open('draw-latest.json'));m=d.get('macao',{});h=d.get('hongkong',{});print(m.get('draw'),m.get('numbers'),h.get('draw'),h.get('numbers'))" 2>/dev/null; }
+
+BEFORE=$(KEY)
+
 python3 fetch_draw.py >> "$LOG" 2>&1 || { echo "$(date '+%F %T') 抓取失败" >> "$LOG"; exit 1; }
+
+AFTER=$(KEY)
+
+if [ "$BEFORE" = "$AFTER" ]; then
+  git checkout -- draw-latest.json 2>/dev/null
+  echo "$(date '+%F %T') 号码未变化，跳过推送" >> "$LOG"
+  exit 0
+fi
 
 git add draw-latest.json
 if git diff --staged --quiet; then
-  echo "$(date '+%F %T') 号码未变化，跳过提交" >> "$LOG"
+  echo "$(date '+%F %T') 无暂存变化，跳过" >> "$LOG"
   exit 0
 fi
 
