@@ -11,6 +11,28 @@ PASS=aistats2026app
 KS=$PWD/keystore.jks
 
 cd "$(dirname "$0")"
+
+# 可用环境变量打不同版本：
+#   APP_HOME_URL   起始地址（客户版 /app，管理版 /app-pro）
+#   APP_VER_NAME   显示版本号（如 58.74 / 58.74-Pro）
+#   APP_VER_CODE   版本代码
+#   APK_OUT        输出文件名
+HOME_URL="${APP_HOME_URL:-https://aistats-9uo.pages.dev/app}"
+VER_NAME="${APP_VER_NAME:-58.74}"
+VER_CODE="${APP_VER_CODE:-5874}"
+OUT="${APK_OUT:-app-release-webview.apk}"
+
+MAIN=src/io/github/chujian596/app/MainActivity.java
+cp "$MAIN" /tmp/_MainActivity_orig.java
+cp AndroidManifest.xml /tmp/_AndroidManifest_orig.xml
+trap 'cp /tmp/_MainActivity_orig.java "$MAIN"; cp /tmp/_AndroidManifest_orig.xml AndroidManifest.xml' EXIT
+
+sed -i "s|HOME_URL = \"[^\"]*\"|HOME_URL = \"$HOME_URL\"|" "$MAIN"
+sed -i "s|android:versionCode=\"[0-9]*\"|android:versionCode=\"$VER_CODE\"|" AndroidManifest.xml
+sed -i "s|android:versionName=\"[^\"]*\"|android:versionName=\"$VER_NAME\"|" AndroidManifest.xml
+
+echo "打包配置：$HOME_URL  版本 $VER_NAME($VER_CODE) → $OUT"
+
 rm -rf build && mkdir -p build/gen build/classes build/dex
 
 echo "[1/6] aapt2 compile"
@@ -38,7 +60,7 @@ if [ ! -f "$KS" ]; then
     -dname "CN=AIStats, OU=App, O=AIStats, L=Guangzhou, C=CN"
 fi
 $BT/apksigner sign --ks "$KS" --ks-key-alias aistats --ks-pass "pass:$PASS" \
-  --key-pass "pass:$PASS" --out app-release-webview.apk build/aligned.apk
+  --key-pass "pass:$PASS" --out "$OUT" build/aligned.apk
 
-$BT/apksigner verify --print-certs app-release-webview.apk | head -5
-ls -la app-release-webview.apk
+$BT/apksigner verify --print-certs "$OUT" | head -5
+ls -la "$OUT"
