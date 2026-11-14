@@ -18,6 +18,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -29,6 +30,8 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 public class MainActivity extends Activity {
@@ -42,6 +45,9 @@ public class MainActivity extends Activity {
     private View errorView;
     private ValueCallback<Uri[]> fileCallback;
     private long lastBackPress = 0L;
+    // 离线兜底：加载失败时改用包里内置的页面副本，URL 不变，本地数据不搬家
+    private boolean offlineMode = false;
+    private boolean triedOffline = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,16 +116,35 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (offlineMode) {
+                    String u = request.getUrl().toString();
+                    if (isMainDoc(u)) {
+                        try {
+                            InputStream is = getAssets().open("shell.html");
+                            return new WebResourceResponse("text/html", "UTF-8", is);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    showError("网络连不上，检查一下网络再点重试");
+                    onMainFrameFail();
                 }
             }
 
             @SuppressWarnings("deprecation")
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                showError("网络连不上，检查一下网络再点重试");
+                // API 23 以下没有 isForMainFrame，用失败地址判断是不是主文档
+                if (Build.VERSION.SDK_INT < 23 && failingUrl != null && isMainDoc(failingUrl)) {
+                    onMainFrameFail();
+                }
             }
         });
 
@@ -168,8 +193,38 @@ public class MainActivity extends Activity {
     }
 
     private void load(String url) {
+        offlineMode = false;
+        triedOffline = false;
         hideError();
         web.loadUrl(url);
+    }
+
+    /** 主文档打不开：先用包里内置的页面副本顶上，还不行才显示错误页 */
+    private void onMainFrameFail() {
+        if (!triedOffline) {
+            triedOffline = true;
+            offlineMode = true;
+            hideError();
+            web.loadUrl(HOME_URL);
+            Toast.makeText(this, "当前无网络，已用内置页面打开", Toast.LENGTH_SHORT).show();
+        } else {
+            showError("网络连不上，检查一下网络再点重试");
+        }
+    }
+
+    /** 判断是不是主页面请求（忽略查询参数） */
+    private boolean isMainDoc(String url) {
+        if (url == null) return false;
+        String p = url;
+        int q = p.indexOf('?');
+        if (q >= 0) p = p.substring(0, q);
+        int h = p.indexOf("://");
+        if (h >= 0) {
+            int slash = p.indexOf('/', h + 3);
+            p = slash >= 0 ? p.substring(slash) : "/";
+        }
+        return "/".equals(p) || "/app".equals(p) || "/app.html".equals(p)
+                || "/app-pro".equals(p) || "/app-pro.html".equals(p);
     }
 
     private void showError(String msg) {

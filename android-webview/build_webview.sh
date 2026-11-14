@@ -35,12 +35,23 @@ echo "打包配置：$HOME_URL  版本 $VER_NAME($VER_CODE) → $OUT"
 
 rm -rf build && mkdir -p build/gen build/classes build/dex
 
+# 内置页面副本：断网时用这一份顶上（管理版放 app-pro，客户版放 app）
+rm -rf assets && mkdir -p assets
+if [[ "$HOME_URL" == *"app-pro"* ]]; then
+  cp ../app-pro.html assets/shell.html
+  echo "内置页面：app-pro.html（管理版）"
+else
+  cp ../app.html assets/shell.html
+  echo "内置页面：app.html（客户版）"
+fi
+ls -la assets/shell.html
+
 echo "[1/6] aapt2 compile"
 $BT/aapt2 compile --dir res -o build/res.zip
 
 echo "[2/6] aapt2 link"
 $BT/aapt2 link -o build/unsigned.apk -I "$AJ" --manifest AndroidManifest.xml \
-  -R build/res.zip --java build/gen --auto-add-overlay
+  -R build/res.zip --java build/gen --auto-add-overlay -A assets
 
 echo "[3/6] javac"
 /home/user/jdk/jdk-11.0.33+10/bin/javac -source 8 -target 8 -encoding UTF-8 -cp "$AJ" -d build/classes \
