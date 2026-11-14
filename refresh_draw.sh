@@ -2,7 +2,7 @@
 # 开奖快照刷新（crontab：21:33 起 sleep 30 秒 → 21:33:30 开抓）
 # 只在开奖号码真正变化时才 commit/push，避免每次刷新都触发整站重建
 set -u
-REPO="/home/user/Doubao/chats/36344898080638210/ai-stats"
+REPO="$(cd "$(dirname "$0")" && pwd)"
 LOG="/tmp/draw_refresh.log"
 
 cd "$REPO" || { echo "$(date '+%F %T') 找不到仓库" >> "$LOG"; exit 1; }
@@ -34,8 +34,10 @@ else
   echo "$(date '+%F %T') 推送失败" >> "$LOG"
 fi
 
-# 同步到备用地址 chujian596/ai-luandan
-bash "$REPO/push_client_mirror.sh"
+# 同步到备用地址 chujian596/ai-luandan（云端 CI 里跳过，本地才推）
+if [ -z "${CI:-}" ]; then
+  bash "$REPO/push_client_mirror.sh"
+fi
 
 # 同步到 Cloudflare Pages 备用入口
 bash "$REPO/push_cloudflare.sh"

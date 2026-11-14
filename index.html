@@ -3666,7 +3666,9 @@ function autoFetchDraw(retry){
   }
   var tries = retry || 0;
   // 依次尝试：同源快照 → 主站远程 → 备用站远程（离线 APK 靠后两个拿开奖）
-  var sources = ['draw-latest.json',
+  // 首选同域接口：Cloudflare 边缘实时抓，数据总是最新；后面几个是离线/备网兜底
+  var sources = ['/api/draw',
+                 'draw-latest.json',
                  'https://chujian596.github.io/ai-stats/draw-latest.json',
                  'https://chujian596.github.io/ai-luandan/draw-latest.json'];
   var idx = 0;

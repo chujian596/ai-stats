@@ -1,0 +1,48 @@
+name: 开奖快照刷新
+
+# 由 GitHub 服务器执行，不依赖本地电脑/云主机是否开机
+on:
+  workflow_dispatch:
+  schedule:
+    # 北京时间 21:35 / 21:45 / 21:55 / 22:05 连抓四次，开奖号码通常 21:35 后陆续出齐
+    - cron: '35 13 * * *'
+    - cron: '45 13 * * *'
+    - cron: '55 13 * * *'
+    - cron: '5 14 * * *'
+    # 北京时间 10:00 补抓一次（怕前一晚漏抓）
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 抓取开奖并同步两站
+        env:
+          CF_TOKEN: ${{ secrets.CF_TOKEN }}
+        run: |
+          git config user.name  "ai-stats-bot"
+          git config user.email "bot@users.noreply.github.com"
+          bash refresh_draw.sh || true
+          echo "--- 运行日志 ---"
+          tail -20 /tmp/draw_refresh.log || true
+
+      - name: 汇总结果
+        run: |
+          python3 - <<'PY'
+          import json
+          d = json.load(open('draw-latest.json', encoding='utf-8'))
+          m = d.get('macao', {})
+          h = d.get('hongkong', {})
+          print('澳门 %s 期 %s' % (m.get('draw'), m.get('numbers')))
+          print('香港 %s 期 %s' % (h.get('draw'), h.get('numbers')))
+          print('更新时间 %s' % d.get('updated'))
+          PY
