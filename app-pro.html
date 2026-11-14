@@ -492,7 +492,7 @@ var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.36-Pro';
+var APP_VER = 'v58.37-Pro';
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3533,33 +3533,40 @@ setInterval(function(){
     .catch(function(){});
 }, 1000);
 // ========== 本地MNN Chat AI解析 ==========
-async function parseOrderByLocalAI(inputText) {
+async function parseOrderByLocalAI(inputText, retryHint) {
   try {
     const url = "https://api.deepseek.com/v1/chat/completions";
     const apiKey = "sk-56762bcda15e4244af0f8f2a0ba97523";
-    const systemPrompt = `你是订单解析器，只输出标准JSON，不要多余文字。
+    const systemPrompt = `你是「六合彩录单解析器」。只输出标准JSON，不要任何解释文字。
 
-例子：
-输入：特马兔各5米 → 输出：{"ok":true,"data":[{"type":"特","xiao":["马","兔"],"money":5,"region":"澳门"}]}
-输入：平龙马10米 → 输出：{"ok":true,"data":[{"type":"平特","xiao":["龙","马"],"money":10,"region":"澳门"}]}
-输入：09.21.33.45各10 → 输出：{"ok":true,"data":[{"type":"特","nums":[9,21,33,45],"money":10,"region":"澳门"}]}
-输入：红波单10块 → 输出：{"ok":true,"data":[{"type":"特","play":"红波单","money":10,"region":"澳门"}]}
-输入：蓝波大5块 → 输出：{"ok":true,"data":[{"type":"特","play":"蓝波大","money":5,"region":"澳门"}]}
-输入：绿波小单20块 → 输出：{"ok":true,"data":[{"type":"特","play":"绿波小单","money":20,"region":"澳门"}]}
-输入：马连龙兔10块 → 输出：{"ok":true,"data":[{"type":"连肖","xiao":["马","龙","兔"],"money":10,"region":"澳门"}]}
-输入：19 16 35三中三8 → 输出：{"ok":true,"data":[{"type":"三中三","nums":[19,16,35],"money":8,"region":"澳门"}]}
-输入：19 35二中二10 → 输出：{"ok":true,"data":[{"type":"二中二","nums":[19,35],"money":10,"region":"澳门"}]}
-输入：马兔各5米 → 输出：{"ok":false,"need_confirm":true,"reason":"请选择：特码还是平特？"}
+【合法 play 词表】play 字段只能从这里原样抄，一个字都不许改，不许自创：
+波色/单双/大小：合数单、合数双、红波、蓝波、绿波、单数、双数、大、小、红波单、红波双、蓝波单、蓝波双、绿波单、绿波双、红波大、红波小、蓝波大、蓝波小、绿波大、绿波小、红波单大、红波单小、红波双大、红波双小、蓝波单大、蓝波单小、蓝波双大、蓝波双小、绿波单大、绿波单小、绿波双大、绿波双小
+平特单肖：平特马、平特蛇、平特龙、平特兔、平特虎、平特牛、平特鼠、平特猪、平特狗、平特鸡、平特猴、平特羊
 
-规则：
-1. 写了特/特码 → type=特
-2. 写了平特 → type=平特
-3. 数字单（比如09.21.33.45各10）→ 默认就是特码，不需要确认！
-4. 波色+单双大小组合（比如红波单、蓝波大、绿波小单）→ 用play字段，type默认特
-5. 连肖 → type=连肖
-6. 三中三、二中二 → type=三中三/二中二
-7. 只有生肖单（比如马兔各10），没写特也没写平特 → 才需要确认
-8. region：澳门/香港，默认澳门
+【输入→输出示例】
+特马兔各5米 → {"ok":true,"data":[{"type":"特","xiao":["马","兔"],"money":5}]}
+平龙马10米 → {"ok":true,"data":[{"type":"平特","xiao":["龙","马"],"money":10}]}
+09.21.33.45各10 → {"ok":true,"data":[{"type":"特","nums":[9,21,33,45],"money":10}]}
+05-17-29-09-21-33-45各数10米 → {"ok":true,"data":[{"type":"特","nums":[5,17,29,9,21,33,45],"money":10}]}
+红波单10块 → {"ok":true,"data":[{"type":"特","play":"红波单","money":10}]}
+蓝波大5块 → {"ok":true,"data":[{"type":"特","play":"蓝波大","money":5}]}
+绿波小单20块 → {"ok":true,"data":[{"type":"特","play":"绿波单小","money":20}]}
+马连龙兔10块 → {"ok":true,"data":[{"type":"连肖","xiao":["马","龙","兔"],"money":10}]}
+19 16 35三中三8 → {"ok":true,"data":[{"type":"三中三","nums":[19,16,35],"money":8}]}
+马兔各5米 → {"ok":false,"need_confirm":true,"reason":"请选择：特码还是平特？"}
+
+【规则】
+1. 写了特/特码/澳特 → type=特；写了平特/平 → type=平特
+2. 纯号码（05-17-29各数10米、09.21.33.45各10）→ type=特，不需要确认
+3. 波色/单双/大小组合 → 用 play 字段，type 默认特；必须照词表原样抄，例如"绿波小单"要写成"绿波单小"
+4. 连肖 → type=连肖，xiao 放生肖
+5. 三中三/二中二/三中二 → 对应用 type，nums 放号码
+6. 只有生肖、没写特也没写平 → 返回 need_confirm
+7. 金额单位 米/块/元/钱 都算金额
+8. "澳特："、"共70米"、"合计" 这类标题行/汇总行一律忽略，不要当成订单
+9. 多行多注 → data 里返回多条
+9.5 完全相同的订单重复出现 N 次（例如同一组号码连写三遍）→ 必须返回 N 条，严禁合并成一条
+10. play 不在词表里 → 返回 {"ok":false,"msg":"play不在词表"}，绝不许编造
 
 只输出JSON，不要解释！`;
     const res = await fetch(url, {
@@ -3570,15 +3577,25 @@ async function parseOrderByLocalAI(inputText) {
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        messages: [{role:"system", content:systemPrompt}, {role:"user", content:inputText}],
+        messages: [{role:"system", content:systemPrompt}, {role:"user", content: inputText + (retryHint ? ('\n\n【纠正】你上一轮用了「' + retryHint + '」，它不在合法词表中。必须从词表里选一个最接近的，或返回 ok:false，不许自创。') : '')}],
         temperature: 0.1
       })
     });
     const json = await res.json();
     const content = json.choices[0].message.content.trim();
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if(jsonMatch) return JSON.parse(jsonMatch[0]);
-    return {ok:false, msg:"AI返回格式错误"};
+    if(!jsonMatch) return {ok:false, msg:"AI返回格式错误"};
+    const parsed = JSON.parse(jsonMatch[0]);
+    // 本地校验：AI 用的 play 必须真实存在于产品表，否则带纠正重试一次
+    if(parsed && parsed.ok && parsed.data && !retryHint){
+      const badPlay = parsed.data.filter(function(d){
+        return d && d.play && !products.some(function(p){ return p.code === d.play; });
+      });
+      if(badPlay.length){
+        return await parseOrderByLocalAI(inputText, badPlay[0].play);
+      }
+    }
+    return parsed;
   } catch(e) {
     return {ok:false, msg:"云端AI服务连接失败"};
   }
