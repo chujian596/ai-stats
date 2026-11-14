@@ -641,7 +641,8 @@ function autoPayout(){
       specialNum = nums[1];
     }
   } else {
-    period = nums[0];
+    // 期号只在 >=50 时才认（号码最大 49）；不带期号时用页面已知最新期兜底
+    period = (nums[0] >= 50) ? nums[0] : '';
     var allNums = nums.filter(function(n){ return n >= 1 && n <= 49; });
     if(allNums.length < 1){ myAlert('没找到号码'); return; }
     // 最后7个是开奖号（6平特+1特号），自动跳过前面的日期
@@ -653,6 +654,10 @@ function autoPayout(){
     }
   }
 
+  // 没写期号：用已取到的最新期兜底，避免把第一个号码误当期号
+  if(!period){
+    if(typeof lastDraw !== 'undefined' && lastDraw && lastDraw.period) period = parseInt(lastDraw.period) || '';
+  }
   // 防止把更旧的期当成新开奖重复结算
   if(period){
     var settledP = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
@@ -897,13 +902,13 @@ var DEVICE_WHITELIST = [];
 function activateCode(){
   var raw = (document.getElementById('lockCodeInput').value || '').trim().toUpperCase();
   var code = raw.replace(/[^A-Z0-9]/g, '');
-  if(!code){ alert('请输入授权码'); return; }
-  if(code.length < 6 || code.length > 20){ alert('授权码格式不对，应为 6-20 位字母数字'); return; }
+  if(!code){ myAlert('请输入授权码'); return; }
+  if(code.length < 6 || code.length > 20){ myAlert('授权码格式不对，应为 6-20 位字母数字'); return; }
   if(code.charAt(0) !== 'D') code = 'D' + code;
   try {
     localStorage.setItem('fixed_device_id', code);
     location.reload();
-  } catch(e) { alert('保存失败，请检查浏览器存储权限'); }
+  } catch(e) { myAlert('保存失败，请检查浏览器存储权限'); }
 }
 function resetCode(){
   if(!confirm('清除本机授权码，重新输入？')) return;
@@ -1116,15 +1121,15 @@ function unlock(){
   }
   // 设备未授权
   if(!(MEMBERS && MEMBERS[fpOf(DEVICE_ID)]) && whitelistActive && DEVICE_WHITELIST.indexOf(fpOf(DEVICE_ID)) < 0){
-    alert('此设备未授权，设备码：' + DEVICE_ID);
+    myAlert('此设备未授权，设备码：' + DEVICE_ID);
     return;
   }
   // 没密码不能进，到期后必须输管理员码
-  if(!lockData.pwd){ alert('会员已到期，请联系管理员'); return; }
+  if(!lockData.pwd){ myAlert('会员已到期，请联系管理员'); return; }
   if(p === lockData.pwd){
     document.getElementById('lockScreen').style.display = 'none';
   } else {
-    alert('密码错误');
+    myAlert('密码错误');
   }
 }
 function skipLock(){ document.getElementById('lockScreen').style.display = 'none'; }
@@ -3686,7 +3691,7 @@ function autoFetchDraw(retry){
         return;
       }
       done();
-      myAlert('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，或手动粘贴，例如：开318 10.36.02.09.26.37.38');
+      myAlert('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，也可以手动粘贴。\n\n写法：开 期号 六个平号 + 特号\n例子：开318 10.36.02.09.26.37 + 38\n（最后一个数字就是特号）');
       return;
     }
     var u = sources[idx++];
@@ -3853,7 +3858,7 @@ function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
     // 明确开奖：以"开"开头，直接结算
-    if(/^开[].?/.test(raw0) || /^开奖/.test(raw0)){
+    if(/^开[\s.．·,，、:：]*\d/.test(raw0) || /^开奖/.test(raw0)){
       autoPayout(); return;
     }
   }
@@ -6662,7 +6667,7 @@ function billArchiveNow(silent){
   if(tip) tip.style.display = 'none';
   if(typeof renderAll === 'function') renderAll();
   billRefreshBar();
-  if(!silent) alert('已归档 ' + d + '：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + '。账本已切到今天。');
+  if(!silent) myAlert('已归档 ' + d + '：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + '。账本已切到今天。');
   return true;
 }
 
@@ -6772,7 +6777,7 @@ function billOldDayCount(){
 function billSplitOld(){
   const book = billBookDate() || billToday();
   const oldOnes = orders.filter(o => String(o.ts || o.createdAt || '').slice(0,10) < book);
-  if(!oldOnes.length){ alert('当前账本里没有早于 ' + book + ' 的订单'); return; }
+  if(!oldOnes.length){ myAlert('当前账本里没有早于 ' + book + ' 的订单'); return; }
   const days = new Set(oldOnes.map(o => String(o.ts || o.createdAt || '').slice(0,10)));
   if(!confirm('把 ' + oldOnes.length + ' 笔、跨 ' + days.size + ' 天的旧订单，按日期拆进历史账单？\n当前账本只保留 ' + book + ' 的订单。')) return;
   const groups = {};
@@ -6791,7 +6796,7 @@ function billSplitOld(){
   saveOrders(); billSaveArchive();
   if(typeof renderAll === 'function') renderAll();
   billRefreshBar(); billCloseHistory(); billOpenHistory();
-  alert('已拆分 ' + oldOnes.length + ' 笔到 ' + days.size + ' 天历史账单。');
+  myAlert('已拆分 ' + oldOnes.length + ' 笔到 ' + days.size + ' 天历史账单。');
 }
 
 function billRestore(k){
@@ -6809,7 +6814,7 @@ function billRestore(k){
   billCloseView(); billCloseHistory();
   if(typeof renderAll === 'function') renderAll();
   billRefreshBar();
-  alert('已切到 ' + k + ' 的账本。');
+  myAlert('已切到 ' + k + ' 的账本。');
 }
 
 /* 每次主界面重绘后同步顶部账单日 */
