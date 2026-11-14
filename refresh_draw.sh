@@ -36,3 +36,6 @@ fi
 
 # 同步到备用地址 chujian596/ai-luandan
 bash "$REPO/push_client_mirror.sh"
+
+# 同步到 Cloudflare Pages 备用入口
+bash "$REPO/push_cloudflare.sh"
