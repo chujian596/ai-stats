@@ -539,15 +539,12 @@ async function restoreIfNeeded(){
   }
 }
 
-// 强制注销所有旧Service Worker，防止缓存旧版
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){ r.unregister(); });
+// 离线缓存：联网打开过一次后，断网也能启动页面（sw.js 内部按版本清理旧缓存）
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === '127.0.0.1' || location.hostname === 'localhost')){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(){});
   });
 }
-caches && caches.keys && caches.keys().then(function(keys){
-  keys.forEach(function(k){ caches.delete(k); });
-});
 // 会员锁 - 每次打开都显示验证页
 var LOCK_KEY = 'app_lock_v1';
 var ADMIN_CODE = 'xg2024!oa';
