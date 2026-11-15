@@ -245,7 +245,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-split" class="card tab-panel" style="display:none">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
-      <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="setFlyTh(this.value,0)" onchange="setFlyTh(this.value,1)">
+      <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)">
       <button class="btn primary" style="font-size:16px;padding:10px 20px" onclick="toggleSplit()">飞单统计</button>
     </div>
     <div id="cutPanel" style="margin:10px 0 4px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa">
@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.108-Pro';
+var APP_VER = 'v58.109-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1800,7 +1800,7 @@ function renderSplitSide(){
   if(!box) return;
   let h = '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">特号</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" oninput="setFlyTh(this.value,0)" onchange="setFlyTh(this.value,1)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">特号</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" oninput="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" oninput="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += '</div>';
@@ -2094,19 +2094,25 @@ try { lxFlyAmt = parseFloat(localStorage.getItem('lxFlyAmt') || '0') || 0; } cat
 let lxFlyName = '';
 try { lxFlyName = localStorage.getItem('lxFlyName') || ''; } catch(e){ lxFlyName = ''; }
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
-function syncFlyThInputs(){
+function syncFlyThInputs(exceptId){
   ['splitTakeAll','sideSplitTh','cutThInput','riskThresholdInput'].forEach(function(id){
+    if(exceptId && id===exceptId) return;
     var el=document.getElementById(id);
     if(el && el!==document.activeElement && String(el.value)!==String(splitTakeAll)) el.value=splitTakeAll;
   });
 }
-function setFlyTh(v, redraw){
+function setFlyTh(v, redraw, exceptId){
   var n=parseFloat(v); if(!isFinite(n) || n<0) return;
   splitTakeAll=n; saveSplitAll();
   try{ localStorage.setItem('autoStable','0'); }catch(e){}
-  syncFlyThInputs();
-  try{ flyThChanged(); }catch(e){}
-  if(redraw){ try{ renderSplit(); }catch(e){} try{ renderRisk(); }catch(e){} }
+  syncFlyThInputs(exceptId);
+  if(redraw){
+    try{ flyThChanged(); }catch(e){}
+    try{ renderSplit(); }catch(e){}
+    try{ renderRisk(); }catch(e){}
+    var st=document.getElementById(exceptId||'cutThInput');
+    if(st){ try{ st.focus(); var L=st.value.length; st.setSelectionRange&&st.setSelectionRange(L,L); }catch(e){} }
+  }
 }
 function getSplitSales(){
   const sales = {};
@@ -5829,7 +5835,8 @@ function toggleRiskBox(){
   var e = document.getElementById('riskAnalysisBox');
   if(e) e.style.display = riskBoxOpen ? '' : 'none';
   ['riskHealthCard','cutCard'].forEach(function(id){
-    var x = document.getElementById(id);
+    var x = document.querySelector('[id="'+id+'"]');
+    if(!x){ var all=document.querySelectorAll('#riskBody *'); for(var i=0;i<all.length;i++){ if(all[i].id===id){ x=all[i]; break; } } }
     if(x) x.style.display = riskBoxOpen ? '' : 'none';
   });
   var th = document.querySelector('div[onclick="toggleRiskBox()"]');
@@ -6256,7 +6263,7 @@ function renderRisk(){
   }
   h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 基准${_dBaseSrc} ${_dBase.toFixed(0)} · 亏损线 ${_curLine.toFixed(1)} · 亏损号 ${overCnt}/49</div>`;
   h += '<div style="display:flex;align-items:center;gap:5px;padding:0 0 3px;font-size:11px;color:#666">阈值'
-     + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0)" onchange="setFlyTh(this.value,1)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
+     + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
      + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>';
   var _noBet=0,_winArr=[],_losers=[];
   for(var _n=1;_n<=49;_n++){ var _kb=(numBets[_n]||0); var _ka=splitTakeAll>0?Math.min(_kb,splitTakeAll):0;
