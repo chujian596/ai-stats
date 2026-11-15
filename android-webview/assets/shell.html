@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.104-Pro';
+var APP_VER = 'v58.105-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6275,12 +6275,13 @@ function renderRisk(){
           var r = cutCalc(m), df = r.flown - base.flown, dw = r.worst - base.worst;
           var e = df > 0 ? dw / df : 0;
           if(e >= 5) _lineM = m;
+          var _nMove = 0; _bets.forEach(function(b){ if(b.nb > m) _nMove++; });
           var col = e >= 5 ? '#16a34a' : (e >= 2 ? '#b45309' : '#cf1322');
           var sel = (m === cutPick);
           h += `<div onclick="pickCut(${m})" style="padding:5px 6px;border-radius:6px;cursor:pointer;${sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
              + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${sel?'700':'400'}">${m}</span>`
              + `<b style="font-size:12px;color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b></div>`
-             + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>飞 ${r.flown.toFixed(0)}</span><span style="color:${col};font-weight:600">买 ${e.toFixed(1)}</span></div>`
+             + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>飞${r.flown.toFixed(0)}·动${_nMove}号</span><span style="color:${col};font-weight:600">买 ${e.toFixed(1)}</span></div>`
              + `</div>`;
         });
         h += `</div>`;

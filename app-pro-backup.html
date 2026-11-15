@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.105-Pro';
+var APP_VER = 'v58.106-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2266,7 +2266,7 @@ function switchCutMode(m){
 }
 function pickCut(m){
   cutPick = m; cutMode = 'cut';
-  try{ localStorage.setItem('cut_pick_v1', String(m)); localStorage.setItem('cut_mode_v1','cut'); }catch(e){}
+  try{ localStorage.setItem('cut_pick_v1', String(m)); localStorage.setItem('cut_mode_v1','cut'); localStorage.setItem('autoStable','0'); }catch(e){}
   renderRisk();
 }
 function cutApply(M){
@@ -6044,7 +6044,7 @@ function renderRisk(){
   h += `<div id="riskAnalysisBox" style="display:${riskBoxOpen?'':'none'};margin:6px 0;padding:12px;background:#f8f9fa;border:1px solid #e5e5e5;border-radius:8px;font-size:14px;line-height:1.8">`;
   // 特号独立盈亏
   const specWorstNet = specKept - worstKeptBet*payMult;
-  h += `<div style="margin-top:6px;padding:6px 8px;background:#fff;border:1px solid #e5e5e5;border-radius:6px;font-size:13px;color:${worstNet>=0?'#16a34a':riskPct<=30?'#e67e22':'#cf1322'}">${verdict}</div>`;
+
   // 阈值推荐
   function worstAt(T){
     let fly = 0;
@@ -6069,58 +6069,13 @@ function renderRisk(){
   const rec20 = findT(-totalSales*0.2);
   const rec40 = findT(-totalSales*0.4);
   // 自动稳健：开了就把阈值自动设为稳健值（最坏亏≤当天20%）
-  let autoStable = true;
-  try { autoStable = localStorage.getItem('autoStable') !== '0'; } catch(e){}
+  let autoStable = false;
+  try { autoStable = localStorage.getItem('autoStable') === '1'; } catch(e){}
   if(autoStable && Math.round(splitTakeAll) !== rec20){
     splitTakeAll = rec20; saveSplitAll();
     renderSplit(); return renderRisk();
   }
-  h += `<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:#333;cursor:pointer">`
-    + `<input type="checkbox" id="autoStableChk" ${autoStable?'checked':''} onchange="var v=this.checked;try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};if(v){splitTakeAll=${rec20};saveSplitAll();renderSplit();}renderRisk()" style="width:16px;height:16px">`
-    + `自动设为稳健阈值（最坏亏≤当天20%）</label>`;
-  h += `<div style="display:flex;gap:6px;margin-top:6px">`;
-  [{label:'稳健',val:rec20,loss:'亏≤20%'},{label:'宽松',val:rec40,loss:'亏≤40%'}].forEach(p => {
-    h += `<button onclick="splitTakeAll=${p.val};saveSplitAll();renderSplit();renderRisk()" style="flex:1;border:1px solid #ccc;color:#333;background:#fff;border-radius:6px;padding:8px 4px;font-size:13px;font-weight:600">${p.label}<br>${p.val}<br><span style="font-size:10px;font-weight:400;color:#999">${p.loss}</span></button>`;
-  });
-  h += `</div>`;
-  h += `<div style="color:#666;font-size:12px;margin-top:6px;padding:6px;background:#fff;border-radius:6px">当前最坏亏<b style="color:${worstNet<0?'#cf1322':'#16a34a'}">${worstNet.toFixed(0)}</b>（占总单${totalSales>0?(worstNet/totalSales*100).toFixed(0):'0'}%）</div>`;
-  // 49号盈亏分布（合并进本框）
-  {
-    let noBet=0, winArr=[], losers=[];
-    for(let n=1;n<=49;n++){
-      const bet=numBets[n]||0;
-      const keptAmt = splitTakeAll>0?Math.min(bet,splitTakeAll):0;
-      const net = specKept - keptAmt*payMult;
-      if(keptAmt===0) noBet++;
-      else if(net>0.5) winArr.push(net);
-      else if(net<-0.5) losers.push(net);
-    }
-    // 小亏/大亏分界：对齐小赚的最大盈利额，比这还亏才算大亏（没有小赚时用自留）
-    const band = winArr.length ? Math.max.apply(null,winArr) : specKept;
-    const smallLose=[], bigLose=[];
-    losers.forEach(net => { if(-net <= band) smallLose.push(net); else bigLose.push(net); });
-    const pct = c => (c/49*100).toFixed(0)+'%';
-    const rangeTxt = (a,pre)=>{ if(!a.length) return '0个'; let mn=Math.min.apply(null,a),mx=Math.max.apply(null,a); let lo,hi;
-      if(a[0]<0){ lo=mx; hi=mn; } else { lo=mn; hi=mx; } // 亏损从轻到重(-73~-308)，盈利从小到(+162~+397)
-      return a.length+'个 · '+pct(a.length)+' · '+pre+lo.toFixed(0)+'~'+pre+hi.toFixed(0); };
-    const vStyle = 'style="text-align:right;min-width:190px"';
-    h += `<div style="margin-top:10px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">`;
-    h += `<div style="font-weight:700;font-size:13px;padding:8px 10px;background:#fafafa;border-bottom:1px solid #eee">49号盈亏分布（开哪个号的结果）</div>`;
-    h += `<div style="padding:2px 10px;font-size:14px">`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#16a34a">纯赚号（没人买）</span><b ${vStyle}>${noBet}个 · ${pct(noBet)} · 每个+${specKept.toFixed(0)}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#16a34a">小赚号</span><b ${vStyle}>${rangeTxt(winArr,'+')}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#e67e22">小亏号</span><b ${vStyle}>${rangeTxt(smallLose,'')}</b></div>`;
-    h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f2f2f2"><span style="color:#cf1322">大亏号</span><b ${vStyle}>${rangeTxt(bigLose,'')}</b></div>`;
-    // 直接给结果（已是净数，不再减来减去）
-    const realWorst = worstKeptBet*payMult - specKept;
-    h += `<div style="padding:8px 10px;font-size:14px;border-top:1px solid #eee;margin-top:2px">`;
-    if(realWorst<=0){
-      h += `<div style="display:flex;justify-content:space-between;color:#16a34a;font-weight:700"><span>开任何号都不亏</span><b>+${(-realWorst).toFixed(0)}</b></div>`;
-    } else {
-      h += `<div style="display:flex;justify-content:space-between;color:#cf1322;font-weight:700"><span>最差一个号净亏</span><b>−${realWorst.toFixed(0)}</b></div>`;
-    }
-    h += `</div></div></div>`;
-  }
+
   h += `</div>`;
   // 特号持仓表（可折叠）
   h += `<div onclick="toggleOd('riskSpecTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">特号持仓 ▶</div>`;
@@ -6235,12 +6190,23 @@ function renderRisk(){
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
-  h += `<div style="font-weight:700;color:#333;margin-bottom:4px">风险体检 · 削峰</div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损线（单号最多能压到不亏）</span><b>${breakevenThreshold.toFixed(1)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损号（超线，开出来就亏）</span><b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overCnt} / 49 个</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损概率</span><b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overProbPct}%</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>危险注额占收入</span><b style="color:${overAmt>0?'#cf1322':'#16a34a'}">${overAmtPct}%</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>最重一号</span><b>第 ${heaviestNum} 号 ${heaviestBet.toFixed(0)} 元 · 占 ${heaviestShare}%</b></div>`;
+  h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
+  h += `<div style="display:flex;flex-wrap:wrap;gap:0 12px;font-size:12px;color:#555;line-height:1.7">`
+     + `<span>最坏 <b style="color:${worstNet<0?'#cf1322':'#16a34a'};font-size:13px">${worstNet.toFixed(0)}</b></span>`
+     + `<span>亏损线 <b>${breakevenThreshold.toFixed(1)}</b></span>`
+     + `<span>亏损号 <b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overCnt}/49 · ${overProbPct}%</b></span>`
+     + `<span>最重 <b>${heaviestNum}号 ${heaviestBet.toFixed(0)}</b></span>`
+     + `</div>`;
+  var _noBet=0,_winArr=[],_losers=[];
+  for(var _n=1;_n<=49;_n++){ var _kb=(numBets[_n]||0); var _ka=splitTakeAll>0?Math.min(_kb,splitTakeAll):0;
+    var _net=specKept-_ka*payMult; if(_ka===0)_noBet++; else if(_net>0.5)_winArr.push(_net); else if(_net<-0.5)_losers.push(_net); }
+  var _band=_winArr.length?Math.max.apply(null,_winArr):specKept;
+  var _sl=0,_bl=0; _losers.forEach(function(v){ if(-v<=_band)_sl++; else _bl++; });
+  h += `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;font-size:12px;color:#666;line-height:1.7">`
+     + `<span style="color:#16a34a">纯赚 ${_noBet}</span><span style="color:#16a34a">小赚 ${_winArr.length}</span><span style="color:#e67e22">小亏 ${_sl}</span><span style="color:#cf1322">大亏 ${_bl}</span>`
+     + `<span style="flex:1"></span>`
+     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};if(v){splitTakeAll=${rec20};saveSplitAll();renderSplit();}renderRisk()" style="width:13px;height:13px">自动稳健</label>`
+     + `</div>`;
   h += `</div>`;
   }
   // ===== 削峰 / 吃最大：两个模式共用一张号码表 =====
@@ -6289,6 +6255,8 @@ function renderRisk(){
            + `<span style="font-size:12px;color:#666;white-space:nowrap">我能扛</span>`
            + `<input id="cutTolerance" type="number" placeholder="填金额" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">`
            + `<button onclick="applyCutTolerance()" style="padding:6px 12px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;white-space:nowrap">算档位</button>`
+           + `<button onclick="splitTakeAll=${rec20};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>`
+           + `<button onclick="splitTakeAll=${rec40};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>`
            + `</div>`;
         if(_lineM) h += `<div style="color:#16a34a;font-size:12px;margin-bottom:6px">每飞 1 元还能买到 5 元以上安全的，最深到 <b>${_lineM}</b>；再往下削就不划算了</div>`;
         else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
