@@ -554,7 +554,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.90';
+var APP_VER = 'v58.91';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
@@ -4096,6 +4096,7 @@ function openManualEntry(){
     + '<button id="mtSave" style="flex:1;padding:12px;border:none;border-radius:10px;background:#1a1a1a;color:#fff;font-size:15px;font-weight:700">保存</button>'
     + '</div></div>';
   document.body.appendChild(ov);
+  mtKbFix(ov);
   var grid = document.getElementById('mtGrid');
   MANUAL_TYPES.forEach(function(t){
     var b = document.createElement('button');
@@ -4120,6 +4121,35 @@ function openManualEntry(){
   document.getElementById('mtCancel').onclick = function(){ ov.remove(); };
   document.getElementById('mtSave').onclick = function(){ manualSave(ov); };
   updateManualPreview();
+}
+/* 键盘适配：安卓 WebView 的 adjustResize 在弹层上常不生效，用 visualViewport 把弹层顶到键盘上方 */
+function mtKbFix(ov){
+  var box = ov.firstElementChild;
+  function sync(){
+    var vv = window.visualViewport;
+    var kb = 0;
+    if(vv){ kb = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0)); }
+    else { kb = Math.max(0, window.innerHeight - (document.documentElement.clientHeight || window.innerHeight)); }
+    ov.style.bottom = kb + 'px';
+    ov.style.top = '0';
+    if(box){
+      var vis = (vv ? vv.height : window.innerHeight) - 16;
+      box.style.maxHeight = Math.max(220, vis) + 'px';
+      if(kb > 0){ try{ box.scrollTop = 0; }catch(e){} }
+    }
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', sync);
+    window.visualViewport.addEventListener('scroll', sync);
+  }
+  window.addEventListener('resize', sync);
+  setTimeout(sync, 60); setTimeout(sync, 260); setTimeout(sync, 520);
+  ['mtVal','mtPrice','mtMode'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('focus', function(){ setTimeout(function(){ try{ el.scrollIntoView({block:'center'}); }catch(e){} sync(); }, 330); });
+    el.addEventListener('blur', function(){ setTimeout(sync, 200); });
+  });
 }
 function manualSave(ov){
   var val = (document.getElementById('mtVal')||{}).value || '';

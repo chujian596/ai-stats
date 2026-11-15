@@ -8,9 +8,10 @@ SDK=/home/user/android-sdk
 BT=$SDK/build-tools/34.0.0
 AJ=$SDK/platforms/android-34/android.jar
 PASS=aistats2026app
-KS=$PWD/keystore.jks
 
 cd "$(dirname "$0")"
+# 签名必须用脚本自己目录里的这份 keystore（手机已装版本同签名，才能覆盖升级不丢数据）
+KS="$(pwd)/keystore.jks"
 
 # 可用环境变量打不同版本：
 #   APP_HOME_URL   起始地址（客户版 /app，管理版 /app-pro）
