@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.98-Pro';
+var APP_VER = 'v58.99-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2145,9 +2145,14 @@ function cutRefresh(){
       if(bets.length === 0){ elNow.textContent = '暂无订单'; }
       else{
         var gap = payMult * top - base.kept;
-        elNow.innerHTML = '当前自留 <b>' + base.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + base.line.toFixed(1) + '</b><br>'
+        var capShow = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+        elNow.innerHTML = '实际飞单阈值 <b>' + (capShow > 0 ? capShow + '</b> 元/号（每号最多自留这么多）· 有注号 ' + base.n + ' 个<br>' : '未设（全额自留）· 有注号 ' + base.n + ' 个<br>')
+          + '当前自留 <b>' + base.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + base.line.toFixed(1) + '</b><br>'
           + '最重号自留 <b>' + top.toFixed(2) + '</b> 元 · 覆盖缺口 ' + (gap>0?'<b style="color:#cf1322">'+gap.toFixed(2)+'</b>':'0') + ' 元<br>'
           + '开在最重号时净 <b style="color:' + (base.worst>=0?'#16a34a':'#cf1322') + '">' + base.worst.toFixed(2) + '</b>';
+        if(base.n < 47){
+          elNow.innerHTML += '<br><span style="color:#cf1322">有注号 ' + base.n + '/49 个：号数不足 47，削峰数学上归不了零，尾部只能飞掉</span>';
+        }
       }
     }
     var q = document.getElementById('cutQuicks');
@@ -2173,24 +2178,82 @@ function cutRender(M){
     var bets = cutBets();
     var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
     if(top <= 0 || M <= 0) return;
-    var r = cutCalc(M);
-    var r0 = cutCalc(top);
-    var dW = r.worst - r0.worst;   // 负数变正数：多买到多少安全
-    var eff = r.flown > 0 ? (dW / r.flown) : 0;
+    var r = cutCalc(M), r0 = cutCalc(top);
     var el = document.getElementById('cutOut');
     if(!el) return;
-    var pct = r.full / 49 * 100;   // 全号口径：每号开出概率 1/49
+    var pct = r.full / 49 * 100;
+    var eff = r.flown > 0 ? ((r.worst - r0.worst) / r.flown) : 0;
     var html = '';
-    html += '削到 <b>' + M + '</b>：自留 <b>' + r.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + r.line.toFixed(1) + '</b><br>';
-    html += '最坏 <b style="color:' + (r.worst>=0?'#16a34a':'#cf1322') + '">' + (r.worst>=0?'+':'') + r.worst.toFixed(2) + '</b>（开在满额号）· 期望 <b>+' + r.exp.toFixed(1) + '</b>/期<br>';
-    html += '满额号 <b>' + r.full + '</b> 个（' + pct.toFixed(1) + '%）· 有注号 ' + r.n + ' 个<br>';
+    html += '削到 <b>' + M + '</b>：自留 <b>' + r.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + r.line.toFixed(1) + '</b> 元/号 · 有注号 ' + r.n + ' 个<br>';
+    html += '最坏 <b style="color:' + (r.worst>=0?'#16a34a':'#cf1322') + '">' + (r.worst>=0?'+':'') + r.worst.toFixed(2) + '</b>（开在满额号）· 满额号 <b>' + r.full + '</b> 个（' + pct.toFixed(1) + '%）<br>';
     html += '飞掉 <b>' + r.flown.toFixed(2) + '</b> 元';
-    if(r.flown > 0){
-      html += ' · 每飞 1 元买到 <b style="color:' + (eff>=5?'#16a34a':eff>=2?'#f59e0b':'#cf1322') + '">' + eff.toFixed(1) + '</b> 元安全';
+    if(r.flown > 0) html += ' · 每飞 1 元买到 <b style="color:' + (eff>=5?'#16a34a':eff>=2?'#f59e0b':'#cf1322') + '">' + eff.toFixed(1) + '</b> 元安全';
+    if(M >= top) html += '<br><span style="color:#666">这一档等于不削，全额自留。</span>';
+
+    var LV = [100,78,63,47,30,21,15].filter(function(x){ return x < top && x > 0; });
+    var prevM = top, prevW = r0.worst, prevF = r0.flown, rowsArr = [];
+    LV.forEach(function(m){
+      var rr = cutCalc(m), dW = rr.worst - prevW, dF = rr.flown - prevF;
+      var e = dF > 0 ? dW / dF : 0;
+      rowsArr.push({from: prevM, to: m, dF: dF, e: e});
+      prevM = m; prevW = rr.worst; prevF = rr.flown;
+    });
+    var breakEven = 0;
+    for(var m2 = Math.floor(top); m2 >= 1; m2--){ if(cutCalc(m2).worst >= 0){ breakEven = m2; break; } }
+    var valueLine = 0;
+    rowsArr.forEach(function(x){ if(x.e >= 5) valueLine = x.to; });
+
+    if(rowsArr.length){
+      var rows = '';
+      rowsArr.forEach(function(x){
+        var tag = '';
+        if(breakEven && x.to === breakEven) tag = ' <b style="color:#1677ff">←不亏点</b>';
+        else if(valueLine && x.to === valueLine) tag = ' <b style="color:#16a34a">←性价比线</b>';
+        rows += '<div>' + x.from + '→' + x.to + '　飞+' + x.dF.toFixed(0)
+             + '　每飞1元买到 <b style="color:' + (x.e>=5?'#16a34a':x.e>=2?'#f59e0b':'#cf1322') + '">' + (x.e>0?x.e.toFixed(1):'—') + '</b> 元安全' + tag + '</div>';
+      });
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:14px">分档效率'
+           + '<div style="font-family:monospace;line-height:1.75;margin-top:4px">' + rows + '</div>';
+      if(breakEven) html += '<div style="margin-top:4px;font-size:13px;color:#1677ff">不亏点：削到 <b>' + breakEven + '</b> 元/号，开在任何一个号都不亏</div>';
+      else html += '<div style="margin-top:4px;font-size:13px;color:#cf1322">这盘削到底也归不了零（有注号太少），只能靠飞单摊掉尾部</div>';
+      if(valueLine) html += '<div style="margin-top:2px;font-size:13px;color:#16a34a">性价比线：削到 <b>' + valueLine + '</b> 元/号，每飞 1 元还能买到 5 元以上安全；再往下不划算</div>';
+      html += '</div>';
     }
-    if(M >= top){ html += '<br><span style="color:#666">这一档等于不削，全额自留。</span>'; }
+
+    var bhtml = '';
+    bets.slice(0, 10).forEach(function(b){
+      var k = Math.min(b.self, M), net = r.kept - payMult * k;
+      bhtml += '<div><span style="display:inline-block;min-width:56px">' + b.n + ' 号</span>'
+             + '<span style="display:inline-block;min-width:46px">' + b.self.toFixed(0) + '</span>'
+             + '净 <b style="color:' + (net>=0?'#16a34a':'#cf1322') + '">' + (net>=0?'+':'') + net.toFixed(0) + '</b></div>';
+    });
+    if(bhtml){
+      var cnt = bets.filter(function(b){ return b.self > 0; }).length;
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:14px">'
+           + '分号明细（削到 ' + M + '，按注额排' + (cnt > 10 ? '，前 10 个号' : '') + '）'
+           + '<div style="font-family:monospace;line-height:1.75;margin-top:4px">' + bhtml + '</div></div>';
+    }
+
+    var btns = '';
+    if(breakEven && breakEven < M) btns += '<button class="btn primary" style="flex:1;font-size:14px;padding:9px" onclick="cutApply(' + breakEven + ')">用不亏点 ' + breakEven + '</button>';
+    if(M < top) btns += '<button class="btn" style="flex:1;font-size:14px;padding:9px" onclick="cutApply(' + M + ')">用当前档 ' + M + '</button>';
+    if(btns) html += '<div style="margin-top:8px;display:flex;gap:6px">' + btns + '</div>';
     el.innerHTML = html;
   }catch(e){}
+}
+function cutApply(M){
+  try{
+    splitTakeAll = M;
+    saveSplitAll();
+    var i = document.getElementById('splitTakeAll'); if(i) i.value = M;
+    var s = document.getElementById('sideSplitTh'); if(s) s.value = M;
+    try{ localStorage.setItem('autoStable','0'); }catch(e){}
+    try{ calcSplit(); }catch(e){}
+    try{ renderSplit(); }catch(e){}
+    try{ if(typeof flyThChanged === 'function') flyThChanged(); }catch(e){}
+    try{ cutRefresh(); }catch(e){}
+    myAlert('飞单阈值已设为 ' + M + ' 元/号。\n飞单明细、持仓分析、风险体检都按这个数重算了。');
+  }catch(e){ myAlert('设置失败：' + e.message); }
 }
 function cutByTolerance(){
   try{
