@@ -6362,6 +6362,7 @@ function renderRisk(){
   });
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
+  window.__optM = _optM>0 ? _optM : 0;
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
@@ -6410,7 +6411,7 @@ function renderRisk(){
      + `<span style="color:#999;font-size:10px;white-space:nowrap">开奖后按号算</span>`
      + `<span style="color:#16a34a">纯赚 ${_noBet}<span style="color:#999;font-size:10px">号</span></span><span style="color:#16a34a">小赚 ${_winArr.length}<span style="color:#999;font-size:10px">号</span></span><span style="color:#e67e22">小亏 ${_sl}<span style="color:#999;font-size:10px">号</span></span><span style="color:#cf1322">大亏 ${_bl}<span style="color:#999;font-size:10px">号</span></span>`
      + `<span style="flex:1"></span>`
-     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){try{if(localStorage.getItem('prev_th_before_auto')===null)localStorage.setItem('prev_th_before_auto',String(splitTakeAll))}catch(e){};splitTakeAll=${rec20};saveSplitAll();}else{try{var p=localStorage.getItem('prev_th_before_auto');if(p!==null){splitTakeAll=parseFloat(p)||0;localStorage.removeItem('prev_th_before_auto')}}catch(e){};saveSplitAll();}try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健</label>`
+     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){try{if(localStorage.getItem('prev_th_before_auto')===null)localStorage.setItem('prev_th_before_auto',String(splitTakeAll))}catch(e){};splitTakeAll=(window.__optM||${rec20});saveSplitAll();}else{try{var p=localStorage.getItem('prev_th_before_auto');if(p!==null){splitTakeAll=parseFloat(p)||0;localStorage.removeItem('prev_th_before_auto')}}catch(e){};saveSplitAll();}try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
      + `</div>`;
   h += `</div>`;
   h += `</div>`;
