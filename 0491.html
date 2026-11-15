@@ -37,7 +37,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>0491 · 资料栏目 <span style="font-size:12px;font-weight:600;color:#999">v1.0.7</span></h1>
+    <h1>0491 · 资料栏目 <span style="font-size:12px;font-weight:600;color:#999">v1.0.8</span></h1>
     <a class="btn" href="portal.html">返回</a>
   </div>
   <div id="tabs" class="tabs"></div>
@@ -80,7 +80,7 @@
     <div class="muted" id="notes">
       推荐一律取<b>开奖前封存</b>（行尾仍为“？00”时抓取，附指纹），开奖后再与网站当前行比对：字串不同=事后改料，行消失=无法复核。<br>
       命中按各栏目真实规则判定（杀肖/杀尾为“未被杀中=对”，平特为“平码出现该肖=中”）。<br>
-      315期及以前无封存，不在本页统计范围。<br><span id="ver">页面版本 v1.0.7</span>
+      315期及以前无封存，不在本页统计范围。<br><span id="ver">页面版本 v1.0.8</span>
     </div>
   </div>
 </div>
@@ -162,8 +162,10 @@ fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.json()}).th
        '<div style="height:4px;background:#eee;border-radius:2px;margin:3px 0"><div style="height:4px;width:'+w+'%;background:'+col+';border-radius:2px"></div></div>'+
        '<span class="muted">'+(need>0?('还差 '+need+' 期可判':'样本已达判定线')+'</span>')+
        (v.win10?'<br><span class="muted">近10期 '+v.win10.hits+'/'+v.win10.n+' · 边缘'+(v.win10.edge_pp>0?'+':'')+v.win10.edge_pp+'pp · z='+v.win10.z+'</span>':'')+
+       (v.win30?'<br><span class="muted">近30期 '+v.win30.hits+'/'+v.win30.n+' · 边缘'+(v.win30.edge_pp>0?'+':'')+v.win30.edge_pp+'pp · z='+v.win30.z+'</span>':'')+
        '</div><div class="c3" style="text-align:right"><span class="tag '+cls+'">'+v.verdict+'</span>'+
        (v.short&&v.short!=='短窗无信号'?'<br><span class="tag '+(v.short.indexOf('有效')>=0?'good':'bad')+'">'+v.short+'</span>':'')+
+       (v.mid&&v.mid.indexOf('未足')<0?'<br><span class="tag '+(v.mid.indexOf('有效')>=0?'good':'bad')+'">'+v.mid+'</span>':'')+
        '</div></div>';});
   q('evRows').innerHTML=h;
   q('evNote').innerHTML='判定规则：样本&lt;15 一律“证据不足”；边缘 z≥1.96 判“候选”，z≤−1.96 判“剔除”，其余“观察”。<br>'+
@@ -173,7 +175,7 @@ fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.json()}).th
     '② <b>瞎猜</b>：按这栏覆盖范围随机乱给，本该中的概率（覆盖越宽越高）。<br>'+
     '③ <b>边缘</b>：实际命中率 − 瞎猜概率。正=比瞎猜准，负=还不如瞎猜。<br>'+
     '④ <b>真实水平区间</b>：样本太少时区间极宽（3/3 可能是44%，也可能真是100%），宽到盖住"瞎猜"那个数，就判不了。<br>'+
-    '⑤ <b>近10期</b>：只统计最近10期的命中与边缘，专抓"最近几天是否明显准"，抓得到大偏差、抓不到小偏差。<br>'+
+    '⑤ <b>近10期 / 近30期</b>：滚动统计最近10期、最近30期的命中与边缘。10期抓"这几天准不准"，30期抓"这一阵子准不准"。两者都至少要满8期/20期才出信号。<br>'+
     '⑥ <b>还差几期</b>：按要证实5个点的优势估算，通常需300+期；证10个点约96期。<br>
     '组合层面：各栏赔率结构固定，期望约等于 95%，“换组合”改变不了期望，只改变波动。';
 });
