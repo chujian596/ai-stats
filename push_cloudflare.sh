@@ -23,8 +23,11 @@ for f in index.html app.html app-pro.html admin.html admin58.html portal.html ma
   [ -f "$f" ] && cp -f "$f" "$DEPLOY/"
 done
 
-# 0491 数据（data/ 子目录）
-[ -d "$SRC/data" ] && cp -rf "$SRC/data" "$DEPLOY/"
+# 0491 数据（data/ 子目录）；img-snap 是本地读图快照，7MB 不上公网
+if [ -d "$SRC/data" ]; then
+  mkdir -p "$DEPLOY/data"
+  (cd "$SRC/data" && find . -maxdepth 1 -mindepth 1 ! -name 'img-snap' -exec cp -rf {} "$DEPLOY/data/" \;)
+fi
 
 # Pages Functions（/api/draw 让 Cloudflare 自己抓开奖）
 rm -rf "$DEPLOY/versions"

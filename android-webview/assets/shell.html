@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.120-Pro';
+var APP_VER = 'v58.123-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -634,7 +634,8 @@ fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
-    if(v && normVer(v) !== normVer(APP_VER)){
+    if(!/^v?\d+\.\d{1,3}(-[A-Za-z]+)?$/.test(v)){ return; }
+    if(normVer(v) !== normVer(APP_VER)){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
       bar.textContent='发现新版本 '+v+'，点这里更新';
@@ -1829,6 +1830,7 @@ function renderSplitSide(){
   h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px;font-weight:600">确认飞单</button>';
   h += '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap"><a href="javascript:setFlyRoundSel('5')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='5'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='5'?'700':'400'}">5</a><span style="color:#ccc">|</span><a href="javascript:setFlyRoundSel('10')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='10'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='10'?'700':'400'}">10</a> 元档</span><br><span style="color:#999;font-size:11px">勾选后飞单金额往上凑到整数档，多个号会合并成一行，多飞的自付</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
@@ -2415,24 +2417,26 @@ function renderAutoCustPay(){
 function sideSplitCopy(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  // 逐行复制：特号/平特直接用，二中二/三中三用原始订单文字
+  // 同金额合并成「各X」，按凑整档位显示；二中二/三中三保留原始订单文字
   const copyLines = [];
-  r.lines.forEach(l => {
-    if(l.code === '二中二/三中三合计'){
-      // 用原始订单文字，复式就显示复式，不展开
-      orders.forEach(o => {
-        const hasEM = (o.codes||[]).some(c => typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0));
-        if(hasEM && o.raw) copyLines.push(o.raw);
-      });
-    } else {
-      copyLines.push(l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
-    }
-  });
-  copyLines.push('合计 ' + r.thisRound.toFixed(2));
+  const _emLine = r.lines.filter(function(l){ return l.code === '二中二/三中三合计' && l.amt > 0.01; });
+  if(_emLine.length){
+    orders.forEach(function(o){
+      const hasEM = (o.codes||[]).some(function(c){ return typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0); });
+      if(hasEM && o.raw) copyLines.push(o.raw);
+    });
+  }
+  const _pg = buildFlyGroups(r.lines.filter(function(l){ return l.amt > 0.01 && l.code !== '二中二/三中三合计'; }), false);
+  _pg.groups.forEach(function(g){ copyLines.push(flyGroupText(g)); });
+  const _emSum = _emLine.reduce(function(s,l){ return s + l.amt; }, 0);
+  const _grand = _pg.showSum + _emSum;
+  copyLines.push('合计 ' + _grand.toFixed(0));
   const txt = copyLines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  myAlert('已复制本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+  var _tip = '已复制本轮飞单 ' + _grand.toFixed(0) + ' 元\n共' + copyLines.length + '行，直接粘贴发给上家';
+  if(_pg.showSum !== _pg.origSum) _tip += '\n（凑整前 ' + (_pg.origSum + _emSum).toFixed(0) + '，多飞 ' + (_pg.showSum - _pg.origSum).toFixed(0) + '）';
+  myAlert(_tip);
 }
 
 function sideSplitCopyAuto(){
@@ -2500,6 +2504,53 @@ function refreshFlySummary(){
     else if(box && box.innerHTML.trim() !== ''){ showAllFlyDir(); }
   } catch(e){}
 }
+// ==== 飞单目录美化：同金额合并成一行「各X」，可选尾数凑整 ====
+// 开关 flyRoundOn 存在 localStorage；档位 flyRoundSel 默认 5
+function flyRoundOn(){ try{ return localStorage.getItem('flyRoundOn') === '1'; }catch(e){ return false; } }
+function flyRoundSel(){ try{ return localStorage.getItem('flyRoundSel') || '5'; }catch(e){ return '5'; } }
+function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
+function setFlyRoundOn(on){
+  try{ localStorage.setItem('flyRoundOn', on ? '1' : '0'); }catch(e){}
+  try{ refreshFlySummary(); }catch(e){}
+  try{ showAllFlyDir(); }catch(e){}
+}
+function setFlyRoundSel(v){
+  try{ localStorage.setItem('flyRoundSel', v); }catch(e){}
+  try{ localStorage.setItem('flyRoundOn', '1'); }catch(e){}
+  try{ refreshFlySummary(); }catch(e){}
+  try{ showAllFlyDir(); }catch(e){}
+}
+// 兼容旧入口
+function setFlyRoundMode(m){
+  if(!m){ setFlyRoundOn(false); return; }
+  setFlyRoundSel(m);
+}
+function flyShowAmt(amt){
+  const m = parseFloat(getFlyRoundMode()) || 0;
+  if(m <= 0) return amt;
+  return Math.ceil((amt - 1e-9) / m) * m;
+}
+// 按显示金额分组：金额一样的号码并成一行
+function buildFlyGroups(lines, useFull){
+  const map = {};
+  let origSum = 0, showSum = 0;
+  lines.forEach(l => {
+    const base = useFull ? l.full : l.amt;
+    if(base < 0.01) return;
+    origSum += base;
+    const show = flyShowAmt(base);
+    showSum += show;
+    const k = show.toFixed(2);
+    if(!map[k]) map[k] = { amt: show, codes: [] };
+    map[k].codes.push(String(l.code).replace(':', ' '));
+  });
+  const groups = Object.keys(map).map(k => map[k]).sort((a, b) => b.amt - a.amt);
+  return { groups: groups, origSum: origSum, showSum: showSum };
+}
+function flyGroupText(g){
+  return g.codes.join(' ') + ' 各' + g.amt.toFixed(0);
+}
+
 function showAllFlyDir(){
   currentFlyGroup = null;
   const r = getThisRoundFly();
@@ -2513,28 +2564,40 @@ function showAllFlyDir(){
   const done = r.lines.filter(l => l.amt <= 0.01);
   const pSum = pending.reduce((s,l)=>s+l.amt,0);
   const dSum = done.reduce((s,l)=>s+l.full,0);
+  const _pg = buildFlyGroups(pending, false);
+  const _dg = buildFlyGroups(done, true);
+  const _mode = getFlyRoundMode();
   let h = '<div style="font-size:12px;line-height:1.3">';
-  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0">飞单总目录（待飞' + pSum.toFixed(0) + ' / 已飞' + dSum.toFixed(0) + '）</div>';
+  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px">'
+     + '<span>飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _dg.showSum.toFixed(0) + '）</span>'
+     + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
+     + '</div>';
   h += '<div style="display:flex">';
   // 左：未飞
-  h += '<div style="flex:1;border-right:1px solid #eee">';
-  h += '<div style="padding:2px 5px;font-size:10px;color:#cf1322;font-weight:600;border-bottom:1px solid #eee">未飞 ' + pSum.toFixed(0) + '</div>';
-  if(pending.length === 0){
+  h += '<div style="flex:1;border-right:1px solid #eee;min-width:0">';
+  h += '<div style="padding:2px 5px;font-size:10px;color:#cf1322;font-weight:600;border-bottom:1px solid #eee">未飞 ' + _pg.showSum.toFixed(0)
+     + (_pg.showSum !== _pg.origSum ? ' <span style="color:#999;font-weight:400">（原' + _pg.origSum.toFixed(0) + '，多飞' + (_pg.showSum-_pg.origSum).toFixed(0) + '）</span>' : '')
+     + '</div>';
+  if(_pg.groups.length === 0){
     h += '<div style="padding:4px;color:#ccc;text-align:center;font-size:11px">全部飞完</div>';
   } else {
-    pending.forEach(l => {
-      h += '<div style="display:flex;justify-content:space-between;padding:2px 5px;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:#333">' + l.code + '</span><span style="font-size:12px;color:#cf1322;font-weight:700">' + l.amt.toFixed(0) + '</span></div>';
+    _pg.groups.forEach(function(g){
+      h += '<div style="padding:2px 5px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;gap:4px;align-items:flex-start">'
+         + '<span style="font-size:12px;color:#333;line-height:1.4;word-break:break-all">' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
+         + '<span style="font-size:12px;color:#cf1322;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
     });
   }
   h += '</div>';
   // 右：已飞
-  h += '<div style="flex:1">';
-  h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee">已飞 ' + dSum.toFixed(0) + '</div>';
-  if(done.length === 0){
+  h += '<div style="flex:1;min-width:0">';
+  h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee">已飞 ' + _dg.showSum.toFixed(0) + '</div>';
+  if(_dg.groups.length === 0){
     h += '<div style="padding:4px;color:#ccc;text-align:center;font-size:11px">暂无</div>';
   } else {
-    done.forEach(l => {
-      h += '<div style="display:flex;justify-content:space-between;padding:2px 5px;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:#999">' + l.code + '</span><span style="font-size:12px;color:#999">' + l.full.toFixed(0) + '</span></div>';
+    _dg.groups.forEach(function(g){
+      h += '<div style="padding:2px 5px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;gap:4px;align-items:flex-start">'
+         + '<span style="font-size:12px;color:#999;line-height:1.4;word-break:break-all">' + g.codes.join(' ') + ' <span style="color:#bbb">各' + g.amt.toFixed(0) + '</span></span>'
+         + '<span style="font-size:12px;color:#999;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
     });
   }
   h += '</div>';
@@ -6210,11 +6273,12 @@ function renderRisk(){
   else verdict = '⚠️ 风险高：最坏亏'+riskPct.toFixed(0)+'%，建议飞更多';
   // 今日汇总条
   h += `<div style="display:flex;gap:4px;margin:6px 0">`;
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${fullTotalSales.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">总单</div><b style="font-size:16px">${fullTotalSales.toFixed(0)}</b><div style="font-size:10px;color:#bbb">全部产品订单总额</div></div>`;
   const _fr = getThisRoundFly();
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞(实际)</div><b style="font-size:16px;color:#cf1322">${_fr.already.toFixed(0)}</b></div>`;
-  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">待飞</div><b style="font-size:16px;color:#d97706">${_fr.thisRound.toFixed(0)}</b></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">已飞(实际)</div><b style="font-size:16px;color:#cf1322">${_fr.already.toFixed(0)}</b><div style="font-size:10px;color:#bbb">历史上已确认飞出的</div></div>`;
+  h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">待飞</div><b style="font-size:16px;color:#d97706">${_fr.thisRound.toFixed(0)}</b><div style="font-size:10px;color:#bbb">按当前阈值还该飞</div></div>`;
   h += `</div>`;
+  h += `<div style="font-size:10px;color:#999;line-height:1.5;margin:-2px 0 6px">三个数不同口径：总单是全部产品订单；已飞是之前手动确认过的累计；待飞是照当前阈值「特号 ${splitTakeAll||0} / 平特 ${pteFlyTakeAll||0} / 连肖 ${lxFlyAmt||0}」还算该飞多少。下方号码表的「飞」只算特号 01–49，跟这三个不是一回事。</div>`;
   // 已开奖：显示实际结果
   if(lastDraw && lastDraw.specialNum){
     const dn = lastDraw.specialNum;
@@ -6256,7 +6320,7 @@ function renderRisk(){
     h += `<div style="font-weight:700;font-size:18px">实际净盈亏：<b style="color:${actualNet>=0?'#166534':'#cf1322'}">${actualNet>=0?'+':''}${actualNet.toFixed(0)}</b></div>`;
     h += `</div>`;
   }
-  h += `<div onclick="toggleRiskBox()" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">持仓分析${splitTakeAll>0?'（飞单后）':'（全飞）'}${lastDraw&&lastDraw.specialNum?'（已开奖）':'（开奖前预测）'} ▶</div>`;
+  h += `<div onclick="toggleRiskBox()" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">持仓分析${splitTakeAll>0?'（飞单后）':'（全飞）'}${lastDraw&&lastDraw.specialNum?'（已开奖）':'（开奖前预测）'} · 最坏 <span style="color:#cf1322">${worstNet.toFixed(0)}</span> ▶</div>`;
   h += `<div id="riskAnalysisBox" style="display:${riskBoxOpen?'':'none'};margin:6px 0;padding:12px;background:#f8f9fa;border:1px solid #e5e5e5;border-radius:8px;font-size:14px;line-height:1.8">`;
   // 特号独立盈亏
   const specWorstNet = specKept - worstKeptBet*payMult;
@@ -6291,7 +6355,9 @@ function renderRisk(){
 
   h += `</div>`;
   // 特号持仓表（可折叠）
-  h += `<div onclick="toggleOd('riskSpecTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">特号持仓 ▶</div>`;
+  let _swN=0,_swV=0,_sbet=0;
+  for(let _i=1;_i<=49;_i++){ const b=numBets[_i]||0; const k=splitTakeAll>0?Math.min(b,splitTakeAll):b; _sbet+=b; const v=specKept-k*payMult; if(v<_swV||_swN===0){_swV=v;_swN=_i;} }
+  h += `<div onclick="toggleOd('riskSpecTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">特号持仓 · 下注 ${_sbet.toFixed(0)} · 最坏 <span style="color:#cf1322">${_swV.toFixed(0)}</span>${_swN?'（开'+String(_swN).padStart(2,'0')+'）':''} ▶</div>`;
   h += `<div id="riskSpecTable" style="display:none">`;
   h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;font-size:12px;line-height:1.4">`;
   const sortedNums = Array.from({length:49},(_,i)=>i+1).sort((a,b)=>(numBets[b]||0)-(numBets[a]||0));
@@ -6319,7 +6385,19 @@ function renderRisk(){
   });
   const pteEntries = Object.entries(pteMap).sort((a,b)=>b[1]-a[1]);
   if(pteEntries.length){
-    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 ▶</div>`;
+    let _pw = 0, _pwz = '', _pk = 0, _ptot = 0, _pl = [];
+    pteEntries.forEach(function(e){
+      const z=e[0], amt=e[1];
+      const mult = z==='马' ? 1.8 : payMultSingle;
+      const kept = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : 0;
+      _ptot += amt; _pk += kept;
+      _pl.push({z:z, pay: kept*mult});
+    });
+    // 与风险体检同口径：最坏是 6 个平号 + 特号全落在注额最高的 7 个生肖上
+    _pl.sort(function(a,b){ return b.pay - a.pay; });
+    _pw = _pl.slice(0,7).reduce(function(s,v){ return s+v.pay; }, 0);
+    _pwz = _pl.length ? (_pl.length >= 7 ? '最多7肖同时中' : '最多'+_pl.length+'肖同时中') : '';
+    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 · 下注 ${_ptot.toFixed(0)} / 自留 ${_pk.toFixed(0)} · 最坏赔 <span style="color:#cf1322">${_pw.toFixed(0)}</span>${_pwz?'（'+_pwz+'）':''} ▶</div>`;
     h += `<div id="riskPteTable" style="display:none">`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
     h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留净赔</th></tr>`;
@@ -6420,12 +6498,15 @@ function renderRisk(){
   var _dTopR = cutCalc(100, true);      // 用原始注额，以「吃最大 100」为对比基准
   var _optM = 0, _optR = null;
   if(_dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; }
-  var _dbroken = false;
+  var _maxBet0 = 0;                     // 盘里最大单号注额，阈值高于它＝一个号都削不动，这一档不能当断点
+  try{ cutBets().forEach(function(b){ if(b.nb > _maxBet0) _maxBet0 = b.nb; }); }catch(e){}
+  var _dbroken = false, _deepM = 0, _deepR = null;
   [95,90,85,80,78,70,63,55,47,40,30,21].forEach(function(m){
     if(_dbroken) return;
+    if(m >= _maxBet0) return;           // 削不动的空档直接跳过（continue），不能当成「削到这就废了」
     var r=cutCalc(m, true), df=r.flown-_dTopR.flown;
     var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
-    if(r.line>=_dBase && e>=5){ _optM=m; _optR=r; } else { _dbroken=true; }
+    if(r.line>=_dBase && e>=5){ _optM=m; _optR=r; _deepM=m; _deepR=r; } else { _dbroken=true; }
   });
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
@@ -6453,7 +6534,21 @@ function renderRisk(){
   } else if(_optM === 100){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 吃最大 ${_diagTop} 元/号 已守住基准，再往下削都是白飞</div>`;
   } else {
-    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">这盘削到哪都守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}），削峰救不了，只能加飞或拒单</div>`;
+    // 守不住基准时，仍要告诉用户「性价比最好的那一档在哪、它到底差多少」，否则顶部说救不了、下面又推一档，读起来自相矛盾
+    var _pm = 0, _pr = null;
+    [95,90,85,80,78,70,63,55,47,40,30,21].forEach(function(m){
+      if(m >= _maxBet0) return;
+      var r=cutCalc(m, true), df=r.flown-_dTopR.flown;
+      var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
+      if(e>=5){ _pm=m; _pr=r; }
+    });
+    if(_pm > 0 && _pr){
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">压不到基准（${_dBaseSrc} ${_dBase.toFixed(0)}）：性价比最好的 ${_pm} 档最坏 ${_pr.worst.toFixed(0)}、亏损线 ${(_pr.kept/47).toFixed(1)}，仍差 ${(_dBase-_pr.kept/47).toFixed(1)}；再往下每 1 元买不到 5 元安全，缺口只能靠加飞或拒单</div>`;
+    } else if(_deepM > 0 && _deepR){
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到最深 ${_deepM} 也守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}，此时亏损线 ${(_deepR.kept/47).toFixed(1)}），只能加飞或拒单</div>`;
+    } else {
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">这盘削到哪都守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}），削峰救不了，只能加飞或拒单</div>`;
+    }
   }
   if(_optM && _optM > 0){
     var _nextUnder = 0;
@@ -6508,10 +6603,17 @@ function renderRisk(){
       h += `<button onclick="switchCutMode('cut')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='cut'?'background:#1677ff;color:#fff;border:1px solid #1677ff':'background:#fff;color:#666;border:1px solid #ddd'}">削峰稳健${_mode==='cut'?' '+cutPick:''}<br><span style="font-size:11px;font-weight:400">稳·亏少</span></button>`;
       h += `</div>`;
       if(_mode === 'cut'){
-        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后的最坏净盈亏；完全不削是 -4735）</div>`;
+        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后的最坏净盈亏；完全不削是 ${base.worst.toFixed(0)}）</div>`;
         h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
+        // 不削这一档始终给出，作为回到原状的入口（阈值 100 高于任何单号即等于不削）
+        h += `<div onclick="pickCut(100)" style="padding:5px 6px;border-radius:6px;cursor:pointer;${cutPick===100?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
+           + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${cutPick===100?'700':'400'}">不削</span>`
+           + `<b style="font-size:12px;color:${base.worst>=0?'#16a34a':'#cf1322'}">${(base.worst>=0?'+':'')+base.worst.toFixed(0)}</b></div>`
+           + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>自留 ${base.kept.toFixed(0)} · 飞 ${base.flown.toFixed(0)}</span></div>`
+           + `<div style="font-size:11px;color:#888">动 0 号</div></div>`;
         var _lineM = 0;
         _lv.forEach(function(m){
+          if(m >= _top) return;   // 与最优档同口径：削不动最大单号的档位直接不列
           var r = cutCalc(m, true), df = r.flown - base.flown, dw = r.worst - base.worst;
           var e = df > 0 ? dw / df : 0;
           if(e >= 5) _lineM = m;
@@ -6533,8 +6635,14 @@ function renderRisk(){
            + `<button onclick="splitTakeAll=${rec20};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>`
            + `<button onclick="splitTakeAll=${rec40};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>`
            + `</div>`;
-        if(_lineM) h += `<div style="color:#16a34a;font-size:12px;margin-bottom:6px">这盘最划算的是 <b>${_optM||_lineM}</b> 档；最多还能削到 <b>${_lineM}</b>（每多飞 1 元仍能换回 5 元以上安全），再往下就不值了</div>`;
-        else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
+        if(_lineM){
+          var _lmR = cutCalc(_lineM, true);
+          var _lmLine = _lmR.kept / 47;
+          var _lmSafe = _lmLine >= _dBase;
+          h += `<div style="color:${_lmSafe?'#16a34a':'#b45309'};font-size:12px;margin-bottom:6px">性价比最好的是 <b>${_lineM}</b> 档（每多飞 1 元能换回 5 元以上安全）：最坏 ${_lmR.worst.toFixed(0)}、亏损线 ${_lmLine.toFixed(1)}，` +
+               (_lmSafe ? `已守住基准 ${_dBase.toFixed(0)}` : `仍差基准 ${_dBase.toFixed(0)} ${(_dBase-_lmLine).toFixed(1)}，只是亏得少些，不算安全`) +
+               `；再往下就不值了</div>`;
+        } else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
       }
       h += `<div style="border-top:1px solid #eee;padding-top:6px">`;
       h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:3px">`
