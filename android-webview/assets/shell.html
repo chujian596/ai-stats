@@ -571,21 +571,11 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.91-Pro';
+var APP_VER = 'v58.92-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
-// 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
-(function(){
-  try{
-    if((location.search || '').indexOf('pin=1') >= 0) return;
-    var pin = localStorage.getItem('aiProPinVer');
-    if(!pin || pin === APP_VER) return;
-    var f = './versions/app-pro-' + pin + '.html?pin=1';
-    fetch(f, {method:'HEAD', cache:'no-store'}).then(function(r){
-      if(r.ok) location.replace(f);
-    }).catch(function(){});
-  }catch(e){}
-})();
+// 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
+try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -3943,7 +3933,7 @@ function refreshPage(){
     .then(function(v){
       var remote = String(v || '').trim();
       if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
-      if(remote && normVer(remote) !== normVer(APP_VER)){
+      if(remote && normVer(remote) !== normVer(APP_VER) && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
         if(btn) btn.textContent = '刷新';
         myChoice('有新版本',
           '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
@@ -3953,8 +3943,8 @@ function refreshPage(){
               localStorage.removeItem('aiProPinVer');
               location.replace(_onlineURL());
             } else if(i === 1){
-              localStorage.setItem('aiProPinVer', APP_VER);
-              myAlert('已锁定 ' + APP_VER + '。\n以后打开都停在这个版本，不会再自动变。\n想换回最新版：点刷新，选「现在更新到最新」。');
+              localStorage.setItem('aiNoRemindVer', normVer(APP_VER));
+              myAlert('已设为不再提醒。\n新版照样会自动生效，只是不再弹窗问你要不要更新。');
             }
           });
       } else if(btn){
@@ -4263,6 +4253,23 @@ function openManualEntry(){
   updateManualPreview();
 }
 /* 键盘适配：安卓 WebView 的 adjustResize 在弹层上常不生效，用 visualViewport 把弹层顶到键盘上方 */
+
+/* 键盘高度由 App 原生层量好传进来（安卓 WebView 不会随键盘缩小自身视口，页面自己感知不到） */
+window.__kbFix = function(kb){
+  try{
+    kb = Number(kb) || 0;
+    var vv = window.visualViewport;
+    if(vv && (window.innerHeight - vv.height) > 40){ kb = 0; }   // 视口已随键盘缩小，无需额外补偿
+    var ov = document.getElementById('manualOverlay');
+    if(!ov) return;
+    ov.style.top = '0';
+    ov.style.bottom = kb + 'px';
+    var box = ov.firstElementChild;
+    if(box){
+      box.style.maxHeight = Math.max(220, window.innerHeight - kb - 16) + 'px';
+    }
+  }catch(e){}
+};
 function mtKbFix(ov){
   var box = ov.firstElementChild;
   function sync(){

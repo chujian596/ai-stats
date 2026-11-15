@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.92-Pro';
+var APP_VER = 'v58.93-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4258,6 +4258,7 @@ function openManualEntry(){
 window.__kbFix = function(kb){
   try{
     kb = Number(kb) || 0;
+    window.__kbFixActive = kb > 0;
     var vv = window.visualViewport;
     if(vv && (window.innerHeight - vv.height) > 40){ kb = 0; }   // 视口已随键盘缩小，无需额外补偿
     var ov = document.getElementById('manualOverlay');
@@ -4294,8 +4295,26 @@ function mtKbFix(ov){
   ['mtVal','mtPrice','mtMode'].forEach(function(id){
     var el = document.getElementById(id);
     if(!el) return;
-    el.addEventListener('focus', function(){ setTimeout(function(){ try{ el.scrollIntoView({block:'center'}); }catch(e){} sync(); }, 330); });
-    el.addEventListener('blur', function(){ setTimeout(sync, 200); });
+    el.addEventListener('focus', function(){
+      setTimeout(function(){
+        try{ el.scrollIntoView({block:'center'}); }catch(e){}
+        sync();
+        // 兜底：App 没推键盘高度、浏览器也没缩小视口时，直接把弹层抬到屏幕上部
+        var vv = window.visualViewport;
+        var shrink = vv ? (window.innerHeight - vv.height) : 0;
+        if(shrink < 40 && !window.__kbFixActive){
+          var lift = Math.round(window.innerHeight * 0.42);
+          ov.style.bottom = lift + 'px';
+          if(box) box.style.maxHeight = Math.max(200, window.innerHeight - lift - 16) + 'px';
+        }
+      }, 380);
+    });
+    el.addEventListener('blur', function(){
+      setTimeout(function(){
+        sync();
+        if(!window.__kbFixActive){ ov.style.bottom = '0px'; if(box) box.style.maxHeight = Math.max(220, window.innerHeight - 16) + 'px'; }
+      }, 220);
+    });
   });
 }
 function manualSave(ov){
