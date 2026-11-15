@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.99-Pro';
+var APP_VER = 'v58.100-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6216,6 +6216,29 @@ function renderRisk(){
   h += `<button onclick="preflightReport()" style="width:100%;margin-top:8px;padding:9px;border:1px solid #333;background:#fff;color:#333;border-radius:8px;font-size:14px;font-weight:600">接单预演：这单接了会怎样</button>`;
   h += `</div>`;
   }
+  // ===== 削峰建议：就放在风险体检下面，打开就能看到 =====
+  try{
+    var _bets = cutBets(), _top = 0;
+    _bets.forEach(function(b){ if(b.self > _top) _top = b.self; });
+    if(_top > 0 && typeof isOwnerDevice === 'function' && isOwnerDevice()){
+      h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:13px;line-height:1.75">`;
+      h += `<div style="font-weight:700;color:#333;margin-bottom:4px">再往下削会怎样（当前 ${splitTakeAll||0} 元/号）</div>`;
+      [47,40,30,21].forEach(function(m){
+        if(m >= _top) return;
+        var r = cutCalc(m);
+        h += `<div style="display:flex;justify-content:space-between;padding:2px 0">`
+           + `<span>削到 <b>${m}</b></span>`
+           + `<span>最坏 <b style="color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b>　飞 ${r.flown.toFixed(0)}　满额 ${r.full}个</span>`
+           + `</div>`;
+      });
+      var _be = 0;
+      for(var _m = Math.floor(_top); _m >= 1; _m--){ if(cutCalc(_m).worst >= 0){ _be = _m; break; } }
+      if(_be) h += `<div style="margin-top:4px;color:#1677ff">不亏点：削到 <b>${_be}</b> 元/号，开在任何号都不亏</div>`;
+      else h += `<div style="margin-top:4px;color:#cf1322">有注号不足 47 个，削到底也归不了零，尾部只能飞掉</div>`;
+      h += `<div style="color:#888;font-size:12px;margin-top:4px">最坏＝开在最重那个号；飞＝飞出去的钱；满额＝注额≥该档的号数</div>`;
+      h += `</div>`;
+    }
+  }catch(e){}
   h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
   // 飞单清单折叠预览
   h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#f3f4f6;border-radius:6px;margin-top:6px;font-size:13px">`
