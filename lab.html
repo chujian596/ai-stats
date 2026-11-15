@@ -225,12 +225,38 @@ html{-webkit-text-size-adjust:100%}
 
   .ball{width:34px;height:34px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
   .ball.sp{border:2px solid #d4af37}
+  /* ===== 上期复盘 ===== */
+  .rvball{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;font-size:24px;font-weight:800;color:#fff;letter-spacing:1px}
+  .rvball.r{background:#c62828}.rvball.b{background:#1565c0}.rvball.g{background:#2e7d32}
+  .rvmeta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .rvmeta span{background:#f5f5f5;border-radius:7px;padding:4px 9px;font-size:12.5px;color:#555}
+.rvnum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 2px}
+  .rvnum div{background:#fafafa;border-radius:9px;padding:9px 11px;min-width:0}
+  .rvnum b{display:block;font-size:19px;line-height:1.25}
+  .rvnum i{font-style:normal;font-size:11.5px;color:#999}
+  .rvln{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #f2f2f2;font-size:13px;line-height:1.42}
+  .rvln:last-child{border-bottom:none}
+  .rvln .nm{flex:0 0 84px;font-weight:700;color:#222}
+  .rvln .pk{flex:1;min-width:0;color:#666;word-break:break-word}
+  .rvln .rc{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:5px}
+  .rvln .rc.y{background:#e8f5e9;color:#2e7d32}
+  .rvln .rc.n{background:#fdecea;color:#c62828}
+  .rvln .rc.d{background:#f1f1f1;color:#999}
+  .rvsec{font-size:12px;font-weight:800;color:#111;margin:14px 0 2px;padding-left:8px;border-left:3px solid #111}
+  .rvrow{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f2f2f2;font-size:12.5px;line-height:1.35}
+  .rvrow .n{flex:1;min-width:0;font-weight:600}
+  .rvrow .v{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums}
+  .rvrow .p{flex:0 0 52px;text-align:right;font-size:12px;color:#999}
+  .rvrow.hd{border-bottom:1px solid #e6e6e6;color:#aaa;font-weight:400;padding-bottom:4px}
+  .rvrule{padding:9px 0;border-bottom:1px solid #f2f2f2;font-size:13px;line-height:1.62}
+  .rvrule:last-child{border-bottom:none}
+  .rvrule b{color:#111}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料中心 <span style="font-size:14px;color:#999;font-weight:normal">v58.20</span></h1>
+    <h1>资料中心 <span style="font-size:14px;color:#999;font-weight:normal">v58.21</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 12px"></div>
@@ -247,6 +273,7 @@ html{-webkit-text-size-adjust:100%}
     <div class="tab" id="tabZp" onclick="switchTab('zp')">票仓排行</div>
     <div class="tab" id="tabSx" onclick="switchTab('sx')">生肖码表</div>
     <div class="tab" id="tabBose" onclick="switchTab('bose')">波色</div>
+    <div class="tab" id="tabRv" onclick="switchTab('rv')">上期复盘</div>
     <div class="tab" id="tabDoc" onclick="switchTab('doc')">帮助</div>
   </div>
   <div class="muted" id="tabHint" style="margin:-8px 0 12px;padding:8px 10px;background:#f0f0f0;border-radius:8px;font-size:13px">下一期哪些肖最该避开、哪些被推荐最多——只看这一页就够了</div>
@@ -335,6 +362,7 @@ html{-webkit-text-size-adjust:100%}
   <footer id="foot"></footer></div></div>
   <div id="panelSx" style="display:none"></div>
   <div id="panelBose" style="display:none"></div>
+  <div id="panelRv" style="display:none"></div>
   <div id="panelDoc" style="display:none"></div>
   <div class="muted" style="margin-top:20px;line-height:1.6">注：以上均为历史数据统计，开奖为随机事件，过往命中率不代表以后结果，仅供参考。</div>
 </div>
@@ -540,7 +568,7 @@ function authorStats(a){
 
 function classifyLabel(cls){ return cls==='good'?'准的':cls==='bad'?'差的':'观察'; }
 
-var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', f491:'F491', zp:'Zp', sx:'Sx', bose:'Bose', doc:'Doc' };
+var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', f491:'F491', zp:'Zp', sx:'Sx', bose:'Bose', doc:'Doc', rv:'Rv' };
 var TAB_HINT={
   overview: '下一期哪些肖最该避开、哪些被推荐最多——只看这一页就够了',
   rank: '所有资料源按命中率从高到低排，绿色=准的，红色=差的，灰色=样本不足',
@@ -553,7 +581,8 @@ var TAB_HINT={
   f491: '0491 联盟站各栏目的推荐、判定、分栏盈亏台账',
   zp: '票仓倾斜读数、正向号码排行、特码后开什么、往年今日',
   sx: '十二生肖对应号码速查（含五行与波色）',
-  bose: '红波 / 蓝波 / 绿波 号码对照速查'
+  bose: '红波 / 蓝波 / 绿波 号码对照速查',
+  rv: '上一期开奖后逐源对账：谁中谁空、网站命中率虚高多少、钱花在哪、下期该砍谁'
 };
 /* ===== 生肖码表（静态） ===== */
 var SX_LIST=[
@@ -913,6 +942,132 @@ document.getElementById('foot').innerHTML =
 +`<b>口径</b>：2409 净票序（正票×1.0 / 反票×0.5；T12/T14 按净票排、T16/T18 按正票排），净票降序、同票按号码升序；1赔46，命中得47；四档嵌套截取。<br>`
 +`<b>钉死</b>：反向票≥10 的号码标「钉」，只作标记、不参与剔除；61 期实测剔除仅 T12 多 1 期，却会误杀大号。<br>`
 +`<b>说明</b>：号码颜色即波色，进度条长度按最高票归一；特码后与往年今日为历史统计，仅供参考，不参与排序。`;
+})();
+
+
+/* ===== 上期复盘 ===== */
+(function(){
+  function g(id){return document.getElementById(id);}
+  function pp(n){return n<10?('0'+n):(''+n);}
+  var GRP=['生肖','属性','号码'];
+  var K={};
+  ['王牌六肖','七肖必中','内幕四肖','实力二肖','一肖平特','平特①肖','三肖三码'].forEach(function(x){K[x]='生肖';});
+  ['两波中特','三头中特','④尾杀庄','绝杀三肖','必中单双','家野中特','两行有特'].forEach(function(x){K[x]='属性';});
+  ['10码中特','酱爆六码','③肖⑥码'].forEach(function(x){K[x]='号码';});
+  function cls(n){return RED_SET.indexOf(n)>=0?'r':(BLUE_SET.indexOf(n)>=0?'b':'g');}
+  function wn(c){return c==='r'?'红波':(c==='b'?'蓝波':'绿波');}
+  function f1(x){return (Math.round(x*10)/10).toFixed(1);}
+  function sgn(v){return (v>0?'+':'')+v;}
+
+  function draw(d,E,L){
+    var box=g('panelRv'); if(!box) return;
+    var ks=Object.keys(d.periods).filter(function(k){var q=d.periods[k].drawn;return (typeof q==='number')&&q>0;});
+    ks.sort(function(a,b){return (+a)-(+b);});
+    var P=ks[ks.length-1]; if(!P) return;
+    var p=d.periods[P];
+    var cur=(L.port.per_period||[]).filter(function(x){return x.period===P;})[0]||{cost:0,ret:0,net:0,roi:0};
+    var keep=p.rows.filter(function(r){return r.retro!=='行已消失';});
+    var gone=p.rows.filter(function(r){return r.retro==='行已消失';});
+    var hk=keep.filter(function(r){return r.hit;}).length;
+    var gg=[0,0,0], gt=[0,0,0];
+    p.rows.forEach(function(r){
+      var i=GRP.indexOf(K[r.name]||'号码');
+      if(i<0) i=2;
+      gt[i]++; if(r.hit) gg[i]++;
+    });
+    var gsum=0;
+    ks.forEach(function(k){ gsum += d.periods[k].rows.filter(function(r){return r.retro==='行已消失';}).length; });
+    var show=keep.length?(hk/keep.length*100):0;
+    var real=p.rows.length?(p.hit/p.rows.length*100):0;
+    var n=p.drawn, hd=Math.floor(n/10), tl=n%10; var he=((n%10)+hd); if(he>9) he=he-9;
+    var H='';
+
+    H+='<div class="card"><h2>第'+P+'期 复盘</h2>';
+    H+='<div class="muted">'+ (d.site||'0491') +' &middot; 数据更新 '+(d.generated_at||'')+'</div>';
+    H+='<div class="rvnum">';
+    var BC=(cls(n)==='r'?'#c62828':(cls(n)==='b'?'#1565c0':'#2e7d32'));
+    H+='<div><b style="font-size:23px;color:'+BC+'">'+pp(n)+'</b><i>特码 · '+wn(cls(n))+'</i></div>';
+    H+='<div><b>'+(p.special_zodiac||'-')+'</b><i>生肖</i></div>';
+    H+='<div><b>'+(p.wx||'-')+'</b><i>五行</i></div>';
+    H+='<div><b>'+wn(cls(n)).replace('波','')+'</b><i>波色</i></div>';
+    H+='<div><b>'+p.hit+'/'+p.total+'</b><i>命中源</i></div>';
+    H+='<div><b style="color:'+(cur.net>=0?'#2e7d32':'#c62828')+'">'+sgn(cur.net)+'</b><i>净(元)</i></div>';
+    H+='</div>';
+    H+='<div class="rvmeta"><span>'+hd+'头</span><span>'+tl+'尾</span><span>'+(n%2?'单数':'双数')+'</span><span>合'+he+'</span><span>成本'+cur.cost+' &rarr; 回收'+cur.ret+'</span><span>ROI '+f1(cur.roi)+'%</span></div>';
+    H+='</div>';
+
+    H+='<div class="card"><h2>三条能直接用的</h2>';
+    H+='<div class="rvrule"><b>1. 网站上的命中率是虚的。</b>页面显示 '+f1(show)+'%（'+hk+'/'+keep.length+'），按每期固定 '+p.total+' 条记账只有 '+f1(real)+'%。有 '+gone.length+' 条没中的行开奖后被删掉，一条都没进分母&mdash;&mdash;差 '+f1(show-real)+' 个百分点。三期一共删了 '+gsum+' 条，这些行一次都没中过。</div>';
+    H+='<div class="rvrule"><b>2. 上期号码直给类全灭。</b>生肖类 '+gg[0]+'/'+gt[0]+'、属性类 '+gg[1]+'/'+gt[1]+'、号码类 '+gg[2]+'/'+gt[2]+'。波色/头数/尾数/杀肖这类属性判断全对，10码、酱爆、③肖⑥码 这类直接给号的，一个没中。</div>';
+    H+='<div class="rvrule"><b>3. 上期是亏的。</b>成本 '+cur.cost+' 元回收 '+cur.ret+' 元，净 '+sgn(cur.net)+'，ROI '+f1(cur.roi)+'%。整体三期 '+sgn(L.port.net)+' 元、ROI '+f1(L.port.roi)+'%，但置信区间跨过理论线，还算不上稳定优势。</div>';
+    H+='</div>';
+
+    H+='<div class="card"><h2>逐源对账 &middot; 三期累计</h2>';
+    H+='<div class="muted" style="margin-bottom:6px">命中率按每期固定 17 条算，删掉的行记未中。基准＝这些号占 49 个号的数学比例，是"正常该中多少"。</div>';
+    GRP.forEach(function(gn,gi){
+      var list=[];
+      Object.keys(E.columns).forEach(function(nm){
+        if((K[nm]||'号码')===gn) list.push([nm,E.columns[nm]]);
+      });
+      if(!list.length) return;
+      list.sort(function(a,b){return b[1].net-a[1].net;});
+      H+='<div class="rvsec">'+gn+'类 &middot; '+gg[gi]+'/'+gt[gi]+' 上期命中</div>';
+      list.forEach(function(it){
+        var nm=it[0], c=it[1];
+        H+='<div class="rvrow"><span class="n">'+nm+' <i style="font-style:normal;color:#bbb;font-size:11.5px">基准'+f1(c.base)+'%</i></span>';
+        H+='<span class="p">'+c.hits+'/'+c.n+'</span>';
+        H+='<span class="p">'+f1(c.hit_rate)+'%</span>';
+        H+='<span class="v" style="color:'+(c.net>=0?'#2e7d32':'#c62828')+'">'+sgn(c.net)+'</span>';
+        H+='<span class="v">'+f1(c.roi)+'%</span></div>';
+      });
+    });
+    H+='</div>';
+
+    H+='<div class="card"><h2>三期走势</h2>';
+    H+='<div class="rvrow hd"><span class="n">期号</span><span class="p">命中</span><span class="p">ROI</span><span class="v">净</span><span class="v">成本</span></div>';
+    (L.port.per_period||[]).forEach(function(x){
+      var pp2=d.periods[x.period]||{};
+      H+='<div class="rvrow"><span class="n">第'+x.period+'期 <i style="font-style:normal;color:#bbb;font-size:11.5px">'+(pp2.special_zodiac||'')+(pp2.drawn!=null?(' '+pp2.drawn):'')+'</i></span>';
+      H+='<span class="p">'+(pp2.hit!=null?(pp2.hit+'/'+pp2.total):'-')+'</span>';
+      H+='<span class="p">'+f1(x.roi)+'%</span>';
+      H+='<span class="v" style="color:'+(x.net>=0?'#2e7d32':'#c62828')+'">'+sgn(x.net)+'</span>';
+      H+='<span class="v">'+x.cost+'</span></div>';
+    });
+    H+='<div class="muted" style="margin-top:8px">注意 317 期命中 11/17 最高、ROI 也最高；318 期命中掉到 8，ROI 就跌破理论线。中的多是覆盖率高的便宜信号，没中的才是低基准高赔率的&mdash;&mdash;命中数不能直接当赚钱能力看。</div>';
+    H+='</div>';
+
+    H+='<div class="card"><h2>成本效率：钱花在哪</h2>';
+    H+='<div class="rvrow hd"><span class="n">资料源</span><span class="p">成本</span><span class="p">回收</span><span class="v">净</span><span class="v">ROI</span></div>';
+    var eff=[];
+    Object.keys(E.columns).forEach(function(nm){eff.push([nm,E.columns[nm]]);});
+    eff.sort(function(a,b){return b[1].net-a[1].net;});
+    eff.forEach(function(it){
+      var nm=it[0], c=it[1];
+      H+='<div class="rvrow"><span class="n">'+nm+'</span><span class="p">'+c.cost+'</span><span class="p">'+c.ret+'</span>';
+      H+='<span class="v" style="color:'+(c.net>=0?'#2e7d32':'#c62828')+'">'+sgn(c.net)+'</span>';
+      H+='<span class="v">'+f1(c.roi)+'%</span></div>';
+    });
+    H+='<div class="muted" style="margin-top:8px">成本最高的四个&mdash;&mdash;绝杀三肖 110、必中单双 99、家野中特 99、两波中特 97，合计吃掉 305 元，净贡献只有 +23。低成本的内幕四肖（50）、10码中特（30）、实力二肖（24）、一肖平特（3）反而贡献 +84。</div>';
+    H+='</div>';
+
+    H+='<div class="card"><h2>下期怎么用</h2>';
+    H+='<div class="rvrule"><b>只认自己这本账。</b>每期固定 '+p.total+' 条全部记账，删掉的行算错。网站页面上的命中率不要直接采信。</div>';
+    H+='<div class="rvrule"><b>先看基准再看命中率。</b>基准 58% 以上的源（两波中特 66%、④尾杀庄 59.2%、七肖必中 58.5%、三头中特 59.2%）中几个是数学必然，不是"准"；基准 35% 以下还能经常中的，才是真信号。</b></div>';
+    H+='<div class="rvrule"><b>先砍贵而无效的。</b>绝杀三肖每期 110 元、ROI 85.5%，唯一确定亏钱的玩法；③肖⑥码 -55、两行有特 -60 同样三期全空。这三个先停。</b></div>';
+    H+='<div class="rvrule"><b>号码直给类单独放。</b>基准只有 12%–37%，靠单次爆，上期 0/3 属正常波动，不能当废源，也别上重仓。</b></div>';
+    H+='<div class="rvrule"><b>最少攒到 30 期再挑源。</b>要看出 5 个百分点优势约需 380 期；现在三期里"3/3"和"0/3"都还是噪音，别据此换仓。</b></div>';
+    H+='</div>';
+    box.innerHTML=H;
+  }
+
+  Promise.all([
+    fetch('data/0491.json?v='+Date.now()).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+    fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+    fetch('data/0491-ledger.json?v='+Date.now()).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
+  ]).then(function(a){
+    if(!a[0]||!a[1]||!a[2]) return;
+    try{ draw(a[0],a[1],a[2]); }catch(e){ if(g('panelRv')) g('panelRv').innerHTML='<div class="card"><h2>上期复盘</h2><div class="muted">数据读取失败：'+e.message+'</div></div>'; }
+  });
 })();
 
 function switchTab(t){
