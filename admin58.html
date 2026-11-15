@@ -56,9 +56,14 @@ body{
 .sec-title{font-size:12px;color:var(--sub);margin:0 0 7px 4px;font-weight:500}
 .list{background:var(--card);border-radius:12px;overflow:hidden}
 .row{
-  display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;
-  border-bottom:.5px solid var(--line);transition:background .12s;
+  display:flex;align-items:center;gap:12px;padding:12px 14px 12px 11px;cursor:pointer;
+  border-bottom:.5px solid var(--line);transition:background .12s;position:relative;
 }
+.row::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;border-radius:0 2px 2px 0;
+}
+.row.over::before{background:var(--danger)}
+.row.soon::before{background:#C08A1E}
 .row:last-child{border-bottom:none}
 .row:active{background:var(--press)}
 .avatar{
@@ -81,8 +86,9 @@ body{
 }
 
 /* ---------- 空态 ---------- */
-.list-empty{padding:44px 20px;text-align:center;color:var(--sub);font-size:14px}
-.list-empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px;font-weight:600}
+.list-empty{padding:48px 20px;text-align:center;color:var(--sub);font-size:13px;line-height:1.7}
+.list-empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:6px;font-weight:600}
+.list-empty svg{width:38px;height:38px;color:var(--faint);margin-bottom:12px}
 
 /* ---------- 底部主按钮 ---------- */
 .dock{
@@ -107,14 +113,34 @@ body{
 .mask.on{opacity:1;pointer-events:auto}
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg);
-  border-radius:16px 16px 0 0;transform:translateY(102%);transition:transform .24s cubic-bezier(.32,.72,0,1);
-  max-height:92vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  border-radius:16px 16px 0 0;transform:translateY(102%);
+  transition:transform .24s cubic-bezier(.32,.72,0,1);
+  max-height:92vh;display:flex;flex-direction:column;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom));
   box-shadow:0 -1px 0 var(--line);
 }
 .sheet.on{transform:translateY(0)}
-.sheet-in{max-width:560px;margin:0 auto;padding:0 16px}
-.grab{width:36px;height:5px;border-radius:3px;background:#D8D8DE;margin:8px auto 0}
-.sheet h2{margin:12px 0 2px;font-size:17px;font-weight:700}
+/* 固定头：标题 + 关闭按钮，内容区独立滚动 */
+.sheet-head{
+  flex:0 0 auto;position:relative;background:var(--bg);z-index:2;
+  border-bottom:.5px solid var(--line);padding:8px 16px 10px;
+  border-radius:16px 16px 0 0;
+}
+.sheet-head-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.grab{width:36px;height:5px;border-radius:3px;background:#D8D8DE;margin:0 auto 8px}
+.sheet-head h2{margin:0;font-size:17px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xbtn{
+  flex:0 0 auto;width:32px;height:32px;border:none;background:#E8E8ED;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;color:var(--sub);font-size:15px;line-height:1;
+  font-family:inherit;padding:0;
+}
+.xbtn:active{background:#DEDEE4;color:var(--ink)}
+/* 内容区：独立滚动，iOS 顺滑 */
+.sheet-in{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;touch-action:pan-y;
+  max-width:560px;margin:0 auto;padding:10px 16px 4px;width:100%;
+}
 .sheet .hint{font-size:12px;color:var(--sub);margin:0 0 14px}
 
 .card{background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:12px}
@@ -254,9 +280,11 @@ body{
 
 <!-- 充值 / 编辑 抽屉 -->
 <div class="sheet" id="sheetEdit">
-  <div class="sheet-in">
+  <div class="sheet-head">
     <div class="grab"></div>
-    <h2 id="edTitle">充值</h2>
+    <div class="sheet-head-in"><h2 id="edTitle">充值</h2><button class="xbtn" onclick="closeSheet()" aria-label="关闭">✕</button></div>
+  </div>
+  <div class="sheet-in">
     <p class="hint" id="edHint"></p>
 
     <div class="card">
@@ -305,9 +333,11 @@ body{
 
 <!-- 新建客户 抽屉 -->
 <div class="sheet" id="sheetNew">
-  <div class="sheet-in">
+  <div class="sheet-head">
     <div class="grab"></div>
-    <h2>新建客户</h2>
+    <div class="sheet-head-in"><h2>新建客户</h2><button class="xbtn" onclick="closeSheet()" aria-label="关闭">✕</button></div>
+  </div>
+  <div class="sheet-in">
     <p class="hint">系统会自动生成一个码；如果客户手机上已经显示了一串码（比如 DVAYF9DAV），直接把那串填进下面的框，就是开通他那台设备。</p>
 
     <div id="newForm">
@@ -369,9 +399,11 @@ body{
 
 <!-- 设置 抽屉 -->
 <div class="sheet" id="sheetSet">
-  <div class="sheet-in">
+  <div class="sheet-head">
     <div class="grab"></div>
-    <h2>同步设置</h2>
+    <div class="sheet-head-in"><h2>同步设置</h2><button class="xbtn" onclick="closeSheet()" aria-label="关闭">✕</button></div>
+  </div>
+  <div class="sheet-in">
     <p class="hint">填了仓库密钥就能直接改云端名单，改完客户立刻生效；不填只能在本机暂存再导出。</p>
 
     <div class="card">
@@ -416,6 +448,7 @@ var GATE_KEY = 'admin_gate_ok';
 var ADMIN_CODE = 'xg2024!oa';
 var PAT_KEY = 'admin_gh_pat';
 var LOCAL_KEY = 'admin_local_members';
+var CACHE_KEY = 'admin_cache_members';
 /* 云端只存指纹；设备码（客户手机上的 9 位）只记在这台手机里，不上传 */
 var CODE_MAP = {};
 try { CODE_MAP = JSON.parse(localStorage.getItem('admin_code_map') || '{}') || {}; } catch(e){ CODE_MAP = {}; }
@@ -607,6 +640,21 @@ function boot(){
 
 function loadData(){
   $('topSub').textContent = '正在读取…';
+
+  // 先用本机缓存秒出名单（断网也能看，不再白屏）
+  try {
+    var c = localStorage.getItem(CACHE_KEY);
+    if(c){
+      var cd = JSON.parse(c);
+      if(cd && cd.devices && Object.keys(cd.devices).length){
+        DATA = cd;
+        DATA.plan_days = DATA.plan_days || PLAN_DAYS;
+        render();
+        $('topSub').textContent = '本机缓存 · 正在连接云端…';
+      }
+    }
+  } catch(e){}
+
   var url, opts = {};
   if(PAT){
     url = 'https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE + '?ref=main';
@@ -627,12 +675,19 @@ function loadData(){
     DATA.devices = DATA.devices || {};
     DATA.plan_days = DATA.plan_days || PLAN_DAYS;
     dirty = false;
+    // 存一份到本机，下次断网直接看
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(DATA)); } catch(e){}
     updateSyncBar();
     render();
   }).catch(function(e){
-    $('topSub').textContent = '读取失败';
-    toast('读取失败：' + e.message);
-    if(!DATA) DATA = { devices: {}, plan_days: PLAN_DAYS };
+    var hasCache = !!(DATA && DATA.devices && Object.keys(DATA.devices).length);
+    if(hasCache){
+      $('topSub').textContent = '离线 · 显示本机缓存（连上网络会自动更新）';
+    } else {
+      $('topSub').textContent = '读取失败 · 没网也没缓存';
+      toast('读取失败：' + e.message);
+      DATA = { devices: {}, plan_days: PLAN_DAYS };
+    }
     render();
   });
 }
@@ -1068,6 +1123,7 @@ function exportJson(){
 
 /* ---------- 写回云端 ---------- */
 function persist(msg, done){
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(DATA)); } catch(e){}
   if(!PAT){
     dirty = true;
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify(DATA)); } catch(e){}
