@@ -554,7 +554,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.94';
+var APP_VER = 'v58.96';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -1026,24 +1026,50 @@ function applyMemberExpire(){
 function loadAccessData(cb){
   var isGH = location.hostname.indexOf('github.io') >= 0;
   var t = Date.now();
+  // 带超时的 fetch：网络被墙时连接可能「连上了但数据不来」，不超时就会永远卡住，
+  // 页面一直白屏、验证层不出来（这就是 App 打不开的真因）
+  function fetchT(url, ms){
+    return new Promise(function(resolve, reject){
+      var done = false, ctl = null;
+      try { if(typeof AbortController !== 'undefined') ctl = new AbortController(); } catch(e){}
+      var tid = setTimeout(function(){
+        if(done) return; done = true;
+        try { if(ctl) ctl.abort(); } catch(e){}
+        reject(new Error('timeout'));
+      }, ms || 4000);
+      fetch(url, ctl ? {signal: ctl.signal} : {}).then(function(r){
+        if(done) return; done = true; clearTimeout(tid); resolve(r);
+      }).catch(function(e){
+        if(done) return; done = true; clearTimeout(tid); reject(e);
+      });
+    });
+  }
   function getFirst(urls, ok){
-    var i = 0;
+    var i = 0, finished = false;
+    function finish(d){ if(finished) return; finished = true; ok(d); }
+    // 总兜底：不管网络怎么卡，最多等 6 秒就放行，绝不让人对着白屏等
+    setTimeout(function(){ finish(null); }, 6000);
     (function next(){
-      if(i >= urls.length){ ok(null); return; }
-      fetch(urls[i++]).then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
-        .then(function(d){ ok(d); })
+      if(i >= urls.length){ finish(null); return; }
+      if(finished) return;
+      fetchT(urls[i++], 4000).then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
+        .then(function(d){ finish(d); })
         .catch(function(){ next(); });
     })();
   }
   var W = isGH ? ['whitelist.json?t=' + t] : ['https://chujian596.github.io/ai-stats/whitelist.json?t=' + t, 'whitelist.json?t=' + t];
   var M = isGH ? ['members.json?t=' + t] : ['https://chujian596.github.io/ai-stats/members.json?t=' + t, 'members.json?t=' + t];
+  // 两份名单并行拉，各自超时，都到齐才回调 —— 断网时最多等 6 秒，不叠加
+  var _gw = false, _gm = false;
+  function _fin(){ if(_gw && _gm) cb(); }
   getFirst(W, function(wd){
     DEVICE_WHITELIST = (wd && wd.whitelist_fp) || [];
     whitelistActive = DEVICE_WHITELIST.length > 0;
-    getFirst(M, function(md){
-      MEMBERS = (md && md.devices) ? md.devices : null;
-      cb();
-    });
+    _gw = true; _fin();
+  });
+  getFirst(M, function(md){
+    MEMBERS = (md && md.devices) ? md.devices : null;
+    _gm = true; _fin();
   });
 }
 loadAccessData(function(){ applyMemberExpire(); showLock(); reportDevice(); });

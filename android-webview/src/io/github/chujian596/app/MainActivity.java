@@ -238,12 +238,26 @@ public class MainActivity extends Activity {
         });
     }
 
-    /** 先用内置页面顶上：不发真网络请求，主文档由 assets/shell.html 返回 */
+    /** 直接读包内页面交给 WebView 渲染：不走网络，也就不会白屏、不会报连接错误。
+     *  baseUrl 用线上地址，保证 localStorage 同源，历史订单数据不搬家。 */
     private void loadLocalFirst(String url) {
         offlineMode = true;
         triedOffline = false;
         hideError();
-        web.loadUrl(url);
+        try {
+            InputStream is = getAssets().open("shell.html");
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = is.read(buf)) > 0) bos.write(buf, 0, n);
+            is.close();
+            String html = new String(bos.toByteArray(), "UTF-8");
+            if (html == null || html.length() < 1000) throw new IOException("empty shell");
+            web.loadDataWithBaseURL(url, html, "text/html", "UTF-8", null);
+        } catch (Exception e) {
+            // 读包内页面失败才退回网络地址
+            try { web.loadUrl(url); } catch (Exception ignored) {}
+        }
     }
 
     private void load(String url) {
