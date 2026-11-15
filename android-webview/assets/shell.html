@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.111-Pro';
+var APP_VER = 'v58.112-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -5894,6 +5894,80 @@ function simNeed(){
   }
   box.innerHTML = html;
 }
+// ===== 要收的号清单：给定目标最坏，从最低注的号往上补到阈值上限 =====
+function buildNeedList(T){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets) return null;
+  var bets = s.bets;
+  var cap = (typeof cutMode !== 'undefined' && cutMode === 'cut') ? cutPick : (splitTakeAll || 100);
+  var mult = s.mult > 0 ? s.mult : 47;
+  var self = [];
+  for(var i=1;i<=49;i++) self.push({n:i, v:Math.min(bets[i]||0, cap)});
+  var K = 0; self.forEach(function(x){K+=x.v;});
+  var M = 0; self.forEach(function(x){ if(x.v>M) M=x.v; });
+  var need = T + mult*M - K;
+  var space = 0; self.forEach(function(x){ space += (cap-x.v); });
+  if(need <= 0) return { list:[], need:0, space:space, ok:true, K:K, M:M, cap:cap };
+  if(need > space) return { list:[], need:need, space:space, ok:false, K:K, M:M, cap:cap };
+  var sorted = self.slice().sort(function(a,b){ return a.v - b.v; });
+  var remain = need, list = [];
+  for(var j=0;j<sorted.length && remain>0;j++){
+    var room = cap - sorted[j].v;
+    if(room <= 0) continue;
+    var amt = Math.min(room, remain);
+    list.push({ n: sorted[j].n, amt: amt, have: sorted[j].v });
+    remain -= amt;
+  }
+  return { list:list, need:need, space:space, ok:true, K:K, M:M, cap:cap };
+}
+function renderNeedList(){
+  var t = parseFloat((document.getElementById('needTarget')||{}).value);
+  if(!isFinite(t)) t = -800;
+  var r = buildNeedList(t);
+  var box = document.getElementById('needBox');
+  if(!box) return;
+  if(!r){ box.innerHTML = '<span style="color:#cf1322">先展开一次持仓分析。</span>'; return; }
+  if(!r.ok && r.need > r.space){
+    box.innerHTML = '<div style="color:#cf1322;font-size:12px">49 个号全补到 '+r.cap+' 元，最多只能进 '+r.space.toFixed(0)+' 元，到不了 '+t+'。差额 '+(r.need-r.space).toFixed(0)+' 元得靠削峰。</div>'
+      + '<div style="color:#888;font-size:11px;margin-top:3px">想再往下压，就把阈值调低（多飞一点）。</div>';
+    return;
+  }
+  if(r.need <= 0){
+    box.innerHTML = '<span style="color:#16a34a;font-size:12px">现在的自留已经扛得住 '+t+'，不用再收。</span>';
+    window.__needListText = '';
+    return;
+  }
+  var txt = r.list.map(function(x){ return String(x.n).padStart(2,'0') + ' ' + x.amt.toFixed(0); }).join('\n');
+  window.__needListText = txt;
+  var rows = r.list.map(function(x){
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #f7f7f7">'
+      + '<span><b>'+String(x.n).padStart(2,'0')+'</b><span style="color:#999;margin-left:4px">现有 '+x.have.toFixed(0)+'</span></span>'
+      + '<span style="color:#333"><b>收 '+x.amt.toFixed(0)+'</b></span></div>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:11px;color:#666;margin-bottom:4px">共要收 <b>'+r.need.toFixed(0)+'</b> 元，分 '+r.list.length+' 个号（都补到 '+r.cap+' 以内，不抬高最重号）</div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 / 现有</span><span>建议收</span></div>'
+    + rows
+    + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>'
+    + '<div style="font-size:11px;color:#888;margin-top:4px">复制后可以直接发给下家：格式「号码 空格 金额」。收到的号录进订单后，这行会自动消失。</div>';
+}
+function copyNeedList(){
+  var txt = window.__needListText || '';
+  if(!txt){ myAlert('清单是空的，先算一次。'); return; }
+  try{
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    myAlert(ok ? '已复制 ' + txt.split('\n').length + ' 行，可以发给下家了。' : '复制失败，请长按清单手动复制。');
+  }catch(e){
+    myAlert('复制失败，请长按清单手动复制。');
+  }
+}
 function preflightReport(){
   if(!(typeof isOwnerDevice === 'function' && isOwnerDevice())){ myAlert('这台设备没有查看权限。'); return; }
   var s = window.__rkSnapshot;
@@ -6444,6 +6518,14 @@ function renderRisk(){
          + `<input id="simTarget" type="number" placeholder="如 -800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
          + `<button onclick="simNeed()" style="padding:5px 10px;border:1px solid #333;background:#333;color:#fff;border-radius:5px;font-size:12px">算需要补多少</button></div>`
          + `<div id="simResult" style="font-size:12px;color:#333;margin-top:5px"></div>`
+         + `<div style="border-top:1px solid #eee;margin-top:8px;padding-top:8px">`
+         + `<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">要收的号（照着这个去问下家）</div>`
+         + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
+         + `<span style="font-size:11px;color:#666;white-space:nowrap">目标最坏</span>`
+         + `<input id="needTarget" type="number" value="-800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
+         + `<button onclick="renderNeedList()" style="padding:5px 10px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:5px;font-size:12px;white-space:nowrap">算清单</button></div>`
+         + `<div id="needBox" style="font-size:12px"></div>`
+         + `</div>`
          + `</div>`
          + `</div>`;
       h += `</div>`;
