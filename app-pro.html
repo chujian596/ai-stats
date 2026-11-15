@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.112-Pro';
+var APP_VER = 'v58.120-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -5888,7 +5888,22 @@ function simNeed(){
     box.innerHTML = '<span style="color:#16a34a">现在的自留已经扛得住 '+t+'，不用再补。</span>';
     return;
   }
-  var html = '<span style="color:#b45309">要把最坏从 '+((s.S-47*s.maxBet)>=0?'+':'')+(s.S-47*s.maxBet).toFixed(0)+' 压到 '+t+'，需要再补 <b>'+r.need.toFixed(0)+'</b> 元自留。</span><br>';
+  var _curW = s.S - 47*s.maxBet;
+  // 先看「只削档、不补号」能不能到
+  var _cutFit = 0, _fitW = null;
+  try{
+    var _LA=[95,90,85,80,78,70,63,55,47,40,30,21];
+    for(var _ci=0;_ci<_LA.length;_ci++){
+      var _cr = cutCalc(_LA[_ci], true);
+      if(_cr.worst >= t){ _cutFit = _LA[_ci]; _fitW = _cr; break; }
+    }
+  }catch(e){}
+  var html = '';
+  if(_cutFit){
+    html += '<span style="color:#16a34a">不用补号：直接削到 <b>'+_cutFit+'</b> 档，最坏 '+( _fitW.worst>=0?'+':'')+_fitW.worst.toFixed(0)+'，就够守 '+t+' 了。</span><br>';
+    html += '<span style="color:#666;font-size:11px">削档不用求人，马上能做（代价是自留变薄）；补号是可选的加码。</span><br>';
+  }
+  html += '<span style="color:#b45309">要把最坏从 '+(_curW>=0?'+':'')+_curW.toFixed(0)+' 压到 '+t+'，需要再补 <b>'+r.need.toFixed(0)+'</b> 元自留。</span><br>';
   if(r.enough){
     var per = r.need / (r.rooms>0?Math.min(r.rooms,20):1);
     html += '<span style="color:#666">可补：'+r.rooms+' 个号还有空间（总共还差 '+r.room.toFixed(0)+' 到满）。分 '+Math.min(r.rooms,10)+' 个号补，每号约 <b>'+ (r.need/Math.min(r.rooms,10)).toFixed(0) +'</b> 元。</span>';
@@ -6518,7 +6533,7 @@ function renderRisk(){
            + `<button onclick="splitTakeAll=${rec20};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>`
            + `<button onclick="splitTakeAll=${rec40};saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};renderSplit();renderRisk()" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>`
            + `</div>`;
-        if(_lineM) h += `<div style="color:#16a34a;font-size:12px;margin-bottom:6px">每飞 1 元还能买到 5 元以上安全的，最深到 <b>${_lineM}</b>；再往下削就不划算了</div>`;
+        if(_lineM) h += `<div style="color:#16a34a;font-size:12px;margin-bottom:6px">这盘最划算的是 <b>${_optM||_lineM}</b> 档；最多还能削到 <b>${_lineM}</b>（每多飞 1 元仍能换回 5 元以上安全），再往下就不值了</div>`;
         else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
       }
       h += `<div style="border-top:1px solid #eee;padding-top:6px">`;

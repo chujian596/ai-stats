@@ -3,7 +3,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
-echo "=== 1/3 语法门禁 ==="
+echo "=== 1/4 语法门禁 ==="
 python3 - << 'PY'
 import re, pathlib
 s = pathlib.Path('app-pro.html').read_text()
@@ -12,11 +12,14 @@ print('已抽取脚本 ->', '/tmp/_chk.js')
 PY
 /opt/nodejs/22/bin/node --check /tmp/_chk.js && echo "语法 OK"
 
-echo "=== 2/3 回归 38 项 ==="
+echo "=== 2/4 回归 38 项 ==="
 python3 tests/coverage_check.py app-pro.html > /dev/null
 /opt/nodejs/22/bin/node /tmp/_cov.js | tail -1
 
-echo "=== 3/3 关键项自检（金额断言） ==="
+echo "=== 3/4 发版硬校验（版本三处一致 + 关键元素不丢） ==="
+python3 tests/verify_release.py || { echo "硬校验失败，禁止发版"; exit 1; }
+
+echo "=== 4/4 关键项自检（金额断言） ==="
 FAIL=$(/opt/nodejs/22/bin/node /tmp/_cov.js | grep -c "❌" || true)
 if [ "$FAIL" != "0" ]; then echo "有失败项，禁止发版"; exit 1; fi
 

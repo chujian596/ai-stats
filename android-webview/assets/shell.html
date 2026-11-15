@@ -5923,6 +5923,55 @@ function buildNeedList(T){
   }
   return { list:list, need:need, space:space, ok:true, K:K, M:M, cap:cap };
 }
+function buildNeedByBudget(B, unit){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets) return null;
+  var bets = s.bets;
+  var cap = (typeof cutMode !== 'undefined' && cutMode === 'cut') ? cutPick : (splitTakeAll || 100);
+  unit = unit > 0 ? unit : cap;
+  var mult = s.mult > 0 ? s.mult : 47;
+  var self = [];
+  for(var i=1;i<=49;i++) self.push({ n:i, v:Math.min(bets[i]||0, cap) });
+  var K = 0; self.forEach(function(x){K+=x.v;});
+  var M = 0; self.forEach(function(x){ if(x.v>M) M=x.v; });
+  var sorted = self.slice().sort(function(a,b){ return a.v - b.v; });
+  var left = B, list = [], M2 = M, added = 0;
+  for(var j=0;j<sorted.length && left>0.5;j++){
+    var room = cap - sorted[j].v;
+    if(room <= 0) continue;
+    var amt = Math.min(room, unit, left);
+    if(amt <= 0.5) continue;
+    list.push({ n: sorted[j].n, amt: amt, have: sorted[j].v });
+    left -= amt; added += amt;
+    if(sorted[j].v + amt > M2) M2 = sorted[j].v + amt;
+  }
+  var K2 = K + added;
+  var worst2 = K2 - mult*M2;
+  return { list:list, spent:added, moneyLeft:left, worst:worst2, cap:cap, unit:unit, ok:true };
+}
+function renderNeedListByBudget(){
+  var b = parseFloat((document.getElementById('needBudget')||{}).value);
+  var u = parseFloat((document.getElementById('needUnit')||{}).value);
+  if(!isFinite(b) || b<=0){ myAlert('先填你手上有多少钱。'); return; }
+  var r = buildNeedByBudget(b, u);
+  var box = document.getElementById('needBox');
+  if(!box || !r) return;
+  if(!r.list.length){ box.innerHTML='<div style="color:#999;font-size:12px">这些号的空位都补满了，不用再收。</div>'; window.__needListText=''; return; }
+  var txt = r.list.map(function(x){ return String(x.n).padStart(2,'0') + ' ' + x.amt.toFixed(0); }).join('\n');
+  window.__needListText = txt;
+  var rows = r.list.map(function(x){
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #f7f7f7">'
+      + '<span><b>'+String(x.n).padStart(2,'0')+'</b><span style="color:#999;margin-left:4px">现有 '+x.have.toFixed(0)+'</span></span>'
+      + '<span style="color:#333"><b>收 '+x.amt.toFixed(0)+'</b></span></div>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:11px;color:#666;margin-bottom:4px">花 <b>'+r.spent.toFixed(0)+'</b> 元，收 '+r.list.length+' 个号'
+    + (r.moneyLeft>0.5 ? '，还剩 <b>'+r.moneyLeft.toFixed(0)+'</b> 元（不够再补一个号）' : '（钱正好用完）')
+    + '；补后最坏 <b style="color:'+(r.worst>=0?'#16a34a':'#cf1322')+'">'+(r.worst>=0?'+':'')+r.worst.toFixed(0)+'</b></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 / 现有</span><span>建议收</span></div>'
+    + rows
+    + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>'
+    + '<div style="font-size:11px;color:#888;margin-top:4px">复制后直接发下家，格式「号码 空格 金额」。收到的号录进订单后，这一行自动消失。</div>';
+}
 function renderNeedList(){
   var t = parseFloat((document.getElementById('needTarget')||{}).value);
   if(!isFinite(t)) t = -800;
@@ -6539,6 +6588,12 @@ function renderRisk(){
          + `<span style="font-size:11px;color:#666;white-space:nowrap">目标最坏</span>`
          + `<input id="needTarget" type="number" value="-800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
          + `<button onclick="renderNeedList()" style="padding:5px 10px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:5px;font-size:12px;white-space:nowrap">算清单</button></div>`
+         + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
+         + `<span style="font-size:11px;color:#666;white-space:nowrap">我手上</span>`
+         + `<input id="needBudget" type="number" placeholder="多少钱" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
+         + `<span style="font-size:11px;color:#666;white-space:nowrap">统一收</span>`
+         + `<input id="needUnit" type="number" placeholder="如 50" style="width:62px;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
+         + `<button onclick="renderNeedListByBudget()" style="padding:5px 9px;border:1px solid #333;background:#333;color:#fff;border-radius:5px;font-size:12px;white-space:nowrap">按这个收</button></div>`
          + `<div id="needBox" style="font-size:12px"></div>`
          + `</div>`
          + `</div>`
@@ -6676,6 +6731,7 @@ function renderRisk(){
     + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span>'
     + '</div>' + h;
 box.innerHTML = h;
+  try{ renderNeedList(); }catch(e){}
 }
 
 function renderAll(){
