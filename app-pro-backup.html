@@ -248,6 +248,22 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};var s2=document.getElementById('sideSplitTh');if(s2)s2.value=splitTakeAll;flyThChanged();">
       <button class="btn primary" style="font-size:16px;padding:10px 20px" onclick="toggleSplit()">飞单统计</button>
     </div>
+    <div id="cutPanel" style="margin:10px 0 4px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">削峰测算（按当前订单自动算）</div>
+      <div id="cutNow" style="font-size:14px;line-height:1.8;color:#333;margin-bottom:8px">暂无订单</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:14px;white-space:nowrap">单号上限</span>
+        <input id="cutM" type="number" inputmode="decimal" oninput="cutRender(parseFloat(this.value)||0)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0;text-align:center">
+      </div>
+      <div id="cutQuicks" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"></div>
+      <div id="cutOut" style="font-size:15px;line-height:1.9"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #ddd">
+        <span style="font-size:14px;white-space:nowrap">我能扛</span>
+        <input id="cutTol" type="number" inputmode="decimal" placeholder="亏多少" oninput="cutByTolerance()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0;text-align:center">
+        <span style="font-size:14px;white-space:nowrap">元</span>
+      </div>
+      <div id="cutTolOut" style="font-size:15px;line-height:1.8;margin-top:6px;color:#cf1322"></div>
+    </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
       <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">复制本轮飞单</button>
@@ -555,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.89-Pro';
+var APP_VER = 'v58.90-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -2072,6 +2088,116 @@ function getSplitSales(){
   });
   return sales;
 }
+/* ===== 削峰测算：按当前订单算出削到哪一档最划算 ===== */
+function cutBets(){
+  var sales = getSplitSales();
+  var cap = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+  var arr = [];
+  Object.keys(sales).forEach(function(k){
+    var nb = Number(sales[k]) || 0;
+    if(nb <= 0) return;
+    var self = cap > 0 ? Math.min(nb, cap) : nb;
+    arr.push({n:k, nb:nb, self:self});
+  });
+  arr.sort(function(a,b){ return b.self - a.self; });
+  return arr;
+}
+function cutCalc(M){
+  var bets = cutBets();
+  var kept=0, flown=0, maxKeep=0, full=0, n=0;
+  bets.forEach(function(b){
+    if(b.self <= 0) return;
+    n++;
+    var k = (M > 0) ? Math.min(b.self, M) : b.self;
+    kept += k;
+    flown += (b.self - k);
+    if(k > maxKeep) maxKeep = k;
+    if(M > 0 && b.self >= M) full++;
+  });
+  var line = kept / payMult;
+  var worst = kept - payMult * maxKeep;
+  var exp = kept * 2 / 49 + flown * 0.03;
+  return {M:M, kept:kept, flown:flown, line:line, worst:worst, full:full, n:n, maxKeep:maxKeep, exp:exp};
+}
+function cutRefresh(){
+  try{
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    var base = cutCalc(top);
+    var elNow = document.getElementById('cutNow');
+    if(elNow){
+      if(bets.length === 0){ elNow.textContent = '暂无订单'; }
+      else{
+        var gap = payMult * top - base.kept;
+        elNow.innerHTML = '当前自留 <b>' + base.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + base.line.toFixed(1) + '</b><br>'
+          + '最重号自留 <b>' + top.toFixed(2) + '</b> 元 · 覆盖缺口 ' + (gap>0?'<b style="color:#cf1322">'+gap.toFixed(2)+'</b>':'0') + ' 元<br>'
+          + '开在最重号时净 <b style="color:' + (base.worst>=0?'#16a34a':'#cf1322') + '">' + base.worst.toFixed(2) + '</b>';
+      }
+    }
+    var q = document.getElementById('cutQuicks');
+    if(q){
+      var lv = [];
+      [100,78,63,47,30,21,15,10].forEach(function(m){ if(m <= top && m > 0) lv.push(m); });
+      q.innerHTML = lv.map(function(m){
+        return '<button class="btn" style="font-size:14px;padding:6px 12px" data-m="'+m+'" onclick="cutPick('+m+')">'+m+'</button>';
+      }).join('');
+    }
+    var inp = document.getElementById('cutM');
+    if(inp && inp.value === '' && top > 0) inp.value = top;
+    if(inp && inp.value !== '' && top > 0) cutRender(parseFloat(inp.value) || 0);
+  }catch(e){}
+}
+function cutPick(m){
+  var i = document.getElementById('cutM');
+  if(i) i.value = m;
+  cutRender(m);
+}
+function cutRender(M){
+  try{
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    if(top <= 0 || M <= 0) return;
+    var r = cutCalc(M);
+    var r0 = cutCalc(top);
+    var dW = r.worst - r0.worst;   // 负数变正数：多买到多少安全
+    var eff = r.flown > 0 ? (dW / r.flown) : 0;
+    var el = document.getElementById('cutOut');
+    if(!el) return;
+    var pct = r.full / 49 * 100;   // 全号口径：每号开出概率 1/49
+    var html = '';
+    html += '削到 <b>' + M + '</b>：自留 <b>' + r.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + r.line.toFixed(1) + '</b><br>';
+    html += '最坏 <b style="color:' + (r.worst>=0?'#16a34a':'#cf1322') + '">' + (r.worst>=0?'+':'') + r.worst.toFixed(2) + '</b>（开在满额号）· 期望 <b>+' + r.exp.toFixed(1) + '</b>/期<br>';
+    html += '满额号 <b>' + r.full + '</b> 个（' + pct.toFixed(1) + '%）· 有注号 ' + r.n + ' 个<br>';
+    html += '飞掉 <b>' + r.flown.toFixed(2) + '</b> 元';
+    if(r.flown > 0){
+      html += ' · 每飞 1 元买到 <b style="color:' + (eff>=5?'#16a34a':eff>=2?'#f59e0b':'#cf1322') + '">' + eff.toFixed(1) + '</b> 元安全';
+    }
+    if(M >= top){ html += '<br><span style="color:#666">这一档等于不削，全额自留。</span>'; }
+    el.innerHTML = html;
+  }catch(e){}
+}
+function cutByTolerance(){
+  try{
+    var tol = parseFloat((document.getElementById('cutTol')||{}).value) || 0;
+    var out = document.getElementById('cutTolOut');
+    if(!out) return;
+    if(tol <= 0){ out.textContent = ''; return; }
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    if(top <= 0){ out.textContent = '暂无订单'; return; }
+    var hit = 0;
+    for(var m = Math.floor(top); m >= 1; m--){
+      if(-cutCalc(m).worst <= tol){ hit = m; break; }
+    }
+    if(hit > 0){
+      var r = cutCalc(hit);
+      out.innerHTML = '扛 ' + tol + ' 元 → 削到 <b>' + hit + '</b>：最坏 ' + r.worst.toFixed(2) + '，自留 ' + r.kept.toFixed(2) + '，飞掉 ' + r.flown.toFixed(2)
+        + ' <button class="btn" style="font-size:13px;padding:4px 10px;margin-left:6px" onclick="cutPick('+hit+')">采用</button>';
+    }else{
+      out.textContent = '削到底也扛不住 ' + tol + ' 元，这单只能靠飞单或对冲。';
+    }
+  }catch(e){}
+}
 function renderSplit(){
   const tbody = document.getElementById('tbody-split');
   if(!tbody) return;
@@ -2650,6 +2776,7 @@ function toggleOd(id, el){
   }
 }
 function toggleSplit(){
+  setTimeout(function(){ try{ cutRefresh(); }catch(e){} }, 60);
   splitVisible = !splitVisible;
   document.getElementById('splitSummary').style.display = splitVisible ? '' : 'none';
   document.getElementById('splitCopyWrap').style.display = splitVisible ? '' : 'none';
