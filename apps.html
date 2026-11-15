@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>应用登记 · AI统计</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23111'/><path d='M9 10h14M9 16h14M9 22h9' stroke='%23fff' stroke-width='2.4'/></svg>">
+<style>
+:root{
+  --ink:#141414; --muted:#6a6a6a; --line:#e3e3e3; --soft:#f7f7f7;
+  --ok:#12693f; --warn:#a97a12; --danger:#b3261e;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#fff;color:var(--ink);
+  font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 64px}
+
+header{padding:28px 0 18px;border-bottom:1px solid var(--line)}
+header h1{margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-.4px}
+header p{margin:0;color:var(--muted);font-size:13.5px}
+
+nav{display:flex;gap:8px;overflow-x:auto;padding:14px 0;border-bottom:1px solid var(--line);
+  scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{flex:0 0 auto;font-size:13px;padding:7px 13px;border:1px solid var(--line);border-radius:999px;
+  color:var(--ink);text-decoration:none;background:#fff;white-space:nowrap}
+nav a:active{background:var(--soft)}
+
+h2.sec{font-size:18px;margin:34px 0 4px;letter-spacing:-.2px}
+p.secsub{margin:0 0 16px;color:var(--muted);font-size:13px}
+
+.card{border:1px solid var(--line);border-radius:12px;padding:16px 16px 4px;margin-bottom:14px}
+.cardhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.cardhd h3{margin:0;font-size:17px;font-weight:650;letter-spacing:-.2px}
+.badge{font-size:11.5px;padding:2px 8px;border-radius:5px;background:var(--soft);
+  border:1px solid var(--line);color:var(--muted)}
+.badge.apk{color:var(--ok);border-color:#cfe3d8;background:#f2faf6}
+.badge.web{color:#3a3a3a;border-color:#dedede;background:#f7f7f7}
+
+dl{margin:8px 0 12px;display:grid;grid-template-columns:88px 1fr;gap:0}
+dt{color:var(--muted);font-size:13px;padding:6px 0;border-top:1px dashed #eee}
+dd{margin:0;padding:6px 0;font-size:13.5px;border-top:1px dashed #eee;min-width:0}
+dt:first-of-type,dd:first-of-type{border-top:0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  background:var(--soft);padding:1px 5px;border-radius:4px;word-break:break-all}
+a.lnk{color:var(--ink);text-decoration:underline;text-decoration-color:#bbb;text-underline-offset:3px}
+
+table{width:100%;border-collapse:collapse;table-layout:fixed;margin:10px 0 6px;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #eee;overflow-wrap:anywhere}
+th{color:var(--muted);font-weight:500;font-size:12px;border-bottom:1px solid var(--line)}
+
+pre{background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:12px 13px;
+  overflow-x:auto;font:12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;margin:10px 0 14px}
+
+.note{border-left:3px solid var(--danger);background:#fdf6f5;padding:10px 13px;border-radius:0 8px 8px 0;
+  font-size:13px;margin:12px 0 16px}
+.note.ok{border-left-color:var(--ok);background:#f5fbf7}
+.note.warn{border-left-color:var(--warn);background:#fdfaf2}
+.note b{font-weight:650}
+
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>应用登记</h1>
+  <p>每个应用：叫什么、装在哪、什么版本、怎么进、干什么用、怎么升级。</p>
+</header>
+
+<nav>
+  <a href="#pro">录单Pro</a>
+  <a href="#client">AI统计（客户版）</a>
+  <a href="#admin">会员管理</a>
+  <a href="#stats">资料统计</a>
+  <a href="#cmds">升级命令</a>
+  <a href="#faq">常见问题</a>
+</nav>
+
+<!-- ===== 录单Pro ===== -->
+<h2 class="sec" id="pro">录单Pro（自己用）</h2>
+<p class="secsub">装手机上，离线可用。所有风控、削峰、补号模拟都在这。</p>
+
+<div class="card">
+  <div class="cardhd"><h3>录单Pro</h3><span class="badge apk">APK · 页面内嵌</span></div>
+  <dl>
+    <dt>干什么</dt><dd>录单、统计、特号/平特持仓、风险体检·削峰、补号模拟、授权设备、备份</dd>
+    <dt>怎么进</dt><dd>点桌面「录单Pro」图标；或在浏览器开 <a class="lnk" href="https://chujian596.github.io/ai-stats/app-pro.html">app-pro.html</a></dd>
+    <dt>包名</dt><dd><code>io.github.chujian596.app.pro</code></dd>
+    <dt>签名</dt><dd><code>4ccfcf…</code>（后 12 位 <code>…f4e7b51c4eb1596a5</code>）</dd>
+    <dt>当前版本</dt><dd>v58.120-Pro · versionCode <b>5920</b></dd>
+    <dt>数据在哪</dt><dd>订单在本机 localStorage；会员名单在云端 <code>members.json</code> / <code>whitelist.json</code></dd>
+    <dt>怎么升级</dt><dd>重打 APK 直接覆盖安装（同签名，数据不丢）</dd>
+  </dl>
+</div>
+
+<!-- ===== 客户版 ===== -->
+<h2 class="sec" id="client">AI统计（客户版）</h2>
+<p class="secsub">给客户用，已冻结在 v58.97，不再加功能。</p>
+
+<div class="card">
+  <div class="cardhd"><h3>AI统计</h3><span class="badge web">网页 · 已冻结</span></div>
+  <dl>
+    <dt>干什么</dt><dd>录单、统计、备份、白名单验证。<b>没有</b>风控/削峰面板，客户看不到</dd>
+    <dt>怎么进</dt><dd><a class="lnk" href="https://chujian596.github.io/ai-stats/app.html">chujian596.github.io/ai-stats/app.html</a></dd>
+    <dt>当前版本</dt><dd>v58.97（362,784 字节）</dd>
+    <dt>和Pro区别</dt><dd>少了「风险体检·削峰」「补号模拟」「盘形诊断」，没有 AI 开关之外的差异</dd>
+    <dt>怎么升级</dt><dd>不再升级；改动只发 Pro 版</dd>
+  </dl>
+</div>
+
+<!-- ===== 会员管理 ===== -->
+<h2 class="sec" id="admin">会员管理</h2>
+<p class="secsub">管设备授权：加人、改套餐、看剩余天数、同步到云端。</p>
+
+<div class="card">
+  <div class="cardhd"><h3>会员管理</h3><span class="badge apk">APK · 页面内嵌</span></div>
+  <dl>
+    <dt>干什么</dt><dd>登记保存名单、设置套餐天数、有效期倒计时、删设备、推云端</dd>
+    <dt>怎么进</dt><dd>点桌面「会员管理」图标；或浏览器开 <a class="lnk" href="https://chujian596.github.io/ai-stats/admin.html">admin.html</a>（要解锁码）</dd>
+    <dt>包名</dt><dd><code>com.chujian596.admin</code></dd>
+    <dt>签名</dt><dd><code>4ccfcf…</code>（与录单Pro同一把）</dd>
+    <dt>当前版本</dt><dd>v1.1 · versionCode <b>2</b></dd>
+    <dt>数据在哪</dt><dd>名单在云端 GitHub <code>members.json</code>；本机存一份缓存，断网也能看</dd>
+    <dt>怎么升级</dt><dd>直接覆盖安装</dd>
+  </dl>
+</div>
+
+<div class="note warn">
+  <b>v1.0 → v1.1 必须卸载重装。</b>旧版 v1.0.0 是别的工具打的，签名 <code>99d155…</code> 与现在不同，覆盖会报「安装失败(-7)」。卸载后装 v1.1，进去重填一次仓库令牌即可；以后都是同一签名，不用再卸。
+</div>
+
+<!-- ===== 资料统计 ===== -->
+<h2 class="sec" id="stats">资料统计</h2>
+<p class="secsub">杀肖共识、冷热号、来源总览。</p>
+
+<div class="card">
+  <div class="cardhd"><h3>资料统计</h3><span class="badge web">网页</span></div>
+  <dl>
+    <dt>干什么</dt><dd>杀肖共识追踪、全员命中率、冷热号统计、资料源接入情况</dd>
+    <dt>怎么进</dt><dd><a class="lnk" href="https://chujian596.github.io/ai-stats/stats.html">chujian596.github.io/ai-stats/stats.html</a></dd>
+    <dt>数据在哪</dt><dd>快照随页面部署，抓取脚本在 <code>tools/</code></dd>
+  </dl>
+</div>
+
+<!-- ===== 升级命令 ===== -->
+<h2 class="sec" id="cmds">升级 / 打包命令</h2>
+<p class="secsub">换签名、换版本号、换页面，都在这几条里。</p>
+
+<div class="card">
+  <div class="cardhd"><h3>重打录单Pro</h3></div>
+<pre>cd ai-stats/android-webview
+APP_HOME_URL="https://chujian596.github.io/ai-stats/app-pro.html" \
+APP_VER_NAME="58.121-Pro" APP_VER_CODE=5921 \
+APK_OUT="app-release-pro.apk" bash build_webview.sh 2>&1 | tail -10</pre>
+
+  <div class="cardhd"><h3>重打会员管理</h3></div>
+<pre>cd ai-stats/android-admin
+APP_HOME_URL="https://chujian596.github.io/ai-stats/admin.html" \
+APP_VER_NAME="1.2" APP_VER_CODE=3 \
+APK_OUT="app-release-admin.apk" bash build_webview.sh 2>&1 | tail -10</pre>
+
+  <div class="cardhd"><h3>部署上线</h3></div>
+<pre>cd ai-stats
+bash push_cloudflare.sh
+git add -A &amp;&amp; git commit -m "说明" &amp;&amp; git push origin main</pre>
+
+  <div class="cardhd"><h3>发版质检（必跑）</h3></div>
+<pre>cd ai-stats &amp;&amp; bash tests/release_check.sh</pre>
+  <p class="secsub" style="margin:8px 0 14px">4 步：语法门禁 → 回归 54 项 → 发版硬校验 38 项 → 金额断言。任一步失败不许推。</p>
+</div>
+
+<!-- ===== 常见问题 ===== -->
+<h2 class="sec" id="faq">常见问题</h2>
+
+<div class="card">
+  <div class="cardhd"><h3>为什么会员管理新版要卸载</h3></div>
+  <dl>
+    <dt>原因</dt><dd>v1.0 是第三方工具打的包，签名 <code>99d155…</code>，私钥不在本机，签不出能盖它的包</dd>
+    <dt>解决</dt><dd>卸载 → 装 v1.1；以后同签名直接覆盖</dd>
+  </dl>
+
+  <div class="cardhd"><h3>APK 为什么不怕断网</h3></div>
+  <dl>
+    <dt>原理</dt><dd>打包时把整页塞进 <code>assets/shell.html</code>，启动用 <code>loadDataWithBaseURL</code> 直接渲染，不走网络</dd>
+    <dt>老版本</dt><dd>v1.0 会员管理没有 assets 目录，只加载线上地址，没网就白屏——这就是「离线」的真相</dd>
+  </dl>
+
+  <div class="cardhd"><h3>页面改了但手机上还是旧的</h3></div>
+  <dl>
+    <dt>网页端</dt><dd>GitHub Pages 有 CDN 缓存，改完要等几分钟；Cloudflare 域名 <code>aistats-9uo.pages.dev</code> 即时生效</dd>
+    <dt>APK</dt><dd>用内置页面，不受缓存影响；但要看到新页面必须重打 APK</dd>
+  </dl>
+
+  <div class="cardhd"><h3>版本号卡住不动</h3></div>
+  <dl>
+    <dt>症状</dt><dd>页面显示版本比 version.txt 旧，改了几轮都没变</dd>
+    <dt>原因</dt><dd>之前用「带旧值的字符串替换」改版本号，前提不成立会静默失效</dd>
+    <dt>规矩</dt><dd>一律用 <code>re.sub(r"APP_VER\s*=\s*'v58\.\d+[^']*'", ...)</code>，别写死旧值</dd>
+  </dl>
+</div>
+
+<footer>
+  维护方式：新增应用或改版本，同步更新本页 + <code>版本说明.md</code>。<br>
+  本页随仓库部署，手机可直接打开。
+</footer>
+
+</div>
+</body>
+</html>
