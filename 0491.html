@@ -37,7 +37,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>0491 · 资料栏目 <span style="font-size:12px;font-weight:600;color:#999">v1.0.3</span></h1>
+    <h1>0491 · 资料栏目 <span style="font-size:12px;font-weight:600;color:#999">v1.0.4</span></h1>
     <a class="btn" href="portal.html">返回</a>
   </div>
   <div id="tabs" class="tabs"></div>
@@ -62,6 +62,13 @@
     </div>
   </div>
   <div class="card">
+    <h2>自动评估 · 哪栏靠谱</h2>
+    <div class="stat" id="evSum"><span class="muted">加载中…</span></div>
+    <div class="cols" style="margin-top:10px"><div class="c1">栏目</div><div class="c2">命中率 / 基线</div><div class="c3">结论</div></div>
+    <div id="evRows"></div>
+    <div class="muted" style="margin-top:10px" id="evNote"></div>
+  </div>
+  <div class="card">
     <h2>分栏盈亏台账（封存口径）</h2>
     <div class="stat" id="ledSum"><span class="muted">加载中…</span></div>
     <div class="cols" style="margin-top:10px"><div class="c1">栏目</div><div class="c2">命中/覆盖</div><div class="c3">净 / 回报</div></div>
@@ -73,7 +80,7 @@
     <div class="muted" id="notes">
       推荐一律取<b>开奖前封存</b>（行尾仍为“？00”时抓取，附指纹），开奖后再与网站当前行比对：字串不同=事后改料，行消失=无法复核。<br>
       命中按各栏目真实规则判定（杀肖/杀尾为“未被杀中=对”，平特为“平码出现该肖=中”）。<br>
-      315期及以前无封存，不在本页统计范围。<br><span id="ver">页面版本 v1.0.3</span>
+      315期及以前无封存，不在本页统计范围。<br><span id="ver">页面版本 v1.0.4</span>
     </div>
   </div>
 </div>
@@ -134,6 +141,24 @@ fetch('data/0491-ledger.json?v='+Date.now()).then(function(r){return r.json()}).
     '单期标准差 '+p.period_roi_sd_pp+'pp，95%区间 '+p.ci95[0]+'% ~ '+p.ci95[1]+'%。'+
     '<br><b>'+p.verdict+'</b>——区间跨过理论线，说明目前还不能判定这套买法真有优势。'+
     '<br>每行右侧「实测 / 理论」：左边是这三期实际回报率，右边是该栏按覆盖比应有的期望。';
+});
+
+fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.json()}).then(function(E){
+  var p=E.port;
+  q('evSum').innerHTML='<span>累计 '+E.periods.length+'期</span><span>组合净 <b>'+(p.net>0?'+':'')+p.net+'</b></span>'+
+    '<span>回报 <b>'+p.roi+'%</b> / 理论 '+p.theo_roi+'%</span>';
+  var ks=Object.keys(E.columns).sort(function(a,b){return E.columns[b].edge_pp-E.columns[a].edge_pp});
+  var h='';
+  ks.forEach(function(k){var v=E.columns[k];
+    var cls=v.verdict.indexOf('候选')===0?'good':(v.verdict.indexOf('剔除')===0?'bad':'watch');
+    var col=v.edge_pp>0?'#2e7d32':(v.edge_pp<0?'#c62828':'#777');
+    h+='<div class="row"><div class="c1">'+k+'</div><div class="c2" style="font-size:12px">'+
+       v.hit_rate+'% / '+v.base+'%<br><span style="color:'+col+'">边缘 '+(v.edge_pp>0?'+':'')+v.edge_pp+'pp · z='+v.z+'</span></div>'+
+       '<div class="c3" style="text-align:right"><span class="tag '+cls+'">'+v.verdict+'</span></div></div>';});
+  q('evRows').innerHTML=h;
+  q('evNote').innerHTML='判定规则：样本&lt;15 一律“证据不足”；边缘 z≥1.96 判“候选”，z≤−1.96 判“剔除”，其余“观察”。<br>'+
+    '要靠命中率证实 5pp 的优势，样本量约需 <b>'+(E.columns[Object.keys(E.columns)[0]].n_needed_5pp||'—')+'期</b>；证 10pp 约需 96 期。<br>'+
+    '组合层面：各栏赔率结构固定，期望约等于 95%，“换组合”改变不了期望，只改变波动。';
 });
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 </script>
