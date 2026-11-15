@@ -160,7 +160,7 @@ fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.json()}).th
        '<span class="muted"> · z='+v.z+'</span><br>'+
        '<span class="muted">真实水平：'+v.ci[0]+'% ~ '+v.ci[1]+'%（区间宽 '+Math.round(v.ci[1]-v.ci[0])+'pp）</span><br>'+
        '<div style="height:4px;background:#eee;border-radius:2px;margin:3px 0"><div style="height:4px;width:'+w+'%;background:'+col+';border-radius:2px"></div></div>'+
-       '<span class="muted">'+(need>0?('还差 '+need+' 期可判':'样本已达判定线')+'</span>')+
+       '<span class="muted">'+(need>0?('还差 '+need+' 期可判'):'样本已达判定线')+'</span>'+
        (v.win10?'<br><span class="muted">近10期 '+v.win10.hits+'/'+v.win10.n+' · 边缘'+(v.win10.edge_pp>0?'+':'')+v.win10.edge_pp+'pp · z='+v.win10.z+'</span>':'')+
        (v.win30?'<br><span class="muted">近30期 '+v.win30.hits+'/'+v.win30.n+' · 边缘'+(v.win30.edge_pp>0?'+':'')+v.win30.edge_pp+'pp · z='+v.win30.z+'</span>':'')+
        '</div><div class="c3" style="text-align:right"><span class="tag '+cls+'">'+v.verdict+'</span>'+
@@ -176,8 +176,8 @@ fetch('data/0491-eval.json?v='+Date.now()).then(function(r){return r.json()}).th
     '③ <b>边缘</b>：实际命中率 − 瞎猜概率。正=比瞎猜准，负=还不如瞎猜。<br>'+
     '④ <b>真实水平区间</b>：样本太少时区间极宽（3/3 可能是44%，也可能真是100%），宽到盖住"瞎猜"那个数，就判不了。<br>'+
     '⑤ <b>近10期 / 近30期</b>：滚动统计最近10期、最近30期的命中与边缘。10期抓"这几天准不准"，30期抓"这一阵子准不准"。两者都至少要满8期/20期才出信号。<br>'+
-    '⑥ <b>还差几期</b>：按要证实5个点的优势估算，通常需300+期；证10个点约96期。<br>
-    '组合层面：各栏赔率结构固定，期望约等于 95%，“换组合”改变不了期望，只改变波动。';
+    '⑥ <b>还差几期</b>：按要证实5个点的优势估算，通常需300+期；证10个点约96期。<br>'
+    +'组合层面：各栏赔率结构固定，期望约等于 95%，“换组合”改变不了期望，只改变波动。';
 });
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 </script>
