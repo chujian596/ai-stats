@@ -555,7 +555,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.88-Pro';
+var APP_VER = 'v58.89-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定：选过「保持当前版本」的用户，打开时自动进对应版本快照，不再跟随线上
@@ -564,7 +564,7 @@ function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
     if((location.search || '').indexOf('pin=1') >= 0) return;
     var pin = localStorage.getItem('aiProPinVer');
     if(!pin || pin === APP_VER) return;
-    var f = './app-pro-' + pin + '.html?pin=1';
+    var f = './versions/app-pro-' + pin + '.html?pin=1';
     fetch(f, {method:'HEAD', cache:'no-store'}).then(function(r){
       if(r.ok) location.replace(f);
     }).catch(function(){});
@@ -576,6 +576,31 @@ window.onerror = function(msg, url, line){
   d.textContent = 'JS错误: ' + msg + ' 行:' + line;
   document.body.appendChild(d);
 };
+// 站点根地址：本地壳(file://)走 GitHub（1秒响应，Pages 这边常要 12-20 秒）
+function _siteBase(){
+  if(location.protocol === 'file:' || !location.hostname) return 'https://chujian596.github.io/ai-stats';
+  var p = location.pathname.replace(/\/[^\/]*$/, '');
+  return location.origin + p;
+}
+function _onlineURL(){
+  var isPro = /Pro/.test(APP_VER);
+  var base = _siteBase();
+  var isGH = base.indexOf('github.io') >= 0;
+  var path = isPro ? (isGH ? '/app-pro.html' : '/app-pro') : (isGH ? '/app.html' : '/app');
+  return base + path + '?v=' + Date.now();
+}
+// 手机里装的壳(file://)：先本地起，能连通就自动切到线上最新版，网页改动以后不用重装包
+(function(){
+  try{
+    if(location.protocol !== 'file:') return;
+    var base = 'https://chujian596.github.io/ai-stats';
+    var isPro = /Pro/.test(APP_VER);
+    var url = base + (isPro ? '/app-pro.html' : '/app.html');
+    fetch(url, {method:'HEAD', cache:'no-store'})
+      .then(function(r){ if(r.ok) location.replace(url + '?v=' + Date.now()); })
+      .catch(function(){});
+  }catch(e){}
+})();
 // 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
 function hardUpdateTo(v){
   // 先清除PWA缓存
@@ -590,12 +615,7 @@ function hardUpdateTo(v){
       names.forEach(function(name){ caches.delete(name); });
     });
   }
-  var ts = Date.now();
-  var url = location.pathname + '?v=' + encodeURIComponent(v) + '&_t=' + ts;
-  if(location.search && location.search.indexOf('v=')>=0){
-    url = location.pathname + location.search.replace(/([?&])v=[^&]*/,'$1v='+encodeURIComponent(v)).replace(/([?&])_t=[^&]*/,'$1_t='+ts);
-  }
-  location.replace(url);
+  location.replace(_onlineURL());
 }
 // 版本检查统一由下方 fetch 处理（仅提示、不自动跳转）
 // 自动同步版本号到标题栏，杜绝硬编码
@@ -3804,7 +3824,7 @@ function refreshPage(){
           function(i){
             if(i === 0){
               localStorage.removeItem('aiProPinVer');
-              location.replace('./app-pro.html?v=' + Date.now());
+              location.replace(_onlineURL());
             } else if(i === 1){
               localStorage.setItem('aiProPinVer', APP_VER);
               myAlert('已锁定 ' + APP_VER + '。\n以后打开都停在这个版本，不会再自动变。\n想换回最新版：点刷新，选「现在更新到最新」。');
@@ -4017,6 +4037,9 @@ function showFixDialog(rawLine, msg){
   ov.querySelector('#fxCancel').onclick = function(){ ov.remove(); };
   return true;
 }
+var MANUAL_TYPES = [['num','号码'],['tezod','特肖'],['ping','平特肖'],['lian','连肖'],['wave','波色'],['sd','单双'],['big','大小'],['he','合数单双'],['head','头数'],['tail','尾数'],['ez','二中二'],['sz','三中三']];
+var MT_HINT = {num:'如 05 17 28',tezod:'如 鼠龙马',ping:'如 兔蛇',lian:'如 鼠龙蛇',wave:'如 红波大',sd:'单 / 双',big:'大 / 小',he:'合数单 / 合数双',head:'0-4',tail:'0-9',ez:'两个号 如 05 17',sz:'三个号 如 05 17 28'};
+var _mtType = 'num';
 function _mtLabel(t){ for(var i=0;i<MANUAL_TYPES.length;i++){ if(MANUAL_TYPES[i][0]===t) return MANUAL_TYPES[i][1]; } return t; }
 function buildManualCodes(type, val){
   val = String(val||'');
