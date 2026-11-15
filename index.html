@@ -554,7 +554,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.86';
+var APP_VER = 'v58.87';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 window.onerror = function(msg, url, line){
@@ -5483,36 +5483,6 @@ function toggleRiskBox(){
   var e = document.getElementById('riskAnalysisBox');
   if(e) e.style.display = riskBoxOpen ? '' : 'none';
 }
-function preflightReport(){
-  var s = window.__rkSnapshot;
-  if(!s || !s.S){ myAlert('先展开「持仓分析」看一次当前盘面，再来预演。'); return; }
-  var input = window.prompt('要加进来的号码和金额\n格式：号码 空格 金额\n例如：38 300', '');
-  if(!input) return;
-  var parts = String(input).trim().split(/[\s,，]+/);
-  var n = parseInt(parts[0], 10), amt = parseFloat(parts[1]);
-  if(!(n >= 1 && n <= 49) || !(amt > 0)){ myAlert('格式不对。举例如下：\n38 300'); return; }
-  var mult = s.mult > 0 ? s.mult : 47;
-  var S2 = s.S + amt;
-  var maxBet2 = (n === s.maxNum) ? (s.maxBet + amt) : Math.max(s.maxBet, amt);
-  var worst1 = s.S - mult * s.maxBet;
-  var worst2 = S2 - mult * maxBet2;
-  var L1 = s.breakeven, L2 = S2 / mult;
-  var over2 = 0;
-  if(s.maxBet !== s.maxBet) over2 = 0;
-  var lines = '';
-  lines += '现在：最坏净盈亏 ' + worst1.toFixed(0) + '\n';
-  lines += '接这单后：最坏净盈亏 ' + worst2.toFixed(0) + '（' + (worst2 > worst1 ? '好 ' : '差 ') + Math.abs(worst2 - worst1).toFixed(0) + '）\n';
-  lines += '亏损线：' + L1.toFixed(0) + ' → ' + L2.toFixed(0) + '\n';
-  if(n === s.maxNum){
-    lines += '这单压在你最重的第 ' + n + ' 号上，会让它更痛。\n';
-  } else if(amt > L2){
-    lines += '这单把第 ' + n + ' 号压到 ' + amt + '，超过亏损线 ' + L2.toFixed(0) + '，它就成了新的痛点。\n';
-  } else {
-    lines += '第 ' + n + ' 号压到 ' + amt + '，在亏损线以内，不新增痛点。\n';
-  }
-  lines += '建议：单号不超过 ' + L2.toFixed(0) + ' 元；超了就把超出部分飞出去。';
-  myAlert(lines);
-}
 function renderRisk(){
   const box = document.getElementById('riskBody');
   if(!box) return;
@@ -5881,29 +5851,6 @@ function renderRisk(){
   const afterFlyPayout = specialPayout + totalOtherPayout;
   const afterFlyNet = worstNet;
   const breakevenThreshold = totalSales / payMult;
-  // ===== 风险体检：亏损线 / 亏损号占比 / 危险注额占比 =====
-  let overCnt = 0, overAmt = 0;
-  for(let i=1;i<=49;i++){
-    const ab = numBets[i]||0;
-    if(ab > 0 && ab > breakevenThreshold){ overCnt++; overAmt += ab; }
-  }
-  const overProbPct = (overCnt/49*100).toFixed(1);
-  const overAmtPct = totalSales > 0 ? (overAmt/totalSales*100).toFixed(0) : '0';
-  const heaviestNum = sorted[0];
-  const heaviestBet = numBets[heaviestNum]||0;
-  const heaviestShare = totalSales > 0 ? (heaviestBet/totalSales*100).toFixed(0) : '0';
-  window.__rkSnapshot = { S: totalSales, mult: payMult, maxNum: heaviestNum, maxBet: heaviestBet,
-                          breakeven: breakevenThreshold, overCnt: overCnt, overAmt: overAmt };
-  // 风险体检卡片
-  h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:13px;line-height:1.75">`;
-  h += `<div style="font-weight:700;color:#333;margin-bottom:4px">风险体检</div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损线（单号最多能压到不亏）</span><b>${breakevenThreshold.toFixed(1)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损号（超线，开出来就亏）</span><b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overCnt} / 49 个</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>亏损概率</span><b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overProbPct}%</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>危险注额占收入</span><b style="color:${overAmt>0?'#cf1322':'#16a34a'}">${overAmtPct}%</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>最重一号</span><b>第 ${heaviestNum} 号 ${heaviestBet.toFixed(0)} 元 · 占 ${heaviestShare}%</b></div>`;
-  h += `<button onclick="preflightReport()" style="width:100%;margin-top:8px;padding:9px;border:1px solid #333;background:#fff;color:#333;border-radius:8px;font-size:14px;font-weight:600">接单预演：这单接了会怎样</button>`;
-  h += `</div>`;
   h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
   // 飞单清单折叠预览
   h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#f3f4f6;border-radius:6px;margin-top:6px;font-size:13px">`
