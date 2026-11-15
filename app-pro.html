@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.102-Pro';
+var APP_VER = 'v58.103-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2246,6 +2246,19 @@ try{
   var _cm = localStorage.getItem('cut_mode_v1'); if(_cm === 'cut' || _cm === 'raw') cutMode = _cm;
   var _cp = parseFloat(localStorage.getItem('cut_pick_v1')); if(_cp > 0) cutPick = _cp;
 }catch(e){}
+function applyCutTolerance(){
+  var v = parseFloat((document.getElementById('cutTolerance')||{}).value) || 0;
+  if(v <= 0){ myAlert('先填一个你能扛的亏损金额，比如 1500'); return; }
+  var bets = cutBets(), top = 0;
+  bets.forEach(function(b){ if(b.self > top) top = b.self; });
+  if(top <= 0){ myAlert('当前没有有注号'); return; }
+  var hit = 0;
+  for(var m = Math.floor(top); m >= 1; m--){
+    if(-cutCalc(m).worst <= v){ hit = m; break; }
+  }
+  if(hit > 0){ pickCut(hit); }
+  else { myAlert('削到 1 元/号 也扛不住 ' + v + ' 元，这盘只能靠飞单摊尾部。'); }
+}
 function switchCutMode(m){
   cutMode = (m === 'cut') ? 'cut' : 'raw';
   try{ localStorage.setItem('cut_mode_v1', cutMode); }catch(e){}
@@ -6237,7 +6250,7 @@ function renderRisk(){
     if(_top > 0 && typeof isOwnerDevice === 'function' && isOwnerDevice()){
       var _mode = cutMode;
       var _cap  = (_mode === 'cut') ? cutPick : (splitTakeAll || _top);
-      var _lv   = [78,63,47,30,21].filter(function(m){ return m < _top; });
+      var _lv   = [95,90,85,80,78,70,63,55,47,40,30,21].filter(function(m){ return m < _top && m > 0; });
       var base  = cutCalc(_top);
       var bestM = 0, bestEff = 0;
       _lv.forEach(function(m){
@@ -6254,45 +6267,51 @@ function renderRisk(){
       h += `<button onclick="switchCutMode('raw')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='raw'?'background:#333;color:#fff;border:1px solid #333':'background:#fff;color:#666;border:1px solid #ddd'}">吃最大 ${splitTakeAll||0}<br><span style="font-size:11px;font-weight:400">赚多·亏多</span></button>`;
       h += `<button onclick="switchCutMode('cut')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='cut'?'background:#1677ff;color:#fff;border:1px solid #1677ff':'background:#fff;color:#666;border:1px solid #ddd'}">削峰稳健${_mode==='cut'?' '+cutPick:''}<br><span style="font-size:11px;font-weight:400">稳·亏少</span></button>`;
       h += `</div>`;
-      if(_mode === 'cut' && _lv.length){
-        h += `<div style="margin-bottom:5px;color:#666;font-size:12px">挑一档（都按当前 ${splitTakeAll||0} 元/号 对比）</div>`;
+      if(_mode === 'cut'){
+        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（都按当前 ${splitTakeAll||0} 元/号 对比）</div>`;
+        h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
+        var _lineM = 0;
         _lv.forEach(function(m){
           var r = cutCalc(m), df = r.flown - base.flown, dw = r.worst - base.worst;
           var e = df > 0 ? dw / df : 0;
+          if(e >= 5) _lineM = m;
           var col = e >= 5 ? '#16a34a' : (e >= 2 ? '#b45309' : '#cf1322');
           var sel = (m === cutPick);
-          var rec = (m === bestM) ? '<span style="background:#16a34a;color:#fff;font-size:11px;padding:1px 5px;border-radius:4px;margin-left:5px">推荐</span>' : '';
-          h += `<div onclick="pickCut(${m})" style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;margin-bottom:3px;cursor:pointer;${sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
-             + `<span style="font-weight:${sel?'700':'400'}">削到 ${m}${rec}</span>`
-             + `<span style="font-size:12px;color:#555">最坏 <b style="color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b>　飞 ${r.flown.toFixed(0)}　<span style="color:${col};font-weight:600">每飞1元买 ${e.toFixed(1)}</span></span>`
+          h += `<div onclick="pickCut(${m})" style="padding:5px 6px;border-radius:6px;cursor:pointer;${sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
+             + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${sel?'700':'400'}">${m}</span>`
+             + `<b style="font-size:12px;color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b></div>`
+             + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>飞 ${r.flown.toFixed(0)}</span><span style="color:${col};font-weight:600">买 ${e.toFixed(1)}</span></div>`
              + `</div>`;
         });
-        h += `<div style="color:#888;font-size:11px;margin:2px 0 8px">推荐＝每飞 1 元买到安全最多的一档。绿≥5 元、黄 2–5、红&lt;2</div>`;
+        h += `</div>`;
+        h += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">`
+           + `<span style="font-size:12px;color:#666;white-space:nowrap">我能扛</span>`
+           + `<input id="cutTolerance" type="number" placeholder="填金额" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">`
+           + `<button onclick="applyCutTolerance()" style="padding:6px 12px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;white-space:nowrap">算档位</button>`
+           + `</div>`;
+        if(_lineM) h += `<div style="color:#16a34a;font-size:12px;margin-bottom:6px">每飞 1 元还能买到 5 元以上安全的，最深到 <b>${_lineM}</b>；再往下削就不划算了</div>`;
+        else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
       }
       h += `<div style="border-top:1px solid #eee;padding-top:6px">`;
       h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:3px">`
          + `<span>号码表（${_mode==='cut'?'削到 '+_cap:'按实际阈值 '+_cap} 元/号）</span>`
          + `<span>自留 ${_kept.toFixed(0)} · 飞 ${(_tot-_kept).toFixed(0)}</span></div>`;
-      h += `<table style="width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse">`
-         + `<colgroup><col style="width:13%"><col style="width:21%"><col style="width:21%"><col style="width:18%"><col style="width:27%"></colgroup>`
-         + `<tr style="color:#999;border-bottom:1px solid #eee"><th style="text-align:left">号</th><th style="text-align:right">注额</th><th style="text-align:right">自留</th><th style="text-align:right">飞</th><th style="text-align:right">开出净盈亏</th></tr>`;
-      var _split = false;
-      _bets.slice().sort(function(a,b){ return b.nb - a.nb; }).forEach(function(b){
+      var _arr = _bets.slice().sort(function(a,b){ return b.nb - a.nb; });
+      var _half = Math.ceil(_arr.length / 2);
+      function _row(b){
         var s = Math.min(b.nb, _cap), fly = b.nb - s, net = _kept - 47 * s;
-        if(!_split && net >= 0){
-          _split = true;
-          h += `<tr><td colspan="5" style="padding:5px 0;color:#999;font-size:11px;text-align:center;border-top:1px dashed #ddd">—— 以下号码开出来是赚的 ——</td></tr>`;
-        }
-        h += `<tr style="border-bottom:1px solid #f5f5f5">`
-           + `<td style="padding:3px 4px;font-weight:600">${b.n}</td>`
-           + `<td style="padding:3px 4px;text-align:right">${b.nb.toFixed(0)}</td>`
-           + `<td style="padding:3px 4px;text-align:right">${s.toFixed(0)}</td>`
-           + `<td style="padding:3px 4px;text-align:right;color:${fly>0?'#cf1322':'#999'}">${fly>0?fly.toFixed(0):'-'}</td>`
-           + `<td style="padding:3px 4px;text-align:right;font-weight:600;color:${net>=0?'#16a34a':'#cf1322'}">${(net>=0?'+':'')+net.toFixed(0)}</td>`
-           + `</tr>`;
-      });
-      h += `</table>`;
-      h += `<div style="color:#888;font-size:11px;margin-top:5px">开出净盈亏＝总自留 − 47×该号自留；负＝开出来亏，正＝赚。按注额从大到小排。</div>`;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid #f7f7f7;font-size:12px">`
+             + `<span><b style="display:inline-block;min-width:20px">${b.n}</b><span style="color:#999">${b.nb.toFixed(0)}&rarr;${s.toFixed(0)}</span>${fly>0?'<span style="color:#cf1322"> 飞'+fly.toFixed(0)+'</span>':''}</span>`
+             + `<b style="color:${net>=0?'#16a34a':'#cf1322'}">${(net>=0?'+':'')+net.toFixed(0)}</b></div>`;
+      }
+      var _cL = '', _cR = '';
+      _arr.slice(0, _half).forEach(function(b){ _cL += _row(b); });
+      _arr.slice(_half).forEach(function(b){ _cR += _row(b); });
+      h += `<div style="display:flex;gap:10px">`
+         + `<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 注额&rarr;自留 飞</span><span>开出净盈亏</span></div>${_cL}</div>`
+         + `<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 注额&rarr;自留 飞</span><span>开出净盈亏</span></div>${_cR}</div>`
+         + `</div>`;
+      h += `<div style="color:#888;font-size:11px;margin-top:5px">红＝开出来亏，绿＝赚；注额&rarr;自留，飞是该号飞出去的钱；按注额从大到小排，左列接右列。</div>`;
       h += `</div>`;
       h += `<button onclick="preflightReport()" style="width:100%;margin-top:10px;padding:9px;border:1px solid #333;background:#fff;color:#333;border-radius:8px;font-size:14px;font-weight:600">接单预演：这单接了会怎样</button>`;
       h += `</div>`;
