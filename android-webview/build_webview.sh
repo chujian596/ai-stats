@@ -23,7 +23,7 @@ VER_NAME="${APP_VER_NAME:-58.74}"
 VER_CODE="${APP_VER_CODE:-5874}"
 OUT="${APK_OUT:-app-release-webview.apk}"
 
-MAIN=src/io/github/chujian596/app/MainActivity.java
+MAIN=src/io/github/chujian596/app/pro/MainActivity.java
 cp "$MAIN" /tmp/_MainActivity_orig.java
 cp AndroidManifest.xml /tmp/_AndroidManifest_orig.xml
 trap 'cp /tmp/_MainActivity_orig.java "$MAIN"; cp /tmp/_AndroidManifest_orig.xml AndroidManifest.xml' EXIT
