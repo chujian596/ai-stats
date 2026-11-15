@@ -6507,12 +6507,12 @@ function renderRisk(){
       var _sK = _kept, _sM = Math.min(100, _cap);
       var _sBest = simAddNum(_sb, _scap, 49, _scap);
       var _simRows = '';
-      [[5,50],[10,50],[15,50],[20,50],[5,100],[10,100]].forEach(function(p){
+      [[5,50],[10,50],[15,50],[20,50],[5,_scap],[10,_scap],[20,_scap]].forEach(function(p){
         var r2 = simAddNum(_sb, _scap, p[0], p[1]);
         var d = r2.added;
         var col = d>0 ? '#16a34a' : '#999';
         _simRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f7f7f7">`
-          + `<span>补 ${p[0]} 号 × ${p[1]} 元</span>`
+          + `<span>补 ${p[0]} 号 到 ${p[1]} 元</span>`
           + `<span style="color:${col}">+${d.toFixed(0)}</span>`
           + `<b style="color:${r2.worst>=0?'#16a34a':'#cf1322'}">${(r2.worst>=0?'+':'')+r2.worst.toFixed(0)}</b></div>`;
       });
