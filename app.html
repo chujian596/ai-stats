@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(s) s.textContent = APP_VER;
 });
 // 版本检查：只提示，绝不自动跳转
-fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
+fetch('version-client.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(r => r.text())
   .then(v => {
     v = v.trim();
@@ -3825,7 +3825,7 @@ function refreshPage(){
   try { if(typeof renderSplitSide === 'function') renderSplitSide(); } catch(e){}
   var btn = document.getElementById('refreshBtn');
   if(btn) btn.textContent = '检查中…';
-  fetch('version.txt?t=' + Date.now(), {cache:'no-store'})
+  fetch('version-client.txt?t=' + Date.now(), {cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(function(v){
       var remote = String(v || '').trim();
