@@ -6439,7 +6439,7 @@ function renderRisk(){
       h += `<button onclick="switchCutMode('cut')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='cut'?'background:#1677ff;color:#fff;border:1px solid #1677ff':'background:#fff;color:#666;border:1px solid #ddd'}">削峰稳健${_mode==='cut'?' '+cutPick:''}<br><span style="font-size:11px;font-weight:400">稳·亏少</span></button>`;
       h += `</div>`;
       if(_mode === 'cut'){
-        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（都按吃最大 100 元/号 对比）</div>`;
+        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后的最坏净盈亏；完全不削是 -4735）</div>`;
         h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
         var _lineM = 0;
         _lv.forEach(function(m){
