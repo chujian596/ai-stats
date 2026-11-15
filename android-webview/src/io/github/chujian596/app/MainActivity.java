@@ -12,6 +12,8 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.graphics.Rect;
 import android.view.WindowManager;
 import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
@@ -208,6 +210,27 @@ public class MainActivity extends Activity {
                     startActivity(i);
                 } catch (Exception e) {
                     Toast.makeText(MainActivity.this, "下载失败", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // 键盘高度桥：安卓 WebView 不会随键盘缩小自身视口，页面无法靠 CSS 感知，
+        // 由原生量好键盘高度推给页面，页面把弹层顶到键盘上方
+        root.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            private int lastKb = -1;
+            @Override
+            public void onGlobalLayout() {
+                try {
+                    Rect r = new Rect();
+                    root.getWindowVisibleDisplayFrame(r);
+                    int screenH = root.getRootView().getHeight();
+                    int kb = screenH - r.bottom;
+                    if (kb < screenH / 6) kb = 0;   // 小于 1/6 算状态栏误差，不算键盘
+                    if (kb != lastKb) {
+                        lastKb = kb;
+                        web.evaluateJavascript("try{window.__kbFix&&window.__kbFix(" + kb + ")}catch(e){}", null);
+                    }
+                } catch (Exception ignored) {
                 }
             }
         });
