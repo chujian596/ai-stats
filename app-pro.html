@@ -2286,7 +2286,10 @@ function switchCutMode(m){
 }
 function pickCut(m){
   cutPick = m; cutMode = 'cut';
+  splitTakeAll = m;   // 点档位即把全局阈值同步过去，下面金额与飞单跟着一起算
   try{ localStorage.setItem('cut_pick_v1', String(m)); localStorage.setItem('cut_mode_v1','cut'); localStorage.setItem('autoStable','0'); }catch(e){}
+  try{ saveSplitAll(); }catch(e){}
+  try{ renderSplit(); }catch(e){}
   renderRisk();
 }
 function cutApply(M){

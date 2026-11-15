@@ -2286,7 +2286,10 @@ function switchCutMode(m){
 }
 function pickCut(m){
   cutPick = m; cutMode = 'cut';
+  splitTakeAll = m;   // 点档位即把全局阈值同步过去，下面金额与飞单跟着一起算
   try{ localStorage.setItem('cut_pick_v1', String(m)); localStorage.setItem('cut_mode_v1','cut'); localStorage.setItem('autoStable','0'); }catch(e){}
+  try{ saveSplitAll(); }catch(e){}
+  try{ renderSplit(); }catch(e){}
   renderRisk();
 }
 function cutApply(M){
@@ -6362,7 +6365,7 @@ function renderRisk(){
   });
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
-  window.__optM = (_optM && _optM < 100) ? _optM : 0;
+  window.__optM = _optM>0 ? _optM : 0;
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
