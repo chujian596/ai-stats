@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.106-Pro';
+var APP_VER = 'v58.107-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6187,16 +6187,50 @@ function renderRisk(){
   const heaviestShare = totalSales > 0 ? (heaviestBet/totalSales*100).toFixed(0) : '0';
   window.__rkSnapshot = { S: totalSales, mult: payMult, maxNum: heaviestNum, maxBet: heaviestBet,
                           breakeven: breakevenThreshold, overCnt: overCnt, overAmt: overAmt };
+  // ===== 盘形诊断 + 最优落点 =====
+  var _diagBets = cutBets(), _diagTot = 0, _diagMax = 0, _diagTop = 0;
+  _diagBets.forEach(function(b){ _diagTot += b.nb; if(b.self>_diagTop) _diagTop=b.self; if(b.nb>_diagMax) _diagMax=b.nb; });
+  var _dVals = []; _diagBets.forEach(function(b){ if(b.nb>0) _dVals.push(b.nb); });
+  _dVals.sort(function(a,b){ return a-b; });
+  var _dMed = 0;
+  if(_dVals.length){ var _dh=_dVals.length/2; _dMed = _dVals.length%2 ? _dVals[Math.floor(_dh)] : (_dVals[_dh-1]+_dVals[_dh])/2; }
+  var _dMedCnt = 0; _dVals.forEach(function(v){ if(Math.abs(v-_dMed)<=5) _dMedCnt++; });
+  var _dBase = _dMed, _dBaseSrc = '中位数';
+  if(_dMedCnt < 5 && _dVals.length){
+    var _dbk={}, _dbn=-1, _db0=0;
+    _dVals.forEach(function(v){ var k=Math.floor(v/10)*10; _dbk[k]=(_dbk[k]||0)+1; if(_dbk[k]>_dbn){_dbn=_dbk[k];_db0=k;} });
+    _dBase=_db0+5; _dBaseSrc='最密集层 '+_db0+'–'+(_db0+10);
+  }
+  var _dShare = _diagTot>0 ? _diagMax/_diagTot*100 : 0;
+  var _dShape = (_dShare>=30||_dVals.length<20)?'畸形':(_dShare>=20||_dVals.length<30)?'偏态':(_dShare>=10||_dVals.length<40)?'中等':'均衡';
+  var _dTopR = _diagTop>0 ? cutCalc(_diagTop) : null;
+  var _optM = 0, _optR = null;
+  if(_dTopR){
+    if(_dTopR.line >= _dBase){ _optM = _diagTop; _optR = _dTopR; }
+    var _dbroken = false;
+    [95,90,85,80,78,70,63,55,47,40,30,21].filter(function(m){ return m<_diagTop && m>0; }).forEach(function(m){
+      if(_dbroken) return;
+      var r=cutCalc(m), df=r.flown-_dTopR.flown;
+      var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
+      if(r.line>=_dBase && e>=5){ _optM=m; _optR=r; } else { _dbroken=true; }
+    });
+  }
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
-  h += `<div style="display:flex;flex-wrap:wrap;gap:0 12px;font-size:12px;color:#555;line-height:1.7">`
-     + `<span>最坏 <b style="color:${worstNet<0?'#cf1322':'#16a34a'};font-size:13px">${worstNet.toFixed(0)}</b></span>`
-     + `<span>亏损线 <b>${breakevenThreshold.toFixed(1)}</b></span>`
-     + `<span>亏损号 <b style="color:${overCnt>0?'#cf1322':'#16a34a'}">${overCnt}/49 · ${overProbPct}%</b></span>`
-     + `<span>最重 <b>${heaviestNum}号 ${heaviestBet.toFixed(0)}</b></span>`
-     + `</div>`;
+  if(_optR && _optM > 0 && _optM < _diagTop){
+    h += `<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0 9px;padding:3px 0 1px">`
+       + `<span style="font-size:11px;color:#999">建议</span>`
+       + `<b onclick="pickCut(${_optM})" style="font-size:23px;line-height:1.1;color:#1677ff;cursor:pointer">${_optM}</b>`
+       + `<span style="font-size:12px;color:#666">最坏 <b style="color:#cf1322">${_optR.worst.toFixed(0)}</b></span>`
+       + `<span style="font-size:12px;color:#666">飞 <b>${_optR.flown.toFixed(0)}</b> 元</span>`
+       + `<span style="font-size:10px;color:#16a34a;border:1px solid #16a34a;border-radius:3px;padding:0 4px">最优落点</span>`
+       + `</div>`;
+  } else if(_dTopR){
+    h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 当前 ${_diagTop} 元/号 已守住基准，再往下削都是白飞</div>`;
+  }
+  h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 基准${_dBaseSrc} ${_dBase.toFixed(0)} · 亏损线 ${(_dTopR?_dTopR.line:0).toFixed(1)} · 亏损号 ${overCnt}/49</div>`;
   var _noBet=0,_winArr=[],_losers=[];
   for(var _n=1;_n<=49;_n++){ var _kb=(numBets[_n]||0); var _ka=splitTakeAll>0?Math.min(_kb,splitTakeAll):0;
     var _net=specKept-_ka*payMult; if(_ka===0)_noBet++; else if(_net>0.5)_winArr.push(_net); else if(_net<-0.5)_losers.push(_net); }
@@ -6243,9 +6277,9 @@ function renderRisk(){
           if(e >= 5) _lineM = m;
           var _nMove = 0; _bets.forEach(function(b){ if(b.nb > m) _nMove++; });
           var col = e >= 5 ? '#16a34a' : (e >= 2 ? '#b45309' : '#cf1322');
-          var sel = (m === cutPick);
-          h += `<div onclick="pickCut(${m})" style="padding:5px 6px;border-radius:6px;cursor:pointer;${sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
-             + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${sel?'700':'400'}">${m}</span>`
+          var sel = (m === cutPick), opt = (m === _optM);
+          h += `<div onclick="pickCut(${m})" style="padding:5px 6px;border-radius:6px;cursor:pointer;${opt?'background:#f0fdf4;border:1px solid #16a34a':(sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee')}">`
+             + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${(sel||opt)?'700':'400'}">${m}${opt?'<span style="font-size:9px;color:#16a34a;margin-left:2px">最优</span>':''}</span>`
              + `<b style="font-size:12px;color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b></div>`
              + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>飞${r.flown.toFixed(0)}·动${_nMove}号</span><span style="color:${col};font-weight:600">买 ${e.toFixed(1)}</span></div>`
              + `</div>`;
