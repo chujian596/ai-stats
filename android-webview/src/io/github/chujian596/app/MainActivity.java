@@ -57,7 +57,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         applyLightBars();
         buildUi();
-        load(HOME_URL);
+        // 启动直接用包里内置的页面顶上（URL 仍是线上地址，localStorage 同源，历史数据不搬家）
+        // 这样网络被墙/断网也能秒开，绝不会卡在白屏或报错页
+        loadLocalFirst(HOME_URL);
     }
 
     /** 状态栏、导航栏统一白底黑字，跟页面白底对齐 */
@@ -236,6 +238,14 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** 先用内置页面顶上：不发真网络请求，主文档由 assets/shell.html 返回 */
+    private void loadLocalFirst(String url) {
+        offlineMode = true;
+        triedOffline = false;
+        hideError();
+        web.loadUrl(url);
+    }
+
     private void load(String url) {
         offlineMode = false;
         triedOffline = false;
@@ -250,7 +260,7 @@ public class MainActivity extends Activity {
             offlineMode = true;
             hideError();
             web.loadUrl(HOME_URL);
-            Toast.makeText(this, "当前无网络，已用内置页面打开", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "网络不稳，已用内置页面打开", Toast.LENGTH_SHORT).show();
         } else {
             showError("网络连不上，检查一下网络再点重试");
         }
