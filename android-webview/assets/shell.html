@@ -6387,6 +6387,16 @@ function renderRisk(){
   } else {
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">这盘削到哪都守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}），削峰救不了，只能加飞或拒单</div>`;
   }
+  if(_optM && _optM > 0){
+    var _nextUnder = 0;
+    var _LVARR=[95,90,85,80,78,70,63,55,47,40,30,21]; for(var _qi=0;_qi<_LVARR.length;_qi++){ if(_LVARR[_qi] < _optM && _LVARR[_qi] >= 21){ _nextUnder = _LVARR[_qi]; break; } }
+    if(_nextUnder){
+      var _nuR = cutCalc(_nextUnder, true);
+      if(_nuR.kept/47 >= _dBase){
+        h += `<div style="font-size:11px;color:#16a34a;margin-bottom:3px">再往下 ${_nextUnder} 也守得住（亏损线 ${(_nuR.kept/47).toFixed(1)} ≥ 基准 ${_dBase.toFixed(0)}）；补进来的号越多，能削得越深。</div>`;
+      }
+    }
+  }
   h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 基准${_dBaseSrc} ${_dBase.toFixed(0)} · 亏损线 ${_curLine.toFixed(1)} · 亏损号 ${overCnt}/49</div>`;
   h += '<div style="display:flex;align-items:center;gap:5px;padding:0 0 3px;font-size:11px;color:#666">阈值'
      + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
