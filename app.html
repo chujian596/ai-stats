@@ -673,7 +673,7 @@ function autoPayout(){
   }
   // 防止把更旧的期当成新开奖重复结算
   if(period){
-    var settledP = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+    var settledP = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
     if(period < settledP){
       myAlert('这期（' + period + '）已经结算过了。\n当前已结算到 ' + settledP + ' 期，请核对后再录入。');
       return;
@@ -3726,7 +3726,7 @@ function autoFetchDraw(retry){
       return;
     }
     var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
-    var settled = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+    var settled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
     var incoming = parseInt(m.draw);
     // 服务器给的是更旧的期：不覆盖、不结算，避免把上一天的开奖当成当期
     if(incoming < settled){
@@ -3743,7 +3743,7 @@ function autoFetchDraw(retry){
     }
     var drawStr = '开' + m.draw + ' ' + nums.join('.');
     document.getElementById('input').value = drawStr;
-    localStorage.setItem('lastDrawPeriod', String(incoming));
+    localStorage.setItem(sk('lastDrawPeriod'), String(incoming));
     autoPayout();
   }
   var tries = retry || 0;
@@ -3885,11 +3885,13 @@ setInterval(function(){
     }
   }
   if(!isDrawTime) return;
-  var already = parseInt(localStorage.getItem('lastDrawPeriod') || '0');
+  var already = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
   fetch('https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache')
     .then(function(r){ return r.json(); })
     .then(function(d){
-      var m2 = d.latest && d.latest.macao;
+      // 分店按店铺取数据：A=澳门，B=香港
+      var _dk = (typeof shop !== 'undefined' && shop === 'B') ? 'hongkong' : 'macao';
+      var m2 = d.latest && d.latest[_dk];
       if(!m2 || !m2.winner_numbers) return;
       var newPeriod = parseInt(m2.draw);
       if(newPeriod <= already) return;
@@ -5136,8 +5138,8 @@ function hideSub(code){
   restoreIfNeeded();
 renderAll();
 }
-function saveLastDraw(){ try { localStorage.setItem('lastDraw', JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem('lastDrawPeriod', String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); }
-try { lastDraw = JSON.parse(localStorage.getItem('lastDraw') || 'null'); } catch(e){ lastDraw = null; }
+function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); }
+try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
 function calcOrderWinDetail(o){
   if(!lastDraw) return { total: 0, lines: [] };
@@ -6676,7 +6678,7 @@ function openSettings(){
   document.getElementById('settingsModal').style.display='flex';
   let drawInfo = '当前没有开奖记录';
   try {
-    const d = JSON.parse(localStorage.getItem('lastDraw')||'null');
+    const d = JSON.parse(localStorage.getItem(sk('lastDraw'))||'null');
     if(d && d.specialNum){
       const sp = String(d.specialNum).padStart(2,'0');
       const rg = (d.regularNums||[]).map(n=>String(n).padStart(2,'0')).join(' ');
@@ -6796,14 +6798,14 @@ function genStatement(){
   };
 }
 function clearDrawRecord(){
-  const raw = localStorage.getItem('lastDraw');
+  const raw = localStorage.getItem(sk('lastDraw'));
   if(!raw){ myAlert('当前没有开奖记录'); return; }
   let d = null;
   try { d = JSON.parse(raw); } catch(e){}
   const sp = d && d.specialNum ? String(d.specialNum).padStart(2,'0') : '';
   myConfirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。', function(){
-  localStorage.removeItem('lastDraw');
-  localStorage.removeItem('lastDrawPeriod');
+  localStorage.removeItem(sk('lastDraw'));
+  localStorage.removeItem(sk('lastDrawPeriod'));
   lastDraw = null;
   renderLiveBalls([]);
   updateDrawInfoBar();

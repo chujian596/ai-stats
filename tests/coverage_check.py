@@ -16,6 +16,7 @@ def grab(pat, optional=False):
         i+=1
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
+hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
 i2=s.index('return [{"code": "01"')
 _b=i2+s[i2:].index('['); _d=0; _k=_b
@@ -106,7 +107,7 @@ CASES = [
 
 ]
 
-runner = pre + parseLine + "\n" + fix + "\n" + doSave + "\n" + """
+runner = pre + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){

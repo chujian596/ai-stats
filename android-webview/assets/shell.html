@@ -571,7 +571,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.123-Pro';
+var APP_VER = 'v58.124-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1805,30 +1805,18 @@ function renderSplitSide(){
   h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" oninput="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" oninput="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showAllFlyDir()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px;font-weight:600">飞单目录</button>';
-  h += '<button onclick="sideSplitCopy()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:8px;font-size:14px">复制全部</button>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'spec\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">特号</button>';
-  h += '<button onclick="sideSplitCopySpec()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'pte\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">平特</button>';
-  h += '<button onclick="sideSplitCopyPte()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'lx\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">连肖</button>';
-  h += '<button onclick="sideSplitCopyLX()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="showGroupDetail(\'em\')" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px">二中二三中三</button>';
-  h += '<button onclick="sideSplitCopyEM()" style="flex:1;border:1px solid #ccc;background:#fff;color:#555;border-radius:6px;padding:7px;font-size:13px">复制订单</button>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
-  h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:7px;font-size:13px">重置已飞</button>';
-  h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px;font-weight:600">确认飞单</button>';
-  h += '</div>';
+  // 左列选项目（点一下即选中并复制），右列操作；4 行 2 列对齐
+  var _bs = function(g, label){
+    var on = (currentFlyGroup === g);
+    return '<button onclick="selectFlyGroup(\'' + g + '\')" style="flex:1;border:1px solid ' + (on?'#1a1a1a':'#ccc') + ';background:' + (on?'#1a1a1a':'#fff') + ';color:' + (on?'#fff':'#333') + ';border-radius:6px;padding:7px;font-size:14px;font-weight:' + (on?'700':'500') + '">' + label + '</button>';
+  };
+  var _bo = function(fn, label, extra){
+    return '<button onclick="' + fn + '" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px;' + (extra||'') + '">' + label + '</button>';
+  };
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('spec','特号') + _bo('showAllFlyDir()','飞单目录') + '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('pte','平特') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('lx','连肖') + _bo('copySelectedFly()','复制') + '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap"><a href="javascript:setFlyRoundSel('5')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='5'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='5'?'700':'400'}">5</a><span style="color:#ccc">|</span><a href="javascript:setFlyRoundSel('10')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='10'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='10'?'700':'400'}">10</a> 元档</span><br><span style="color:#999;font-size:11px">勾选后飞单金额往上凑到整数档，多个号会合并成一行，多飞的自付</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
@@ -2879,10 +2867,54 @@ function confirmGroupFly(group){
   calcSplit();
 }
 
+function markFlyBtns(){
+  var map = {spec:'特号', pte:'平特', lx:'连肖', em:'二中二三中三'};
+  var body = document.getElementById('splitBody');
+  if(!body) return;
+  Array.prototype.slice.call(body.querySelectorAll('button')).forEach(function(b){
+    var t = (b.innerText || '').trim();
+    var g = null;
+    Object.keys(map).forEach(function(k){ if(map[k] === t) g = k; });
+    if(!g) return;
+    var on = (currentFlyGroup === g);
+    b.style.borderColor = on ? '#1a1a1a' : '#ccc';
+    b.style.background = on ? '#1a1a1a' : '#fff';
+    b.style.color = on ? '#fff' : '#333';
+    b.style.fontWeight = on ? '700' : '500';
+  });
+}
+function selectFlyGroup(g){
+  var same = (currentFlyGroup === g);
+  currentFlyGroup = null;
+  try{ renderSplitSide(); }catch(e){}
+  if(same){ try{ showAllFlyDir(); }catch(e){} return; }
+  try{ showGroupDetail(g); }catch(e){}
+  try{ markFlyBtns(); }catch(e){}
+  copySelectedFly(true);
+}
+function copySelectedFly(silent){
+  var g = currentFlyGroup;
+  var fnName = g === 'spec' ? 'sideSplitCopySpec'
+             : g === 'pte' ? 'sideSplitCopyPte'
+             : g === 'lx' ? 'sideSplitCopyLX'
+             : g === 'em' ? 'sideSplitCopyEM'
+             : 'sideSplitCopy';
+  try{
+    if(typeof window[fnName] === 'function') window[fnName](); else sideSplitCopy();
+  }catch(e){
+    if(!silent) myAlert('复制失败：' + e.message);
+  }
+}
+
 function confirmThisRoundFly(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  myConfirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。', function(){
+  myConfirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。\n同时会自动把待飞内容复制到剪贴板。', function(){
+  // 先复制全部待飞，再标记已飞
+  var _a = window.myAlert;
+  window.myAlert = function(){};
+  try{ sideSplitCopy(); }catch(e){}
+  window.myAlert = _a;
   r.lines.forEach(l => {
     var key = l.code;
     if(l.code === '二中二/三中三合计') key = '_em_total';
@@ -2893,7 +2925,7 @@ function confirmThisRoundFly(){
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
-  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元');
+  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n待飞内容已复制到剪贴板，可直接发给上家');
   });
 }
 
