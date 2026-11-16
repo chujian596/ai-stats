@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.138-Pro';
+var APP_VER = 'v58.139-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7067,7 +7067,7 @@ function renderRisk(){
        + `</div>`;
     if(_dFl > 0.5){
       var _ce = _dW > 0 ? _dW/_dFl : 99;
-      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 多飞 ${_dFl.toFixed(0)} 元，只换到 ${_dW.toFixed(0)} 元安全，每元买 ${_ce.toFixed(1)} 元</div>`;
+      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">从 ${_diagTop} 再削要多飞 ${_dFl.toFixed(0)} 元，只换回 ${_dW.toFixed(0)} 元安全（每飞 1 元换 ${_ce.toFixed(1)} 元）</div>`;
     } else if(_dFl < -0.5){
       h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 比建议少飞 ${(-_dFl).toFixed(0)} 元，最坏多亏 ${(-_dW).toFixed(0)} 元；按建议补上更划算</div>`;
     } else {
@@ -7085,11 +7085,11 @@ function renderRisk(){
       if(e>=5){ _pm=m; _pr=r; }
     });
     if(_pm > 0 && _pr){
-      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">压不到基准（${_dBaseSrc} ${_dBase.toFixed(0)}）：性价比最好的 ${_pm} 档最坏 ${_pr.worst.toFixed(0)}、亏损线 ${(_pr.kept/47).toFixed(1)}，仍差 ${(_dBase-_pr.kept/47).toFixed(1)}；再往下每 1 元买不到 5 元安全，缺口只能靠加飞或拒单</div>`;
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">每号留到 ${_dBase.toFixed(0)} 才安全（盘面中位注额），现在做不到：最划算的 ${_pm} 档最坏 ${_pr.worst.toFixed(0)}、每号只能留 ${(_pr.kept/47).toFixed(1)}，还差 ${(_dBase-_pr.kept/47).toFixed(1)} 元/号；再往下多飞也没多少改善，缺口只能加飞或拒单</div>`;
     } else if(_deepM > 0 && _deepR){
-      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到最深 ${_deepM} 也守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}，此时亏损线 ${(_deepR.kept/47).toFixed(1)}），只能加飞或拒单</div>`;
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到最深 ${_deepM} 也守不住（每号只能留 ${(_deepR.kept/47).toFixed(1)}，安全线是 ${_dBase.toFixed(0)}），只能加飞或拒单</div>`;
     } else {
-      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">这盘削到哪都守不住基准（${_dBaseSrc} ${_dBase.toFixed(0)}），削峰救不了，只能加飞或拒单</div>`;
+      h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">这盘怎么削都守不住（安全线 ${_dBase.toFixed(0)} 元/号），削峰救不了，只能加飞或拒单</div>`;
     }
   }
   if(_optM && _optM > 0){
@@ -7098,11 +7098,11 @@ function renderRisk(){
     if(_nextUnder){
       var _nuR = cutCalc(_nextUnder, true);
       if(_nuR.kept/47 >= _dBase){
-        h += `<div style="font-size:11px;color:#16a34a;margin-bottom:3px">再往下 ${_nextUnder} 也守得住（亏损线 ${(_nuR.kept/47).toFixed(1)} ≥ 基准 ${_dBase.toFixed(0)}）；补进来的号越多，能削得越深。</div>`;
+        h += `<div style="font-size:11px;color:#16a34a;margin-bottom:3px">再往下 ${_nextUnder} 也守得住（每号能留 ${(_nuR.kept/47).toFixed(1)} ≥ 安全线 ${_dBase.toFixed(0)}）；号越分散越好削。</div>`;
       }
     }
   }
-  h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 基准${_dBaseSrc} ${_dBase.toFixed(0)} · 亏损线 ${_curLine.toFixed(1)} · 亏损号 ${overCnt}/49</div>`;
+  h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 安全线 ${_dBase.toFixed(0)} 元/号（中位注额）· 现在每号能留 ${_curLine.toFixed(1)} · 超线号 ${overCnt}/49</div>`;
   h += '<div style="display:flex;align-items:center;gap:5px;padding:0 0 3px;font-size:11px;color:#666">阈值'
      + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
      + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>';
@@ -7174,8 +7174,8 @@ function renderRisk(){
           h += `<div onclick="pickCut(${m})" style="padding:5px 6px;border-radius:6px;cursor:pointer;${opt?'background:#f0fdf4;border:1px solid #16a34a':(sel?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee')}">`
              + `<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:${(sel||opt)?'700':'400'}">${m}${opt?'<span style="font-size:9px;color:#16a34a;margin-left:2px">最优</span>':''}</span>`
              + `<b style="font-size:12px;color:${r.worst>=0?'#16a34a':'#cf1322'}">${(r.worst>=0?'+':'')+r.worst.toFixed(0)}</b></div>`
-             + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>自留 ${r.kept.toFixed(0)} · 飞 ${r.flown.toFixed(0)}</span><span style="color:${col};font-weight:600">买 ${e.toFixed(1)}</span></div>`
-             + `<div style="font-size:11px;color:#888">动 ${_nMove} 号</div>`
+             + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>自留 ${r.kept.toFixed(0)} · 飞 ${r.flown.toFixed(0)}</span><span style="color:${col};font-weight:600">多飞1元换${e.toFixed(1)}元安全</span></div>`
+             + `<div style="font-size:11px;color:#888">要动 ${_nMove} 个号（超过这档的号飞掉）</div>`
              + `</div>`;
         });
         h += `</div>`;
@@ -7190,14 +7190,14 @@ function renderRisk(){
           var _lmR = cutCalc(_lineM, true);
           var _lmLine = _lmR.kept / 47;
           var _lmSafe = _lmLine >= _dBase;
-          h += `<div style="color:${_lmSafe?'#16a34a':'#b45309'};font-size:12px;margin-bottom:6px">性价比最好的是 <b>${_lineM}</b> 档（每多飞 1 元能换回 5 元以上安全）：最坏 ${_lmR.worst.toFixed(0)}、亏损线 ${_lmLine.toFixed(1)}，` +
-               (_lmSafe ? `已守住基准 ${_dBase.toFixed(0)}` : `仍差基准 ${_dBase.toFixed(0)} ${(_dBase-_lmLine).toFixed(1)}，只是亏得少些，不算安全`) +
+          h += `<div style="color:${_lmSafe?'#16a34a':'#b45309'};font-size:12px;margin-bottom:6px">最划算的是 <b>${_lineM}</b> 档（每多飞 1 元能换回 5 元以上安全）：最坏 ${_lmR.worst.toFixed(0)}、每号能留 ${_lmLine.toFixed(1)}，` +
+               (_lmSafe ? `已够安全线 ${_dBase.toFixed(0)}` : `离安全线 ${_dBase.toFixed(0)} 还差 ${(_dBase-_lmLine).toFixed(1)}，只是亏得少些，不算安全`) +
                `；再往下就不值了</div>`;
-        } else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘削到哪都买不到 5 元安全，飞单性价比一般</div>`;
+        } else h += `<div style="color:#b45309;font-size:12px;margin-bottom:6px">这盘再怎么削，每多飞 1 元也换不回 5 元安全，飞单不划算</div>`;
       }
       h += `<div style="border-top:1px solid #eee;padding-top:6px">`;
       h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:3px">`
-         + `<span>号码表（${_mode==='cut'?'削到 '+_cap:'按实际阈值 '+_cap} 元/号）</span>`
+         + `<span>号码表（${_mode==='cut'?'削到 '+_cap:'按实际阈值 '+_cap} 元/号）｜每行＝这个号开出时整本账的盈亏</span>`
          + `<span>自留 ${_kept.toFixed(0)} · 飞 ${(_tot-_kept).toFixed(0)}</span></div>`;
       var _pteKept = (typeof pteFlyTakeAll === 'number' && pteFlyTakeAll > 0) ? Object.keys(pteBetByZod||{}).reduce(function(x,z){ return x + Math.min(pteBetByZod[z]||0, pteFlyTakeAll); }, 0) : 0;
       h += `<div style="font-size:11px;color:#888;margin-bottom:4px">本表只算特号 01–49（合计 ${_tot.toFixed(0)} 元）；平特/连肖/三中三另算，当前自留 ${_pteKept.toFixed(0)} 元${_pteKept>0?'，开出来还要再赔这块':''}</div>`;
