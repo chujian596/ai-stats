@@ -46,3 +46,19 @@ else
   echo "$(date '+%F %T') Cloudflare 同步失败: $(echo "$OUT" | tail -3 | tr '\n' ' ')" >> "$LOG"
   exit 1
 fi
+
+# ===== 同步 GitHub Pages =====
+# APK 的 HOME_URL 指向 chujian596.github.io/ai-stats/app-pro.html，
+# 只推 Cloudflare 的话，安卓端一直看到旧代码。这里补上同步。
+if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
+  cd "$SRC" || exit 1
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    git add -A >/dev/null 2>&1
+    git commit -q -m "sync: $(date '+%F %T') 推送同步" >/dev/null 2>&1
+  fi
+  if git push -q origin HEAD 2>>"$LOG"; then
+    echo "$(date '+%F %T') GitHub Pages 已同步" >> "$LOG"
+  else
+    echo "$(date '+%F %T') GitHub Pages 同步失败" >> "$LOG"
+  fi
+fi
