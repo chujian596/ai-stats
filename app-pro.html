@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.150-Pro';
+var APP_VER = 'v58.151-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -3389,7 +3389,9 @@ function calcSplit(){
   const keys = Object.keys(sales);
   const total = keys.reduce((s,k) => s + sales[k], 0);
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
-  const rebate = partner * 0.03;
+  // 实际飞出（已飞按记录、未飞按凑整后）—— 与飞单明细、风险面板同一个数
+  const partnerReal = keys.reduce((s,k) => s + realFlyAmount(k, sales[k]||0), 0);
+  const rebate = partnerReal * 0.03;
   // 最高自留号赔付
   let maxKept = 0;
   keys.forEach(k => {
@@ -3397,7 +3399,7 @@ function calcSplit(){
     if(kept > maxKept) maxKept = kept;
   });
   const worstPayout = maxKept * payMult;
-  const worstNet = (total - partner) - worstPayout + rebate;
+  const worstNet = (total - partnerReal) - worstPayout + rebate;
   // 计算平特+连肖金额
   let pteLxTotal = 0;
   orders.forEach(o => {
@@ -3434,9 +3436,9 @@ function calcSplit(){
     `<div style="font-size:13px;color:#666">已飞累计：${_r.already.toFixed(2)}　|　本轮应飞：<b style="color:#cf1322">${_r.thisRound.toFixed(2)}</b></div>`;
   if(lastDraw && lastDraw.specialNum){
     // 开奖后显示实际
-    const keptAmt = Math.min(sales[lastDraw.specialNum]||0, splitTakeAll);
+    const flyAmt = realFlyAmount(String(lastDraw.specialNum).padStart(2,'0'), sales[lastDraw.specialNum]||0);
+    const keptAmt = Math.max(0, (sales[lastDraw.specialNum]||0) - flyAmt);
     const keptPayout = keptAmt * payMult;
-    const flyAmt = Math.max(0, (sales[lastDraw.specialNum]||0) - splitTakeAll);
     const flyPayout = flyAmt * payMult;
     // 平特飞单和实际赔付
     const drawZ = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
@@ -3478,7 +3480,7 @@ function calcSplit(){
         }
       });});
     }
-    const keptCash = total + pteLxTotal - partner - pteFly - lxFlyOut;
+    const keptCash = total + pteLxTotal - partnerReal - pteFly - lxFlyOut;
     const totalKeptPayout = keptPayout + pteKeptPayout;
     const realNet = keptCash - totalKeptPayout;
     splitHtml += `<div style="border-top:1px dashed #ccc;margin:6px 0"></div>`;
