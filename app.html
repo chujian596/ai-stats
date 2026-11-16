@@ -1195,6 +1195,17 @@ setInterval(function(){
 var shop = localStorage.getItem('current_shop') || 'A';
 var shopNames = { A: '澳门🇲🇴', B: '香港🇭🇰' };
 function sk(base){ return base + '_shop' + shop; }
+// 兼容旧版：开奖记录原来是全局键，第一次按店铺分键时把旧数据搬到 A 店（澳门），避免升级后开奖记录丢
+try {
+  if(localStorage.getItem('lastDrawPeriod_shopA') === null) {
+    var _oldP = localStorage.getItem('lastDrawPeriod');
+    if(_oldP) localStorage.setItem('lastDrawPeriod_shopA', _oldP);
+  }
+  if(localStorage.getItem('lastDraw_shopA') === null) {
+    var _oldD = localStorage.getItem('lastDraw');
+    if(_oldD) localStorage.setItem('lastDraw_shopA', _oldD);
+  }
+} catch(e){}
 const KEY = sk('product_stats_orders_v1');
 let storageOK = true;
 let orders = loadOrders();
