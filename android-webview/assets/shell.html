@@ -481,7 +481,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. 功能设置里 <b style="color:var(--modalText,#fff)">导出统计CSV</b> 可用表格打开
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">八、数据备份（重要）</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">九、数据备份（重要）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 数据存本机，并<b style="color:var(--modalText,#fff)">自动双备份</b>（localStorage + IndexedDB），清缓存不容易丢<br>
         2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把全部数据导出成文件，建议每天存一份<br>
@@ -490,7 +490,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         5. <b style="color:var(--modalText,#fff)">清空全部数据</b>：全部清零且不可恢复，非必要别点
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">九、界面与产品设置</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十、界面与产品设置</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">外观</b>：黑 / 白 / 灰 三套背景，随系统日夜模式自动切换（装App时）<br>
         2. <b style="color:var(--modalText,#fff)">产品设置</b>三块：<br>
@@ -500,7 +500,48 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         3. <b style="color:var(--modalText,#fff)">恢复默认</b>：外观和产品设置还原
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十、常见问题</div>
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港单（港澳分开算）</div>
+      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
+        <b style="color:var(--modalText,#fff)">1. 怎么录</b><br>
+        &nbsp;&nbsp;行里带「<b style="color:var(--modalText,#fff)">香港</b>」两字就认：香港 06 88　香港03 10 100<br>
+        &nbsp;&nbsp;只写一个「港」或「香」也行，但要在行首、或后面紧跟号码：港 24 43　张三 港 22 50<br>
+        &nbsp;&nbsp;（阿港 21　香菜 21 这种不会误认成香港单）<br><br>
+
+        <b style="color:var(--modalText,#fff)">2. 独立一池</b><br>
+        &nbsp;&nbsp;香港单跟澳门单<b style="color:var(--modalText,#fff)">分开算</b>：不进总单、不进总飞出去、不参与削峰<br>
+        &nbsp;&nbsp;顶部总额区多一行「香港 N 单 ｜ 合计 X」，没香港单就不显示<br><br>
+
+        <b style="color:var(--modalText,#fff)">3. 香港飞单</b><br>
+        &nbsp;&nbsp;飞单面板底部有单独的<b style="color:var(--modalText,#fff)">黄框「香港单」</b>，同金额自动并成「各X」<br>
+        &nbsp;&nbsp;三个按钮：复制香港单 / 确认已飞 / 重置<br>
+        &nbsp;&nbsp;旁边勾选框「<b style="color:var(--modalText,#fff)">香港单自动飞</b>」：勾上等于直接标已飞（转发上家）<br><br>
+
+        <b style="color:var(--modalText,#fff)">4. 香港凑整</b><br>
+        &nbsp;&nbsp;黄框标题旁点「凑整」：点一下 5 档 → 再点 10 档 → 再点关闭，<b style="color:var(--modalText,#fff)">默认关</b><br>
+        &nbsp;&nbsp;跟澳门的凑整完全不相干，各管各的<br><br>
+
+        <b style="color:var(--modalText,#fff)">5. 香港开奖</b><br>
+        &nbsp;&nbsp;有香港单才出现香港开奖条（没单不占位置），读的是香港开奖结果<br>
+        &nbsp;&nbsp;香港不是每天开，看到期号比澳门旧是正常的<br><br>
+
+        <b style="color:var(--modalText,#fff)">6. 香港赔付</b><br>
+        &nbsp;&nbsp;开奖到手后自动算「收多少 / 赔多少 / 净多少」，中奖号码单列<br>
+        &nbsp;&nbsp;赔率和澳门同一套（特码 47 倍、平特 1 赔 2），不用另设<br><br>
+
+        <b style="color:var(--modalText,#fff)">7. 删香港单</b><br>
+        &nbsp;&nbsp;每笔旁边有删除；客户撤单会连香港单一起删，并提示删了几笔
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
+      <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
+        1. 点右上角「<b style="color:var(--modalText,#fff)">澳门🇲🇴▾</b>」→ 选「香港🇭🇰」，页面自动重载<br>
+        2. <b style="color:var(--modalText,#fff)">A 店＝澳门</b>：订单池是澳门单，开奖读澳门<br>
+        3. <b style="color:var(--modalText,#fff)">B 店＝香港</b>：订单池是香港单，开奖读香港<br>
+        4. 两店数据<b style="color:var(--modalText,#fff)">互不相通</b>，切店不会串数据、也不会互相顶掉开奖记录<br>
+        5. 分店就是这个切换，<b style="color:var(--modalText,#fff)">不用另外的网址</b>
+      </div>
+
+      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十三、常见问题</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 一笔认不出来 → <b style="color:var(--modalText,#fff)">整笔报错</b>，不会只存一半，改好再存<br>
         2. 按回车没保存？回车是换行，要点"保存"按钮<br>
@@ -575,7 +616,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.126-Pro';
+var APP_VER = 'v58.127-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
