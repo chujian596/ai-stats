@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>问题本 · 踩坑与检查清单</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:#000;font-size:15px;padding:14px;line-height:1.6}
+h1{font-size:19px;font-weight:700;text-align:center;margin:6px 0 4px}
+.sub{font-size:12px;color:#666;text-align:center;margin-bottom:14px}
+.gtitle{font-size:13px;font-weight:700;padding:8px 4px 8px 10px;border-left:4px solid #000;background:#f2f2f2;border-radius:0 6px 6px 0;margin:18px 0 8px}
+.card{border:1px solid #e5e5e5;border-radius:10px;padding:12px 13px;margin-bottom:10px;background:#fff}
+.card .no{font-size:11px;color:#999;font-weight:700}
+.card .t{font-size:15px;font-weight:700;margin:2px 0 6px}
+.row{font-size:13px;margin-bottom:5px;display:flex;gap:6px}
+.row .k{color:#666;flex:0 0 46px;font-weight:700}
+.row .v{flex:1;min-width:0}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid #000;margin-left:6px;vertical-align:middle;font-weight:400}
+.tag.fix{background:#000;color:#fff}
+.check{border:1px solid #e5e5e5;border-radius:10px;padding:12px 13px;background:#fafafa;margin-bottom:10px}
+.check li{font-size:13px;margin:5px 0 5px 18px}
+.note{font-size:12px;color:#666;background:#f7f7f7;border-radius:8px;padding:10px 12px;margin-top:12px}
+a{color:#000}
+.back{display:block;text-align:center;margin:22px 0 10px;font-size:13px;color:#666;text-decoration:none}
+</style>
+</head>
+<body>
+
+<h1>问题本</h1>
+<div class="sub">处理过的问题 · 怎么查 · 怎么避免再犯　v1（2026-11-16）</div>
+
+<div class="gtitle">一、录单系统 · 金额口径（v58.135 → v58.156）</div>
+
+<div class="card">
+  <div class="no">#01 · v58.135</div>
+  <div class="t">凑整多飞的钱没人记账<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">按 5 元档凑整飞出去，实际付给上家的钱比「应飞原额」多/少，自留现金和净盈亏全对不上。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">当时只记了「该飞多少」（flownPerPos），没记「实际付了多少」。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">新增 <b>flownReal</b> 记实际实付，配 <b>flownRealOf(k)</b> / <b>realFlyAmount(k,bet)</b> 统一出口。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">任取一个号，比对「原额飞」与「凑整后飞」两个数，再看自留现金是否按后者扣。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#02 · v58.149</div>
+  <div class="t">确认一次，已飞记录加两倍<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">下 3 飞 5、下 5 飞 5 这种小额单，界面显示「已飞累计 860」，实际只该 430。用户直接指出「860 不可能这么多」。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">confirmThisRoundFly() 里同一行 <b>flownReal[key] = ... + flyShowAmt(l.amt)</b> 写了两遍，确认一次加两倍；另有一个分组确认函数该写没写。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">删净重复，补齐分组确认；加载时加自愈：若 r ≈ 2p 按原额纠正。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">确认一次后立刻读 localStorage 的 flownReal，和 flownPerPos 比，比值 ≈2 就是翻倍。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#03 · v58.150</div>
+  <div class="t">自愈把凑整反过来抹平<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">明细显示「已飞累计 404」「凑整差额 0」，但用户实飞 430（21/33 各 105、06 90…），差 26 凭空消失。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">上一条的自愈把翻倍值改回「原额」，把凑整一起抹掉了。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">自愈改成按号重算 <b>flownReal[k] = flyShowAmt(p)</b>；再加第二类自愈：r === p 但 flyShowAmt(p) !== p 时判为「凑整被抹平」。</div></div>
+  <div class="row"><div class="k">教训</div><div class="v">写自愈要「按正确公式重算」，不要「往回调一个值」——回调会丢信息。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#04 · v58.151</div>
+  <div class="t">三个地方各算各的，差 26<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">结算弹窗、飞单明细、顶部汇总三处净值不一致。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">顶部 renderSplit 还在用 partner（阈值原额、不含凑整、不含早前已飞）。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">三处统一走 <b>realFlyAmount</b>；开奖后自留额从 min(下注,阈值) 改成「下注 − 实际飞出」；反水按实际飞出去算。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">固定同一盘数据，在「全部已飞 / 一笔没飞 / 只飞一半」三种场景下比三处净值，必须完全相等。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#05 · v58.152</div>
+  <div class="t">关闭凑整时文案说谎<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">不勾「金额凑整」时，明细还写「凑整差额 0（飞额已是 5 的倍数）」，其实根本没凑。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">关闭时改「未凑整，按原额飞」；若历史确实按凑整多付过，补一句「历史确认时按凑整多付了 X」。<b>已付的钱不倒回</b>。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">四组：凑整开已确认 / 关闭沿用历史 / 关闭重置后重确认 / 关闭一笔没飞。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#06 · v58.153</div>
+  <div class="t">已飞比该飞还多，三行数互相打架<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">总单 630、阈值 21 该飞 162，却显示「已飞累计 430」「本轮该飞 1159」「已飞比分账多 433」「自留现金 35」。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">「飞出去合计」用原额、「本轮该飞」扣了已飞、「分账多」拿两个不同基准相减。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">统一基准 <b>_fr.totalFly − _alreadyReal</b>；已飞超该飞 20 元以上直接红字提示「跟当前单/阈值对不上」；自留现金拆成「现在手上 / 飞完后」两行。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#07 · v58.154</div>
+  <div class="t">清掉旧单，旧飞单记录还赖着<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">旧单已清、只录今天 630 的新单，界面仍显示「已飞 430」「自留现金 35」。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v"><b>clearOrders()</b> 和日结滚存只清 orders，没清 flownPerPos / flownReal；飞单记录是按号码存的，旧号今天没下注也照样算。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">三处同时清并回写 localStorage；realFlyAmount 遇「今天没这号」返回 0、遇「已飞超过该飞」只按当前阈值计；已飞累计只统计今天单里还有的号。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">清单一组、日结一组，各看一遍已飞是否归零。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#08 · v58.155</div>
+  <div class="t">已飞 113，三中三只有 110<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">三中三合计 110，顶部「已飞(实际)」显示 113。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">getThisRoundFly().already 直接累加所有 flownPerPos，没做「已飞是否超过该飞」判断，旧记录残留 3 元。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">特号、平特、二中二三中三三处统一过滤：已飞 > 该飞 → 视为旧记录不计。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#09 · v58.156</div>
+  <div class="t">点了重置，数字还挂着<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">取消「即飞产品自动复制」+ 点「重置已飞」，侧栏显示已飞 0，顶部仍显示 113。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">resetFlown 只重绘了侧栏两个节点，没触发整页重绘；顶部三个数在 renderRisk 里生成，函数没被再调用。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">重置后调 renderAll() 并显式补 renderRisk()。</div></div>
+  <div class="row"><div class="k">教训</div><div class="v">改完数据一定要确认「所有显示这个数的位置都重绘了」——同一数据往往有 2~3 处 UI。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#10 · v58.139 / 140 / 147</div>
+  <div class="t">削峰面板看不懂、点了没反应<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">自造术语（亏损线、基准中位数、买 5.2）；模式按钮副标题写死反了；点「按削峰档 47」没变化。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">术语脱离业务；副标题硬编码「赚多·亏多 / 稳·亏少」；两个模式数值相同时按钮只有边框色差，看不出谁在跑。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">全部改白话（现在每号能留 X / 安全线 35 元/号 / 多飞 1 元换 5.2 元安全）+ _lvTag(n) 动态副标题 + 生效按钮实心高亮「✓ 正在用」+ 下一行大字说明当前按哪个档算 + 数值相同提示「点哪个都不变」。</div></div>
+</div>
+
+<div class="gtitle">二、资料系统 · 更新与期号</div>
+
+<div class="card">
+  <div class="no">#11 · v58.33</div>
+  <div class="t">抓了数据但页面永远停在 319 期<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">今天 20:05 已抓取（2350 栏），页面仍显示「上次更新 2026/11/15」、319 期。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">stats.html 把期号<b>写死成 319</b>：data/forum-319.json、consensus-319.json、cross-319.json… 全部固定路径，新数据生成了也读不到。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">新增 data/latest-period.json（归档时写入当期）；页面先读它再拼路径（fetchLatestPeriod → LATEST_PER）。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">看线上 /data/latest-period.json 是否 200；再确认 data/forum-{期}.json 存在；页面顶部期号是否跟着变。</div></div>
+</div>
+
+<div class="card">
+  <div class="no">#12</div>
+  <div class="t">资料更新太晚，开奖前没准备好</div>
+  <div class="row"><div class="k">现象</div><div class="v">晚上 20:30 才归档，离 21:30 开奖只剩一小时。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">把「资料每期存档」「论坛资料每日抓取」提前到 19:00 前完成，见下方调度表。</div></div>
+</div>
+
+<div class="gtitle">三、上线前必过自检</div>
+<div class="check">
+  <div style="font-weight:700;font-size:13px;margin-bottom:4px">录单系统（每次改 app-pro.html 都跑）</div>
+  <ul>
+    <li>语法：抽 &lt;script&gt; 拼 /tmp/_chk_app-pro.js，node --check</li>
+    <li>订单矩阵 54 项：失败必须 0（「需确认」是正常弹窗流程，不算错）</li>
+    <li>发版硬校验 38 项：版本三处一致（APP_VER / version.txt / app-pro-backup.html）</li>
+    <li>金额断言 43 条：出现 ❌ 即停，不准推</li>
+    <li>凑整 5 档全表 + realFlyAmount 5 组 + 自愈 6 组 + 三处一致性 3 组</li>
+    <li>四段一把跑：bash tests/release_check.sh</li>
+    <li><b>改完页面先 cp app-pro.html app-pro-backup.html 再校验</b>（漏了必挂「备份同构」）</li>
+  </ul>
+</div>
+<div class="check">
+  <div style="font-weight:700;font-size:13px;margin-bottom:4px">金额类问题排查顺序（按这个走，不猜）</div>
+  <ul>
+    <li>先问：这个数是「原额」还是「实际实付」？基准不同先分清</li>
+    <li>再查三处是否同源：结算弹窗 / 飞单明细 / 顶部汇总</li>
+    <li>再查是否扣了「还没飞出去」的钱（待飞不该进自留现金）</li>
+    <li>再查已飞是否超该飞（超了就是旧记录，不是真飞了那么多）</li>
+    <li>最后才怀疑凑整本身</li>
+  </ul>
+</div>
+<div class="check">
+  <div style="font-weight:700;font-size:13px;margin-bottom:4px">资料系统（每期更新后看）</div>
+  <ul>
+    <li>网络：/data/latest-period.json 200，期号 = 本期</li>
+    <li>文件齐：forum / ratio / three / pingte / tpl 五个 JSON 都在</li>
+    <li>数量对：帖子数、推票、杀票不为 0，且与前一期量级接近</li>
+    <li>页面：顶部期号、上次更新时间都变了</li>
+    <li>图库 30 栏识图是另一条流程（要逐张看图），缺了只影响「本期数据」标签</li>
+  </ul>
+</div>
+
+<div class="gtitle">四、几条硬规矩（踩出来的）</div>
+<div class="check">
+  <ul>
+    <li><b>数据要真实，不倒回</b>：已付的钱不能因为关个开关就变少</li>
+    <li><b>一处改，处处对</b>：同一个数有多处 UI，改完必须全量重绘并逐处比对</li>
+    <li><b>自愈按公式重算</b>，不要往回调值</li>
+    <li><b>写入只写一次</b>：确认类函数写完立刻读 localStorage 复核，防重复累加</li>
+    <li><b>清数据要清干净</b>：订单、飞单记录、缓存三样一起清</li>
+    <li><b>期号不写死</b>：所有按期的路径都从 latest-period 拼</li>
+    <li><b>改完必跑四段校验</b>，通过才推，推完核验线上版本号与特征串</li>
+  </ul>
+</div>
+
+<div class="note">后续每修一个问题，先在本子里按 #编号 追一条：现象 / 根因 / 修法 / 怎么查。查不到的旧账优先补「怎么查」这一段，因为下次复现靠它。</div>
+
+<a class="back" href="portal.html">‹ 返回系统导航</a>
+
+</body>
+</html>
