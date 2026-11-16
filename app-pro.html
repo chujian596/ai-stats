@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.153-Pro';
+var APP_VER = 'v58.154-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2187,8 +2187,12 @@ function flownRealOf(k){
 }
 // 某号实际扣掉的钱：已飞按记录、没飞的按凑整后（弹窗与明细共用这一套，避免两边打架）
 function realFlyAmount(k, bet){
+  if(!(bet > 0)) return 0;   // 这个号今天没人下注，旧飞单记录不能算进来
   const should = Math.max(0, (bet || 0) - (typeof splitTakeAll !== 'undefined' ? splitTakeAll : 0));
   const done = flownPerPos[k] || 0;
+  // 已飞额超过「按现阈值该飞」的量 → 这条记录不是当前这盘产生的（改过单/调过阈值/上一期残留），
+  // 只认当前阈值该飞的部分，不把多出来的算进今天
+  if(done > should + 0.5) return should;
   const pending = Math.max(0, should - done);
   return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
 }
@@ -7442,7 +7446,20 @@ function renderRisk(){
   // 特号/平特/连肖 单独算：已飞按实际、待飞按凑整后，两边和「该飞原额」同基准
   // 二/三中三走 emFlySales，不凑整，单独一行，不混进自留现金（totalSales 本来就不含它）
   const _fr2 = getThisRoundFly();
-  const _alreadyReal = Object.keys(flownPerPos).reduce((a,k)=> k === '_em_total' ? a : a + flownRealOf(k), 0);
+  // 只统计「今天这盘里还有的号」的已飞；昨天那些号今天没下注，记录不能算进今天
+  const _todayKeys = new Set(Object.keys(getSplitSales()));
+  orders.forEach(o => (o.codes||[]).forEach(c => {
+    if(typeof c === 'string' && (c.startsWith('平特') || c.startsWith('连肖'))) _todayKeys.add(c);
+  }));
+  const _salesNow = getSplitSales();
+  const _alreadyReal = [..._todayKeys].reduce((a,k)=>{
+    if(k === '_em_total') return a;
+    const _b = _salesNow[k] || 0;
+    const _s = Math.max(0, _b - (splitTakeAll||0));
+    const _d = flownPerPos[k] || 0;
+    if(_b > 0 && _d > _s + 0.5) return a;   // 已飞超过该飞 → 旧记录，不算今天的
+    return a + flownRealOf(k);
+  }, 0);
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
   const keptCashReal = keptCash;                 // 与风险面板同一口径
   const _totalRealFly = totalSales - keptCash;
@@ -7961,6 +7978,9 @@ function clearOrders(){
   try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}
   try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
   try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
+  flownPerPos = {}; flownReal = {};
+  try { localStorage.setItem('flownPerPos', '{}'); } catch(e){}
+  try { localStorage.setItem('flownReal', '{}'); } catch(e){}
   restoreIfNeeded();
 renderAll();
   });
@@ -8351,6 +8371,9 @@ function billArchiveNow(silent){
   orders = []; saveOrders();
   pays = []; if(typeof savePays === 'function') savePays();
   custpays = []; if(typeof saveCP === 'function') saveCP();
+  flownPerPos = {}; flownReal = {};
+  try { localStorage.setItem('flownPerPos', '{}'); } catch(e){}
+  try { localStorage.setItem('flownReal', '{}'); } catch(e){}
   billSetBookDate(billToday());
   const tip = document.getElementById('billRollTip');
   if(tip) tip.style.display = 'none';
