@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.157-Pro';
+var APP_VER = 'v58.158-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2227,6 +2227,7 @@ function setFlyTh(v, redraw, exceptId){
   syncFlyThInputs(exceptId);
   if(redraw){
     try{ flyThChanged(); }catch(e){}
+    try{ refreshFlySummary(); }catch(e){}
     try{ renderSplit(); }catch(e){}
     try{ renderRisk(); }catch(e){}
     var st=document.getElementById(exceptId||'cutThInput');
@@ -2947,7 +2948,10 @@ function showAllFlyDir(){
   h += '</div>';
   // 右：已飞
   h += '<div style="flex:1;min-width:0;display:flex;flex-direction:column">';
-  h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee">已飞 ' + _dg.showSum.toFixed(0) + '</div>';
+  h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:4px">'
+     + '<span>已飞 ' + _dg.showSum.toFixed(0) + '</span>'
+     + '<button onclick="copyFlownList()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;line-height:16px">复制</button>'
+     + '</div>';
   h += '<div style="overflow-y:auto;max-height:260px;-webkit-overflow-scrolling:touch">';
   if(_dg.groups.length === 0){
     h += '<div style="padding:4px;color:#ccc;text-align:center;font-size:11px">暂无</div>';
@@ -2961,8 +2965,63 @@ function showAllFlyDir(){
   h += '</div>';
   h += '</div>';
   h += '</div>';
-  h += '</div>';
+  // 手动插入飞单清单（贴进来两个数一行：号码 金额）
+  h += '<div style="margin-top:6px;border-top:1px dashed #ddd;padding-top:6px">'
+     + '<div style="font-size:10px;color:#666;font-weight:700;margin-bottom:3px">手动登记飞单（一行一个：<span style="color:#999">22 140</span> 或 <span style="color:#999">平特虎 1000</span>）</div>'
+     + '<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:52px;border:1px solid #ddd;border-radius:6px;padding:5px;font-size:12px;box-sizing:border-box;resize:vertical" placeholder="22 140&#10;34 90&#10;平特虎 1000">' + esc(window._manualFlyBuf || '') + '</textarea>'
+     + '<div style="display:flex;gap:5px;margin-top:4px">'
+     + '<button onclick="applyManualFlyList()" style="flex:1;border:1px solid #000;background:#000;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700">按清单登记已飞</button>'
+     + '<button onclick="if(document.getElementById(\'manualFlyInput\')){document.getElementById(\'manualFlyInput\').value=\'\';window._manualFlyBuf=\'\';}" style="border:1px solid #ccc;background:#fff;color:#666;border-radius:6px;padding:6px 10px;font-size:12px">清空</button>'
+     + '</div></div>';
   box.innerHTML = h;
+}
+
+// 复制已飞清单：重置前先留一份，重置后还知道飞了什么
+function copyFlownList(){
+  const r = getThisRoundFly();
+  const done = r.lines.filter(l => l.amt <= 0.01 && l.full > 0.01);
+  if(done.length === 0){ myAlert('还没有已飞记录，没什么可复制的'); return; }
+  const total = done.reduce((s,l) => s + l.full, 0);
+  const head = '已飞清单　' + new Date().toLocaleString('zh-CN') + '　合计 ' + total.toFixed(0) + ' 元';
+  const body = done.map(l => String(l.code).replace(':', ' ') + '　各' + l.full.toFixed(0)).join('\n');
+  const txt = head + '\n' + body;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ myAlert('已复制已飞清单 ' + done.length + ' 项，合计 ' + total.toFixed(0) + ' 元'); }).catch(function(){ _fb(); });
+  } else { _fb(); }
+  function _fb(){
+    const ta = document.createElement('textarea'); ta.value = txt;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); myAlert('已复制已飞清单 ' + done.length + ' 项'); }
+    catch(e){ myAlert('复制失败，请手动记录'); }
+    ta.remove();
+  }
+}
+
+// 按手动清单登记已飞（贴一行一个：号码 金额）
+function applyManualFlyList(){
+  const el = document.getElementById('manualFlyInput');
+  const txt = ((el && el.value) || window._manualFlyBuf || '').trim();
+  if(!txt){ myAlert('先把清单贴进输入框'); return; }
+  const rows = txt.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  let cnt = 0, sum = 0, bad = 0;
+  rows.forEach(function(line){
+    const m = line.match(/^(平特[\u4e00-\u9fa5]|连肖[\u4e00-\u9fa5]{1,4}|二中二|三中三|三中二|[0-9]{1,2})\s*(?:各|每|个)?\s*[：:]?\s*([0-9]+(?:\.[0-9]+)?)$/);
+    if(!m){ bad++; return; }
+    let code = m[1];
+    const amt = parseFloat(m[2]);
+    if(/^[0-9]{1,2}$/.test(code)) code = String(parseInt(code, 10)).padStart(2, '0');
+    if(!(amt > 0)){ bad++; return; }
+    flownPerPos[code] = (flownPerPos[code] || 0) + amt;
+    flownReal[code] = (flownReal[code] || 0) + flyShowAmt(amt);
+    cnt++; sum += amt;
+  });
+  if(cnt === 0){ myAlert('没认出来。格式要一行一个，如「22 140」或「平特虎 1000」'); return; }
+  try { localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos)); } catch(e){}
+  try { localStorage.setItem('flownReal', JSON.stringify(flownReal)); } catch(e){}
+  window._manualFlyBuf = '';
+  if(el) el.value = '';
+  afterFlyFlagChange();
+  myAlert('已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元' + (bad ? '\n有 ' + bad + ' 行没认出来，已跳过' : ''));
 }
 
 function showGroupDetail(group){
@@ -3304,7 +3363,8 @@ function confirmThisRoundFly(){
   });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   localStorage.setItem('flownReal', JSON.stringify(flownReal));
-  refreshFlySummary();
+  // 确认后：侧栏摘要 + 顶部三数 + 风险面板一起重绘（只刷侧栏会出现「已飞加了、顶部没动」）
+  try{ afterFlyFlagChange(); }catch(e){ try{ refreshFlySummary(); }catch(e2){} }
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }

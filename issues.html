@@ -127,6 +127,15 @@ a{color:#000}
   <div class="row"><div class="k">怎么查</div><div class="v">点任一开关后，对比侧栏「已飞」和顶部「已飞(实际)」，必须同值；不同就是没重绘。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#14 · v58.158</div>
+  <div class="t">补飞的钱不进账，界面不更新<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">补飞 95 元并确认后，侧栏已飞变了，顶部三数不动，两边差 95。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">confirmThisRoundFly 确认完只刷侧栏摘要，没重绘整页；改阈值 setFlyTh 同样只刷风险面板不刷侧栏，两个方向都会出现一冷一热。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">确认飞单、改阈值统一走 afterFlyFlagChange()；另加「已飞清单复制」和「手动登记飞单」两个入口，线下补飞可直接登记。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">确认一次飞单后，立刻对比侧栏已飞与顶部已飞(实际)；再改一次阈值，看侧栏是否跟着变。任一不动就是漏重绘。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">
