@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.160-Pro';
+var APP_VER = 'v58.161-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6225,8 +6225,9 @@ function renderOrdersList(){
         if(extra > 0){
           flyOutTotal += extra;
           if(drawZods.has(z)){
-            flyBackTotal += extra * 1.8;
-            flyBackLines.push('平特' + z + '　' + extra.toFixed(0) + ' ×1.8 = ' + (extra*1.8).toFixed(0));
+            var pteMult = (z === '马') ? 1.8 : payMultSingle;   // 只有平特马是 1.8，其他跟客户同口径
+            flyBackTotal += extra * pteMult;
+            flyBackLines.push('平特' + z + '　' + extra.toFixed(0) + ' ×' + pteMult + ' = ' + (extra*pteMult).toFixed(0));
           }
         }
       });
@@ -6240,8 +6241,11 @@ function renderOrdersList(){
         const drawZods = new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
         const hit = zods.every(z => drawZods.has(z));
         if(hit){
-          flyBackTotal += lxFlyAmt * 4; // 2连4倍
-          flyBackLines.push('连肖' + lz + '　' + lxFlyAmt.toFixed(0) + ' ×4 = ' + (lxFlyAmt*4).toFixed(0));
+          // 二连 4 倍、三连 10 倍、四连 30 倍，含马少 0.5（与客户口径一致）
+          var lxBase = zods.length === 2 ? 4 : (zods.length === 3 ? 10 : (zods.length === 4 ? 30 : 4));
+          var lxMult = zods.indexOf('马') >= 0 ? (lxBase - 0.5) : lxBase;
+          flyBackTotal += lxFlyAmt * lxMult;
+          flyBackLines.push('连肖' + lz + '　' + lxFlyAmt.toFixed(0) + ' ×' + lxMult + ' = ' + (lxFlyAmt*lxMult).toFixed(0));
         }
       }
     }
