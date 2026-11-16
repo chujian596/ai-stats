@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.156-Pro';
+var APP_VER = 'v58.157-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1898,9 +1898,9 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('pte','平特') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('lx','连肖') + _bo('copySelectedFly()','复制') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">5 元档</span><br><span style="color:#999;font-size:11px">勾选后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留</span></label>`;
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞（转发上家），不跟澳门单混；没香港单时这块不显示</span></label>`;
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();try{afterFlyFlagChange();}catch(e){}" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞（转发上家），不跟澳门单混；没香港单时这块不显示</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="hkFlyBox" style="margin-top:4px"></div>';
@@ -2824,6 +2824,13 @@ function renderHKFlyBox(){
   box.innerHTML = h;
 }
 
+// 飞单相关开关变更后：侧栏摘要 + 整页（顶部三数在 renderRisk 里）一起重绘，
+// 否则会出现「侧栏已飞 110、顶部还是 0」这种两处打架。
+function afterFlyFlagChange(){
+  try { refreshFlySummary(); } catch(e){}
+  try { renderAll(); } catch(e){}
+  try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
+}
 function refreshFlySummary(){
   try {
     const total = grandOrderTotal();
@@ -2849,13 +2856,13 @@ function flyRoundSel(){ try{ const v = localStorage.getItem('flyRoundSel'); retu
 function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
 function setFlyRoundOn(on){
   try{ localStorage.setItem('flyRoundOn', on ? '1' : '0'); }catch(e){}
-  try{ refreshFlySummary(); }catch(e){}
+  try{ afterFlyFlagChange(); }catch(e){}
   try{ showAllFlyDir(); }catch(e){}
 }
 function setFlyRoundSel(v){
   try{ localStorage.setItem('flyRoundSel', v); }catch(e){}
   try{ localStorage.setItem('flyRoundOn', '1'); }catch(e){}
-  try{ refreshFlySummary(); }catch(e){}
+  try{ afterFlyFlagChange(); }catch(e){}
   try{ showAllFlyDir(); }catch(e){}
 }
 // 兼容旧入口

@@ -118,6 +118,15 @@ a{color:#000}
   <div class="row"><div class="k">修法</div><div class="v">全部改白话（现在每号能留 X / 安全线 35 元/号 / 多飞 1 元换 5.2 元安全）+ _lvTag(n) 动态副标题 + 生效按钮实心高亮「✓ 正在用」+ 下一行大字说明当前按哪个档算 + 数值相同提示「点哪个都不变」。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#13 · v58.157</div>
+  <div class="t">勾上即飞，已飞金额不出现<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">重置归零后勾选「即飞产品自动复制」，侧栏已飞显示 110，顶部三数仍显示已飞 0。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">开关的 onchange 只刷新侧栏摘要，没重绘整页；顶部三数在 renderRisk 里生成。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">三个开关（即飞产品 / 金额凑整 / 香港单自动飞）统一走 afterFlyFlagChange()，一起刷摘要+整页+风险面板。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">点任一开关后，对比侧栏「已飞」和顶部「已飞(实际)」，必须同值；不同就是没重绘。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">
