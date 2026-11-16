@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.148-Pro';
+var APP_VER = 'v58.149-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2161,6 +2161,17 @@ try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } c
 // 实际飞出（凑整后）单独记一笔：凑整差额的归属要靠它算，不能再用原额
 let flownReal = {};
 try { flownReal = JSON.parse(localStorage.getItem('flownReal') || '{}'); } catch(e){ flownReal = {}; }
+// 自愈：旧版本把「实际飞出」重复累加过两次（存成了原额的约 2 倍），这里按原额纠正回来
+try {
+  let _fixed = 0;
+  Object.keys(flownPerPos).forEach(function(k){
+    const p = flownPerPos[k] || 0, r = flownReal[k];
+    if(p > 0 && typeof r === 'number' && r > p + 2 && Math.abs(r - p * 2) < Math.max(5, p * 0.06)){
+      flownReal[k] = p; _fixed++;
+    }
+  });
+  if(_fixed) localStorage.setItem('flownReal', JSON.stringify(flownReal));
+} catch(e){}
 // 取某号实际飞出：没记录的老数据按原额兜底
 function flownRealOf(k){
   const r = flownReal[k];
@@ -3034,7 +3045,6 @@ function confirmGroupCurrent(){
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
   if(l.amt > 0) flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
-    if(l.amt > 0) flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
   });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   localStorage.setItem('flownReal', JSON.stringify(flownReal));
@@ -3208,7 +3218,11 @@ function confirmGroupFly(group){
   const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
   if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
-  groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
+  groupLines.forEach(l => {
+    var _k = l.code, _amt = l.amt;
+    if(_k === '二中二/三中三合计'){ flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; flownReal[_k] = (flownReal[_k]||0) + _amt; }
+    else { flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; if(_amt > 0) flownReal[_k] = (flownReal[_k]||0) + flyShowAmt(_amt); }
+  });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   localStorage.setItem('flownReal', JSON.stringify(flownReal));
   myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
@@ -3268,7 +3282,6 @@ function confirmThisRoundFly(){
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
   if(l.amt > 0) flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
-    if(l.amt > 0) flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
   });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
   localStorage.setItem('flownReal', JSON.stringify(flownReal));
