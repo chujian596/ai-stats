@@ -2204,27 +2204,50 @@ function renderAutoCustPay(){
   h += '</tbody></table>';
   box.innerHTML = h;
 }
+function buildFlyGroups(lines, useFull){
+  const map = {};
+  let origSum = 0, showSum = 0;
+  lines.forEach(l => {
+    const base = useFull ? l.full : l.amt;
+    if(base < 0.01) return;
+    origSum += base;
+    const show = flyShowAmt(base);
+    showSum += show;
+    const k = show.toFixed(2);
+    if(!map[k]) map[k] = { amt: show, codes: [] };
+    map[k].codes.push(String(l.code).replace(':', ' '));
+  });
+  const groups = Object.keys(map).map(k => map[k]).sort((a, b) => b.amt - a.amt);
+  return { groups: groups, origSum: origSum, showSum: showSum };
+}
+function flyGroupText(g){
+  return g.codes.join(' ') + ' 各' + g.amt.toFixed(0);
+}
+
 function sideSplitCopy(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  // 逐行复制：特号/平特直接用，二中二/三中三用原始订单文字
+  // 同金额合并成「各X」，按凑整档位显示；二中二/三中三保留原始订单文字
   const copyLines = [];
-  r.lines.forEach(l => {
-    if(l.code === '二中二/三中三合计'){
-      // 用原始订单文字，复式就显示复式，不展开
-      orders.forEach(o => {
-        const hasEM = (o.codes||[]).some(c => typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0));
-        if(hasEM && o.raw) copyLines.push(o.raw);
-      });
-    } else {
-      copyLines.push(l.code.replace(':',' ') + ' ' + l.amt.toFixed(2));
-    }
-  });
-  copyLines.push('合计 ' + r.thisRound.toFixed(2));
+  const _emLine = r.lines.filter(function(l){ return l.code === '二中二/三中三合计' && l.amt > 0.01; });
+  if(_emLine.length){
+    orders.forEach(function(o){
+      const hasEM = (o.codes||[]).some(function(c){ return typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0); });
+      if(hasEM && o.raw) copyLines.push(o.raw);
+    });
+  }
+  const _pg = buildFlyGroups(r.lines.filter(function(l){ return l.amt > 0.01 && l.code !== '二中二/三中三合计'; }), false);
+  _pg.groups.forEach(function(g){ copyLines.push(flyGroupText(g)); });
+  const _emSum = _emLine.reduce(function(s,l){ return s + l.amt; }, 0);
+  const _grand = _pg.showSum + _emSum;
+  copyLines.push('合计 ' + _grand.toFixed(0));
   const txt = copyLines.join('\n');
   if(navigator.clipboard) navigator.clipboard.writeText(txt);
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-  myAlert('已复制本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n共' + copyLines.length + '项，直接粘贴发给上家');
+  var _tip = '已复制本轮飞单 ' + _grand.toFixed(0) + ' 元\n共' + copyLines.length + '行，直接粘贴发给上家';
+  if(_pg.showSum !== _pg.origSum) _tip += '\n（凑整前 ' + (_pg.origSum + _emSum).toFixed(0) + '，' + (_pg.showSum > _pg.origSum ? '多飞 ' : '省 ') + Math.abs(_pg.showSum - _pg.origSum).toFixed(0) + '）';
+  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
+  myAlert(_tip);
 }
 
 function sideSplitCopyAuto(){
@@ -2816,7 +2839,13 @@ function confirmThisRoundFly(){
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
-  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元');
+  var _lc = _lastFlyCopy;
+  var _show = _lc ? _lc.grand : r.thisRound;
+  var _t2 = '已确认本轮飞单 ' + _show.toFixed(0) + ' 元';
+  if(_lc && Math.abs(_lc.grand - _lc.orig) > 0.01){
+    _t2 += '\n（凑整前 ' + _lc.orig.toFixed(0) + '，' + (_lc.grand > _lc.orig ? '多飞 ' : '省 ') + Math.abs(_lc.grand - _lc.orig).toFixed(0) + '）';
+  }
+  myAlert(_t2);
   });
 }
 

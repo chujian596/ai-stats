@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.132-Pro';
+var APP_VER = 'v58.133-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2518,6 +2518,7 @@ function sideSplitCopy(){
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
   var _tip = '已复制本轮飞单 ' + _grand.toFixed(0) + ' 元\n共' + copyLines.length + '行，直接粘贴发给上家';
   if(_pg.showSum !== _pg.origSum) _tip += '\n（凑整前 ' + (_pg.origSum + _emSum).toFixed(0) + '，' + (_pg.showSum > _pg.origSum ? '多飞 ' : '省 ') + Math.abs(_pg.showSum - _pg.origSum).toFixed(0) + '）';
+  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
   myAlert(_tip);
 }
 
@@ -2545,6 +2546,7 @@ function sideSplitCopyAuto(){
 }
 
 var currentFlyGroup = null; // 当前查看的飞单分组
+var _lastFlyCopy = null;   // 最近一次复制的实际金额，确认飞单的提示要跟它保持一致
 function grandOrderTotal(){
   // 全产品总单 = 特码 + 平特 + 二中二三中三（与底部三卡片口径一致）
   let g = 0;
@@ -3195,7 +3197,13 @@ function confirmThisRoundFly(){
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
-  myAlert('已确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元\n待飞内容已复制到剪贴板，可直接发给上家');
+  var _lc = _lastFlyCopy;
+  var _show = _lc ? _lc.grand : r.thisRound;
+  var _t2 = '已确认本轮飞单 ' + _show.toFixed(0) + ' 元\n待飞内容已复制到剪贴板，可直接发给上家';
+  if(_lc && Math.abs(_lc.grand - _lc.orig) > 0.01){
+    _t2 += '\n（凑整前 ' + _lc.orig.toFixed(0) + '，' + (_lc.grand > _lc.orig ? '多飞 ' : '省 ') + Math.abs(_lc.grand - _lc.orig).toFixed(0) + '）';
+  }
+  myAlert(_t2);
   });
 }
 
