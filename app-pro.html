@@ -6245,7 +6245,7 @@ function renderOrdersList(){
           var lxBase = zods.length === 2 ? 4 : (zods.length === 3 ? 10 : (zods.length === 4 ? 30 : 4));
           var lxMult = zods.indexOf('马') >= 0 ? (lxBase - 0.5) : lxBase;
           flyBackTotal += lxFlyAmt * lxMult;
-          flyBackLines.push('连肖' + lz + '  ' + lxFlyAmt.toFixed(0) + ' ×' + lxMult + ' = ' + (lxFlyAmt*lxMult).toFixed(0));
+          flyBackLines.push('连' + lz + '  ' + lxFlyAmt.toFixed(0) + ' ×' + lxMult + ' = ' + (lxFlyAmt*lxMult).toFixed(0));
         }
       }
     }
@@ -6351,10 +6351,10 @@ function renderOrdersList(){
     + `合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平 ${cpZd.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
   if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
   if(lastDraw){
-    copyTail += '\n\n命中明细:';
+    copyTail += '\n\n明细:';
     if(flyBackLines.length){ flyBackLines.forEach(function(l){ copyTail += '\n  ' + l; }); }
     else copyTail += '\n  本期没有命中项';
-    copyTail += `\n命中合计 ${flyBackTotal.toFixed(0)}`;
+    copyTail += `\n合计:+${flyBackTotal.toFixed(0)}`;
     copyTail += `\n\n总账单 ${flyOutTotal.toFixed(0)} - ${flyBackTotal.toFixed(0)} = ${owedAmt.toFixed(0)}`;
     copyTail += `\n结算 ${netSettle>=0?'+':'-'}${Math.abs(netSettle).toFixed(0)}`;
   } else copyTail += '\n\n未开奖，结算待定';
@@ -6481,7 +6481,7 @@ function renderOrdersList(){
   h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   if(flyBackLines.length){
     h += `<div style="margin:3px 0;padding:5px 6px;background:#fff7f7;border:1px solid #f3d6d6;border-radius:6px;font-weight:400">`;
-    h += `<div style="font-size:11px;color:#999;margin-bottom:2px">命中明细</div>`;
+    h += `<div style="font-size:11px;color:#999;margin-bottom:2px">明细</div>`;
     flyBackLines.forEach(function(l){
       h += `<div style="font-size:12px;color:#cf1322">${esc(l)}</div>`;
     });
