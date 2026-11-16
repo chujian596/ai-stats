@@ -412,6 +412,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         9. <b style="color:var(--modalText,#fff)">4 个数字</b>（两笔／各X／共X／重新编辑）<br>
         10. <b style="color:var(--modalText,#fff)">"每一个"的写法都认</b><br>
         &nbsp;&nbsp;各5 / 各号5 / 各数5 / 每个5 / 个5 都一样：每个号码各5<br>
+        &nbsp;&nbsp;每号5 / 每注5 / 每码5 / 每肖5 / 每只5 也认，都等于「各5」，不弹窗<br>
+        &nbsp;&nbsp;金额是三位数（100 / 120 / 500）一律当金额，不会被拆成号码<br>
         &nbsp;&nbsp;共5 / 总共5 / 合5 都一样：总数5，摊到各号<br><br>
         11. <b style="color:var(--modalText,#fff)">一行多项只弹一次</b><br>
         &nbsp;&nbsp;整批里只有"没写单位的"才进多选题：平龙马250（多肖）、红波10（17号）<br>
@@ -616,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.127-Pro';
+var APP_VER = 'v58.129-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2619,8 +2621,10 @@ function hkSummaryLine(){
 function hkGroups(){
   var sales = {};   // code -> 金额
   hkOrders.forEach(function(o){
+    var seen = {};
     (o.codes||[]).forEach(function(c){
       if(!/^\d{2}$/.test(c)) return;
+      if(seen[c]) return; seen[c] = true;
       sales[c] = (sales[c]||0) + Number(codeSalesForOrder(o, c)||0);
     });
   });
@@ -4060,7 +4064,7 @@ function parseLine(text){
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
   // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
   var SEP = '[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+';
-  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
+  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组|注|码|只)?|每(?:组|个|号|肖|注|码|只)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
   if(fast){
     var fnums = fast[1].split(new RegExp(SEP)).filter(Boolean).map(function(n){ return n.padStart(2,'0'); });
     if(fnums.length >= 1) return { codes: fnums, price: parseFloat(fast[2]), isPer: true };
@@ -4301,7 +4305,7 @@ function parseLine(text){
             throw new Error('无法识别：「' + badText[0].trim() + '」');
           }
           var badNum = rest.match(/^\d{3,}/);
-          if(badNum) throw new Error('无法识别的数字：' + badNum[0]);
+          if(badNum) throw new Error('无法识别的数字：' + badNum[0] + '（三位以上请写成「各' + badNum[0] + '」或「共' + badNum[0] + '」，例如 05 06 各' + badNum[0] + '）');
           rest = '';
         }
       }
@@ -4586,8 +4590,22 @@ function handleSave(){
     if(/^开[\s.．·,，、:：]*\d/.test(raw0) || /^开奖/.test(raw0)){
       autoPayout(); return;
     }
+    // 防重复：同客户 + 同样单据内容（3 分钟内）→ 先问，避免客户改单后重复下单
+    var _csm = (document.getElementById('customerName') || {}).value || '散客';
+    var _fp = _csm + '|' + raw0.replace(/\s+/g, '');
+    var _dup = window.__lastInputFp === _fp && (Date.now() - (window.__lastInputAt || 0) < 180000);
+    // 没有确认框时宁可直接存（重复好过丢单），绝不因为弹不出框而卡住
+    if(_dup && !window.__dupConfirmed && typeof myConfirm === 'function'){
+      myConfirm('这行内容刚存过（3 分钟内）。\n\n如果客户是改单重发，按「取消」不要存；\n确实是另一笔，按「确认」再存一次。', function(){
+        // 递归期间必须保持 true，否则会再次命中重复判定 → 无限弹窗
+        window.__dupConfirmed = true;
+        try { handleSave(); } finally { window.__dupConfirmed = false; }
+      });
+      return;
+    }
+    window.__lastInputFp = _fp;
+    window.__lastInputAt = Date.now();
   }
-  
   doSave();
 }
 
@@ -4987,6 +5005,14 @@ function showMultiDlg(items, text){
     doSave(newText);
   };
 }
+// 有歧义时整批不落账，必须让用户看见「本批没存」，避免以为存了
+function warnBatchNotSaved(){
+  try {
+    var el = document.getElementById('saveMsg');
+    if(el) el.innerHTML = '<b style="color:#cf1322">本批未保存</b>：有一行需要你先确认算法，确认后会自动重存。';
+  } catch(e){}
+}
+
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
@@ -5178,6 +5204,7 @@ function doSave(overrideText){
           } else {
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
+          warnBatchNotSaved();
           const ov = document.createElement('div');
           ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
           ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
@@ -5283,10 +5310,13 @@ function doSave(overrideText){
     } else {
       // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
       var _nums = _t.match(/\d{1,2}/g);
-      var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
-      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
+      // 「每/注/码/只」也是单位词；三位数以上一定是金额（如 100/120/500），不参与 4 位拆解
+      var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各每注码只]/.test(_t);
+      var _hasBigNum = /\d{3,}/.test(_t.replace(/『P\d+』/g, ''));
+      if(_nums && _nums.length === 4 && !_hasZod && !_hasBigNum && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
         var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
         window.__ambigAbort = true;
+          warnBatchNotSaved();
         myChoice('这4个数字怎么算？', _a1+' '+_a2+' '+_a3+' '+_a4, [
           '两笔：'+_a1+'号'+_a2+'元 + '+_a3+'号'+_a4+'元',
           '一笔：'+_a1+' '+_a2+' '+_a3+' 各'+_a4+'元（3号共'+(3*parseFloat(_a4))+'元）',
@@ -5435,6 +5465,7 @@ renderAll();
           r.isPer = true;
         } else if(allBareNums){
           window.__ambigAbort = true;
+          warnBatchNotSaved();
           var _codes = r.codes.join(' ');
           var _price = r.price;
           var _n = r.codes.length;
@@ -5466,6 +5497,7 @@ renderAll();
       if(e.ambigZodiac){
         var zs = e.ambigZodiac;
         window.__ambigAbort = true;
+          warnBatchNotSaved();
         myChoice('「'+zs+'」怎么录？', '没写平/特/连，这'+zs.length+'个生肖按哪种产品？点一下就存好。', ['特肖：买该肖全部特号','平特：买该肖平特','连肖：买这几个肖连肖','重新编辑'], function(pick){
           if(pick===3){ window.__ambigAbort=false; return; }
           var prefix = pick===0 ? '特' : (pick===1 ? '平特' : '连肖');
@@ -6205,10 +6237,12 @@ function copyUpstream(){
 
 // 订单产品归类：号码 / 连肖 / 平特 / 二中二三中三
 function classifyCode(code){
-  if(/^\d{2}$/.test(code)) return '号码';
+  if(/^\d{2}$/.test(code)) return '特';
   if(code.indexOf('连肖') === 0) return '连肖';
-  if(code.indexOf('平特') === 0) return '平特';
-  if(code.indexOf('二中二:') === 0 || code.indexOf('三中三:') === 0 || code.indexOf('三中二:') === 0) return '二中二三中三';
+  if(code.indexOf('平特') === 0) return '平肖';
+  if(code.indexOf('二中二:') === 0) return '二中二';
+  if(code.indexOf('三中三:') === 0) return '三中三';
+  if(code.indexOf('三中二:') === 0) return '三中二';
   return '其他';
 }
 
@@ -6219,7 +6253,9 @@ function custDetailBlock(list, dr, title){
   list.forEach(function(o){
     var amt = Number(o.amount) || 0;
     betTotal += amt;
+    var seen = {};   // 同一号码会在多行出现（如「狗各数50」+「02 14 26 38 各25」），只按累计金额算一次
     (o.codes||[]).forEach(function(c){
+      if(seen[c]) return; seen[c] = true;
       var cs = Number(codeSalesForOrder(o, c) || 0);
       if(cs <= 0) return;
       var k = classifyCode(c);
@@ -6230,19 +6266,24 @@ function custDetailBlock(list, dr, title){
     det.lines.forEach(function(l){ hits.push(l); });
   });
   var t = '【' + title + '】\n';
-  t += '下单明细：\n';
-  var keys = Object.keys(cats);
-  if(!keys.length){ t += '  （无）\n'; }
-  keys.forEach(function(k){ t += '  ' + k + ' ' + cats[k].toFixed(0) + '\n'; });
+  // 下单：按玩法归类，只报各类金额
+  t += '下单：\n';
+  var ORDER = ['特', '平肖', '连肖', '二中二', '三中二', '三中三', '其他'];
+  var any = false;
+  ORDER.forEach(function(k){
+    if(cats[k] && Math.abs(cats[k]) > 0.001){ t += '  ' + k + ':' + cats[k].toFixed(0) + '\n'; any = true; }
+  });
+  if(!any) t += '  （无）\n';
   t += '  合计 ' + betTotal.toFixed(0) + '\n';
-  t += '命中明细：\n';
+  t += '命中：\n';
   if(!hits.length) t += '  （本期无中奖）\n';
   hits.forEach(function(l){ t += '  ' + l + '\n'; });
   t += '  中奖合计 ' + winTotal.toFixed(2) + '\n';
   var net = winTotal - betTotal;
-  t += '结算：下注 ' + betTotal.toFixed(0) + ' - 中奖 ' + winTotal.toFixed(2) + ' → '
-     + (net >= 0 ? ('客户赚 ' + net.toFixed(2) + '（你赔 ' + net.toFixed(2) + '）')
-                 : ('客户亏 ' + (-net).toFixed(2) + '（你赚 ' + (-net).toFixed(2) + '）')) + '\n';
+  // 客户视角、纯记账口径：只报数，不评价输赢（不用「亏」「赚」「你赚」）
+  t += '本期合计\n';
+  t += '  下注 ' + betTotal.toFixed(0) + ' ｜ 中奖 ' + winTotal.toFixed(2)
+     + ' ｜ 结余 ' + (net >= 0 ? '+' : '') + net.toFixed(2) + '\n';
   return { text: t, bet: betTotal, win: winTotal, net: net };
 }
 
@@ -6265,9 +6306,9 @@ function buildCustOrdersText(cust){
   }
   if(macList.length && hkList.length){
     var tb = b1 + b2, tw = w1 + w2, tn = tw - tb;
-    text += '【合计】\n';
-    text += '  下注 ' + tb.toFixed(0) + ' ｜ 中奖 ' + tw.toFixed(2) + '\n';
-    text += '  ' + (tn >= 0 ? '客户赚 ' + tn.toFixed(2) : '客户亏 ' + (-tn).toFixed(2)) + '\n';
+    text += '【港澳合计】\n';
+    text += '  下注 ' + tb.toFixed(0) + ' ｜ 中奖 ' + tw.toFixed(2)
+       + ' ｜ 结余 ' + (tn >= 0 ? '+' : '') + tn.toFixed(2) + '\n';
   }
   return text;
 }
