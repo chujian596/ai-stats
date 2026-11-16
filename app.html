@@ -3784,7 +3784,7 @@ function parseLine(text){
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([二三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
-  codeText = codeText.replace(/^澳/, '');
+  codeText = codeText.replace(/^澳门|^澳/, '');   // 「澳门01.02」整词剔掉，只去「澳」会剩「门01」被当非法片段丢弃
   // "蛇数"→展开蛇的所有号码
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])数/g, (m, z) => {
     return NUM2ZODIAC_REV[z].map(n => String(n).padStart(2,'0')).join(' ') + ' ';
@@ -5328,6 +5328,18 @@ function toggleCust(){
   b.style.display = b.style.display === 'none' ? 'block' : 'none';
 }
 // 点击外部关闭客户选择框
+// 功能设置展开后，点页面其他地方自动收起，避免一直挡着上面的内容
+document.addEventListener('click', function(e){
+  const bb = document.getElementById('bottomBtns');
+  if(!bb || bb.style.display === 'none') return;
+  const sec = bb.closest('section');
+  if(sec && !sec.contains(e.target)){
+    bb.style.display = 'none';
+    const ar = sec.querySelector('.arrow');
+    if(ar) ar.textContent = '▼';
+  }
+});
+
 document.addEventListener('click', function(e){
   const box = document.getElementById('custBox');
   const btn = e.target.closest('button');
