@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.172-Pro';
+var APP_VER = 'v58.173-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -896,12 +896,17 @@ function autoPayout(){
       // 累计上家盈亏
       try {
         let upCum = parseFloat(localStorage.getItem('upCum') || '0');
-        // 记录当天起点，用来算「今日盈亏」
+        // 记录当天起点（今日盈亏）与本周起点（周一自动重置）
         try {
           var _today = new Date().toISOString().slice(0,10);
           if(localStorage.getItem('upCumDayDate') !== _today){
             localStorage.setItem('upCumDayDate', _today);
             localStorage.setItem('upCumDayBase', upCum.toFixed(2));
+          }
+          var _wk = _weekKey();
+          if(localStorage.getItem('upCumWeekKey') !== _wk){
+            localStorage.setItem('upCumWeekKey', _wk);
+            localStorage.setItem('upCumWeekBase', upCum.toFixed(2));
           }
         } catch(e){}
         // 计算本期上家净盈亏
@@ -916,13 +921,23 @@ function autoPayout(){
             pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
           }
         });});
-        const drawZ0 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+        const drawZ0 = new Set();
+        [...regularNums, specialNum].forEach(n => { const v = NUM2ZODIAC[n]; (Array.isArray(v) ? v : [v]).forEach(x => { if(x) drawZ0.add(x); }); });
         Object.entries(pteAgg0).forEach(([z, amt]) => {
           const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
           flyOut0 += extra;
-          if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * 1.8;
+          if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * (z === '马' ? 1.8 : payMultSingle);
         });
-        if(lxFlyAmt > 0){ flyOut0 += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBack0 += lxFlyAmt * 4; }
+        if(lxFlyAmt > 0){
+          flyOut0 += lxFlyAmt;
+          const drawZ2 = new Set();
+          [...regularNums, specialNum].forEach(n => { const v = NUM2ZODIAC[n]; (Array.isArray(v) ? v : [v]).forEach(x => { if(x) drawZ2.add(x); }); });
+          const lz = (lxFlyName||'').replace(/[0-9连]+$/,'');
+          if(lz.split('').every(z => drawZ2.has(z))){
+            const lxBase = lz.length === 2 ? 4 : (lz.length === 3 ? 10 : 30);
+            flyBack0 += lxFlyAmt * (lz.indexOf('马') >= 0 ? lxBase - 0.5 : lxBase);
+          }
+        }
         let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
         if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
@@ -6428,13 +6443,15 @@ function renderOrdersList(){
   if(rebateOn && flyOutTotal > 0) h += `<span style="margin-left:auto;color:#16a34a;font-weight:600">返水 +${rebateAmt.toFixed(0)}</span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
-  var upToday = 0;
+  var upToday = 0, upWeek = 0;
   try {
     if(localStorage.getItem('upCumDayDate') === new Date().toISOString().slice(0,10)) upToday = upCum - parseFloat(localStorage.getItem('upCumDayBase') || '0');
+    if(localStorage.getItem('upCumWeekKey') === _weekKey()) upWeek = upCum - parseFloat(localStorage.getItem('upCumWeekBase') || '0');
   } catch(e){}
   var _sg = function(v){ return (v >= 0 ? '+' : '-') + Math.abs(v).toFixed(0); };
-  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">今日盈亏</span><b style="color:${upToday>=0?'#16a34a':'#cf1322'}">${_sg(upToday)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-top:2px"><span style="color:#999">累计</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${_sg(upCum)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">本周盈亏（周一起）</span><b style="font-size:13px;color:${upWeek>=0?'#16a34a':'#cf1322'}">${_sg(upWeek)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-top:2px"><span style="color:#999">今日盈亏</span><b style="color:${upToday>=0?'#16a34a':'#cf1322'}">${_sg(upToday)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:10px;padding-top:2px"><span style="color:#bbb">历史累计</span><b style="color:#bbb">${_sg(upCum)}</b></div>`;
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
   // 三栏：左特码 中肖 右二中二三中三
