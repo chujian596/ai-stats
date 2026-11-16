@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.159-Pro';
+var APP_VER = 'v58.160-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6191,6 +6191,7 @@ function renderOrdersList(){
   });
   // 上家对账行
   let flyOutTotal = 0, flyBackTotal = 0;
+  var flyBackLines = [];   // 命中额逐项明细，避免只给个总数看不出钱怎么来的
   try {
     const sales = getSplitSales();
     // 特码飞单：飞走总额 = 所有号超阈值部分之和
@@ -6202,7 +6203,10 @@ function renderOrdersList(){
     if(lastDraw){
       const spKey = String(lastDraw.specialNum).padStart(2, '0');
       const spFly = Math.max(0, (sales[spKey]||0) - splitTakeAll);
-      flyBackTotal += spFly * 47;
+      if(spFly > 0){
+        flyBackTotal += spFly * 47;
+        flyBackLines.push('特码' + spKey + '　' + spFly.toFixed(0) + ' ×47 = ' + (spFly*47).toFixed(0));
+      }
     }
     // 平特飞单
     if(lastDraw){
@@ -6220,7 +6224,10 @@ function renderOrdersList(){
         const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
         if(extra > 0){
           flyOutTotal += extra;
-          if(drawZods.has(z)) flyBackTotal += extra * 1.8;
+          if(drawZods.has(z)){
+            flyBackTotal += extra * 1.8;
+            flyBackLines.push('平特' + z + '　' + extra.toFixed(0) + ' ×1.8 = ' + (extra*1.8).toFixed(0));
+          }
         }
       });
     }
@@ -6232,7 +6239,10 @@ function renderOrdersList(){
         const zods = lz.split('');
         const drawZods = new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
         const hit = zods.every(z => drawZods.has(z));
-        if(hit) flyBackTotal += lxFlyAmt * 4; // 2连4倍
+        if(hit){
+          flyBackTotal += lxFlyAmt * 4; // 2连4倍
+          flyBackLines.push('连肖' + lz + '　' + lxFlyAmt.toFixed(0) + ' ×4 = ' + (lxFlyAmt*4).toFixed(0));
+        }
       }
     }
     // 二中二/三中三飞单
@@ -6247,10 +6257,10 @@ function renderOrdersList(){
             flyOutTotal += amt;
             const nums = c.split(':')[1].split(',');
             const allHit = nums.every(n => allNums.has(Number(n)));
-            if(allHit){
-              if(c.indexOf('二中二:')===0) flyBackTotal += amt * 60;
-              else if(c.indexOf('三中三:')===0) flyBackTotal += amt * 600;
-              else if(c.indexOf('三中二:')===0) flyBackTotal += amt * 20;
+            if(allHit && amt > 0){
+              var emMult2 = c.indexOf('二中二:')===0 ? 60 : (c.indexOf('三中三:')===0 ? 600 : 20);
+              flyBackTotal += amt * emMult2;
+              flyBackLines.push(c.replace(':',' ') + '　' + amt.toFixed(0) + ' ×' + emMult2 + ' = ' + (amt*emMult2).toFixed(0));
             }
           }
         });
@@ -6335,6 +6345,9 @@ function renderOrdersList(){
   let copyTail = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}`;
   if(rebateOn && flyOutTotal > 0) copyTail += `\n返水:${flyOutTotal.toFixed(0)}×${(rebateRate*100).toFixed(0)}%=+${rebateAmt.toFixed(0)}`;
   if(lastDraw){
+    copyTail += '\n命中明细:';
+    if(flyBackLines.length){ flyBackLines.forEach(function(l){ copyTail += '\n  ' + l; }); }
+    else copyTail += '\n  （无）';
     copyTail += `\n命中额:${flyBackTotal.toFixed(0)}\n总账单:${owedAmt.toFixed(0)}`;
     copyTail += `\n结算:${netSettle>=0?'+':''}${netSettle.toFixed(0)}`;
   } else copyTail += '\n未开奖，结算待定';
@@ -6459,6 +6472,16 @@ function renderOrdersList(){
   } catch(e){}
   h += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-size:12px;font-weight:700">`;
   h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
+  if(flyBackLines.length){
+    h += `<div style="margin:3px 0;padding:5px 6px;background:#fff7f7;border:1px solid #f3d6d6;border-radius:6px;font-weight:400">`;
+    h += `<div style="font-size:11px;color:#999;margin-bottom:2px">命中明细（上家该赔的）</div>`;
+    flyBackLines.forEach(function(l){
+      h += `<div style="font-size:12px;color:#cf1322">${esc(l)}</div>`;
+    });
+    h += `</div>`;
+  } else if(lastDraw){
+    h += `<div style="font-size:11px;color:#999">本期没有命中项，上家不用赔</div>`;
+  }
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
   h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:-'+(flyOutTotal-flyBackTotal).toFixed(0):'未开奖，结算待定'}</div>`;
