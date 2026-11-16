@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.171-Pro';
+var APP_VER = 'v58.172-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -896,6 +896,14 @@ function autoPayout(){
       // 累计上家盈亏
       try {
         let upCum = parseFloat(localStorage.getItem('upCum') || '0');
+        // 记录当天起点，用来算「今日盈亏」
+        try {
+          var _today = new Date().toISOString().slice(0,10);
+          if(localStorage.getItem('upCumDayDate') !== _today){
+            localStorage.setItem('upCumDayDate', _today);
+            localStorage.setItem('upCumDayBase', upCum.toFixed(2));
+          }
+        } catch(e){}
         // 计算本期上家净盈亏
         const sales0 = getSplitSales();
         let flyOut0 = 0, flyBack0 = 0;
@@ -4597,9 +4605,20 @@ function autoFetchDraw(retry){
     fetch(u + sep + 't=' + Date.now(), {cache: 'no-store'})
       .then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
       .then(function(d){
-        var snap = d && d.macao;
+        var _isHKshop = (typeof shop !== 'undefined' && shop === 'B');
+        var snap = d && (_isHKshop ? d.hongkong : d.macao);
         if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('empty');
         done();
+        if(_isHKshop){
+          // 香港店：只更新香港开奖与显示，不走澳门结算
+          try { localStorage.setItem(sk('hk_draw_cache'), JSON.stringify({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' })); } catch(e){}
+          _hkBarVisible = true;
+          try { renderHKDraw(); } catch(e){}
+          renderLiveBalls(snap.numbers.map(Number), true);
+          updateDrawInfoBar();
+          myAlert('香港 ' + snap.draw + ' 期开奖已更新。');
+          return;
+        }
         applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
       })
       .catch(function(){ tryNext(); });
@@ -6409,7 +6428,13 @@ function renderOrdersList(){
   if(rebateOn && flyOutTotal > 0) h += `<span style="margin-left:auto;color:#16a34a;font-weight:600">返水 +${rebateAmt.toFixed(0)}</span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
-  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
+  var upToday = 0;
+  try {
+    if(localStorage.getItem('upCumDayDate') === new Date().toISOString().slice(0,10)) upToday = upCum - parseFloat(localStorage.getItem('upCumDayBase') || '0');
+  } catch(e){}
+  var _sg = function(v){ return (v >= 0 ? '+' : '-') + Math.abs(v).toFixed(0); };
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">今日盈亏</span><b style="color:${upToday>=0?'#16a34a':'#cf1322'}">${_sg(upToday)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-top:2px"><span style="color:#999">累计</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${_sg(upCum)}</b></div>`;
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
   // 三栏：左特码 中肖 右二中二三中三
