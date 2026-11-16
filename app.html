@@ -2490,6 +2490,23 @@ function sideSplitCopySpec(){
 }
 
 // === 分批飞单 ===
+// 金额凑整：飞单金额向上凑到 5/10 元档，多飞的自付（默认关）
+function flyRoundOn(){ try{ return localStorage.getItem('flyRoundOn') === '1'; }catch(e){ return false; } }
+function flyRoundSel(){ try{ return localStorage.getItem('flyRoundSel') || '5'; }catch(e){ return '5'; } }
+function flySnap(v){
+  if(!(v > 0)) return v;
+  const st = parseFloat(flyRoundSel()) || 5;
+  return Math.ceil(v / st) * st;
+}
+function setFlyRoundOn(on){
+  try{ localStorage.setItem('flyRoundOn', on ? '1' : '0'); }catch(e){}
+  if(typeof sideSplitCalc === 'function') sideSplitCalc();
+}
+function setFlyRoundSel(v){
+  try{ localStorage.setItem('flyRoundSel', v); localStorage.setItem('flyRoundOn', '1'); }catch(e){}
+  if(typeof sideSplitCalc === 'function') sideSplitCalc();
+}
+function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
 function getThisRoundFly(){
   // 返回 {lines: [], total: X, already: Y, totalFly: Z}
   // 特号/平特：用flownPerPos跟踪分批飞
@@ -2565,6 +2582,8 @@ function getThisRoundFly(){
       }
     }
   }
+  // 凑整只作用于本轮应飞，已飞不动
+  if(flyRoundOn()) lines.forEach(l => { if(l.amt > 0) l.amt = flySnap(l.amt); });
   return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly };
 }
 
@@ -2639,7 +2658,8 @@ function sideSplitCalc(){
   document.getElementById('sideSplitSummary').innerHTML =
     `<div style="display:flex;justify-content:space-between;font-size:13px;color:#666;padding-bottom:3px;border-bottom:1px solid #eee"><span>当前阈值</span><span style="color:#333">特号 <b>${splitTakeAll||0}</b> ｜ 平特 <b>${pteFlyTakeAll||0}</b> ｜ 连肖 <b>${lxFlyAmt||0}</b></span></div>`
     + `<div style="padding-top:3px">总单 <b>${total.toFixed(0)}</b> ｜ 总飞出去 <b style="color:#cf1322">${_r.totalFly.toFixed(0)}</b></div>`
-    + `<div>已飞 ${_r.already.toFixed(0)} ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b></div>`;
+    + `<div>已飞 ${_r.already.toFixed(0)} ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b></div>`
+    + `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin:6px 0 2px;cursor:pointer;line-height:1.4"><input type="checkbox" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap"><a href="javascript:setFlyRoundSel('5')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='5'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='5'?'700':'400'}">5</a><span style="color:#ccc">|</span><a href="javascript:setFlyRoundSel('10')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='10'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='10'?'700':'400'}">10</a> 元档</span><br><span style="color:#999;font-size:11px">勾选后本轮应飞金额向上凑到整数档，多飞的自付</span></label>`;
   // 明细表
   let h = '<div style="font-size:14px">';
   h += '<div style="display:flex;align-items:center;padding:8px 4px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0">';
@@ -3455,7 +3475,7 @@ function parseLine(text){
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
   // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
   var SEP = '[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+';
-  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
+  var fast = text.match(new RegExp('^((?:\\d{1,2}' + SEP + ')+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组|注|码|只)?|每(?:组|个|号|肖|注|码|只)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$'));
   if(fast){
     var fnums = fast[1].split(new RegExp(SEP)).filter(Boolean).map(function(n){ return n.padStart(2,'0'); });
     if(fnums.length >= 1) return { codes: fnums, price: parseFloat(fast[2]), isPer: true };
@@ -3485,7 +3505,7 @@ function parseLine(text){
   text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
-  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*' + numRe + unitRe + '\\s*$'));
+  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组|注|码|只)?|每(?:组|个|号|肖|注|码|只)?|个)\\s*' + numRe + unitRe + '\\s*$'));
   let isPer, price, codeText;
   if(mGe){
     isPer = true;
@@ -3696,7 +3716,7 @@ function parseLine(text){
             throw new Error('无法识别：「' + badText[0].trim() + '」');
           }
           var badNum = rest.match(/^\d{3,}/);
-          if(badNum) throw new Error('无法识别的数字：' + badNum[0]);
+          if(badNum) throw new Error('无法识别的数字：' + badNum[0] + '（三位以上请写成「各' + badNum[0] + '」或「共' + badNum[0] + '」，例如 05 06 各' + badNum[0] + '）');
           rest = '';
         }
       }
@@ -3981,8 +4001,21 @@ function handleSave(){
     if(/^开[\s.．·,，、:：]*\d/.test(raw0) || /^开奖/.test(raw0)){
       autoPayout(); return;
     }
+    // 防重复：同客户 + 同样单据内容（3 分钟内）→ 先问，避免客户改单后重复下单
+    var _csm = (document.getElementById('customerName') || {}).value || '散客';
+    var _fp = _csm + '|' + raw0.replace(/\s+/g, '');
+    var _dup = window.__lastInputFp === _fp && (Date.now() - (window.__lastInputAt || 0) < 180000);
+    if(_dup && !window.__dupConfirmed && typeof myConfirm === 'function'){
+      myConfirm('这行内容刚存过（3 分钟内）。\n\n如果客户是改单重发，按「取消」不要存；\n确实是另一笔，按「确认」再存一次。', function(){
+        // 递归期间必须保持 true，否则会再次命中重复判定 → 无限弹窗
+        window.__dupConfirmed = true;
+        try { handleSave(); } finally { window.__dupConfirmed = false; }
+      });
+      return;
+    }
+    window.__lastInputFp = _fp;
+    window.__lastInputAt = Date.now();
   }
-  
   doSave();
 }
 
@@ -4240,7 +4273,11 @@ function manualSave(ov){
   var unit = (mode==='per') ? price : (price/qty);
   var amount = qty * unit;
   var allCodes = [], codeAmts = {};
-  codes.forEach(function(c){ allCodes.push(c); codeAmts[c] = (codeAmts[c]||0) + unit; });
+  codes.forEach(function(c){
+    // 同一号码只进列表一次，金额照常累加；否则下游按号码统计会成倍放大
+    if(!Object.prototype.hasOwnProperty.call(codeAmts, c)) allCodes.push(c);
+    codeAmts[c] = (codeAmts[c]||0) + unit;
+  });
   var customer = (document.getElementById('customerName').value || '').trim() || '散客';
   orders.push({
     id: String(Date.now()) + '-' + Math.random().toString(36).slice(2,7),
@@ -4382,6 +4419,14 @@ function showMultiDlg(items, text){
     doSave(newText);
   };
 }
+// 有歧义时整批不落账，必须让用户看见「本批没存」，避免以为存了
+function warnBatchNotSaved(){
+  try {
+    var el = document.getElementById('saveMsg');
+    if(el) el.innerHTML = '<b style="color:#cf1322">本批未保存</b>：有一行需要你先确认算法，确认后会自动重存。';
+  } catch(e){}
+}
+
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
@@ -4573,6 +4618,7 @@ function doSave(overrideText){
           } else {
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
+          warnBatchNotSaved();
           const ov = document.createElement('div');
           ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
           ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
@@ -4678,10 +4724,12 @@ function doSave(overrideText){
     } else {
       // 号码+金额成对格式："03 10 05 20" → "03 10" + "05 20"
       var _nums = _t.match(/\d{1,2}/g);
-      var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各]/.test(_t);
-      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
+      var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各每注码只]/.test(_t);
+      var _hasBigNum = /\d{3,}/.test(_t.replace(/『P\d+』/g, ''));
+      if(_nums && _nums.length === 4 && !_hasZod && !_hasBigNum && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
         var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
         window.__ambigAbort = true;
+          warnBatchNotSaved();
         myChoice('这4个数字怎么算？', _a1+' '+_a2+' '+_a3+' '+_a4, [
           '两笔：'+_a1+'号'+_a2+'元 + '+_a3+'号'+_a4+'元',
           '一笔：'+_a1+' '+_a2+' '+_a3+' 各'+_a4+'元（3号共'+(3*parseFloat(_a4))+'元）',
@@ -4829,6 +4877,7 @@ renderAll();
           r.isPer = true;
         } else if(allBareNums){
           window.__ambigAbort = true;
+          warnBatchNotSaved();
           var _codes = r.codes.join(' ');
           var _price = r.price;
           var _n = r.codes.length;
@@ -4860,6 +4909,7 @@ renderAll();
       if(e.ambigZodiac){
         var zs = e.ambigZodiac;
         window.__ambigAbort = true;
+          warnBatchNotSaved();
         myChoice('「'+zs+'」怎么录？', '没写平/特/连，这'+zs.length+'个生肖按哪种产品？点一下就存好。', ['特肖：买该肖全部特号','平特：买该肖平特','连肖：买这几个肖连肖','重新编辑'], function(pick){
           if(pick===3){ window.__ambigAbort=false; return; }
           var prefix = pick===0 ? '特' : (pick===1 ? '平特' : '连肖');
@@ -4940,7 +4990,8 @@ renderAll();
     const unit = p.isPer ? p.price : (p.price / qty);
     const amount = qty * unit;
     p.codes.forEach(c => {
-      allCodes.push(c);
+      // 同一号码只进列表一次，金额照常累加
+      if(!Object.prototype.hasOwnProperty.call(codeAmts, c)) allCodes.push(c);
       codeAmts[c] = (codeAmts[c]||0) + unit;
     });
     totalAmount += amount;
