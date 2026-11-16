@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.137-Pro';
+var APP_VER = 'v58.138-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6764,14 +6764,25 @@ function renderRisk(){
     if(typeof c === 'string' && c.startsWith('连肖')){ lxTotalSalesSum += codeSalesForOrder(o, c); }
   });});
   const effectiveLxFly = splitTakeAll === 0 ? lxTotalSalesSum : lxFlyAmt;
-  // 自留现金 = 总收 - 特号飞 - 平特飞 - 连肖飞
-  const keptCash = totalSales - currentFly - pteFlyAmt - effectiveLxFly;
+  // 每号飞完后实际付出：已飞按实际、待飞按凑整后（凑整差额都归自己，这里必须用实际）
+  function realFlyOfNum(n){
+    const k = String(n).padStart(2,'0');
+    const bet = numBets[n] || 0;
+    const should = Math.max(0, bet - splitTakeAll);
+    const doneOrig = flownPerPos[k] || 0;
+    const pending = Math.max(0, should - doneOrig);
+    return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
+  }
+  let specRealFly = 0;
+  for(let n=1;n<=49;n++) specRealFly += realFlyOfNum(n);
+  // 自留现金 = 总收 - 特号实际飞 - 平特飞 - 连肖飞
+  const keptCash = totalSales - specRealFly - pteFlyAmt - effectiveLxFly;
   const specKept = (fullTotalSales - pteTotalSalesSum - emFlySales - lxTotalSalesSum) - currentFly;
   const pteKept = pteTotalSalesSum - pteFlyAmt;
   const lxKept = lxTotalSalesSum - effectiveLxFly;
   const totalOtherPayout = ptePayout + lxPayout;
   const worstNum = sorted[0];
-  const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : 0;
+  const worstKeptBet = Math.max(0, (numBets[worstNum]||0) - realFlyOfNum(worstNum));
   const worstNet = keptCash - worstKeptBet*payMult - totalOtherPayout;
   // 集中度
   const top5sum = top5.reduce((s,n) => s + numBets[n], 0);
@@ -6779,7 +6790,7 @@ function renderRisk(){
   // 期望值（特号独立）
   let ev = 0;
   sorted.forEach(n => {
-    const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
+    const keptBet = Math.max(0, (numBets[n]||0) - realFlyOfNum(n));
     ev += (specKept - keptBet*payMult) / 49;
   });
   const riskPct = keptCash > 0 ? Math.abs(worstNet)/keptCash*100 : 100;
@@ -6787,7 +6798,7 @@ function renderRisk(){
   winNums = 0; loseNums = 0; zeroCnt = 0;
   let loseMin = 0, loseMax = 0, winMin = 0;
   sorted.forEach(n => {
-    const keptBet = splitTakeAll > 0 ? Math.min(numBets[n]||0, splitTakeAll) : (numBets[n]||0);
+    const keptBet = Math.max(0, (numBets[n]||0) - realFlyOfNum(n));
     const net = specKept - keptBet*payMult;
     if(numBets[n] === 0) zeroCnt++;
     else if(net >= 0){ winNums++; if(winMin===0||net<winMin) winMin=net; }
@@ -6812,7 +6823,7 @@ function renderRisk(){
     const dz = NUM2ZODIAC[dn];
     const drawZSet = new Set([...(lastDraw.regularNums||[]), dn].map(n=>NUM2ZODIAC[n]).filter(Boolean));
     // 特号实际赔付
-    const keptSpecBet = splitTakeAll > 0 ? Math.min(numBets[dn]||0, splitTakeAll) : (numBets[dn]||0);
+    const keptSpecBet = Math.max(0, (numBets[dn]||0) - realFlyOfNum(dn));
     const actualSpecPayout = keptSpecBet * payMult;
     // 平特实际赔付
     let actualPtePayout = 0;
@@ -7350,18 +7361,32 @@ function renderRisk(){
     h += `<div style="display:flex;justify-content:space-between;border-top:1px dashed #e0e0e0;margin-top:3px;padding-top:5px"><span>飞出去合计</span><b style="color:#cf1322">${flySum.toFixed(0)}</b></div>`;
   }
   // 实际口径：现金按「实际飞出（凑整后）」扣，凑整差额归自己，这块钱要摊到赔付和净值里
-  // 已飞按实际记，待飞也按凑整后估，两者相加才是「飞完后实际付出」
-  const _alreadyReal = totalFlownReal();
-  let _pendingReal = 0;
-  (getThisRoundFly().lines || []).forEach(l => {
-    if(l.amt > 0) _pendingReal += (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
-  });
-  const _totalRealFly = _alreadyReal + _pendingReal;
-  const keptCashReal = totalSales - _totalRealFly;
-  const _roundGap = _totalRealFly - flySum;   // 负=少飞(自留多了)；正=多飞(自留少了)
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　实际飞出（凑整后）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
-  if(Math.abs(_roundGap) > 0.01){
-    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整差额（${_roundGap < 0 ? '少飞 · 多留' : '多飞 · 少留'}）</span><span>${Math.abs(_roundGap).toFixed(0)}</span></div>`;
+  // 特号/平特/连肖 单独算：已飞按实际、待飞按凑整后，两边和「该飞原额」同基准
+  // 二/三中三走 emFlySales，不凑整，单独一行，不混进自留现金（totalSales 本来就不含它）
+  const _fr2 = getThisRoundFly();
+  const _alreadyReal = Object.keys(flownPerPos).reduce((a,k)=> k === '_em_total' ? a : a + flownRealOf(k), 0);
+  const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
+  const keptCashReal = keptCash;                 // 与风险面板同一口径
+  const _totalRealFly = totalSales - keptCash;
+  const _totalOrigFly = currentFly + pteFlyAmt + effectiveLxFly;
+  const _roundGap = _totalRealFly - _totalOrigFly;   // 负=少飞(留自己)；正=多飞(上家兜)
+  const _pendingOrig = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + l.amt, 0);
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　特号/平特/连肖：已飞 ${_alreadyReal.toFixed(0)} · 待飞 ${_pendingOrig.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　飞完实付（不含二/三中三）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
+  if(_roundGap < -0.01){
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整少飞 ${Math.abs(_roundGap).toFixed(0)} 元 → 这钱留自己，开出该号自己赔</span><span></span></div>`;
+  } else if(_roundGap > 0.01){
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整多飞 ${_roundGap.toFixed(0)} 元 → 上家替你兜，开出该号上家赔你</span><span></span></div>`;
+  } else {
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　凑整差额 0（飞额已是 5 的倍数）</span><span></span></div>`;
+  }
+  // 点开看每个号凑整前后
+  const _gapLines = (_fr2.lines||[]).filter(l => l.amt > 0 && l.code !== '二中二/三中三合计' && Math.abs(flyShowAmt(l.amt) - l.amt) > 0.01);
+  if(_gapLines.length){
+    h += `<div onclick="var d=document.getElementById('roundGapList');d.style.display=(d.style.display==='none'?'block':'none')" style="font-size:11px;color:#2563eb;cursor:pointer;padding:1px 0 3px 4px">▸ 点开看哪些号凑整了（${_gapLines.length} 个）</div>`;
+    h += `<div id="roundGapList" style="display:none;font-size:11px;color:#888;line-height:1.7;padding:2px 0 6px 8px;word-break:break-all">`;
+    h += _gapLines.map(l => `${l.code}　${l.amt.toFixed(0)}→${flyShowAmt(l.amt).toFixed(0)}`).join('　｜　');
+    h += `</div>`;
   }
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCashReal.toFixed(0)}</b></div>`;
   // 开奖后用实际值，否则用最坏预测
