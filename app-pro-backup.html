@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.168-Pro';
+var APP_VER = 'v58.169-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6037,6 +6037,18 @@ renderAll();
 function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); }
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
+// 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
+function _hitLabel(c){
+  if(c.indexOf('平特') === 0) return '平' + c.replace('平特','');
+  if(c.indexOf('连肖') === 0) return '连' + c.replace('连肖','');
+  if(/^(二中二|三中二|三中三):/.test(c)) return '二/三 ' + c.split(':')[1];
+  var m = c.match(/^(\d{1,2})号/); if(m) return '特' + m[1];
+  return c;
+}
+function _fmtAmt(v){
+  v = Number(v) || 0;
+  return Math.abs(v - Math.round(v)) < 0.005 ? String(Math.round(v)) : v.toFixed(2);
+}
 function calcOrderWinDetail(o, dr){
   // dr 可传香港开奖对象；不传就用澳门当期 lastDraw
   var d = dr || lastDraw;
@@ -6058,7 +6070,7 @@ function calcOrderWinDetail(o, dr){
         const mult = zs.includes('马') ? base-0.5 : base;
         const w = bet * mult;
         total += w;
-        lines.push(code + ' 下注' + bet.toFixed(0) + ' ×' + mult + ' = ' + w.toFixed(2));
+        lines.push(_hitLabel(code) + '　' + _fmtAmt(bet) + ' ×' + mult + ' = ' + _fmtAmt(w));
       }
     } else if(code.startsWith('平特')){
       const z = code.replace('平特','');
@@ -6082,13 +6094,13 @@ function calcOrderWinDetail(o, dr){
         var emMult = code.indexOf('二中二:')===0 ? 60 : (code.indexOf('三中三:')===0 ? 600 : 20);
         var w2 = bet * emMult;
         total += w2;
-        lines.push(code.replace(':', ' ') + ' 下注' + bet.toFixed(0) + ' ×' + emMult + ' = ' + w2.toFixed(2));
+        lines.push(_hitLabel(code) + '　' + _fmtAmt(bet) + ' ×' + emMult + ' = ' + _fmtAmt(w2));
       }
     } else if(/^\d{2}$/.test(code)){
       if(Number(code) === d.specialNum){
         const w = bet * payMult;
         total += w;
-        lines.push(code + '号 下注' + bet.toFixed(0) + ' ×' + payMult + ' = ' + w.toFixed(2));
+        lines.push(_hitLabel(code + '号') + '　' + _fmtAmt(bet) + ' ×' + payMult + ' = ' + _fmtAmt(w));
       }
     }
   });
@@ -6535,22 +6547,24 @@ function custDetailBlock(list, dr, title){
   var t = '【' + title + '】\n';
   // 下单：按玩法归类，只报各类金额
   t += '下单：\n';
-  var ORDER = ['特', '平肖', '连肖', '二中二', '三中二', '三中三', '其他'];
+  var MERGE = {'特':'特', '平肖':'平', '连肖':'平', '二中二':'二/三', '三中二':'二/三', '三中三':'二/三', '其他':'其他'};
+  var agg = {};
+  Object.keys(cats).forEach(function(k){ var g = MERGE[k] || '其他'; agg[g] = (agg[g]||0) + cats[k]; });
+  var ORDER = ['特', '平', '二/三', '其他'];
   var any = false;
   ORDER.forEach(function(k){
-    if(cats[k] && Math.abs(cats[k]) > 0.001){ t += '  ' + k + ':' + cats[k].toFixed(0) + '\n'; any = true; }
+    if(agg[k] && Math.abs(agg[k]) > 0.001){ t += '  ' + k + ' ' + _fmtAmt(agg[k]) + '\n'; any = true; }
   });
   if(!any) t += '  （无）\n';
-  t += '  合计 ' + betTotal.toFixed(0) + '\n';
+  t += '  合计 ' + _fmtAmt(betTotal) + '\n';
   t += '命中：\n';
-  if(!hits.length) t += '  （本期无中奖）\n';
+  if(!hits.length) t += '  （本期无命中）\n';
   hits.forEach(function(l){ t += '  ' + l + '\n'; });
-  t += '  中奖合计 ' + winTotal.toFixed(2) + '\n';
+  t += '  合计 ' + _fmtAmt(winTotal) + '\n';
   var net = winTotal - betTotal;
-  // 客户视角、纯记账口径：只报数，不评价输赢（不用「亏」「赚」「你赚」）
-  t += '本期合计\n';
-  t += '  下注 ' + betTotal.toFixed(0) + ' ｜ 中奖 ' + winTotal.toFixed(2)
-     + ' ｜ 结余 ' + (net >= 0 ? '+' : '') + net.toFixed(2) + '\n';
+  t += '汇总：\n';
+  t += '  投入 ' + _fmtAmt(betTotal) + ' ｜ 命中 ' + _fmtAmt(winTotal)
+     + ' ｜ 结余 ' + (net >= 0 ? '+' : '') + _fmtAmt(net) + '\n';
   return { text: t, bet: betTotal, win: winTotal, net: net };
 }
 
@@ -6561,21 +6575,21 @@ function buildCustOrdersText(cust){
   var text = (cust || '散客') + '\n';
   var b1 = 0, w1 = 0, b2 = 0, w2 = 0;
   if(macList.length){
-    var m = custDetailBlock(macList, lastDraw, '澳门 ' + (lastDraw ? ('期' + (lastDraw.period || '')) : '未开奖'));
+    var m = custDetailBlock(macList, lastDraw, lastDraw ? ('澳 ' + (lastDraw.period || '')) : '澳 未开奖');
     text += m.text;
     b1 = m.bet; w1 = m.win;
   }
   if(hkList.length){
     var hd = hkDrawObj();
-    var h = custDetailBlock(hkList, hd, '香港 ' + (hd ? ('期' + (hd.draw || '')) : '未开奖'));
+    var h = custDetailBlock(hkList, hd, hd ? ('港 ' + (hd.draw || '')) : '港 未开奖');
     text += h.text;
     b2 = h.bet; w2 = h.win;
   }
   if(macList.length && hkList.length){
     var tb = b1 + b2, tw = w1 + w2, tn = tw - tb;
     text += '【港澳合计】\n';
-    text += '  下注 ' + tb.toFixed(0) + ' ｜ 中奖 ' + tw.toFixed(2)
-       + ' ｜ 结余 ' + (tn >= 0 ? '+' : '') + tn.toFixed(2) + '\n';
+    text += '  投入 ' + _fmtAmt(tb) + ' ｜ 命中 ' + _fmtAmt(tw)
+       + ' ｜ 结余 ' + (tn >= 0 ? '+' : '') + _fmtAmt(tn) + '\n';
   }
   return text;
 }
