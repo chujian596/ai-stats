@@ -58,7 +58,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.32</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.33</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 12px"></div>
@@ -183,7 +183,7 @@ function loadTextwall(){
   return fetchJson('data/img-extract.json',10000).then(function(d){
     if(!d||!d.cols) throw new Error('empty');
     var Z='鼠牛虎兔龙蛇马羊猴鸡狗猪';
-    var per=d.period||319;
+    var per=d.period||LATEST_PER;
     var cols=[];
     Object.keys(d.cols).forEach(function(k){
       var c=d.cols[k]||{};
@@ -211,9 +211,11 @@ function loadTextwall(){
 function loadForum(){
   function apply(d){ state.forum.source=(d&&d.source)||{}; state.forum.columns=(d&&d.columns)||[]; }
   // 优先用当期解析好的 data/forum-319.json（318 条，a=作者 t=标题 z=生肖 k=是否杀）
-  return fetchJson('data/forum-319.json',12000).then(function(d){
+  return fetchLatestPeriod().then(function(per0){
+    return fetchJson('data/forum-'+per0+'.json',12000);
+  }).then(function(d){
     if(d&&d.detail&&d.detail.length){
-      var per=d.period||319;
+      var per=d.period||LATEST_PER;
       var cols=d.detail.map(function(x){
         return { name:x.a, title:x.a, topic:x.t, kind:x.k?'kill':'rec',
           current:{ period:per, zods:x.z||[] },
@@ -350,21 +352,31 @@ function switchTab(t){
   $('tabHint').textContent = TAB_HINT[t] || '';
 }
 
+// 当前期号：优先读归档脚本写的 data/latest-period.json，读不到再退回 319
+var LATEST_PER=319;
+function fetchLatestPeriod(){
+  return fetchJson('data/latest-period.json',6000).then(function(d){
+    if(d&&d.period){ LATEST_PER=d.period; }
+    return LATEST_PER;
+  }).catch(function(){ return LATEST_PER; });
+}
 function loadImg(){
-  return Promise.all([
-    fetchJson('data/consensus-319.json',6000).then(function(d){ state.img=d; }).catch(function(){ state.img=null; }),
-    fetchJson('data/cross-319.json',6000).then(function(d){ state.cross=d; }).catch(function(){ state.cross=null; }),
-    fetchJson('data/hypo-track.json',6000).then(function(d){ state.track=d; }).catch(function(){ state.track=null; }),
-    fetchJson('data/three-319.json',6000).then(function(d){ state.three=d; }).catch(function(){ state.three=null; }),
-    fetchJson('data/pingte-319.json',6000).then(function(d){ state.pt=d; }).catch(function(){ state.pt=null; }),
-    fetchJson('data/ratio-319.json',6000).then(function(d){ state.ratio=d; }).catch(function(){ state.ratio=null; }),
-    fetchJson('data/tpl-319.json',6000).then(function(d){ state.tpl=d; }).catch(function(){ state.tpl=null; })
-  ]);
+  return fetchLatestPeriod().then(function(per){
+    return Promise.all([
+      fetchJson('data/consensus-'+per+'.json',6000).then(function(d){ state.img=d; }).catch(function(){ state.img=null; }),
+      fetchJson('data/cross-'+per+'.json',6000).then(function(d){ state.cross=d; }).catch(function(){ state.cross=null; }),
+      fetchJson('data/hypo-track.json',6000).then(function(d){ state.track=d; }).catch(function(){ state.track=null; }),
+      fetchJson('data/three-'+per+'.json',6000).then(function(d){ state.three=d; }).catch(function(){ state.three=null; }),
+      fetchJson('data/pingte-'+per+'.json',6000).then(function(d){ state.pt=d; }).catch(function(){ state.pt=null; }),
+      fetchJson('data/ratio-'+per+'.json',6000).then(function(d){ state.ratio=d; }).catch(function(){ state.ratio=null; }),
+      fetchJson('data/tpl-'+per+'.json',6000).then(function(d){ state.tpl=d; }).catch(function(){ state.tpl=null; })
+    ]);
+  });
 }
 
 function renderImg(){
   var p=$('panelImg'), d=state.img;
-  if(!d){ p.innerHTML='<div class="muted" style="padding:12px">本期数据加载中…若长时间空白，下拉刷新一次即可</div>'; return; }
+  if(!d){ p.innerHTML='<div class="muted" style="padding:12px">'+LATEST_PER+' 期图库识图还没生成（论坛与杀肖数据已更新）。若刚抓取过，下拉刷新一次；图库栏需要逐张看图，属另一条流程。</div>'; return; }
   var zs=(d.zodiacs||[]).slice().sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
   var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
   var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
@@ -411,14 +423,14 @@ function renderImg(){
       var g=t.periods[p2]; if(!g) return;
       h+='<div>'+p2+' 期：开 <b>'+g.out+'</b>；推榜前四 '+Object.keys(g.recTop).join('/')+'；杀票仅 '+Object.keys(g.killTop).length+' 个肖有记录；开奖肖在零杀组（'+g.verdict+'）</div>';
     });
-    h+='<div style="margin-top:6px;color:#c0392b">319 期杀票 33 票、12 肖全有杀票 —— 结构跟前两期完全不同，本期才是第一个能验证的样本</div>';
+    h+='<div style="margin-top:6px;color:#c0392b">'+LATEST_PER+' 期杀票结构见下（12 肖全有杀票时说明是洒水覆盖） —— 结构跟前两期完全不同，本期才是第一个能验证的样本</div>';
     h+='</div></div>';
   }
   var th=state.three;
   if(th && th.rec && th.rec.length){
     h+='<div style="margin-top:16px;padding-top:14px;border-top:2px solid #eee">';
     h+='<div style="font-weight:700;font-size:15px;margin-bottom:3px">三肖专档 · 只算推/杀恰好 3 个生肖的帖</div>';
-    h+='<div style="color:#888;font-size:12px;margin-bottom:8px">319 期共 '+th.total3+' 条：<b>推三肖 '+th.rec3+' 条</b>、<b>杀三肖 '+th.kill3+' 条</b>（同帖重复同一生肖的不计入）</div>';
+    h+='<div style="color:#888;font-size:12px;margin-bottom:8px">'+LATEST_PER+' 期共 '+th.total3+' 条：<b>推三肖 '+th.rec3+' 条</b>、<b>杀三肖 '+th.kill3+' 条</b>（同帖重复同一生肖的不计入）</div>';
     h+='<div style="font-size:13px;line-height:2">';
     h+='<div>推：'+th.rec.map(function(o){ return o.s+' '+o.n; }).join('　')+'</div>';
     h+='<div>杀：'+th.kill.map(function(o){ return o.s+' '+o.n; }).join('　')+'</div>';
@@ -430,7 +442,7 @@ function renderImg(){
   if(pt && pt.rec && pt.rec.length){
     h+='<div style="margin-top:16px;padding-top:14px;border-top:2px solid #eee">';
     h+='<div style="font-weight:700;font-size:15px;margin-bottom:3px">平特品类 · 只算标题含「平特」的帖</div>';
-    h+='<div style="color:#888;font-size:12px;margin-bottom:8px">319 期共 '+pt.total+' 条：平特一肖 35 · 多肖平特 5 · 成语平特 13（同一肖写多遍只计 1 票）</div>';
+    h+='<div style="color:#888;font-size:12px;margin-bottom:8px">'+LATEST_PER+' 期共 '+pt.total+' 条：平特一肖 35 · 多肖平特 5 · 成语平特 13（同一肖写多遍只计 1 票）</div>';
     h+='<div style="font-size:13px;line-height:2">';
     h+='<div>'+pt.rec.map(function(o){ return o.s+' '+o.n; }).join('　')+'</div>';
     h+='<div style="margin-top:6px;color:#c0392b">推最多：<b>'+pt.rec[0].s+' '+pt.rec[0].n+'</b>　推最少：'+pt.rec.slice(-2).map(function(o){return o.s+' '+o.n;}).join('、')+'</div>';
@@ -678,7 +690,7 @@ function renderRank(){
     html += '<div class="muted" style="margin-top:10px;line-height:1.8">'
       + '已抓到本期 ' + ((state.tw.columns||[]).length + (state.forum.columns||[]).length) + ' 条资料，但还没有一条走完「发布 → 开奖 → 对账」。<br>'
       + '手上只有 317/318 两期的零散回测（48 + 47 条），不够排名。<br>'
-      + '从 319 期起每期自动存档，存满 3 期后此页开始出真实命中率排序。'
+      + '从 '+LATEST_PER+' 期起每期自动存档，存满 3 期后此页开始出真实命中率排序。'
       + '</div>';
   }
   html += '<div style="display:flex;gap:12px;margin-top:10px">';

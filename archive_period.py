@@ -400,6 +400,13 @@ def main():
         "killLow": {"z": kill_lift_sorted[0]["z"], "lift": kill_lift_sorted[0]["killLift"]},
         "killHigh": {"z": kill_lift_sorted[-1]["z"], "lift": kill_lift_sorted[-1]["killLift"]}
     }
+    # 写「最新期号」，stats.html 靠它自动切期
+    try:
+        with open(os.path.join(DATA_DIR, "latest-period.json"), "w", encoding="utf-8") as f:
+            json.dump({"period": period, "updatedAt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, f, ensure_ascii=False)
+    except Exception as e:
+        print("WARN latest-period:", e)
+
     report_path = os.path.join(DATA_DIR, f"archive-report-{period}.json")
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
