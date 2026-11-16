@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.166-Pro';
+var APP_VER = 'v58.167-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6342,13 +6342,12 @@ function renderOrdersList(){
   } catch(e){}
   // 返水：飞走金额按比例返给我
   let rebateOn = true, rebateRate = 0.03;
-  try { rebateOn = localStorage.getItem('rebateOn') !== '0'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
+  try { rebateOn = localStorage.getItem('rebateOn') === '1'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
   const rebateAmt = rebateOn ? flyOutTotal * rebateRate : 0;
   const owedAmt = lastDraw ? (flyOutTotal - flyBackTotal) : 0;
   const netSettle = lastDraw ? (rebateAmt - owedAmt) : null;
   var _perTxt = (lastDraw && lastDraw.period) ? ('  ' + lastDraw.period + ' 期') : '';
   let copyTail = '飞单对账' + _perTxt + '\n'
-    + upCopyLines.join('\n') + '\n'
     + `合计 ${flyOutTotal.toFixed(0)} 元（特码 ${cpSp.toFixed(0)} + 平特 ${cpZd.toFixed(0)} + 组合玩法 ${cpEm.toFixed(0)}）`;
   if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
   if(lastDraw){
