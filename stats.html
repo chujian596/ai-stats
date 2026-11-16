@@ -58,10 +58,11 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.33</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.34</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
-  <div class="muted" id="fetchedAt" style="margin:-6px 0 12px"></div>
+  <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
+  <div id="periodBar" style="margin:0 0 10px;display:flex;align-items:center;gap:6px;font-size:13px"></div>
 
   <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch">
     <div class="tab" id="tabOverview" onclick="switchTab('overview')">实时抓取</div>
@@ -207,19 +208,35 @@ function loadTextwall(){
   });
 }
 
+// 归档 JSON 里的生肖字段是 Python 列表的字符串形式（"['龙', '羊']"），
+// 旧代码直接当数组用，取 [0] 拿到的是 "["，导致「第一肖」全 0。这里统一归一化。
+function _zArr(v){
+  if(Array.isArray(v)) return v.map(function(z){ return String(z).trim(); }).filter(Boolean);
+  if(typeof v === 'string'){
+    var q = v.match(/['"]([^'"]+)['"]/g);
+    if(q && q.length) return q.map(function(x){ return x.replace(/['"]/g,'').trim(); }).filter(Boolean);
+    return Array.from(v).filter(function(c){ return ZODIAC_LIST.indexOf(c) >= 0; });
+  }
+  return [];
+}
+function _isKill(v){ return v === true || v === 1 || v === '1' || v === 'True' || v === 'true' || v === 'kill'; }
+var ZODIAC_LIST = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+
 // 论坛后台对账汇总（forum_reader.py 生成，静态 JSON，同目录）
 function loadForum(){
   function apply(d){ state.forum.source=(d&&d.source)||{}; state.forum.columns=(d&&d.columns)||[]; }
   // 优先用当期解析好的 data/forum-319.json（318 条，a=作者 t=标题 z=生肖 k=是否杀）
-  return fetchLatestPeriod().then(function(per0){
+  return fetchLatestPeriod().then(loadPeriods).then(function(){
+    var per0=curPer();
     return fetchJson('data/forum-'+per0+'.json',12000);
   }).then(function(d){
     if(d&&d.detail&&d.detail.length){
       var per=d.period||LATEST_PER;
       var cols=d.detail.map(function(x){
-        return { name:x.a, title:x.a, topic:x.t, kind:x.k?'kill':'rec',
-          current:{ period:per, zods:x.z||[] },
-          rows:[{ period:per, zods:x.z||[], verdict:'pending' }],
+        var zz = _zArr(x.z);
+        return { name:x.a, title:x.a, topic:x.t, kind: (_isKill(x.k)?'kill':'rec'),
+          current:{ period:per, zods:zz },
+          rows:[{ period:per, zods:zz, verdict:'pending' }],
           cls:'watch', hit:0, miss:0, unresolved:0, acc:null, missRate:null, mismatchCount:0, changed:false, mismatch:[], changedPeriods:[], missingCount:0, fetchedAt:'' };
       });
       state.forum={ source:{ siteName:'公开论坛', listApi:'/api/v1/forums?lottery=macao', detailApi:'/api/v1/forums/{threadId}', access:'6 页 × 100 条' }, columns:cols };
@@ -354,6 +371,25 @@ function switchTab(t){
 
 // 当前期号：优先读归档脚本写的 data/latest-period.json，读不到再退回 319
 var LATEST_PER=319;
+var VIEW_PER=0;              // 0=跟当期；非0=看指定往期
+function curPer(){ return VIEW_PER || LATEST_PER; }
+function setViewPer(v){ VIEW_PER=parseInt(v,10)||0; try{ loadAll(); }catch(e){} }
+function loadPeriods(){
+  fetchJson('data/periods.json',6000).then(function(d){
+    renderPeriodBar((d&&d.periods)||[LATEST_PER]);
+  }).catch(function(){ renderPeriodBar([LATEST_PER]); });
+}
+function renderPeriodBar(list){
+  var el=document.getElementById('periodBar'); if(!el) return;
+  if(!list.length) list=[LATEST_PER];
+  var opts=list.slice().sort(function(a,b){return b-a;}).map(function(p){
+    return '<option value="'+p+'"'+(Number(p)===Number(curPer())?' selected':'')+'>'+p+' 期</option>';
+  }).join('');
+  el.innerHTML='<span style="color:#666;font-weight:600">期号</span>'
+    +'<select id="perSel" onchange="setViewPer(this.value)" style="border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff">'+opts+'</select>'
+    +'<span style="color:#999;font-size:11px">'+(VIEW_PER?'看往期，切回最新点右侧按钮':'当前最新期')+'</span>'
+    +(VIEW_PER?'<button onclick="setViewPer(0)" style="border:1px solid #000;background:#fff;border-radius:6px;padding:4px 8px;font-size:12px">回到当期</button>':'');
+}
 function fetchLatestPeriod(){
   return fetchJson('data/latest-period.json',6000).then(function(d){
     if(d&&d.period){ LATEST_PER=d.period; }
@@ -361,7 +397,8 @@ function fetchLatestPeriod(){
   }).catch(function(){ return LATEST_PER; });
 }
 function loadImg(){
-  return fetchLatestPeriod().then(function(per){
+  return fetchLatestPeriod().then(function(){
+    var per=curPer();
     return Promise.all([
       fetchJson('data/consensus-'+per+'.json',6000).then(function(d){ state.img=d; }).catch(function(){ state.img=null; }),
       fetchJson('data/cross-'+per+'.json',6000).then(function(d){ state.cross=d; }).catch(function(){ state.cross=null; }),
@@ -944,7 +981,41 @@ function renderHot(){
     html+='<div class="row"><span>'+z+'</span><span>'+(zodCount[z]||0)+'次</span></div>';
   });
   html+='</div>';
+
+  // 往期资料存档：开奖号码只是结果，真正要留的是每期抓到多少推/杀、模板几个
+  html+='<div class="card"><h2>往期资料存档</h2><div class="muted">每期抓到的帖子数、推票、杀票、模板数。点期号直接切到那期看明细</div><div id="hotArchive" style="margin-top:10px"><span class="muted">加载中…</span></div></div>';
   $('panelHot').innerHTML=html;
+  loadArchiveList();
+}
+
+// 读 data/periods.json + 每期 archive-report，列出归档摘要
+function loadArchiveList(){
+  fetchJson('data/periods.json',6000).then(function(d){
+    var list=((d&&d.periods)||[]).slice().sort(function(a,b){return b-a;});   // 新期在前
+    if(!list.length){ var el=document.getElementById('hotArchive'); if(el) el.innerHTML='<span class="muted">还没有存档</span>'; return; }
+    return Promise.all(list.slice(0,12).map(function(pr){
+      return fetchJson('data/archive-report-'+pr+'.json',6000).then(function(r){ return {p:pr,r:r}; }).catch(function(){ return {p:pr,r:null}; });
+    }));
+  }).then(function(rows){
+    var el=document.getElementById('hotArchive'); if(!el) return;
+    if(!rows||!rows.length){ el.innerHTML='<span class="muted">还没有存档</span>'; return; }
+    var h='';
+    rows.forEach(function(x){
+      var r=x.r||{};
+      var tplN=r.tplRank&&r.tplRank.length? (r.tplRank.reduce(function(a,b){return a+((b.totalTpl)||0);},0)) : 0;
+      var sw='';
+      if(Number(x.p)===Number(curPer())) sw='<span style="font-size:11px;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:0 5px;margin-left:5px">正在看</span>';
+      h+='<div onclick="setViewPer('+x.p+')" style="display:flex;justify-content:space-between;align-items:center;padding:7px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer">'
+        +'<span><b style="font-size:15px">'+x.p+' 期</b>'+sw+'</span>'
+        +'<span style="font-size:12px;color:#666;text-align:right;line-height:1.6">'
+        +'帖 '+(r.deduped!=null?r.deduped:'—')+' · 推 '+(r.sumRec!=null?r.sumRec:'—')+' · 杀 '+(r.sumKill!=null?r.sumKill:'—')
+        +'<br>模板 '+(tplN||'—')+' · '+(r.fetched!=null?('抓 '+(r.fetched)+' 帖'):'')
+        +'</span></div>';
+    });
+    el.innerHTML=h+'<div class="muted" style="margin-top:6px;font-size:11px">只列最近 12 期；需要更早的，把期号给我单独调出来</div>';
+  }).catch(function(){
+    var el=document.getElementById('hotArchive'); if(el) el.innerHTML='<span class="muted">存档索引读不到</span>';
+  });
 }
 
 function esc(s){ return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }

@@ -402,6 +402,20 @@ def main():
     }
     # 写「最新期号」，stats.html 靠它自动切期
     try:
+        # 历期索引：stats.html 的「往期资料存档」和期号切换都读这个
+        try:
+            import glob as _glob, re as _re
+            _pers = set()
+            for _f in _glob.glob(os.path.join(DATA_DIR, "forum-*.json")):
+                _m = _re.search(r"forum-(\d+)\.json$", _f)
+                if _m:
+                    _pers.add(int(_m.group(1)))
+            if period:
+                _pers.add(int(period))
+            with open(os.path.join(DATA_DIR, "periods.json"), "w", encoding="utf-8") as f:
+                json.dump({"periods": sorted(_pers)}, f, ensure_ascii=False)
+        except Exception as e:
+            print("WARN periods:", e)
         with open(os.path.join(DATA_DIR, "latest-period.json"), "w", encoding="utf-8") as f:
             json.dump({"period": period, "updatedAt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, f, ensure_ascii=False)
     except Exception as e:

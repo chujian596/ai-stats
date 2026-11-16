@@ -154,6 +154,16 @@ a{color:#000}
   <div class="row"><div class="k">修法</div><div class="v">把「资料每期存档」「论坛资料每日抓取」提前到 19:00 前完成，见下方调度表。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#15 · 资料 v58.34</div>
+  <div class="t">板块数据全空，其实是生肖字段解析错<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">「本期推荐第一肖频次」12 生肖里 11 个 0 帖，只有猪 1 帖；命中率也异常低。看着像没抓到数据，其实帖子和作者都读到了（152 个作者）。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">归档 JSON 的生肖字段是 Python 列表的字符串形式 <code>"['龙', '羊']"</code>，前端直接当数组用，zods[0] 取到的是 "["，一个生肖都匹配不上。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">加 _zArr() 归一化：有引号就按引号切，没有就按 12 生肖字符过滤；_isKill() 兼容 True/true/1。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">看到一个统计项全是 0，先 curl 原始 JSON 看一眼字段真实类型，别急着怀疑抓取。拿第一条数据手工跑一遍解析，对不上就是类型问题。</div></div>
+  <div class="row"><div class="k">避免</div><div class="v">跨语言传数据，列表一律传标准 JSON 数组，不要传语言自身的 repr 字符串；前端拿到字段先归一化再用。</div></div>
+</div>
+
 <div class="gtitle">三、上线前必过自检</div>
 <div class="check">
   <div style="font-weight:700;font-size:13px;margin-bottom:4px">录单系统（每次改 app-pro.html 都跑）</div>
