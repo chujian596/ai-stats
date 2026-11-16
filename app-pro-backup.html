@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.147-Pro';
+var APP_VER = 'v58.148-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -839,8 +839,11 @@ function autoPayout(){
     let flyOutAmt = 0, flyBackAmt = 0;
     try {
       const sales0 = getSplitSales();
-      Object.keys(sales0).forEach(k => { flyOutAmt += Math.max(0, sales0[k] - splitTakeAll); });
-      flyBackAmt += Math.max(0, (sales0[specialNum]||0) - splitTakeAll) * payMult;
+      // 特号走「实际已飞」口径（含早前确认过的），和飞单明细、自留现金同一个数
+      let specFlyReal0 = 0;
+      for(let n1 = 1; n1 <= 49; n1++){ specFlyReal0 += realFlyAmount(String(n1).padStart(2,'0'), sales0[n1] || 0); }
+      flyOutAmt += specFlyReal0;
+      flyBackAmt += realFlyAmount(String(specialNum).padStart(2,'0'), sales0[specialNum] || 0) * payMult;
       const pteAgg0 = {};
       orders.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && c.startsWith('平特')){
@@ -2165,6 +2168,13 @@ function flownRealOf(k){
   if(r === undefined) return p;        // 老数据没记录，按原额
   if(r === 0 && p > 0) return p;       // 被新写的 0 覆盖了，回退原额
   return r;
+}
+// 某号实际扣掉的钱：已飞按记录、没飞的按凑整后（弹窗与明细共用这一套，避免两边打架）
+function realFlyAmount(k, bet){
+  const should = Math.max(0, (bet || 0) - (typeof splitTakeAll !== 'undefined' ? splitTakeAll : 0));
+  const done = flownPerPos[k] || 0;
+  const pending = Math.max(0, should - done);
+  return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
 }
 // 实际飞出总额（所有产品）
 function totalFlownReal(){
@@ -6810,12 +6820,7 @@ function renderRisk(){
   const effectiveLxFly = splitTakeAll === 0 ? lxTotalSalesSum : lxFlyAmt;
   // 每号飞完后实际付出：已飞按实际、待飞按凑整后（凑整差额都归自己，这里必须用实际）
   function realFlyOfNum(n){
-    const k = String(n).padStart(2,'0');
-    const bet = numBets[n] || 0;
-    const should = Math.max(0, bet - splitTakeAll);
-    const doneOrig = flownPerPos[k] || 0;
-    const pending = Math.max(0, should - doneOrig);
-    return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
+    return realFlyAmount(String(n).padStart(2,'0'), numBets[n] || 0);
   }
   let specRealFly = 0;
   for(let n=1;n<=49;n++) specRealFly += realFlyOfNum(n);
@@ -7398,7 +7403,7 @@ function renderRisk(){
   h += `</div>`;
   // 飞后残留
   h += `<div style="border-top:1px solid #e9d5ff;margin-top:8px;padding-top:8px">`;
-  h += `<div style="display:flex;justify-content:space-between"><span>飞出去（特号那边赔）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between"><span>飞出去·特号（本轮该飞，未凑整）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
   if(pteFlyAmt > 0){
     h += `<div style="display:flex;justify-content:space-between"><span>飞出去（平特那边赔）</span><b style="color:#cf1322">${pteFlyAmt.toFixed(0)}</b></div>`;
   }
@@ -7423,9 +7428,12 @@ function renderRisk(){
   const _totalOrigFly = currentFly + pteFlyAmt + effectiveLxFly;
   const _roundGap = _totalRealFly - _totalOrigFly;   // 负=少飞(留自己)；正=多飞(上家兜)
   const _pendingOrig = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + l.amt, 0);
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　特号/平特/连肖：已飞 ${_alreadyReal.toFixed(0)} · 待飞 ${_pendingOrig.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　已飞累计 ${_alreadyReal.toFixed(0)}（含早前确认过的）· 本轮该飞 ${_pendingOrig.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　飞完实付（不含二/三中三）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
-  if(_roundGap < -0.01){
+  if(Math.abs(_roundGap) > 122.5){
+    // 差得太多，不可能是凑整（每号最多差 2 元）→ 说明早前按别的阈值飞过
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　已飞比分账多 ${Math.abs(_roundGap).toFixed(0)} 元 → 早前按别的阈值飞过，这笔已在上家；见上面「已飞累计」${_pendingOrig > 0 ? '，本轮还有 '+_pendingOrig.toFixed(0)+' 要飞' : '，本轮不用再飞'}</span><span></span></div>`;
+  } else if(_roundGap < -0.01){
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整少飞 ${Math.abs(_roundGap).toFixed(0)} 元 → 这钱留自己，开出该号自己赔</span><span></span></div>`;
   } else if(_roundGap > 0.01){
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整多飞 ${_roundGap.toFixed(0)} 元 → 上家替你兜，开出该号上家赔你</span><span></span></div>`;
