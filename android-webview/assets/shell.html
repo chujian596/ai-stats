@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.154-Pro';
+var APP_VER = 'v58.155-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -3145,7 +3145,8 @@ function getThisRoundFly(){
   keys.forEach(k => {
     const full = Math.max(0, sales[k] - splitTakeAll);
     if(full < 0.01) return;
-    const done = flownPerPos[k] || 0;
+    let done = flownPerPos[k] || 0;
+    if(done > full + 0.5) done = 0;   // 已飞超过该飞 → 旧记录，不算今天
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3161,7 +3162,8 @@ function getThisRoundFly(){
   Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([code,amt]) => {
     const full = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(full < 0.01) return;
-    const done = flownPerPos[code] || 0;
+    let done = flownPerPos[code] || 0;
+    if(done > full + 0.5) done = 0;   // 同上，旧记录不算
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3201,7 +3203,8 @@ function getThisRoundFly(){
         already += done;
         lines.push({code: '二中二/三中三合计', amt: 0, full: emTotal, done: done, auto: true});
       } else {
-        const done = flownPerPos['_em_total'] || 0;
+        let done = flownPerPos['_em_total'] || 0;
+        if(done > emTotal + 0.5) done = 0;   // 旧登记额大于今天的合计 → 不算今天
         const round = Math.max(0, emTotal - done);
         already += done;
         lines.push({code: '二中二/三中三合计', amt: round, full: emTotal, done: done, auto: false});
