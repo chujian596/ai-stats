@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.134-Pro';
+var APP_VER = 'v58.135-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2155,6 +2155,18 @@ try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100
 // 已飞累计（分批飞单）：key=位置代码，value=已飞金额
 let flownPerPos = {};
 try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } catch(e){ flownPerPos = {}; }
+// 实际飞出（凑整后）单独记一笔：凑整差额的归属要靠它算，不能再用原额
+let flownReal = {};
+try { flownReal = JSON.parse(localStorage.getItem('flownReal') || '{}'); } catch(e){ flownReal = {}; }
+// 取某号实际飞出：没记录的老数据按原额兜底
+function flownRealOf(k){ return (flownReal[k] !== undefined) ? flownReal[k] : (flownPerPos[k] || 0); }
+// 实际飞出总额（所有产品）
+function totalFlownReal(){
+  let s = 0;
+  const ks = new Set(Object.keys(flownReal).concat(Object.keys(flownPerPos)));
+  ks.forEach(k => { s += flownRealOf(k); });
+  return s;
+}
 // 即飞产品开关：连肖/二中二/三中三是否每次自动复制
 let autoFlyOn = false;
 try { autoFlyOn = localStorage.getItem('autoFlyOn') === '1'; } catch(e){ autoFlyOn = false; }
@@ -2968,8 +2980,11 @@ function confirmGroupCurrent(){
     var key = l.code;
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
+  flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
+    flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
   });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem('flownReal', JSON.stringify(flownReal));
   // 只刷新数字摘要，不重建整个面板（避免退出飞单页）
   try {
     const sales = getSplitSales();
@@ -3142,6 +3157,7 @@ function confirmGroupFly(group){
   if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
   groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem('flownReal', JSON.stringify(flownReal));
   myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
   calcSplit();
 }
@@ -3198,8 +3214,11 @@ function confirmThisRoundFly(){
     var key = l.code;
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
+  flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
+    flownReal[key] = (flownReal[key]||0) + (l.code === '二中二/三中三合计' ? l.amt : flyShowAmt(l.amt));
   });
   localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem('flownReal', JSON.stringify(flownReal));
   refreshFlySummary();
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
@@ -3217,7 +3236,9 @@ function confirmThisRoundFly(){
 function resetFlown(){
   myConfirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）', function(){
   flownPerPos = {};
+  flownReal = {};
   localStorage.removeItem('flownPerPos');
+  localStorage.removeItem('flownReal');
   currentFlyGroup = null;
   // 刷新摘要
   try {
@@ -7324,19 +7345,30 @@ function renderRisk(){
   if(flySum > 0){
     h += `<div style="display:flex;justify-content:space-between;border-top:1px dashed #e0e0e0;margin-top:3px;padding-top:5px"><span>飞出去合计</span><b style="color:#cf1322">${flySum.toFixed(0)}</b></div>`;
   }
-  h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCash.toFixed(0)}</b></div>`;
+  // 实际口径：现金按「实际飞出（凑整后）」扣，凑整差额归自己，这块钱要摊到赔付和净值里
+  const _realFlySum = totalFlownReal();
+  const keptCashReal = totalSales - _realFlySum;
+  const _roundGap = _realFlySum - flySum;   // 负=少飞(自留多了)；正=多飞(自留少了)
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　实际飞出（凑整后）</span><span>${_realFlySum.toFixed(0)}</span></div>`;
+  if(Math.abs(_roundGap) > 0.01){
+    h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#d97706"><span>　凑整差额（${_roundGap < 0 ? '少飞 · 多留' : '多飞 · 少留'}）</span><span>${Math.abs(_roundGap).toFixed(0)}</span></div>`;
+  }
+  h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCashReal.toFixed(0)}</b></div>`;
   // 开奖后用实际值，否则用最坏预测
   let dSpecPayout = specialPayout, dPtePayout = ptePayout, dLxPayout = lxPayout, dNet = afterFlyNet;
   if(lastDraw && lastDraw.specialNum){
     const dn2 = lastDraw.specialNum;
     const dz2 = NUM2ZODIAC[dn2];
     const dzSet2 = new Set([...(lastDraw.regularNums||[]), dn2].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-    dSpecPayout = (splitTakeAll > 0 ? Math.min(numBets[dn2]||0, splitTakeAll) : (numBets[dn2]||0)) * payMult;
+    // 自留 = 客户下注 - 该号实际飞出；多飞时自留为负，等于上家赔我的比我赔客户的多
+    const _betHit = numBets[dn2] || 0;
+    const _realHit = flownRealOf(String(dn2).padStart(2,'0'));
+    dSpecPayout = (_betHit - _realHit) * payMult;
     dPtePayout = 0;
     Object.entries(pteBetByZod).forEach(([z,amt]) => {
       if(dzSet2.has(z)){
-        const kept2 = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : amt;
-        dPtePayout += kept2 * (z==='马' ? 1.8 : payMultSingle);
+        const _kept2 = amt - flownRealOf('平特' + z);
+        dPtePayout += _kept2 * (z==='马' ? 1.8 : payMultSingle);
       }
     });
     dLxPayout = 0;
@@ -7346,12 +7378,12 @@ function renderRisk(){
         if(zod.split('').every(z => dzSet2.has(z))){
           const n = zod.length; let odds = n===2?4:n===3?10:30;
           if(zod.includes('马')) odds -= 0.5;
-          dLxPayout += codeSalesForOrder(o, c) * odds;
+          dLxPayout += (codeSalesForOrder(o, c) - flownRealOf('连肖' + zod)) * odds;
         }
       }
     });});
-    if(lxFlyAmt > 0) dLxPayout = Math.max(0, dLxPayout - lxFlyAmt * 4);
-    dNet = keptCash - dSpecPayout - dPtePayout - dLxPayout;
+
+    dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;
   }
   const dPayout = dSpecPayout + dPtePayout + dLxPayout;
   const isDraw = !!(lastDraw && lastDraw.specialNum);
