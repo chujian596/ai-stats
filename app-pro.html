@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.135-Pro';
+var APP_VER = 'v58.136-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1896,7 +1896,7 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('lx','连肖') + _bo('copySelectedFly()','复制') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap"><a href="javascript:setFlyRoundSel('5')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='5'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='5'?'700':'400'}">5</a><span style="color:#ccc">|</span><a href="javascript:setFlyRoundSel('10')" style="text-decoration:none;padding:0 3px;color:${flyRoundSel()==='10'?'#cf1322':'#999'};font-weight:${flyRoundSel()==='10'?'700':'400'}">10</a> 元档</span><br><span style="color:#999;font-size:11px">勾选后飞单金额往上凑到整数档，多个号会合并成一行，多飞的自付</span></label>`;
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">5 元档</span><br><span style="color:#999;font-size:11px">勾选后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞（转发上家），不跟澳门单混；没香港单时这块不显示</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
@@ -2770,7 +2770,7 @@ function refreshFlySummary(){
 // ==== 飞单目录美化：同金额合并成一行「各X」，可选尾数凑整 ====
 // 开关 flyRoundOn 存在 localStorage；档位 flyRoundSel 默认 5
 function flyRoundOn(){ try{ return localStorage.getItem('flyRoundOn') === '1'; }catch(e){ return false; } }
-function flyRoundSel(){ try{ return localStorage.getItem('flyRoundSel') || '5'; }catch(e){ return '5'; } }
+function flyRoundSel(){ try{ const v = localStorage.getItem('flyRoundSel'); return v === '5' ? '5' : '5'; }catch(e){ return '5'; } }
 function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
 function setFlyRoundOn(on){
   try{ localStorage.setItem('flyRoundOn', on ? '1' : '0'); }catch(e){}
@@ -2793,10 +2793,8 @@ function setFlyRoundMode(m){
 function flyShowAmt(amt, modeOverride){
   const m = (typeof modeOverride === 'number') ? modeOverride : (parseFloat(getFlyRoundMode()) || 0);
   if(m <= 0) return amt;
-  if(amt + 1e-9 >= m){
-    return Math.floor((amt + 1e-9) / m) * m;
-  }
-  return Math.min(Math.ceil((amt - 1e-9) / 5) * 5, m);
+  // 只按 5 元档：就近凑到 5 的倍数（34→35、31→30、3→5），最少飞 5
+  return Math.max(5, Math.round((amt + 1e-9) / 5) * 5);
 }
 // 按显示金额分组：金额一样的号码并成一行
 function buildFlyGroups(lines, useFull){
