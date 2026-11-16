@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.162-Pro';
+var APP_VER = 'v58.164-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6648,6 +6648,24 @@ function simAddNum(bets, cap, nAdd, amtEach){
   }
   return { kept:K2, worst:K2-47*M2, added:K2-K, line:K2/47, maxKeep:M2 };
 }
+// 补号模拟的清单版：返回具体补了哪些号（原来的 simAddNum 只给总数）
+function simPickList(bets, cap, nAdd, amtEach){
+  var arr = [];
+  for(var i=1;i<=49;i++) arr.push({ no:i, v: Math.min(bets[i]||0, cap) });
+  var out = [];
+  for(var j=0;j<nAdd;j++){
+    arr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+    var low = arr[0];
+    if(low.v >= cap) break;
+    var add = Math.min(amtEach, cap - low.v);
+    if(add <= 0) break;
+    out.push({ no: low.no, before: low.v, after: low.v + add, add: add });
+    low.v += add;
+  }
+  return out;
+}
+function _pad2(n){ return String(n).length<2 ? '0'+n : String(n); }
+
 // 反推：要让最坏不小于 target，需要补多少钱
 function simNeedAmount(bets, cap, target){
   var self=[];
@@ -6771,9 +6789,16 @@ function renderNeedListByBudget(){
     + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>'
     + '<div style="font-size:11px;color:#888;margin-top:4px">复制后直接发下家，格式「号码 空格 金额」。收到的号录进订单后，这一行自动消失。</div>';
 }
+function needTargetSet(v){
+  window.__needTarget = String(Math.round(v));
+  var el = document.getElementById('needTarget');
+  if(el) el.value = Math.round(v);
+  renderNeedList();
+}
 function renderNeedList(){
   var t = parseFloat((document.getElementById('needTarget')||{}).value);
-  if(!isFinite(t)) t = -800;
+  if(!isFinite(t) && window.__needTarget !== undefined) t = parseFloat(window.__needTarget);
+  if(!isFinite(t)) t = Math.round(window.__curWorst || 0);
   var r = buildNeedList(t);
   var box = document.getElementById('needBox');
   if(!box) return;
@@ -7428,14 +7453,28 @@ function renderRisk(){
       var _sK = _kept, _sM = Math.min(100, _cap);
       var _sBest = simAddNum(_sb, _scap, 49, _scap);
       var _simRows = '';
+      // 当前盘面最坏（刷新时同步给「目标最坏」输入框）
+      window.__curWorst = _kept - 47 * Math.max.apply(null, _bets.map(function(b){ return Math.min(b.nb, _cap); }));
+      var _ntv = (window.__needTarget !== undefined && window.__needTarget !== null && window.__needTarget !== '') ? window.__needTarget : Math.round(window.__curWorst);
+      // 现在注额最少的 12 个号，先给人看"哪些号能补"
+      var _lowArr = [];
+      for(var _li=1;_li<=49;_li++) _lowArr.push({ no:_li, v: Math.min(_sb[_li]||0, _scap) });
+      _lowArr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+      var _lowHint = '<div style="font-size:11px;color:#555;margin:2px 0 4px;line-height:1.5">现在最少的 12 个号（补这些最划算）：<br><b style="color:#333">'
+        + _lowArr.slice(0,12).map(function(x){ return _pad2(x.no) + ' ' + x.v.toFixed(0); }).join('　')
+        + '</b><span style="color:#999">　括号里是「现在的注→补后」</span></div>';
       [[5,50],[10,50],[15,50],[20,50],[5,_scap],[10,_scap],[20,_scap]].forEach(function(p){
         var r2 = simAddNum(_sb, _scap, p[0], p[1]);
         var d = r2.added;
         var col = d>0 ? '#16a34a' : '#999';
-        _simRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f7f7f7">`
+        var _pk = simPickList(_sb, _scap, p[0], p[1]);
+        var _pkTxt = _pk.map(function(x){ return _pad2(x.no) + '(' + x.before.toFixed(0) + '→' + x.after.toFixed(0) + ')'; }).join(' ');
+        _simRows += `<div style="padding:3px 0;border-bottom:1px solid #f7f7f7">`
+          + `<div style="display:flex;justify-content:space-between;font-size:12px">`
           + `<span>补 ${p[0]} 号 到 ${p[1]} 元</span>`
           + `<span style="color:${col}">+${d.toFixed(0)}</span>`
-          + `<b style="color:${r2.worst>=0?'#16a34a':'#cf1322'}">${(r2.worst>=0?'+':'')+r2.worst.toFixed(0)}</b></div>`;
+          + `<b style="color:${r2.worst>=0?'#16a34a':'#cf1322'}">${(r2.worst>=0?'+':'')+r2.worst.toFixed(0)}</b></div>`
+          + `<div style="font-size:10px;color:#999;margin-top:1px;word-break:break-all">${_pkTxt||'（已补满）'}</div></div>`;
       });
       h += `<div style="border-top:1px solid #eee;margin-top:8px;padding-top:8px">`
          + `<div onclick="var b=document.getElementById('simBox');b.style.display=b.style.display==='none'?'':'none'" style="cursor:pointer;font-size:13px;font-weight:600;color:#374151">接单预演 · 补号模拟 ▶</div>`
@@ -7446,6 +7485,7 @@ function renderRisk(){
          + `<span style="margin-left:6px">最坏 ${(_kept - 47*Math.max.apply(null,_bets.map(function(b){return Math.min(b.nb,_cap);}))).toFixed(0)}</span>`
          + `</div>`
          + `<div style="font-size:11px;color:#666;margin-bottom:3px">补**最低**的号（补新号不会抬高最重号，纯粹加自留）：</div>`
+         + _lowHint
          + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;padding-bottom:2px;border-bottom:1px solid #eee"><span>补法</span><span>进自留</span><span>补后最坏</span></div>`
          + _simRows
          + `<div style="font-size:11px;color:#16a34a;margin-top:5px">上限：49 个号全补到 ${_scap} 元，共需 ${_sBest.added.toFixed(0)} 元 → 最坏 ${(_sBest.worst>=0?'+':'')+_sBest.worst.toFixed(0)}（全盘任何号开出都赚）</div>`
@@ -7458,8 +7498,12 @@ function renderRisk(){
          + `<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">要收的号（照着这个去问下家）</div>`
          + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
          + `<span style="font-size:11px;color:#666;white-space:nowrap">目标最坏</span>`
-         + `<input id="needTarget" type="number" value="-800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
+         + `<input id="needTarget" type="number" value="${_ntv}" onchange="window.__needTarget=this.value" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
          + `<button onclick="renderNeedList()" style="padding:5px 10px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:5px;font-size:12px;white-space:nowrap">算清单</button></div>`
+         + `<div style="display:flex;gap:5px;margin-bottom:5px">`
+         + `<button onclick="needTargetSet(0)" style="flex:1;padding:4px;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;font-size:11px">按不亏算（差多少）</button>`
+         + `<button onclick="needTargetSet(Math.round(window.__curWorst||0))" style="flex:1;padding:4px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px">按当前最坏看</button></div>`
+         + `<div style="font-size:10px;color:#999;margin-bottom:4px">默认填的是你当前盘的最坏值；想「一开任何号都不亏」就点左边那个，它会算出还要收多少钱。</div>`
          + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
          + `<span style="font-size:11px;color:#666;white-space:nowrap">我手上</span>`
          + `<input id="needBudget" type="number" placeholder="多少钱" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
