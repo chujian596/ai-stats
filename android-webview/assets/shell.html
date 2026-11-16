@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.129-Pro';
+var APP_VER = 'v58.130-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -5617,7 +5617,15 @@ renderAll();
     results.length = 0;
     merged.forEach(x => results.push(x));
   }
-  orders.push({
+  // 香港行单独追加显示（合并逻辑只处理澳门单号，不能让它把港单也并进去）
+  parsed.filter(p=>p.hk).forEach(p => {
+    const qty = p.codes.length;
+    const unit = p.isPer ? p.price : (p.price / qty);
+    const amount = qty * unit;
+    results.push(`香港单 ${p.codes.join(' ')} ${p.isPer?'×':'='} ${p.price} = ${amount.toFixed(2)}元`);
+  });
+  // 本次若全是香港行，不能落一条空的澳门单（会出现「合计0.00」的幽灵单 + 单数翻倍）
+  if(parsed.filter(p=>!p.hk).length > 0) orders.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     customer,
     raw: parsed.filter(p=>!p.hk).map(p=>p.raw).join('; '),
@@ -5661,7 +5669,12 @@ renderAll();
     saveRoster();
   }
   document.getElementById('input').value = '';
-  let msg = '本次已保存：<br>' + results.join('<br>') + `<br>合计<span style="color:#333;font-size:16px;font-weight:700">${totalAmount.toFixed(2)}元</span>`;
+  const _shownTotal = totalAmount + parsed.filter(p=>p.hk).reduce((s0,p) => {
+    const q = p.codes.length;
+    const u = p.isPer ? p.price : (p.price / q);
+    return s0 + q * u;
+  }, 0);
+  let msg = '本次已保存：<br>' + results.map(r => (typeof r === 'string' ? r : r.d)).join('<br>') + `<br>合计<span style="color:#333;font-size:16px;font-weight:700">${_shownTotal.toFixed(2)}元</span>`;
   // notes不显示给用户
   if(!storageOK){
     msg += '\n⚠ 当前浏览器不允许本地保存，刷新后数据会丢失，已自动下载备份JSON，请收好！';
