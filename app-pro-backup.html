@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.133-Pro';
+var APP_VER = 'v58.134-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2788,17 +2788,24 @@ function flyShowAmt(amt, modeOverride){
 }
 // 按显示金额分组：金额一样的号码并成一行
 function buildFlyGroups(lines, useFull){
-  const map = {};
-  let origSum = 0, showSum = 0;
+  // 先按号码把多笔累加成该号总额，再按总额分桶：同一号录两次不会再被列两遍
+  const codeSum = {};
+  let origSum = 0;
   lines.forEach(l => {
     const base = useFull ? l.full : l.amt;
     if(base < 0.01) return;
     origSum += base;
-    const show = flyShowAmt(base);
+    const code = String(l.code).replace(':', ' ');
+    codeSum[code] = (codeSum[code] || 0) + base;
+  });
+  const map = {};
+  let showSum = 0;
+  Object.keys(codeSum).forEach(c => {
+    const show = flyShowAmt(codeSum[c]);
     showSum += show;
     const k = show.toFixed(2);
     if(!map[k]) map[k] = { amt: show, codes: [] };
-    map[k].codes.push(String(l.code).replace(':', ' '));
+    map[k].codes.push(c);
   });
   const groups = Object.keys(map).map(k => map[k]).sort((a, b) => b.amt - a.amt);
   return { groups: groups, origSum: origSum, showSum: showSum };
@@ -5463,10 +5470,13 @@ renderAll();
     if(pendingProduct && /\d{2}/.test(trimmed)){
       line = pendingProduct + ' ' + line;
     }
+    // 先记下这行有没有写「澳门」标注（后面判断店铺默认要用），再把标注剥掉
+    const _hadMacTag = /^(澳门|澳)/.test(String(line).trim());
     // 行首「澳门/澳」只是标注，澳门本来就是默认池，落库前剥掉，避免同一种单显示成两种写法
     if(!isHKLine(line)) line = line.trim().replace(/^(澳门|澳)\s*/, '');
     try {
-      const _isHK = isHKLine(line);
+      // 香港店里不带标记的行默认算港单（写了「澳门/澳」的仍算澳门单）
+      const _isHK = isHKLine(line) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
       const r = parseLine(_isHK ? stripHKMark(line) : line);
       if(r){
         // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）

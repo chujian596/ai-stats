@@ -37,6 +37,7 @@ const localStorage={getItem:function(){return null;},setItem:function(){},remove
 function myAlert(m){ console.log('[ALERT] '+m); } function prompt(){ return null; }
 function myConfirm(m,cb){ if(typeof cb==='function') cb(); } function warnBatchNotSaved(){} function handleSave(){} function showMultiDlg(){}
 var orders=[],roster=[],storageOK=true,lastPrice=null,_texiaoChoice=null,mode='normal',pendingProduct=null;
+var shop='A';  // 店铺桩：A=澳门 B=香港，港单默认分流要用
 function saveOrders(){} function saveRoster(){} function restoreIfNeeded(){} function renderAll(){} function switchTab(){} function exportBackup(){} function autoPayout(){}
 const NUM2ZODIAC_REV={'马':[1,13,25,37,49],'蛇':[2,14,26,38],'龙':[3,15,27,39],'兔':[4,16,28,40],'虎':[5,17,29,41],'牛':[6,18,30,42],'鼠':[7,19,31,43],'猪':[8,20,32,44],'狗':[9,21,33,45],'鸡':[10,22,34,46],'猴':[11,23,35,47],'羊':[12,24,36,48]};
 const products = """ + prods + """;
