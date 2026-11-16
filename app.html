@@ -5073,6 +5073,8 @@ renderAll();
     if(pendingProduct && /\d{2}/.test(trimmed)){
       line = pendingProduct + ' ' + line;
     }
+    // 行首「澳门/澳」只是标注，澳门本来就是默认池，落库前剥掉，避免同一种单显示成两种写法
+    if(!isHKLine(line)) line = line.trim().replace(/^(澳门|澳)\s*/, '');
     try {
       const _isHKal = isHKLine(line);
       const r = parseLine(_isHKal ? stripHKMark(line) : line);
