@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.167-Pro';
+var APP_VER = 'v58.168-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6205,7 +6205,7 @@ function renderOrdersList(){
       const spFly = Math.max(0, (sales[spKey]||0) - splitTakeAll);
       if(spFly > 0){
         flyBackTotal += spFly * 47;
-        flyBackLines.push('特码' + spKey + '  ' + spFly.toFixed(0) + ' ×47 = ' + (spFly*47).toFixed(0));
+        flyBackLines.push('特' + spKey + '  ' + spFly.toFixed(0) + ' ×47 = ' + (spFly*47).toFixed(0));
       }
     }
     // 平特飞单
@@ -6227,7 +6227,7 @@ function renderOrdersList(){
           if(drawZods.has(z)){
             var pteMult = (z === '马') ? 1.8 : payMultSingle;   // 只有平特马是 1.8，其他跟客户同口径
             flyBackTotal += extra * pteMult;
-            flyBackLines.push('平特' + z + '  ' + extra.toFixed(0) + ' ×' + pteMult + ' = ' + (extra*pteMult).toFixed(0));
+            flyBackLines.push('平' + z + '  ' + extra.toFixed(0) + ' ×' + pteMult + ' = ' + (extra*pteMult).toFixed(0));
           }
         }
       });
@@ -6264,7 +6264,7 @@ function renderOrdersList(){
             if(allHit && amt > 0){
               var emMult2 = c.indexOf('二中二:')===0 ? 60 : (c.indexOf('三中三:')===0 ? 600 : 20);
               flyBackTotal += amt * emMult2;
-              flyBackLines.push(c.replace(':',' ') + '  ' + amt.toFixed(0) + ' ×' + emMult2 + ' = ' + (amt*emMult2).toFixed(0));
+              flyBackLines.push(c.replace(/^(二中二|三中二|三中三):/, '二/三 ').replace(':',' ') + '  ' + amt.toFixed(0) + ' ×' + emMult2 + ' = ' + (amt*emMult2).toFixed(0));
             }
           }
         });
@@ -6348,7 +6348,7 @@ function renderOrdersList(){
   const netSettle = lastDraw ? (rebateAmt - owedAmt) : null;
   var _perTxt = (lastDraw && lastDraw.period) ? ('  ' + lastDraw.period + ' 期') : '';
   let copyTail = '飞单对账' + _perTxt + '\n'
-    + `合计 ${flyOutTotal.toFixed(0)} 元（特码 ${cpSp.toFixed(0)} + 平特 ${cpZd.toFixed(0)} + 组合玩法 ${cpEm.toFixed(0)}）`;
+    + `合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平 ${cpZd.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
   if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
   if(lastDraw){
     copyTail += '\n\n命中明细:';
