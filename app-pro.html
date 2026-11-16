@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.146-Pro';
+var APP_VER = 'v58.147-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7196,9 +7196,14 @@ function renderRisk(){
       h += `<div style="display:flex;gap:8px;margin-bottom:8px">`;
       var _rN = splitTakeAll||0, _cN = cutPick||0;
       function _lvTag(n){ return n <= 30 ? '稳·亏少' : (n >= 60 ? '留多·赚多亏多' : '折中'); }
-      h += `<button onclick="switchCutMode('raw')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='raw'?'background:#333;color:#fff;border:1px solid #333':'background:#fff;color:#666;border:1px solid #ddd'}">按录单阈值 ${_rN} 元/号<br><span style="font-size:11px;font-weight:400">${_lvTag(_rN)}</span></button>`;
-      h += `<button onclick="switchCutMode('cut')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='cut'?'background:#1677ff;color:#fff;border:1px solid #1677ff':'background:#fff;color:#666;border:1px solid #ddd'}">按削峰档 ${_cN} 元/号<br><span style="font-size:11px;font-weight:400">${_lvTag(_cN)}</span></button>`;
+      h += `<button onclick="switchCutMode('raw')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='raw'?'background:#333;color:#fff;border:2px solid #333':'background:#fff;color:#999;border:1px solid #ddd'}">按录单阈值 ${_rN} 元/号<br><span style="font-size:11px;font-weight:400">${_mode==='raw'?'✓ 正在用 · ':''}${_lvTag(_rN)}</span></button>`;
+      h += `<button onclick="switchCutMode('cut')" style="flex:1;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:600;${_mode==='cut'?'background:#1677ff;color:#fff;border:2px solid #1677ff':'background:#fff;color:#999;border:1px solid #ddd'}">按削峰档 ${_cN} 元/号<br><span style="font-size:11px;font-weight:400">${_mode==='cut'?'✓ 正在用 · ':''}${_lvTag(_cN)}</span></button>`;
       h += `</div>`;
+      // 当前生效的一行大字，避免「点了看不出变化」
+      h += `<div style="margin:-2px 0 6px;font-size:12px;color:#333">下面号码表<span style="color:#999">当前按</span> <b style="color:${_mode==='cut'?'#1677ff':'#333'}" >${_mode==='cut'?'削峰档':'录单阈值'} ${_mode==='cut'?(_cN||0):(_rN||0)} 元/号</b> <span style="color:#999">计算</span></div>`;
+      if(Math.abs((_rN||0)-(_cN||0)) < 0.01){
+        h += `<div style="margin:-4px 0 8px;font-size:11px;color:#b45309">两边都是 ${_rN||0} 元/号，个数一样，所以点哪个按钮号码表都不会变。想换档位就点下面那张档位卡。</div>`;
+      }
       h += `<div style="font-size:11px;color:#999;line-height:1.5;margin:-2px 0 8px">数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。</div>`;
       if(_mode === 'cut'){
         h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后的最坏净盈亏；完全不削是 ${base.worst.toFixed(0)}）</div>`;
@@ -7244,7 +7249,7 @@ function renderRisk(){
       }
       h += `<div style="border-top:1px solid #eee;padding-top:6px">`;
       h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:3px">`
-         + `<span>号码表（${_mode==='cut'?'削到 '+_cap:'按实际阈值 '+_cap} 元/号）｜每行＝这个号开出时整本账的盈亏</span>`
+         + `<span>号码表（${_mode==='cut'?'削峰档':'录单阈值'} <b>${_cap}</b> 元/号）｜每行＝这个号开出时整本账的盈亏</span>`
          + `<span>自留 ${_kept.toFixed(0)} · 飞 ${(_tot-_kept).toFixed(0)}</span></div>`;
       var _pteKept = (typeof pteFlyTakeAll === 'number' && pteFlyTakeAll > 0) ? Object.keys(pteBetByZod||{}).reduce(function(x,z){ return x + Math.min(pteBetByZod[z]||0, pteFlyTakeAll); }, 0) : 0;
       h += `<div style="font-size:11px;color:#888;margin-bottom:4px">本表只算特号 01–49（合计 ${_tot.toFixed(0)} 元）；平特/连肖/三中三另算，当前自留 ${_pteKept.toFixed(0)} 元${_pteKept>0?'，开出来还要再赔这块':''}</div>`;
