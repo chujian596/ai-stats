@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.140-Pro';
+var APP_VER = 'v58.141-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2593,23 +2593,36 @@ function flyThChanged(){
 function hkDrawCache(){
   try{ return JSON.parse(localStorage.getItem(sk('hk_draw_cache')) || 'null'); }catch(e){ return null; }
 }
+var _hkCollapsed = false;
+try { _hkCollapsed = localStorage.getItem('hkDrawCollapsed') === '1'; } catch(e){ _hkCollapsed = false; }
+function toggleHKDrawBar(){
+  _hkCollapsed = !_hkCollapsed;
+  try { localStorage.setItem('hkDrawCollapsed', _hkCollapsed ? '1' : '0'); } catch(e){}
+  renderHKDraw();
+}
 function renderHKDraw(){
   var bar = document.getElementById('hkDrawBar');
   var txt = document.getElementById('hkDrawTxt');
   if(!bar || !txt) return;
   if(!hkOrders.length){ bar.style.display = 'none'; return; }   // 没香港单不显示
+  bar.style.display = 'block';
+  bar.style.cursor = 'pointer';
+  bar.onclick = toggleHKDrawBar;
+  if(_hkCollapsed){
+    txt.innerHTML = '香港开奖 ▸ 点开看 <span style="color:#bbb">（已收起）</span>';
+    return;
+  }
   var c = hkDrawCache();
   if(!c || !c.nums || !c.nums.length){
-    bar.style.display = 'block';
-    txt.textContent = '香港开奖：暂无数据（点「自动获取开奖」拉到后自动显示）';
+    txt.innerHTML = '香港开奖：暂无数据（点「自动获取开奖」拉到后自动显示）<span style="float:right;color:#bbb">收起 ▾</span>';
     return;
   }
   var nums = c.nums.map(function(n){ return String(n).padStart(2,'0'); });
   var main = nums.slice(0, 6).join(' ');
   var sp = nums.length >= 7 ? nums[6] : '';
-  bar.style.display = 'block';
   txt.innerHTML = '香港 期<b>' + (c.draw||'') + '</b>　' + main + (sp ? '　特 <b>' + sp + '</b>' : '')
-    + (c.at ? '　<span style="color:#bbb">' + String(c.at).slice(5,16) + '</span>' : '');
+    + (c.at ? '　<span style="color:#bbb">' + String(c.at).slice(5,16) + '</span>' : '')
+    + '<span style="float:right;color:#bbb">收起 ▾</span>';
 }
 var _hkDrawTried = false;
 function refreshHKDraw(){
