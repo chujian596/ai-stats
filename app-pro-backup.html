@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.223-Pro';
+var APP_VER = 'v58.224-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7788,9 +7788,9 @@ function renderRisk(){
     return Math.round(lo);
   }
   const rec0 = findT(0);
-  const _specSalesBase = Math.max(0, totalSales - pteTotalSalesSum - lxTotalSalesSum);
-  const rec20 = findT(-_specSalesBase*0.2);
-  const rec40 = findT(-_specSalesBase*0.4);
+  const _specSalesBase = Math.max(0, totalSales - pteTotalSalesSum - lxTotalSalesSum);   // 只用来判断「有没有特号注」
+  const rec20 = findT(-totalSales*0.2);   // 20% 线按「总单」算（含平特/连肖收到的钱），跟之前 107 的口径一致
+  const rec40 = findT(-totalSales*0.4);
   // 建议线：用户填了「我能扛」金额就优先按它算，没填才按总单 20%
   let _userTol = 0;
   try { _userTol = parseFloat(localStorage.getItem('cut_tol_v1')) || 0; } catch(e){}
@@ -7967,9 +7967,9 @@ function renderRisk(){
   var _needReject = false;
   if(_optM <= 0){
     var _pick = (recTol !== null ? recTol : rec20);
-    var _pickWhy = (_userTol > 0 ? '我能扛 ' + _userTol.toFixed(0) + ' 元' : '亏损≤特号总额20%');
+    var _pickWhy = (_userTol > 0 ? '我能扛 ' + _userTol.toFixed(0) + ' 元' : '亏损≤总额20%');
     if(_pick === 0){ _needReject = true; }   // findT 返回 0 = 连全飞都压不到目标线，不是「不削达标」
-    else if(typeof _pick === 'number' && _pick >= _maxBet0){ _optM = 100; _optR = cutCalc(100, true); _noCut = true; _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在特号总额 20% 以内'); }
+    else if(typeof _pick === 'number' && _pick >= _maxBet0){ _optM = 100; _optR = cutCalc(100, true); _noCut = true; _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在总亏 20% 以内'); }
     else if(typeof _pick === 'number' && _pick >= 5 && _pick < _maxBet0){
       _optM = _pick; _optR = cutCalc(_optM, true); _sugWhy = _pickWhy;
       if(_userTol > 0){ var _g=0; while(_optM > 5 && (cutCalc(_optM,true).worst + _othNet) < -_userTol && _g++ < 500){ _optM--; } _optR = cutCalc(_optM, true); }
@@ -8008,9 +8008,9 @@ function renderRisk(){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#999">本盘没有特号注，削峰不用算；平特/连肖按上面的卡自己看</div>`;
   } else if(_isNoCut){
     var _ncR = cutCalc(100, true);
-    h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 不削最坏 ${(_ncR.worst+_othNet).toFixed(0)}，已在${_userTol>0?'你能扛的 '+_userTol.toFixed(0)+' 元':'特号总额 20%'}以内，再削都是白飞</div>`;
+    h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 不削最坏 ${(_ncR.worst+_othNet).toFixed(0)}，已在${_userTol>0?'你能扛的 '+_userTol.toFixed(0)+' 元':'总亏 20%'}以内，再削都是白飞</div>`;
   } else if(_needReject){
-    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到特号总额 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
+    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
   } else {
     // 守不住基准时，仍要告诉用户「性价比最好的那一档在哪、它到底差多少」，否则顶部说救不了、下面又推一档，读起来自相矛盾
     var _pm = 0, _pr = null;
@@ -8044,7 +8044,7 @@ function renderRisk(){
      + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>'
      + (function(){ var _fl=0; try{ _fl=totalFlownReal(); }catch(e){} 
         return _fl>0.5 ? '<div style="padding:0 0 3px;font-size:11px;color:#16a34a;line-height:1.5">已飞 <b>'+_fl.toFixed(0)+'</b> 元已锁定：切档位、点建议、勾自动稳健都只改“后续应飞”，不会清空已飞记录</div>' : ''; })();
-  // 本盘建议：按「亏损≤特号总额20%」找最省飞的档，点一下就填；压不到就明说拒单
+  // 本盘建议：按「亏损≤总额20%」找最省飞的档，点一下就填；压不到就明说拒单
   if(_optM > 0 && !_isNoCut && _optR){
     var _curIsBest = (Math.abs((splitTakeAll||0) - _optM) < 0.01);
     h += '<div style="padding:0 0 4px;font-size:11px;line-height:1.5">'
