@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.201-Pro';
+var APP_VER = 'v58.202-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2128,17 +2128,22 @@ function renderSideCustPay(){
     if(lastDraw && lastDraw.specialNum && (flyOutSum>0 || flyBackSum>0)){
       h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:4px">飞单调整：</div>';
       if(flySpec>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去特号(已实付)</span><span style="font-size:13px;color:#666">-' + flySpec.toFixed(2) + '</span></div>';
-      if(flySpecBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回特号</span><span style="font-size:13px;color:#166534">+' + flySpecBack.toFixed(2) + '</span></div>';
       if(flyPte>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去平特(已实付)</span><span style="font-size:13px;color:#666">-' + flyPte.toFixed(2) + '</span></div>';
-      if(flyPteBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回平特</span><span style="font-size:13px;color:#166534">+' + flyPteBack.toFixed(2) + '</span></div>';
       if(flyLx>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去连肖(已实付)</span><span style="font-size:13px;color:#666">-' + flyLx.toFixed(2) + '</span></div>';
-      if(flyLxBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回连肖</span><span style="font-size:13px;color:#166534">+' + flyLxBack.toFixed(2) + '</span></div>';
       if(flyEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去二中二三中三(已实付)</span><span style="font-size:13px;color:#666">-' + flyEm.toFixed(2) + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;padding:3px 0 3px 12px;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:13px;color:#666;font-weight:700">实际总飞额</span><span style="font-size:14px;color:#333;font-weight:700">-' + flyOutSum.toFixed(2) + '</span></div>';
+      if(flySpecBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回特号</span><span style="font-size:13px;color:#166534">+' + flySpecBack.toFixed(2) + '</span></div>';
+      if(flyPteBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回平特</span><span style="font-size:13px;color:#166534">+' + flyPteBack.toFixed(2) + '</span></div>';
+      if(flyLxBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回连肖</span><span style="font-size:13px;color:#166534">+' + flyLxBack.toFixed(2) + '</span></div>';
       if(flyEmBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回二中二三中三</span><span style="font-size:13px;color:#166534">+' + flyEmBack.toFixed(2) + '</span></div>';
+      if(flyBackSum>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回合计</span><span style="font-size:13px;color:#166534">+' + flyBackSum.toFixed(2) + '</span></div>';
+      var _settle = flyBackSum - flyOutSum;
+      h += '<div style="display:flex;justify-content:space-between;padding:4px 0 2px 12px;border-top:1px dashed #eee;margin-top:3px"><span style="font-size:13px;color:#333;font-weight:700">上家需结算</span><span style="font-size:16px;font-weight:700;color:' + (_settle>=0?'#166534':'#cf1322') + '">' + (_settle>=0?'+':'') + _settle.toFixed(0) + '</span></div>';
+      h += '<div style="font-size:10px;color:#aaa;padding-left:12px;line-height:1.4">命中赔回 ' + flyBackSum.toFixed(0) + ' − 实际总飞额 ' + flyOutSum.toFixed(0) + '</div>';
       try {
         var _rg = flyRoundGapTotal();
         if(Math.abs(_rg) > 0.01){
-          h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">凑整差累计（' + (_rg>0?'多飞自己多付':'少飞自己留') + '）</span><span style="font-size:13px;color:' + (_rg>0?'#cf1322':'#166534') + '">' + (_rg>0?'+':'') + _rg.toFixed(0) + '</span></div>';
+          h += '<div style="display:flex;justify-content:space-between;padding:2px 12px;font-size:11px;color:#888"><span>凑整差 ' + (_rg>0?'+':'') + _rg.toFixed(0) + '（' + (_rg>0?'多飞自己多付':'少飞自己留') + '，已含在实际总飞额里，不重复计算）</span><span></span></div>';
         }
       } catch(e){}
     }
