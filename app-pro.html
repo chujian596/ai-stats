@@ -282,8 +282,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <input id="newProductCode" class="input" placeholder="添加主产品名，如：手机壳（不要填数字）" style="flex:1">
       <button class="btn primary" style="min-width:80px" onclick="addProduct()">添加主产品</button>
     </div>
-    <p class="hint" style="margin:0 0 6px">两个通道：①<b>子产品 01-49</b> 一直都在，下面第一块改颜色和备注；②再下面是 <b>12 个套餐空位</b>，点编号框改成你的产品名，右边勾选包含哪几个子产品。</p>
-    <p style="font-weight:700;margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center">① 子产品列表（<span id="subCount">0</span> 个）<button onclick="resetSubs()" style="border:none;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700">重置为1-49</button></p>
+    <p class="hint" style="margin:0 0 6px">① <b>号码 01-49</b>（系统内置，改颜色和备注即可）；② <b>自定义玩法</b>：把红波、单数、大、合数这类玩法配成词，右边勾选它管哪些号码。<b>不配也能用，红波/单数/大小/合数/平特/连肖/三中三 系统已内置识别。</b></p>
+    <p style="font-weight:700;margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center">① 号码列表（<span id="subCount">0</span> 个）<button onclick="resetSubs()" style="border:none;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700">重置为1-49</button></p>
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <input id="newSubCode" class="input" placeholder="加新编号，如 51 或 手机壳红" style="flex:1;font-size:15px">
       <button class="btn primary" style="min-width:70px;padding:6px 10px;font-size:17px" onclick="addSub()">添加</button>
@@ -294,7 +294,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <tbody id="tbody-subs"></tbody>
       </table>
     </div>
-    <p style="font-weight:700;margin:12px 0 4px">② 主产品/套餐（自己添加）</p>
+    <p style="font-weight:700;margin:12px 0 4px">② 自定义玩法（可选，不配也能用）</p>
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>颜色</th><th>编号</th><th>备注名</th><th>子型号（颜色/规格）</th></tr></thead>
@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.174-Pro';
+var APP_VER = 'v58.175-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -5817,34 +5817,25 @@ renderAll();
     const prod = products.find(function(x){ return x.code === code; });
     return (prod && !prod.single && (prod.links||[]).length) ? prod.links : null;
   };
-  if(mode === 'bundle'){
-    parsed.forEach(p => {
-      const expanded = [];
-      p.codes.forEach(c => {
-        const prod = products.find(x => x.code === c && (x.links || []).length) || products.find(x => x.code === c);
-        if(prod && (prod.links || []).length && !prod.single){
-          prod.links.forEach(l => expanded.push(l));
-        } else {
-          expanded.push(c);
-          if(!/^\d{1,2}$/.test(c) && c.indexOf(':') < 0 && !(prod && prod.single)){
-            notes.push('「' + c + '」在套餐模式但没勾选子型号，按1件记录');
-          }
+  // 只有一套逻辑：号码 01-49 原样保留，玩法词（红波/单数/大/合数/自定义组合）一律按 links 展开成号码。
+  // 原来「套餐模式/单品模式」两个分支已合并——模式只影响录入时的语法糖，账本里从来只有号码。
+  parsed.forEach(function(p){
+    var expanded = [];
+    p.codes.forEach(function(c){
+      var prod = products.find(function(x){ return x.code === c && (x.links || []).length; })
+              || products.find(function(x){ return x.code === c; });
+      if(prod && (prod.links || []).length && !prod.single){
+        prod.links.forEach(function(l){ expanded.push(l); });
+        if(ATTR_SET[c]) notes.push('属性已按号展开');
+      } else {
+        expanded.push(c);
+        if(!/^\d{1,2}$/.test(c) && c.indexOf(':') < 0 && !(prod && prod.single)){
+          notes.push('「' + c + '」没有子号码配置，按1件记录');
         }
-      });
-      p.codes = expanded;
+      }
     });
-  } else {
-    // 单品模式：普通产品不展开，但属性产品必须展开成号码
-    parsed.forEach(function(p){
-      var ex = [];
-      p.codes.forEach(function(c){
-        var links = ATTR_SET[c] ? _attrLinks(c) : null;
-        if(links && links.length){ links.forEach(function(l){ ex.push(l); }); }
-        else ex.push(c);
-      });
-      if(ex.length !== p.codes.length){ p.codes = ex; notes.push('属性已按号展开'); }
-    });
-  }
+    p.codes = expanded;
+  });
 
   const customer = document.getElementById('customerName').value.trim() || '散客';
   const created = new Date().toLocaleString('zh-CN', { hour12: false });

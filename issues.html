@@ -145,6 +145,15 @@ a{color:#000}
   <div class="row"><div class="k">怎么查</div><div class="v">切单品模式录「红波 各100」，看订单是不是 17 项、金额 1700；把特号改成红波内的号，赔付应出现 100×47=4700。手动录入选「波色 红波」应出 17 个号，不是 1 个。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#18 · v58.175</div>
+  <div class="t">「套餐模式 / 单品模式」两套逻辑合并成一套<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">同一张单，在两种模式下算出的项目和金额不一样；历史上还出现过同一份数据两种结果。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">「套餐/子产品」是最早期为了在界面上配置玩法而造的录入语法，账本里从来只存号码和每码金额（codes + codeAmts），套餐名根本不入库。两个模式分支只是对这段语法处理不同。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">删掉分支，只留一套：号码 01-49 原样保留，玩法词（红波/单数/大/合数/自定义组合）一律按 links 展开成号码。设置页文案同步改回本义：子产品→号码，套餐→自定义玩法（可选）。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">把 localStorage 的 _mode 分别设成 single 和 bundle，录「红波 100（各号）」，两边都应是 17 项 1700 元；录「22 100」两边都是 1 项 100 元。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">
