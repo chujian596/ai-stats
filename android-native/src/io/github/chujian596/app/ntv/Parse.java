@@ -9,6 +9,12 @@ import java.util.regex.*;
  */
 public class Parse {
 
+    /** 裸多生肖：专业版也是抛这个，由保存处弹窗让用户选玩法 */
+    public static class AmbigZodiacException extends Exception {
+        public final String zodiacs;
+        public AmbigZodiacException(String z) { super("AMBIG_ZODIAC:" + z); zodiacs = z; }
+    }
+
     static final String ZC = "马蛇龙兔虎牛鼠猪狗鸡猴羊";
     /** 波色 / 单双 / 大小 / 合数 这类「买特码属性」的产品 */
     static final String[] ATTR = {
@@ -86,14 +92,41 @@ public class Parse {
     /** 本次解析是否展开过属性玩法（展开后按「各号」计价） */
     static boolean expanded = false;
 
+    /** 预扫描：整段里有哪几处「裸生肖」没写玩法（按出现顺序去重），用于先把问题问完再一次性存 */
+    public static java.util.List<String> findAmbigZodiacs(String text) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (String line : text.split("\r?\n")) {
+            if (line.trim().isEmpty()) continue;
+            try {
+                parseLine(line);
+            } catch (AmbigZodiacException ae) {
+                if (ae.zodiacs != null && !ae.zodiacs.isEmpty() && !out.contains(ae.zodiacs)) {
+                    out.add(ae.zodiacs);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return out;
+    }
+
     public static Order parseLine(String raw) throws Exception {
         expanded = false;
         String text = raw == null ? "" : raw.trim();
         text = text.replaceAll("[\\s,，、;；.。]+$", "");
         if (text.isEmpty()) return null;
 
+        // ---- 多段连写：04.06.16各10元 11.21.42各5元 → 一笔单，每个号各自金额 ----
+        List<String> segCodes = new ArrayList<>();
+        List<Double> segAmts = new ArrayList<>();
+        int segCount = matchSegments(text, segCodes, segAmts);
+        if (segCount >= 2) {
+            Order o = build(segCodes, segAmts.get(0), true, raw);
+            o.amts = segAmts;
+            return o;
+        }
+
         // ---- 快速通道：整行就是「一串号码 + 各/每个 + 金额」 ----
-        String SEP = "[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+";
+        String SEP = "[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·，,；;]+";
         Matcher fast = Pattern.compile("^((?:\\d{1,2}" + SEP + ")+\\d{1,2})\\s*(?:各(?:数|号|个|件|样|款|肖|组|注|码|只)?|每(?:组|个|号|肖|注|码|只)?|个)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*元?\\s*$").matcher(text);
         if (fast.find()) {
             String[] raw2 = fast.group(1).split(SEP);
@@ -104,6 +137,10 @@ public class Parse {
 
         // ---- 中文金额 ----
         text = cnAmount(text);
+
+        // ---- 开头的「特码:」「特:」「特码」「特」只是说明这是特码单，去掉 ----
+        text = text.replaceAll("^(?:特码|特碼|特号|特)\\s*[:：]\\s*(?=\\d)", "");
+        text = text.replaceAll("^(?:特码|特碼|特号|特)\\s+(?=\\d)", "");
 
         // ---- 简写 ----
         text = text.replace("3中3", "三中三").replace("2中2", "二中二").replace("3中2", "三中二");
@@ -133,6 +170,10 @@ public class Parse {
             price = Double.parseDouble(mTot.group(1));
             codeText = text.substring(0, mTot.start()).trim();
         } else {
+            String[] prods = {"三中三", "三中二", "二中二"};
+            for (String pd : prods) {
+                if (text.equals(pd)) throw new Exception("无法识别：「" + pd.substring(0, 2) + "」");
+            }
             throw new Exception("没找到价格：" + text);
         }
         if (!(price > 0)) throw new Error0("价格必须大于0");
@@ -241,9 +282,27 @@ public class Parse {
         mZX.appendTail(sb);
         text = sb.toString();
 
-        // 裸生肖：单个 → 特肖展开；多个连续 → 报歧义
+        // 裸生肖：单个 → 特肖展开；多个连续 → 报歧义（交给上层弹窗选玩法）
         text = restore(text, kept);
         text = text.replaceAll("(『PT』|连肖)([" + ZC + "]+)", "$1$2 ");
+
+        // 先把已是玩法的生肖剔掉，再看剩下的裸生肖
+        String cleaned = text.replaceAll("『PT』[" + ZC + "]+", " ")
+                              .replaceAll("[^\\s]*平特[" + ZC + "]+[^\\s]*", " ")
+                              .replaceAll("[^\\s]*连肖[" + ZC + "]+[^\\s]*", " ")
+                              .replaceAll("[" + ZC + "]肖", " ");
+        Matcher mBare = Pattern.compile("[" + ZC + "]{1,}").matcher(cleaned);
+        while (mBare.find()) {
+            String zs = mBare.group();
+            if (zs.length() == 1) {
+                StringBuilder b = new StringBuilder(" ");
+                for (int n : Z.nums(zs)) b.append(String.format("%02d", n)).append(" ");
+                text = text.replaceFirst(zs, b.toString().trim());
+            } else {
+                AmbigZodiacException ae = new AmbigZodiacException(zs);
+                throw ae;
+            }
+        }
 
         text = scan(text, codes);
 
@@ -252,8 +311,51 @@ public class Parse {
         return build(codes, price, isPer, raw);
     }
 
+    /**
+     * 一行里「号码段 + 各/每 + 金额」可重复写多段：
+     *   04.06.16.20.22.28.32各10元11.21.42各5元
+     * 返回段数；把号码与每段单价分别填进 codes / amts。
+     * 要求各段之间只隔着分隔符（空格、点、顿号等），不能夹别的内容。
+     */
+    static int matchSegments(String text, List<String> codes, List<Double> amts) {
+        String SEP = "[\\s\\-\\u2010-\\u2015\\uFF0D、.。+·，,；;]+";
+        Pattern p = Pattern.compile("((?:\\d{1,2}" + SEP + ")*\\d{1,2})\\s*(?:各|每(?:个|号|只|码)?)\\s*([0-9]+(?:\\.[0-9]+)?)\\s*元?");
+        Matcher m = p.matcher(text);
+        int segs = 0;
+        int lastEnd = 0;
+        while (m.find()) {
+            // 段与段之间只能是分隔符
+            String gap = text.substring(lastEnd, m.start());
+            if (!gap.matches(SEP + "?") && !gap.trim().isEmpty()) return 0;
+            String[] arr = m.group(1).split(SEP);
+            double amt;
+            try { amt = Double.parseDouble(m.group(2)); } catch (Exception e) { return 0; }
+            boolean any = false;
+            for (String n : arr) {
+                if (n.isEmpty()) continue;
+                String c = pad2(n);
+                if (!c.matches("\\d{2}")) return 0;
+                int v;
+                try { v = Integer.parseInt(c); } catch (Exception e) { return 0; }
+                if (v < 1 || v > 49) return 0;
+                codes.add(c);
+                amts.add(amt);
+                any = true;
+            }
+            if (!any) return 0;
+            segs++;
+            lastEnd = m.end();
+        }
+        // 结尾也不能剩东西
+        String tail = text.substring(lastEnd).trim();
+        if (!tail.isEmpty()) return 0;
+        return segs;
+    }
+
     /** 扫描：产品名优先（长名先），其次号码；认不出的文本直接报错 */
     static String scan(String text, List<String> codes) throws Exception {
+        // 各种横杠/加号/中点/顿号一律当号码分隔符
+        text = text.replaceAll("[\\u2010-\\u2015\\uFF0D\\-\\u00B7+、，]", " ");
         // 把「平特X」「连肖XYZ」从占位还原并单独抠出
         text = text.replaceAll("『PT』([" + ZC + "]+)", " 平特$1 ");
 
@@ -262,8 +364,33 @@ public class Parse {
             rest = rest.replaceAll("^[\\s,，、;；.。号]+", "");
             if (rest.isEmpty()) break;
             // 组合产品：二中二:号,号
-            Matcher em = Pattern.compile("^(二中二|三中三|三中二)[:：](\\d{2}(?:,\\d{2})+)").matcher(rest);
-            if (em.find()) { codes.add(em.group(1) + ":" + em.group(2)); rest = rest.substring(em.end()); continue; }
+            // 组合产品：二中二 / 三中二 / 三中三
+            // 兼容「三中三42,43,48」「三中三:02,15,28」「三中三 1,2,3」「三中三 1 2 3」
+            Matcher em = Pattern.compile("^(二中二|三中三|三中二)[:：]?").matcher(rest);
+            if (em.find()) {
+                String nm = em.group(1);
+                int need = nm.equals("二中二") ? 2 : 3;
+                String tail = rest.substring(em.end());
+                List<String> ns = new ArrayList<>();
+                int pos = 0;
+                while (ns.size() < need && pos < tail.length()) {
+                    while (pos < tail.length() && ",，、;； ".indexOf(tail.charAt(pos)) >= 0) pos++;
+                    Matcher nu2 = Pattern.compile("^(\\d{1,2})(?!\\d)").matcher(tail.substring(pos));
+                    if (!nu2.find()) break;
+                    ns.add(pad2(nu2.group(1)));
+                    pos += nu2.end();
+                }
+                if (ns.size() == need) {
+                    StringBuilder cb = new StringBuilder(nm).append(":");
+                    for (int i = 0; i < ns.size(); i++) {
+                        if (i > 0) cb.append(",");
+                        cb.append(ns.get(i));
+                    }
+                    codes.add(cb.toString());
+                    rest = rest.substring(em.end() + pos);
+                    continue;
+                }
+            }
             // 平特 / 连肖
             Matcher pt = Pattern.compile("^(平特[" + ZC + "])").matcher(rest);
             if (pt.find()) { codes.add(pt.group(1)); rest = rest.substring(pt.end()); continue; }
@@ -307,7 +434,24 @@ public class Parse {
         o.price = price;
         o.isPer = isPer;
         o.raw = raw;
-        for (String c : codes) if (!o.codes.contains(c)) o.codes.add(c);
+        // 同一个号码在一行里写两次 = 买两份，金额必须累加，不能悄悄去重（会少记账少收钱）
+        java.util.Map<String, Integer> cnt = new java.util.LinkedHashMap<>();
+        for (String c : codes) cnt.put(c, cnt.getOrDefault(c, 0) + 1);
+        java.util.Map<String, Double> unit = new java.util.HashMap<>();
+        if (isPer) {
+            for (String c : cnt.keySet()) unit.put(c, price * cnt.get(c));
+        } else {
+            // 总额口径：按「出现位置」摊，重复号也占一份
+            int slots = codes.size();
+            for (String c : cnt.keySet()) unit.put(c, price * cnt.get(c) / Math.max(1, slots));
+        }
+        boolean multi = false;
+        for (Integer v : cnt.values()) if (v > 1) multi = true;
+        for (String c : cnt.keySet()) {
+            o.codes.add(c);
+            if (multi) o.amts.add(unit.get(c));
+        }
+        if (!multi) o.amts.clear();
         return o;
     }
 

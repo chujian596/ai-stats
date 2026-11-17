@@ -69,37 +69,44 @@ public class Text {
         return b.toString().trim();
     }
 
-    /** 上家单：只报总数，明细只列命中的 */
+    /** 上家单：只报总数（特 / 平 / 二·三 三类），明细只列命中的 */
     public static String up(List<Order> orders, Draw d, double pingteMult) {
         StringBuilder b = new StringBuilder();
-        double total = 0;
-        Map<String, Double> byKind = new LinkedHashMap<>();
+        double total = 0, sp = 0, pt = 0, em = 0;
         for (Order o : orders) {
-            String k = labels(o);
-            byKind.put(k, byKind.getOrDefault(k, 0.0) + o.amount());
-            total += o.amount();
+            for (int i = 0; i < o.codes.size(); i++) {
+                String c = o.codes.get(i);
+                double amt = o.amtOf(c);
+                total += amt;
+                if (c.startsWith("平特")) pt += amt;
+                else if (c.startsWith("二中二:") || c.startsWith("三中三:") || c.startsWith("三中二:")) em += amt;
+                else sp += amt;
+            }
         }
-        b.append("飞单对账 ").append(d.period).append(" 期\n");
-        b.append("合计 ").append(Calc.fmt(total)).append(" 元（");
-        int i = 0;
-        for (Map.Entry<String, Double> e : byKind.entrySet()) {
-            if (i++ > 0) b.append(" + ");
-            b.append(e.getKey()).append(" ").append(Calc.fmt(e.getValue()));
-        }
-        b.append("）\n\n");
+        b.append("飞单对账");
+        if (d.period > 0) b.append("  ").append(d.period).append(" 期");
+        b.append("\n");
+        b.append("合计 ").append(Calc.fmt(total)).append(" 元（特 ").append(Calc.fmt(sp))
+          .append(" + 平 ").append(Calc.fmt(pt)).append(" + 二/三 ").append(Calc.fmt(em)).append("）");
 
         if (d.regular.size() == 6) {
-            b.append("明细:\n");
+            b.append("\n\n明细:");
             double win = 0;
+            boolean any = false;
             for (Order o : orders) {
                 Calc.Result r = Calc.win(o, d, pingteMult);
-                for (Calc.Line l : r.lines) b.append("  ").append(l.text()).append("\n");
+                for (Calc.Line l : r.lines) {
+                    if (Math.abs(l.win) > 0.001) { b.append("\n  ").append(l.text()); any = true; }
+                }
                 win += r.total;
             }
-            b.append("合计:").append(signed(win)).append("\n\n");
-            b.append("总账单 ").append(Calc.fmt(total)).append(" - ").append(Calc.fmt(win))
-                    .append(" = ").append(signed(total - win)).append("\n");
-            b.append("结算 ").append(signed(win - total)).append("\n");
+            if (!any) b.append("\n  本期没有命中项");
+            b.append("\n合计:").append(signed(win));
+            b.append("\n\n总账单 ").append(Calc.fmt(total)).append(" - ").append(Calc.fmt(win))
+              .append(" = ").append(signed(total - win));
+            b.append("\n结算 ").append(signed(win - total));
+        } else {
+            b.append("\n\n未开奖，结算待定");
         }
         return b.toString().trim();
     }

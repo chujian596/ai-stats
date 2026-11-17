@@ -9,17 +9,22 @@ public class Board {
     public double total = 0;      // 特号注额合计
     public double other = 0;      // 平特/连肖/二三 的注额合计（不进号码表）
 
-    /** 一笔订单里每个玩法实际分摊到的注额 */
+    /** 一笔订单里某个玩法的注额（各号金额可能不同，按码取） */
+    public static double betOf(Order o, String code) {
+        return o.amtOf(code);
+    }
+
+    /** 平均每码注额（只用于粗略汇总） */
     public static double betOf(Order o) {
-        return o.isPer ? o.price : o.price / Math.max(1, o.codes.size());
+        return o.amount() / Math.max(1, o.codes.size());
     }
 
     public static Board of(List<Order> orders) {
         Board b = new Board();
         for (int n = 1; n <= 49; n++) b.bets.put(n, 0.0);
         for (Order o : orders) {
-            double bet = betOf(o);
             for (String c : o.codes) {
+                double bet = betOf(o, c);
                 if (c.matches("\\d{2}")) {
                     int n = Integer.parseInt(c);
                     if (n >= 1 && n <= 49) {
@@ -60,12 +65,14 @@ public class Board {
     }
 
     /** 排行榜：按注额从大到小，只列有注的 */
+    /** 专业版排行榜：49 个号全列（没买的也在，金额 0），按金额降序、同额按号码升序 */
     public List<int[]> rank() {
         List<int[]> out = new ArrayList<>();
-        for (Map.Entry<Integer, Double> e : bets.entrySet()) {
-            if (e.getValue() > 0) out.add(new int[]{e.getKey(), (int) Math.round(e.getValue())});
+        for (int n = 1; n <= 49; n++) {
+            double v = bets.containsKey(n) ? bets.get(n) : 0;
+            out.add(new int[]{n, (int) Math.round(v)});
         }
-        out.sort((a, b) -> b[1] - a[1]);
+        out.sort((a, b) -> a[1] != b[1] ? b[1] - a[1] : a[0] - b[0]);
         return out;
     }
 }

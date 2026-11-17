@@ -38,6 +38,7 @@ public class Store {
         b.append("pingteMult=").append(pingteMult()).append("\n");
         b.append("cap=").append(cap()).append("\n");
         b.append("customer=").append(customer()).append("\n");
+        b.append("roster=").append(String.join("|", roster())).append("\n");
         for (Order o : orders()) b.append(o.toJson()).append("\n");
         return b.toString();
     }
@@ -56,6 +57,8 @@ public class Store {
                 od.shop = o.optString("shop", "澳");
                 od.price = o.optDouble("price");
                 od.isPer = o.optBoolean("isPer");
+                JSONArray am = o.optJSONArray("amts");
+                if (am != null) for (int j = 0; j < am.length(); j++) od.amts.add(am.optDouble(j));
                 od.ts = o.optLong("ts");
                 org.json.JSONArray cs = o.optJSONArray("codes");
                 if (cs != null) for (int j = 0; j < cs.length(); j++) od.codes.add(cs.getString(j));
@@ -65,6 +68,10 @@ public class Store {
                 if (line.startsWith("pingteMult=")) setPingteMult(Double.parseDouble(line.substring(11).trim()));
                 if (line.startsWith("cap=")) setCap(Double.parseDouble(line.substring(4).trim()));
                 if (line.startsWith("customer=")) setCustomer(line.substring(9).trim());
+                if (line.startsWith("roster=")) {
+                    String r = line.substring(7).trim();
+                    if (!r.isEmpty()) for (String n : r.split("\\|")) addRoster(n.trim());
+                }
             }
             saveOrders(list);
             return list.size();
@@ -159,6 +166,9 @@ public class Store {
             JSONArray a = o.optJSONArray("regular");
             if (a != null) for (int i = 0; i < a.length(); i++) d.regular.add(a.getInt(i));
             d.lottery = o.optString("lottery", "澳");
+            d.nextDraw = o.optInt("nextDraw");
+            d.nextAt = o.optString("nextAt", "");
+            d.at = o.optString("at", "");
         } catch (Exception ignored) {}
         return d;
     }
@@ -175,6 +185,9 @@ public class Store {
             for (int n : d.regular) a.put(n);
             o.put("regular", a);
             o.put("lottery", d.lottery);
+            o.put("nextDraw", d.nextDraw);
+            o.put("nextAt", d.nextAt);
+            o.put("at", d.at);
             sp.edit().putString(key, o.toString()).apply();
         } catch (Exception ignored) {}
     }
@@ -243,6 +256,14 @@ public class Store {
     }
 
     /** 飞单凑整开关（5 元档），默认关 */
+    /** 即飞产品（连肖/二中二/三中三）是否自动记为已飞 */
+    public boolean autoFly() { return sp.getBoolean("auto_fly", false); }
+    public void setAutoFly(boolean v) { sp.edit().putBoolean("auto_fly", v).apply(); }
+
+    /** 香港单是否自动记为已飞（店铺=香港时整本算已飞） */
+    public boolean hkAutoFly() { return sp.getBoolean("hk_auto_fly", false); }
+    public void setHkAutoFly(boolean v) { sp.edit().putBoolean("hk_auto_fly", v).apply(); }
+
     public boolean flyRound() { return sp.getBoolean("flyRound", false); }
     public void setFlyRound(boolean on) { sp.edit().putBoolean("flyRound", on).apply(); }
 
@@ -265,6 +286,7 @@ public class Store {
 
     public void setCustomer(String c) {
         sp.edit().putString(K_CUSTOMER, c).apply();
+        addRoster(c);
     }
 
     // ---------- 盘面阈值 ----------
@@ -279,6 +301,18 @@ public class Store {
     /** 平特每肖自留上限（0 = 全飞） */
     public double capPte() { return sp.getFloat(K_CAP_PTE, 0f); }
     public void setCapPte(double v) { sp.edit().putFloat(K_CAP_PTE, (float) v).apply(); }
+
+    /** 号码表口径：raw=按录单阈值 / cut=按削峰档（与专业版 cutMode 同名同义） */
+    public String cutMode() { return sp.getString("cut_mode_v1", "raw"); }
+    public void setCutMode(String m) { sp.edit().putString("cut_mode_v1", m).apply(); }
+
+    /** 削峰档（专业版 cutPick，默认 78） */
+    public double cutPick() { return sp.getFloat("cut_pick_v1", 78f); }
+    public void setCutPick(double v) { sp.edit().putFloat("cut_pick_v1", (float) v).apply(); }
+
+    /** 自动稳健勾选状态 */
+    public boolean autoStable() { return sp.getBoolean("autoStable", false); }
+    public void setAutoStable(boolean v) { sp.edit().putBoolean("autoStable", v).apply(); }
 
     /** 连肖自留上限（0 = 全飞） */
     public double capLx() { return sp.getFloat(K_CAP_LX, 0f); }
@@ -343,13 +377,43 @@ public class Store {
         sp.edit().putFloat(K_UPCUM, 0f).putFloat(K_DAY_BASE, 0f).putFloat(K_WEEK_BASE, 0f).apply();
     }
 
-    /** 常用客户：从现有订单里提取，去重 */
+    /** 客户名单（持久保存，可存多个）：名单 ∪ 当前客户 ∪ 订单里出现过的客户 */
     public List<String> customers() {
         LinkedHashSet<String> set = new LinkedHashSet<>();
+        set.add("散客");
+        for (String n : roster()) if (!n.isEmpty()) set.add(n);
         String cur = customer();
         if (!cur.isEmpty()) set.add(cur);
         for (Order o : orders()) if (o.customer != null && !o.customer.isEmpty()) set.add(o.customer);
         return new ArrayList<>(set);
+    }
+
+    /** 持久客户名单（不含「散客」这类默认项） */
+    public List<String> roster() {
+        List<String> list = new ArrayList<>();
+        String raw = sp.getString("roster", "");
+        if (raw == null || raw.isEmpty()) return list;
+        for (String n : raw.split("\\|")) {
+            String t = n.trim();
+            if (!t.isEmpty() && !list.contains(t)) list.add(t);
+        }
+        return list;
+    }
+
+    public void addRoster(String name) {
+        if (name == null) return;
+        String t = name.trim();
+        if (t.isEmpty() || "散客".equals(t)) return;
+        List<String> list = roster();
+        if (list.contains(t)) return;
+        list.add(t);
+        sp.edit().putString("roster", String.join("|", list)).apply();
+    }
+
+    public void removeRoster(String name) {
+        List<String> list = roster();
+        list.remove(name);
+        sp.edit().putString("roster", String.join("|", list)).apply();
     }
 
     // ---------- 汇总 ----------

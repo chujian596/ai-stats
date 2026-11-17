@@ -35,6 +35,18 @@ public class Z {
         }
     }
 
+    // 波色：1 红 2 蓝 3 绿（专业版号码色标同色）
+    private static final java.util.Set<Integer> RED = new java.util.HashSet<>(java.util.Arrays.asList(
+            1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46));
+    private static final java.util.Set<Integer> BLUE = new java.util.HashSet<>(java.util.Arrays.asList(
+            3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48));
+
+    public static int wave(int n) {
+        if (RED.contains(n)) return 1;
+        if (BLUE.contains(n)) return 2;
+        return 3;
+    }
+
     public static String of(int n) {
         return (n >= 1 && n <= 49) ? N2Z[n] : "";
     }

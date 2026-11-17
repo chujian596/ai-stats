@@ -66,8 +66,11 @@ public class Archive {
                 Order od = new Order();
                 od.id = o.optString("id");
                 od.customer = o.optString("customer");
+                od.shop = o.optString("shop", "澳");
                 od.price = o.optDouble("price");
                 od.isPer = o.optBoolean("isPer");
+                JSONArray am = o.optJSONArray("amts");
+                if (am != null) for (int j = 0; j < am.length(); j++) od.amts.add(am.optDouble(j));
                 od.ts = o.optLong("ts");
                 JSONArray cs = o.optJSONArray("codes");
                 if (cs != null) for (int j = 0; j < cs.length(); j++) od.codes.add(cs.getString(j));

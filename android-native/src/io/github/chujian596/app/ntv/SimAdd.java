@@ -17,36 +17,30 @@ public class SimAdd {
      */
     public static Result run(Board b, double cap, int nAdd, double amtEach) {
         Result r = new Result();
-        List<Integer> order = new ArrayList<>();
-        for (int n = 1; n <= 49; n++) order.add(n);
-        // 按当前注额从小到大排；同额时小号优先，避免每次结果跳
-        order.sort((x, y) -> {
-            double a = b.bets.get(x), c = b.bets.get(y);
-            if (a != c) return a < c ? -1 : 1;
-            return x - y;
-        });
-
-        Map<Integer, Double> bets2 = new HashMap<>(b.bets);
-        int picked = 0;
-        for (int n : order) {
-            if (picked >= nAdd) break;
-            double before = bets2.get(n);
-            if (before >= amtEach) continue;   // 已经够了，跳过
-            double after = amtEach;
-            bets2.put(n, after);
-            r.added += after - before;
-            r.picks.add(new int[]{n, (int) Math.round(before), (int) Math.round(after)});
-            picked++;
+        // 照专业版 simAddNum：每次补「当前最少」那一个号，可能反复补同一个
+        double[] self = new double[50];
+        double K = 0, M = 0;
+        for (int n = 1; n <= 49; n++) {
+            self[n] = Math.min(b.bets.get(n), cap);
+            K += self[n];
+            if (self[n] > M) M = self[n];
         }
-
-        // 补完重算最坏
-        double kept = 0, maxSelf = 0;
-        for (double v : bets2.values()) {
-            double s = Math.min(v, cap);
-            kept += s;
-            maxSelf = Math.max(maxSelf, s);
+        double K2 = K, M2 = M;
+        for (int j = 0; j < nAdd; j++) {
+            int mi = 1;
+            for (int n = 2; n <= 49; n++) if (self[n] < self[mi]) mi = n;
+            if (self[mi] >= cap) break;
+            double add = Math.min(amtEach, cap - self[mi]);
+            if (add <= 0) break;
+            double before = self[mi];
+            K2 += add;
+            double nv = self[mi] + add;
+            if (nv > M2) M2 = nv;
+            self[mi] = nv;
+            r.picks.add(new int[]{mi, (int) Math.round(before), (int) Math.round(nv)});
         }
-        r.worst = kept - Calc.PAY_SPECIAL * maxSelf;
+        r.added = K2 - K;
+        r.worst = K2 - Calc.PAY_SPECIAL * M2;
         return r;
     }
 

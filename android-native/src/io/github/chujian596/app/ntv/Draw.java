@@ -8,6 +8,9 @@ public class Draw {
     public List<Integer> regular = new ArrayList<>();
     public int special = 0;
     public String lottery = "澳";
+    public int nextDraw = 0;
+    public String nextAt = "";
+    public String at = "";
 
     public Draw() {}
     public Draw(int period, List<Integer> regular, int special) {

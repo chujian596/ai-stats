@@ -22,6 +22,8 @@ public class Qa {
         settleCases();
         System.out.println("========== 四、飞单凑整矩阵 ==========");
         flyRoundCases();
+        System.out.println("========== 六、多段连写矩阵 ==========");
+        segCases();
         System.out.println("========== 五、飞单三段账矩阵 ==========");
         flyBookCases();
         System.out.println();
@@ -338,6 +340,37 @@ public class Qa {
             System.out.println("  （参考）cap100 最坏=" + fmt(worst) + "，总风险=" + fmt(b.total));
         } catch (Exception e) {
             ok("结算矩阵", false, "跑通", "抛错：" + e.getMessage());
+        }
+    }
+
+    /** 六、多段连写：一行里多段「号码+各X元」，每号金额各自记 */
+    static void segCases() {
+        String[] in = {
+            "04.06.16.20.22.28.32各10元11.21.42各5元",
+            "04.06.16.20.22.28.32各10元 11.21.42各5元",
+            "04.06.16.20.22.28.32各10元，11.21.42各5元",
+        };
+        for (String t : in) {
+            try {
+                Order o = Parse.parseLine(t);
+                ok2("多段：10码", o != null && o.codes.size() == 10, "10", o == null ? "null" : String.valueOf(o.codes.size()), t);
+                ok2("多段：总额85", o != null && Math.abs(o.amount() - 85) < 0.005, "85", o == null ? "0" : fmt(o.amount()), "");
+                ok2("多段：首码单价10", o != null && Math.abs(o.amtOf(o.codes.get(0)) - 10) < 0.005, "10", o == null ? "-" : fmt(o.amtOf(o.codes.get(0))), "");
+                ok2("多段：末码单价5", o != null && Math.abs(o.amtOf(o.codes.get(9)) - 5) < 0.005, "5", o == null ? "-" : fmt(o.amtOf(o.codes.get(9))), "");
+            } catch (Exception e) {
+                ok("多段连写 " + t, false, "能解析", "抛错：" + e.getMessage());
+            }
+        }
+        // 盘面要按每号各自的金额累加
+        try {
+            List<Order> os = new ArrayList<>();
+            os.add(Parse.parseLine("04.06各10元11.21各5元"));
+            Board b = Board.of(os);
+            ok2("多段：04号计10", Math.abs(b.bets.get(4) - 10) < 0.005, "10", fmt(b.bets.get(4)), "");
+            ok2("多段：11号计5", Math.abs(b.bets.get(11) - 5) < 0.005, "5", fmt(b.bets.get(11)), "");
+            ok2("多段：盘面合计30", Math.abs(b.total - 30) < 0.005, "30", fmt(b.total), "04/06各10 + 11/21各5");
+        } catch (Exception e) {
+            ok("多段盘面", false, "跑通", "抛错：" + e.getMessage());
         }
     }
 

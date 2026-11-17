@@ -66,6 +66,14 @@ public class FlyBook {
      */
     public static Ledger build(List<Order> orders, double capSpec, double capPte, double capLx,
                                boolean roundOn, Map<String, Double> flown) {
+        return build(orders, capSpec, capPte, capLx, roundOn, flown, false);
+    }
+
+    /**
+     * @param autoDone  即飞开关：连肖/二中二/三中三 整块直接算已飞（专业版「即飞产品自动复制」）
+     */
+    public static Ledger build(List<Order> orders, double capSpec, double capPte, double capLx,
+                               boolean roundOn, Map<String, Double> flown, boolean autoDone) {
         Ledger L = new Ledger();
         if (flown == null) flown = new HashMap<>();
 
@@ -73,11 +81,10 @@ public class FlyBook {
         Map<Integer, Double> bet = new TreeMap<>();
         for (int i = 1; i <= 49; i++) bet.put(i, 0.0);
         for (Order o : orders) {
-            double per = Board.betOf(o);
             for (String c : o.codes) {
                 if (c.matches("\\d{2}")) {
                     int n = Integer.parseInt(c);
-                    if (n >= 1 && n <= 49) bet.put(n, bet.get(n) + per);
+                    if (n >= 1 && n <= 49) bet.put(n, bet.get(n) + Board.betOf(o, c));
                 }
             }
         }
@@ -96,9 +103,8 @@ public class FlyBook {
         // ---------- 平特：按肖汇总 ----------
         Map<String, Double> pte = new LinkedHashMap<>();
         for (Order o : orders) {
-            double per = Board.betOf(o);
             for (String c : o.codes) {
-                if (c.startsWith("平特")) pte.put(c, (pte.get(c) == null ? 0 : pte.get(c)) + per);
+                if (c.startsWith("平特")) pte.put(c, (pte.get(c) == null ? 0 : pte.get(c)) + Board.betOf(o, c));
             }
         }
         for (Map.Entry<String, Double> e : pte.entrySet()) {
@@ -113,8 +119,7 @@ public class FlyBook {
         // ---------- 连肖：整块算 ----------
         double lx = 0;
         for (Order o : orders) {
-            double per = Board.betOf(o);
-            for (String c : o.codes) if (c.startsWith("连肖")) lx += per;
+            for (String c : o.codes) if (c.startsWith("连肖")) lx += Board.betOf(o, c);
         }
         if (lx > 0.005) {
             L.totalLx = lx;
@@ -122,23 +127,24 @@ public class FlyBook {
             if (full > 0.01) {
                 double done = flown.containsKey("连肖") ? flown.get("连肖") : 0;
                 if (done > full + 0.5) done = 0;
-                L.lines.add(new Line("连肖", full, done, Math.max(0, full - done), false));
+                if (autoDone) done = full;   // 即飞：整块默认已飞
+                L.lines.add(new Line("连肖", full, done, Math.max(0, full - done), autoDone));
             }
         }
 
         // ---------- 二中二 / 三中二 / 三中三：合并一笔，全飞 ----------
         double em = 0;
         for (Order o : orders) {
-            double per = Board.betOf(o);
             for (String c : o.codes) {
-                if (c.startsWith("二中二") || c.startsWith("三中二") || c.startsWith("三中三")) em += per;
+                if (c.startsWith("二中二") || c.startsWith("三中二") || c.startsWith("三中三")) em += Board.betOf(o, c);
             }
         }
         if (em > 0.005) {
             L.totalEm = em;
             double done = flown.containsKey("_em_total") ? flown.get("_em_total") : 0;
             if (done > em + 0.5) done = 0;
-            L.lines.add(new Line("二中二/三中三合计", em, done, Math.max(0, em - done), false));
+            if (autoDone) done = em;     // 即飞：整块默认已飞
+            L.lines.add(new Line("二中二/三中三合计", em, done, Math.max(0, em - done), autoDone));
         }
 
         // ---------- 汇总 ----------

@@ -36,7 +36,7 @@ public class Calc {
     /** 单个 code 的中奖金额与说明；没中返回 null */
     public static Line hit(Order o, String code, Draw d, double pingteMult) {
         // 每个 code 对应的实际注额：各数时用单价，否则把总金额平摊到每个玩法
-        double bet = o.isPer ? o.price : o.price / Math.max(1, o.codes.size());
+        double bet = o.amtOf(code);
         if (code.startsWith("连肖")) {
             String zs = code.substring(2);
             Set<String> hit = Z.hitZodiacs(d.regular, d.special);

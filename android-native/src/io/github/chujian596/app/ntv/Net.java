@@ -15,9 +15,12 @@ import java.util.*;
 /** 开奖抓取：只做一件事——把线上三份数据里最新的一份读回来，失败就用本机缓存 */
 public class Net {
 
+    private static final String BASE = "https://aistats-9uo.pages.dev";
     private static final String[] SOURCES = {
+            "https://aistats-9uo.pages.dev/api/draw",
             "https://aistats-9uo.pages.dev/draw-latest.json",
-            "https://chujian596.github.io/ai-stats/draw-latest.json"
+            "https://chujian596.github.io/ai-stats/draw-latest.json",
+            "https://chujian596.github.io/ai-luandan/draw-latest.json"
     };
 
     private final SharedPreferences sp;
@@ -31,6 +34,7 @@ public class Net {
     public Draw fetch(String lottery) {
         for (String url : SOURCES) {
             try {
+                url = url + (url.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
                 String body = get(url);
                 if (body == null) continue;
                 JSONObject root = new JSONObject(body);
@@ -43,6 +47,13 @@ public class Net {
                 List<Integer> regular = new ArrayList<>();
                 for (int i = 0; i < 6; i++) regular.add(arr.optInt(i));
                 Draw d = new Draw(period, regular, arr.optInt(6));
+                org.json.JSONObject self = root.optJSONObject(lottery.equals("港") ? "hongkong" : "macao");
+                if (self != null) d.at = self.optString("drawn_at", "");
+                org.json.JSONObject nx = root.optJSONObject("next");
+                if (nx != null) {
+                    org.json.JSONObject onx = nx.optJSONObject(lottery.equals("港") ? "hongkong" : "macao");
+                    if (onx != null) { d.nextDraw = onx.optInt("draw"); d.nextAt = onx.optString("draw_at", ""); }
+                }
                 d.lottery = lottery;
                 saveCache(d);
                 return d;
