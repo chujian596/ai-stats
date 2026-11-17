@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.190-Pro';
+var APP_VER = 'v58.191-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6359,7 +6359,12 @@ function actualPnL(){
   let flyOut = 0, flyBack = 0;
   try{
     const ss = getSplitSales();
-    Object.keys(ss).forEach(function(k){ flyOut += flownRealOf(k); });
+    const _fk2 = new Set(Object.keys(flownPerPos));
+    Object.keys(ss).forEach(function(k){ _fk2.add(k); });
+    _fk2.forEach(function(k){
+      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0) return; // 下面单独算
+      flyOut += flownRealOf(k);
+    });
     if(lastDraw){
       const sp = String(lastDraw.specialNum).padStart(2,'0');
       flyBack += flownRealOf(sp) * payMult;
@@ -6508,7 +6513,11 @@ function renderOrdersList(){
     const sales = getSplitSales();
     // 特码飞单：飞走总额 = 所有号超阈值部分之和
     // 只认「真飞出去」的钱：没来得及飞的自己承担，不算在上家账上
-    Object.keys(sales).forEach(k => {
+    // 连客户没下注、自己手动飞上去的号也要算（那是自己的自购仓，命中照样上家赔）
+    const _flyKeys = new Set(Object.keys(flownPerPos));
+    Object.keys(sales).forEach(k => _flyKeys.add(k));
+    _flyKeys.forEach(k => {
+      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0) return; // 这三类下面单独算
       flyOutTotal += flownRealOf(k);
     });
     // 特码飞单中奖：只有开的那个号上家赔47倍
