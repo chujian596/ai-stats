@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.178-Pro';
+var APP_VER = 'v58.179-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4618,6 +4618,16 @@ function codeSalesForOrder(o, prod){
   return (Number(o.price)||0)*times;
 }
 let _texiaoChoice = null;
+// 开奖快照是不是“今天”的：源头卡住时别把昨天的号当今天结算
+function drawDayOf(m){
+  var t = (m && (m.drawn_at || m.draw_at)) || '';
+  var mm = String(t).match(/(\d{4})-(\d{2})-(\d{2})/);
+  return mm ? (mm[1] + '-' + mm[2] + '-' + mm[3]) : '';
+}
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 // 当前店铺的开奖对象：A 店（澳门）用 lastDraw，B 店（香港）用 hkDrawObj()
 function curShopDraw(){
   if(typeof shop !== 'undefined' && shop === 'B'){
@@ -4664,6 +4674,14 @@ function autoFetchDraw(retry){
     var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
     var settled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
     var incoming = parseInt(m.draw);
+    // 源头没更新：返回的是往日开奖，不能当今天这期
+    var _dd = drawDayOf(m);
+    if(_dd && _dd !== todayStr()){
+      renderLiveBalls(m.winner_numbers, true);
+      done();
+      myAlert('源头还没更新：拿到的是 ' + _dd + ' 的第 ' + m.draw + ' 期。\n今天这期还没出号，先别结算。\n过几分钟再点一次；急的话用下面「手动录入」。');
+      return;
+    }
     // 服务器给的是更旧的期：不覆盖、不结算，避免把上一天的开奖当成当期
     if(incoming < settled){
       myAlert('已结算到 ' + settled + ' 期。\n服务器这次返回的是旧数据（' + incoming + ' 期），请过一两分钟再点一次。');
@@ -4686,6 +4704,7 @@ function autoFetchDraw(retry){
   // 依次尝试：同源快照 → 主站远程 → 备用站远程（离线 APK 靠后两个拿开奖）
   // 首选同域接口：Cloudflare 边缘实时抓，数据总是最新；后面几个是离线/备网兜底
   var sources = ['/api/draw',
+                 'https://aistats-9uo.pages.dev/api/draw',
                  'draw-latest.json',
                  'https://chujian596.github.io/ai-stats/draw-latest.json',
                  'https://chujian596.github.io/ai-luandan/draw-latest.json'];

@@ -5,20 +5,29 @@
 const API =
   'https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/about/home-cache';
 
+function shDay(offsetDays) {
+  const t = new Date(Date.now() + 8 * 3600 * 1000 + (offsetDays || 0) * 86400000);
+  return t.toISOString().slice(0, 10);
+}
+
 function build(raw) {
   const latest = (raw && raw.latest) || {};
   const out = {
     updated: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
     source: 'home-cache',
+    today: shDay(0),
   };
   for (const key of ['macao', 'hongkong']) {
     const item = latest[key];
     if (item && item.winner_numbers && item.winner_numbers.length) {
+      const day = String(item.drawn_at || '').slice(0, 10);
       out[key] = {
         draw: item.draw,
         year: item.year,
         numbers: item.winner_numbers,
         drawn_at: item.drawn_at,
+        day,
+        stale: !!day && day !== out.today, // 源头卡住：给的还是往日数据
       };
     }
   }
