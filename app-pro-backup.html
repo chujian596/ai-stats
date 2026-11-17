@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.189-Pro';
+var APP_VER = 'v58.190-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2943,6 +2943,10 @@ function showAllFlyDir(){
      + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _dg.showSum.toFixed(0) + '）</span>'
      + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
      + '</div>';
+  var _flownRows = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; })
+    .map(function(k){ return { k: k, p: flownPerPos[k] || 0, a: flownRealOf(k) }; })
+    .sort(function(x, y){ return (y.a - x.a) || (y.p - x.p); });
+  var _flownRowsSum = _flownRows.reduce(function(t, r){ return t + r.a; }, 0);
   h += '<div id="flyDirBody" style="display:' + (_flyDirOpen ? 'block' : 'none') + '">';
   h += '<div style="display:flex">';
   // 左：未飞
@@ -2965,17 +2969,17 @@ function showAllFlyDir(){
   // 右：已飞
   h += '<div style="flex:1;min-width:0;display:flex;flex-direction:column">';
   h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:4px">'
-     + '<span>已飞 ' + _dg.showSum.toFixed(0) + '</span>'
+     + '<span>已飞 ' + _flownRowsSum.toFixed(0) + '</span>'
      + '<button onclick="copyFlownList()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;line-height:16px">复制</button>'
      + '</div>';
   h += '<div style="overflow-y:auto;max-height:260px;-webkit-overflow-scrolling:touch">';
-  if(_dg.groups.length === 0){
+  if(_flownRows.length === 0){
     h += '<div style="padding:4px;color:#ccc;text-align:center;font-size:11px">暂无</div>';
   } else {
-    _dg.groups.forEach(function(g){
+    _flownRows.forEach(function(r){
       h += '<div style="padding:2px 5px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;gap:4px;align-items:flex-start">'
-         + '<span style="font-size:12px;color:#999;line-height:1.4;word-break:break-all">' + g.codes.join(' ') + ' <span style="color:#bbb">各' + g.amt.toFixed(0) + '</span></span>'
-         + '<span style="font-size:12px;color:#999;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+         + '<span style="font-size:12px;color:#999;line-height:1.4;word-break:break-all">' + r.k + ' <span style="color:#bbb">各' + r.p.toFixed(0) + '</span></span>'
+         + '<span style="font-size:12px;color:#999;white-space:nowrap">' + r.a.toFixed(0) + '</span></div>';
     });
   }
   h += '</div>';
@@ -3028,7 +3032,8 @@ function flyEditListHtml(){
   }
   out += '<div id="flyEditBody">';
   out += '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
-  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).sort();
+  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; })
+    .sort(function(a, b){ return (flownRealOf(b) - flownRealOf(a)) || ((flownPerPos[b]||0) - (flownPerPos[a]||0)); });
   if(!ks.length){
     out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
   } else {
