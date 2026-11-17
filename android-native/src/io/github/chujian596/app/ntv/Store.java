@@ -17,6 +17,9 @@ public class Store {
     private static final String K_PINGTE = "pingteMult";
     private static final String K_CUSTOMER = "customer";
     private static final String K_CAP = "cap";
+    private static final String K_CAP_PTE = "capPte";
+    private static final String K_CAP_LX = "capLx";
+    private static final String K_FLOWN = "flownMap";
     private static final String K_UPCUM = "upCum";
     private static final String K_DAY_KEY = "upDayKey";
     private static final String K_DAY_BASE = "upDayBase";
@@ -272,6 +275,41 @@ public class Store {
     public void setCap(double v) {
         sp.edit().putFloat(K_CAP, (float) v).apply();
     }
+
+    /** 平特每肖自留上限（0 = 全飞） */
+    public double capPte() { return sp.getFloat(K_CAP_PTE, 0f); }
+    public void setCapPte(double v) { sp.edit().putFloat(K_CAP_PTE, (float) v).apply(); }
+
+    /** 连肖自留上限（0 = 全飞） */
+    public double capLx() { return sp.getFloat(K_CAP_LX, 0f); }
+    public void setCapLx(double v) { sp.edit().putFloat(K_CAP_LX, (float) v).apply(); }
+
+    /** 已飞登记：key -> 累计已飞金额 */
+    public Map<String, Double> flown() {
+        Map<String, Double> m = new LinkedHashMap<>();
+        String raw = sp.getString(K_FLOWN, "");
+        if (raw == null || raw.trim().isEmpty()) return m;
+        try {
+            JSONObject o = new JSONObject(raw);
+            Iterator<String> it = o.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                m.put(k, o.optDouble(k, 0));
+            }
+        } catch (Exception ignore) {}
+        return m;
+    }
+
+    public void setFlown(Map<String, Double> m) {
+        JSONObject o = new JSONObject();
+        try {
+            for (Map.Entry<String, Double> e : m.entrySet()) o.put(e.getKey(), e.getValue());
+        } catch (Exception ignore) {}
+        sp.edit().putString(K_FLOWN, o.toString()).apply();
+    }
+
+    /** 清空已飞登记（换期/清账时用） */
+    public void clearFlown() { sp.edit().remove(K_FLOWN).apply(); }
 
     // ---------- 上家盈亏 ----------
     /** 结算一期：把这一期的差额记进累计，并处理跨天/跨周的起点 */

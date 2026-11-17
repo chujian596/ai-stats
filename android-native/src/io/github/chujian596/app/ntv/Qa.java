@@ -22,6 +22,8 @@ public class Qa {
         settleCases();
         System.out.println("========== 四、飞单凑整矩阵 ==========");
         flyRoundCases();
+        System.out.println("========== 五、飞单三段账矩阵 ==========");
+        flyBookCases();
         System.out.println();
         for (String l : lines) System.out.println(l);
         System.out.println();
@@ -336,6 +338,82 @@ public class Qa {
             System.out.println("  （参考）cap100 最坏=" + fmt(worst) + "，总风险=" + fmt(b.total));
         } catch (Exception e) {
             ok("结算矩阵", false, "跑通", "抛错：" + e.getMessage());
+        }
+    }
+
+    /** 五、飞单三段账：总单/已飞/待飞/合计/自留现金，与专业版 getThisRoundFly 同口径 */
+    static void flyBookCases() {
+        try {
+            // 场景：22 号收 70（每号70），45 号收 55，37 号收 5，平特虎 1000
+            List<Order> os = new ArrayList<>();
+            os.add(Parse.parseLine("22 70"));
+            os.add(Parse.parseLine("45 55"));
+            os.add(Parse.parseLine("37 5"));
+            os.add(Parse.parseLine("平特虎 1000"));
+
+            // 特阈值 21、平特 0（全飞）、不凑整
+            FlyBook.Ledger L = FlyBook.build(os, 21, 0, 0, false, new HashMap<String, Double>());
+            // 特号：22→49、45→34、37→0（5<21 不飞）；平特虎 1000 全飞
+            ok2("总单", Math.abs(L.total - 1130) < 0.005, "1130", fmt(L.total), "70+55+5+1000");
+            ok2("特号总单", Math.abs(L.totalSpec - 130) < 0.005, "130", fmt(L.totalSpec), "");
+            ok2("平特总单", Math.abs(L.totalPte - 1000) < 0.005, "1000", fmt(L.totalPte), "");
+            ok2("应飞总额", Math.abs(L.flyFull - 1083) < 0.005, "1083", fmt(L.flyFull), "49+34+1000");
+            ok2("已飞初始为0", Math.abs(L.already) < 0.005, "0", fmt(L.already), "");
+            ok2("待飞", Math.abs(L.pending - 1083) < 0.005, "1083", fmt(L.pending), "");
+            ok2("合计=已飞+待飞", Math.abs(L.sum - 1083) < 0.005, "1083", fmt(L.sum), "");
+            ok2("自留现金", Math.abs(L.keepCash - 47) < 0.005, "47", fmt(L.keepCash), "总单1130-飞1083");
+
+            // 记已飞后再算：已飞 49，待飞 1034
+            Map<String, Double> flown = new HashMap<>();
+            FlyBook.commit(L, flown, false);
+            FlyBook.Ledger L2 = FlyBook.build(os, 21, 0, 0, false, flown);
+            ok2("确认后已飞", Math.abs(L2.already - 1083) < 0.005, "1083", fmt(L2.already), "全部确认");
+            ok2("确认后待飞归0", Math.abs(L2.pending) < 0.005, "0", fmt(L2.pending), "");
+            ok2("确认后自留现金不变", Math.abs(L2.keepCash - 47) < 0.005, "47", fmt(L2.keepCash), "");
+
+            // 部分已飞：只确认 22 号
+            Map<String, Double> part = new HashMap<>();
+            part.put("22", 49.0);
+            FlyBook.Ledger L3 = FlyBook.build(os, 21, 0, 0, false, part);
+            ok2("部分已飞", Math.abs(L3.already - 49) < 0.005, "49", fmt(L3.already), "只确认22号");
+            ok2("部分待飞", Math.abs(L3.pending - 1034) < 0.005, "1034", fmt(L3.pending), "34+1000");
+
+            // 旧记录清理：已飞大于该飞 → 归零
+            Map<String, Double> stale = new HashMap<>();
+            stale.put("22", 999.0);
+            FlyBook.Ledger L4 = FlyBook.build(os, 21, 0, 0, false, stale);
+            ok2("旧记录不算今天", Math.abs(L4.already) < 0.005, "0", fmt(L4.already), "已飞999>该飞49");
+
+            // 凑整：49→50、34→35
+            FlyBook.Ledger L5 = FlyBook.build(os, 21, 0, 0, true, new HashMap<String, Double>());
+            ok2("凑整后待飞", Math.abs(L5.pendingRound - 1085) < 0.005, "1085", fmt(L5.pendingRound), "50+35+1000");
+
+            // 凑整后确认：记原额，再算待飞必须归 0（否则 49→50 会被当旧记录清零）
+            Map<String, Double> rc = new HashMap<>();
+            FlyBook.Ledger R0 = FlyBook.build(os, 21, 0, 0, true, rc);
+            FlyBook.commit(R0, rc, true);
+            FlyBook.Ledger R1 = FlyBook.build(os, 21, 0, 0, true, rc);
+            ok2("凑整确认后待飞归0", Math.abs(R1.pending) < 0.005, "0", fmt(R1.pending), "22记49不是50");
+            ok2("凑整确认后已飞=原额", Math.abs(R1.already - 1083) < 0.005, "1083", fmt(R1.already), "");
+
+            // 三阈值独立：平特留 500 → 只飞 500
+            FlyBook.Ledger L6 = FlyBook.build(os, 21, 500, 0, false, new HashMap<String, Double>());
+            ok2("平特留500后飞", Math.abs(L6.totalPte - 1000) < 0.005, "1000", fmt(L6.totalPte), "总单不变");
+            double pteFly = 0;
+            for (FlyBook.Line ln : L6.lines) if (ln.key.startsWith("平特")) pteFly += ln.full;
+            ok2("平特自留500只飞500", Math.abs(pteFly - 500) < 0.005, "500", fmt(pteFly), "");
+
+            // 阈值 0 = 全飞
+            FlyBook.Ledger L7 = FlyBook.build(os, 0, 0, 0, false, new HashMap<String, Double>());
+            ok2("特阈值0全飞", Math.abs(L7.flyFull - 1130) < 0.005, "1130", fmt(L7.flyFull), "");
+            ok2("特阈值0自留0", Math.abs(L7.keepCash) < 0.005, "0", fmt(L7.keepCash), "");
+
+            // 目录分行：金额相同的合并
+            FlyBook.Ledger L8 = FlyBook.build(os, 21, 0, 0, false, new HashMap<String, Double>());
+            ok2("目录行数", L8.groups.size() >= 1, ">=1", String.valueOf(L8.groups.size()),
+                    L8.groups.isEmpty() ? "空" : L8.groups.get(0).text());
+        } catch (Exception e) {
+            ok("三段账矩阵", false, "跑通", "抛错：" + e.getMessage());
         }
     }
 }

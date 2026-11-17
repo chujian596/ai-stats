@@ -250,6 +250,42 @@ public class FuncMatrixTest {
             chk("凑整：复制飞单进剪贴板", clipContains("合计"), "");
         }
 
+        // 14 飞单三段账（总单 / 已飞 / 待飞 / 合计 / 自留现金）
+        open();
+        store.saveOrders(new ArrayList<Order>());
+        store.clearFlown();
+        store.setCap(21); store.setCapPte(0); store.setCapLx(0);
+        for (String s : new String[]{"22 70", "45 55", "37 5", "平特虎 1000"}) { input(s); click("保存"); }
+        click("飞单统计");
+        idles();
+        String fb = textOf(tagView("split"));
+        chk("三段账：显示总单", fb.contains("总单"), snippet(fb));
+        chk("三段账：显示已飞", fb.contains("已飞"), "");
+        chk("三段账：显示待飞", fb.contains("待飞"), "");
+        chk("三段账：显示合计", fb.contains("合计"), "");
+        chk("三段账：显示自留现金", fb.contains("自留现金"), "");
+        chk("三段账：总单金额正确(1130)", fb.contains("1130") || fb.contains("1,130"), snippet(fb));
+        chk("三段账：待飞金额正确(1083)", fb.contains("1083"), snippet(fb));
+        chk("三阈值：特输入框在", fb.contains("阈值") && fb.contains("特"), "");
+        chk("三阈值：平输入框在", fb.contains("平"), "");
+        chk("三阈值：连输入框在", fb.contains("连"), "");
+        chk("三段账：确认已飞按钮在", fb.contains("确认已飞"), "");
+        chk("三段账：清空已飞按钮在", fb.contains("清空已飞"), "");
+        click("确认已飞");
+        idles();
+        // AlertDialog 的正按钮
+        android.app.AlertDialog dlg = lastDialog();
+        if (dlg == null) chk("三段账：确认弹窗出现", false, "没弹窗");
+        else {
+            dlg.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();
+            idles();
+            chk("三段账：确认后已飞记入存储", !store.flown().isEmpty(), "flown=" + store.flown().size() + " 项");
+            String fb2 = textOf(tagView("split"));
+            // 待飞归 0 的表现：目录变成 0 行、提示「没有要飞的」
+            chk("三段账：确认后待飞归0", fb2.contains("没有要飞的") && fb2.contains("飞单目录（0 行）"), snippet(fb2));
+            chk("三段账：确认后自留现金=总单", fb2.contains("1130"), snippet(fb2));
+        }
+
         System.out.println("========== 矩阵汇总 ==========");
         System.out.println("通过 " + pass + " 项，失败 " + fail + " 项");
         for (String f : fails) System.out.println("  [FAIL] " + f);
@@ -268,6 +304,10 @@ public class FuncMatrixTest {
         CharSequence t = cm.getPrimaryClip().getItemAt(0).getText();
         String s = t == null ? "" : t.toString().replace("\n", " / ");
         return s.length() > 60 ? s.substring(0, 60) + "…" : s;
+    }
+
+    private android.app.AlertDialog lastDialog() {
+        return org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     }
 
     private String snippet(String s) {

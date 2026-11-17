@@ -106,6 +106,31 @@ public class MainActivity extends Activity {
         return l;
     }
 
+    private android.widget.EditText capInput(double v) {
+        android.widget.EditText e = new android.widget.EditText(this);
+        e.setText(v > 0 ? Calc.fmt(v) : "0");
+        e.setTextSize(12);
+        e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        lp.setMargins(dp(2), 0, dp(2), 0);
+        e.setLayoutParams(lp);
+        return e;
+    }
+
+    private LinearLayout labeled(String name, android.widget.EditText e) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        box.setLayoutParams(lp);
+        box.addView(tv(name, 10, C_SUB, false));
+        box.addView(e);
+        return box;
+    }
+
+    private double parseNum(String s, double def) {
+        try { return Double.parseDouble(s.trim()); } catch (Exception e) { return def; }
+    }
+
     private Button btn(String text, View.OnClickListener cb) {
         Button b = new Button(this);
         b.setText(text);
@@ -1262,10 +1287,66 @@ public class MainActivity extends Activity {
     private void renderSplit(List<Order> today) {
         Board b = Board.of(today);
         double cap = store.cap();
+        double capPte = store.capPte();
+        double capLx = store.capLx();
+        boolean roundOn = store.flyRound();
+        FlyBook.Ledger L = FlyBook.build(today, cap, capPte, capLx, roundOn, store.flown());
         splitBox.removeAllViews();
-        if (b.total <= 0) {
-            splitBox.addView(tv("还没有特号单", 12, C_SUB, false));
+
+        // ---------- 三阈值输入：特 / 平 / 连 ----------
+        LinearLayout th = new LinearLayout(this);
+        th.setOrientation(LinearLayout.HORIZONTAL);
+        th.setPadding(0, 0, 0, dp(4));
+        th.addView(tv("阈值", 12, C_SUB, true));
+        android.widget.EditText eSpec = capInput(cap);
+        android.widget.EditText ePte = capInput(capPte);
+        android.widget.EditText eLx = capInput(capLx);
+        th.addView(labeled("特", eSpec));
+        th.addView(labeled("平", ePte));
+        th.addView(labeled("连", eLx));
+        Button apply = btn("应用", v -> {
+            double a = parseNum(eSpec.getText().toString(), cap);
+            double p = parseNum(ePte.getText().toString(), capPte);
+            double l = parseNum(eLx.getText().toString(), capLx);
+            store.setCap(a); store.setCapPte(p); store.setCapLx(l);
+            refresh();
+        });
+        apply.setTextSize(12);
+        th.addView(apply);
+        splitBox.addView(th);
+        splitBox.addView(tv("特=每个号最多留多少；平=每个平特肖留多少；连=连肖留多少。0 表示全飞", 10, C_SUB, false));
+
+        if (L.total <= 0) {
+            splitBox.addView(tv("还没有订单", 12, C_SUB, false));
             return;
+        }
+
+        // ---------- 三段账 ----------
+        LinearLayout seg1 = new LinearLayout(this);
+        seg1.setOrientation(LinearLayout.HORIZONTAL);
+        seg1.addView(tv("总单 ", 13, C_TXT, true));
+        seg1.addView(tv(Calc.fmt(L.total), 15, C_TXT, true));
+        seg1.addView(tv("  ｜ 已飞 ", 13, C_SUB, false));
+        seg1.addView(tv(Calc.fmt(L.already), 13, C_SUB, true));
+        seg1.addView(tv("  ｜ 待飞 ", 13, C_SUB, false));
+        seg1.addView(tv(Calc.fmt(L.pending), 13, C_RED, true));
+        splitBox.addView(seg1);
+
+        LinearLayout seg2 = new LinearLayout(this);
+        seg2.setOrientation(LinearLayout.HORIZONTAL);
+        seg2.addView(tv("合计 ", 13, C_TXT, true));
+        seg2.addView(tv(Calc.fmt(L.sum), 14, C_TXT, true));
+        if (roundOn && Math.abs(L.pendingRound - L.pending) >= 0.01) {
+            seg2.addView(tv("  ｜ 凑整 ", 12, C_SUB, false));
+            seg2.addView(tv(Calc.fmt(L.pendingRound), 12, 0xFFB45309, true));
+        }
+        seg2.addView(tv("  ｜ 自留现金 ", 12, C_SUB, false));
+        seg2.addView(tv(Calc.fmt(L.keepCash), 14, C_GREEN, true));
+        splitBox.addView(seg2);
+
+        if (L.totalLx > 0 || L.totalEm > 0 || L.totalPte > 0) {
+            splitBox.addView(tv("特号 " + Calc.fmt(L.totalSpec) + " ｜ 平特 " + Calc.fmt(L.totalPte)
+                    + " ｜ 连肖 " + Calc.fmt(L.totalLx) + " ｜ 二三中 " + Calc.fmt(L.totalEm), 11, C_SUB, false));
         }
 
         double kept = b.kept(cap);
@@ -1317,26 +1398,50 @@ public class MainActivity extends Activity {
         splitBox.addView(tv("勾上后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留", 11, C_SUB, false));
 
         boolean rd = store.flyRound();
-        final java.util.List<Split.FlyGroup> gs = Split.flyGroups(b, cap, rd);
-        final double showSum = Split.flySum(gs);
-        final double rawSum = Split.flyRaw(b, cap);
+        final java.util.List<FlyBook.Group> gs = L.groups;
+        final double showSum = L.pendingRound;
+        final double rawSum = L.pending;
         splitBox.addView(tv("飞单目录（" + gs.size() + " 行）", 13, C_TXT, true));
         if (gs.isEmpty()) {
             splitBox.addView(tv("没有要飞的", 12, C_SUB, false));
         } else {
-            for (Split.FlyGroup g : gs) splitBox.addView(tv(g.text(), 12, C_TXT, false));
+            for (FlyBook.Group g : gs) splitBox.addView(tv(g.text(), 12, C_TXT, false));
             if (rd && Math.abs(showSum - rawSum) >= 0.01) {
                 splitBox.addView(tv("凑整前 " + Calc.fmt(rawSum) + "，凑整后 " + Calc.fmt(showSum)
                         + "（" + (showSum > rawSum ? "多飞 " : "省 ") + Calc.fmt(Math.abs(showSum - rawSum)) + "）", 11, C_SUB, false));
             }
-            splitBox.addView(btn("复制飞单", v -> copyFly(gs, showSum)));
+            LinearLayout act = new LinearLayout(this);
+            act.setOrientation(LinearLayout.HORIZONTAL);
+            act.addView(btn("复制飞单", v -> copyFly(gs, showSum)));
+            act.addView(btn("确认已飞", v -> {
+                android.app.AlertDialog.Builder ad = new android.app.AlertDialog.Builder(this);
+                ad.setTitle("确认飞单");
+                ad.setMessage("本轮共飞 " + Calc.fmt(showSum) + " 元，确认后记入已飞累计。");
+                ad.setPositiveButton("确定", (d, w) -> {
+                    java.util.Map<String, Double> fm = store.flown();
+                    FlyBook.commit(L, fm, rd);
+                    store.setFlown(fm);
+                    refresh();
+                    toast("已记入已飞 " + Calc.fmt(showSum));
+                });
+                ad.setNegativeButton("取消", null);
+                ad.show();
+            }));
+            act.addView(btn("清空已飞", v -> {
+                android.app.AlertDialog.Builder ad = new android.app.AlertDialog.Builder(this);
+                ad.setMessage("清空已飞登记？已飞回到 0，待飞重新按全部计算。");
+                ad.setPositiveButton("确定", (d, w) -> { store.clearFlown(); refresh(); });
+                ad.setNegativeButton("取消", null);
+                ad.show();
+            }));
+            splitBox.addView(act);
         }
     }
 
     /** 复制飞单目录到剪贴板（格式：01 02 各35，最后一行合计） */
-    private void copyFly(java.util.List<Split.FlyGroup> gs, double sum) {
+    private void copyFly(java.util.List<FlyBook.Group> gs, double sum) {
         StringBuilder b = new StringBuilder();
-        for (Split.FlyGroup g : gs) b.append(g.text()).append("\n");
+        for (FlyBook.Group g : gs) b.append(g.text()).append("\n");
         b.append("合计 ").append(Calc.fmt(sum));
         android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("飞单", b.toString()));
