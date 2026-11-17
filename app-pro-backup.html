@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.206-Pro';
+var APP_VER = 'v58.207-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7564,14 +7564,9 @@ function renderRisk(){
       });
     });
     if(lxFlyAmt > 0){ actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * 4); }
+    // 已经开奖并赔付：就是当前实账（已飞 790 的账），未飞的 190 不算进已结算亏损
     var _apNow = null; try { _apNow = actualPnL(); } catch(e){}
-    var _pendNow = 0;
-    try {
-      var _rl = getThisRoundFly();
-      (_rl.lines||[]).forEach(function(l){ if(l.amt > 0.01){ var a=l.amt; if(parseFloat(getFlyRoundMode())>0) a=flyShowAmt(a); _pendNow += a; } });
-      _pendNow = Math.round(_pendNow);
-    } catch(e){}
-    const actualNet = _apNow ? (_apNow.net - _pendNow) : (keptCash - actualSpecPayout - actualPtePayout - actualLxPayout);
+    const actualNet = _apNow ? _apNow.net : (keptCash - actualSpecPayout - actualPtePayout - actualLxPayout);
     h += `<div style="margin:6px 0;padding:12px;background:#f8f9fa;border-radius:8px;font-size:15px;line-height:1.8;border:1px solid #e5e5e5">`;
     const regNums = (lastDraw.regularNums||[]).map(n => String(n).padStart(2,'0') + (NUM2ZODIAC[n]||'')).join(' ');
     h += `<div style="font-weight:700;font-size:15px;margin-bottom:4px">已开奖：特${String(dn).padStart(2,'0')} ${dz}</div>`;
@@ -8136,7 +8131,7 @@ function renderRisk(){
   const _alreadyReal = _paidAllT;   // 与飞单统计「已飞」同一个数
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
   // 与「飞单统计」同一套：总单含二/三 → 自留 = 总单 - 已飞实付 - 待飞
-  var keptCashReal = fullTotalSales - _alreadyReal - _pendingReal;
+  var keptCashReal = fullTotalSales - _alreadyReal;   // 已结算实账：手上还留着的钱（待飞另算）
   const _totalRealFly = _alreadyReal + _pendingReal;
   const _totalOrigFly = currentFly + pteFlyAmt + effectiveLxFly;
   var _roundGap = 0; try { _roundGap = flyRoundGapTotal(); } catch(e){ _roundGap = 0; }   // 负=少飞(留自己)；正=多飞(上家兜)
@@ -8147,7 +8142,7 @@ function renderRisk(){
   if(_alreadyReal > _shouldAll + 20 && _shouldAll > 0){
     h += `<div style="font-size:12px;color:#cf1322;line-height:1.6;padding:3px 0 3px 4px">已飞 ${_alreadyReal.toFixed(0)} 元，比按现阈值该飞的 ${_shouldAll.toFixed(0)} 元还多 ${(_alreadyReal-_shouldAll).toFixed(0)} 元 —— 这批已飞跟当前单/当前阈值对不上（改过单、或调过阈值后才出现的）。数字打架就是这个原因。要让账干净：点「重置飞单」清零，再按当前阈值飞一遍。</div>`;
   }
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　飞完实付（不含二/三中三）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　补飞完总飞（含待飞 ${_pendingReal.toFixed(0)}）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
   const _roundNowOn = (function(){ try{ return (parseFloat(getFlyRoundMode())||0) > 0; }catch(e){ return false; } })();
   if(!_roundNowOn){
     h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　未凑整，按原额飞${Math.abs(_roundGap) > 0.01 ? '（历史确认时按凑整多付了 ' + Math.abs(_roundGap).toFixed(0) + ' 元，已计入自留现金）' : ''}</span><span></span></div>`;
@@ -8170,9 +8165,9 @@ function renderRisk(){
     h += `</div>`;
   }
   const _cashNow = fullTotalSales - _alreadyReal;
-  const _keptFinal = fullTotalSales - _alreadyReal - _pendingReal;
+  const _keptFinal = fullTotalSales - _alreadyReal;
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${_keptFinal.toFixed(0)}</b></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　现在手上 ${_cashNow.toFixed(0)}（总单减已飞）· 补飞完才是上面这个数</span><span></span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　待飞 ${_pendingReal.toFixed(0)} 还没付出去，不算进已结算盈亏</span><span></span></div>`;
   // 开奖后用实际值，否则用最坏预测
   let dSpecPayout = specialPayout, dPtePayout = ptePayout, dLxPayout = lxPayout, dNet = afterFlyNet;
   if(lastDraw && lastDraw.specialNum){
@@ -8202,7 +8197,7 @@ function renderRisk(){
       }
     });});
 
-    dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;
+    dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;   // 3055 - 4055 = -1000
   }
   const dPayout = dSpecPayout + dPtePayout + dLxPayout;
   const isDraw = !!(lastDraw && lastDraw.specialNum);
