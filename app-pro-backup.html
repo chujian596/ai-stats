@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.199-Pro';
+var APP_VER = 'v58.200-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2135,6 +2135,12 @@ function renderSideCustPay(){
       if(flyLxBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回连肖</span><span style="font-size:13px;color:#166534">+' + flyLxBack.toFixed(2) + '</span></div>';
       if(flyEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去二中二三中三(已实付)</span><span style="font-size:13px;color:#666">-' + flyEm.toFixed(2) + '</span></div>';
       if(flyEmBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回二中二三中三</span><span style="font-size:13px;color:#166534">+' + flyEmBack.toFixed(2) + '</span></div>';
+      try {
+        var _rg = flyRoundGapTotal();
+        if(Math.abs(_rg) > 0.01){
+          h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">凑整差累计（' + (_rg>0?'多飞自己多付':'少飞自己留') + '）</span><span style="font-size:13px;color:' + (_rg>0?'#cf1322':'#166534') + '">' + (_rg>0?'+':'') + _rg.toFixed(0) + '</span></div>';
+        }
+      } catch(e){}
     }
     h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;margin-top:4px"><span style="font-size:15px;font-weight:700">最终余额</span><span style="font-size:18px;font-weight:700;color:' + (realNet>=0?'#166534':'#cf1322') + '">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
     h += '</div>';
@@ -2987,6 +2993,16 @@ function flyGroupText(g){
 }
 
 // 已飞行：既含清单里存的，也含「即飞」产品（连肖/二中二三中三）自动算的那部分
+// 当期累计凑整差：已付实付 − 原始应飞额；正=多飞自己多付，负=少飞自己留
+function flyRoundGapTotal(){
+  var t = 0;
+  Object.keys(flownPerPos).forEach(function(k){
+    var p = flownPerPos[k] || 0;
+    if(p <= 0) return;
+    t += (flownRealOf(k) - p);
+  });
+  return t;
+}
 function flownRows(){
   var r;
   try { r = getThisRoundFly(); } catch(e){ r = { lines: [] }; }
@@ -3001,8 +3017,7 @@ function flownRows(){
   });
   Object.keys(flownPerPos).forEach(function(k){
     if(seen[k] || !(flownPerPos[k] > 0)) return;
-    var _a2 = flownRealOf(k);
-    try { if(parseFloat(getFlyRoundMode()) > 0) _a2 = flyShowAmt(flownRealOf(k)); } catch(e){}
+    var _a2 = flownRealOf(k);   // 已飞是定局：按当时实付显示，凑整开关怎么变都不动
     rows.push({ k: (k === '_em_total' ? '二中二/三中三合计' : k), a: _a2, key: k });
   });
   rows.sort(function(x, y){ return (y.a - x.a); });
@@ -3057,7 +3072,7 @@ function showAllFlyDir(){
   // 右：已飞
   h += '<div style="flex:1;min-width:0;display:flex;flex-direction:column">';
   h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:4px">'
-     + '<span>已飞 ' + _flownRowsSum.toFixed(0) + '</span>'
+     + '<span>已飞 ' + _flownRowsSum.toFixed(0) + (function(){ var g=0; try{ g=flyRoundGapTotal(); }catch(e){}; return Math.abs(g)>0.01 ? ' <span style="font-weight:400;color:#999;font-size:10px">凑整差' + (g>0?'+':'') + g.toFixed(0) + '</span>' : ''; })() + '</span>'
      + '<button onclick="copyFlownList()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;line-height:16px">复制</button>'
      + '</div>';
   h += '<div style="overflow-y:auto;max-height:260px;-webkit-overflow-scrolling:touch">';
