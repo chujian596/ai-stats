@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.51</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.52</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -472,9 +472,21 @@ function loadImg(){
       fetchJson('data/three-'+per+'.json',6000).then(function(d){ state.three=d; }).catch(function(){ state.three=null; }),
       fetchJson('data/pingte-'+per+'.json',6000).then(function(d){ state.pt=d; }).catch(function(){ state.pt=null; }),
       fetchJson('data/ratio-'+per+'.json',6000).then(function(d){ state.ratio=d; }).catch(function(){ state.ratio=null; }),
-      fetchJson('data/tpl-'+per+'.json',6000).then(function(d){ state.tpl=d; }).catch(function(){ state.tpl=null; })
+      fetchJson('data/tpl-'+per+'.json',6000).then(function(d){ state.tpl=d; }).catch(function(){ state.tpl=null; }),
+      fetchJson('data/core-'+per+'.json',6000).then(function(d){ state.core=d; }).catch(function(){ state.core=null; })
     ]);
   });
+}
+
+function coreLine(z){
+  var c=state.core;
+  if(!c||!c.rows) return '';
+  var row=null;
+  for(var i=0;i<c.rows.length;i++){ if(c.rows[i].z===z){ row=c.rows[i]; break; } }
+  if(!row) return '';
+  var col = row.verdict.indexOf('看好')>-1 ? '#2e7d32' : (row.verdict.indexOf('回避')>-1?'#c0392b':'#888');
+  var hist = (row.histRate!==null && row.histRate!==undefined) ? '，该档历史 '+row.histRate+'%（'+(row.histCi||'')+'）' : '';
+  return '<br><span style="color:'+col+'">站方核心杀 '+row.corePct+'%（'+row.verdict+hist+'）</span>';
 }
 
 function renderImgFromForum(){
@@ -587,7 +599,8 @@ function renderImg(){
     h+='<div style="margin-top:16px;padding-top:14px;border-top:2px solid #eee">';
     h+='<div style="font-weight:700;font-size:15px;margin-bottom:3px">相对强度 · 解决推杀不成正比</div>';
     h+='<div style="color:#888;font-size:12px;line-height:1.7;margin-bottom:10px">推票总 '+rt.sumRec+'、杀票总 '+rt.sumKill+'：推均 98/肖、杀均 4.5/肖，量级差 22 倍，绝对票数相减等于没算。改算提及率×12，<b>1.00 = 平均水平</b>。<br>'
-      +'<b style="color:#333">怎么读：</b>推 ≥1.00 说明很多人推它（推多），＜1.00 说明推的人少（推少）；杀 ≥1.00 说明被杀得多（杀狠），＜1.00 说明没人杀（杀少）。下面四组就按这两个条件交叉分。</div>';
+      +'<b style="color:#333">怎么读：</b>推 ≥1.00 说明很多人推它（推多），＜1.00 说明推的人少（推少）；杀 ≥1.00 说明被杀得多（杀狠），＜1.00 说明没人杀（杀少）。下面四组就按这两个条件交叉分。<br>'
+      +'<b style="color:#333">每张卡最下面一行是“站方口径”：</b>站方口径来自 '+((state.core&&state.core.sites)||'51')+' 个站点栏目，算的是“有多少站把该肖写进核心杀（分母 '+((state.core&&state.core.coreDen)||26)+' 站）”，数值是一致度、不是概率；上面推/杀来自论坛帖子，两者含义不同，不能相加。</div>';
     var q={};
     rt.rows.forEach(function(r){
       var hi1=r.recLift>=1, hi2=r.killLift>=1;
@@ -609,7 +622,8 @@ function renderImg(){
       q[k].sort(function(a,b){ return b.recLift-a.recLift; }).forEach(function(r){
         h+='<div style="border:1px solid #eee;border-radius:8px;padding:6px 11px;font-size:12px;min-width:112px;background:#fcfcfc">'
           +'<b style="font-size:15px;color:'+col+'">'+r.z+'</b><span style="color:#999;margin-left:6px">推 '+r.rec+' 杀 '+r.kill+'</span><br>'
-          +'<span style="color:#666">强度 推 '+r.recLift.toFixed(2)+'（'+(r.recLift>=1?'推多':'推少')+'） / 杀 '+r.killLift.toFixed(2)+'（'+(r.killLift>=1?'杀狠':'杀少')+'）</span></div>';
+          +'<span style="color:#666">强度 推 '+r.recLift.toFixed(2)+'（'+(r.recLift>=1?'推多':'推少')+'） / 杀 '+r.killLift.toFixed(2)+'（'+(r.killLift>=1?'杀狠':'杀少')+'）</span>'
+          +coreLine(r.z)+'</div>';
       });
       h+='</div>';
     });
