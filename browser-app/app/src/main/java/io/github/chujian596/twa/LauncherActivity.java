@@ -691,11 +691,27 @@ public class LauncherActivity extends Activity {
 
     // ---------------- 返回键 ----------------
 
+    private long lastBackAt = 0;
+
     @Override
     public void onBackPressed() {
+        // 1) 网页有历史：直接回上一页（左右滑动返回也会走到这里）
         if (cur != null && cur.web.canGoBack()) { cur.web.goBack(); return; }
+        // 2) 还有别的标签：先收掉当前标签，不退出
         if (tabs.size() > 1) { closeTab(cur); return; }
-        super.onBackPressed();
+        // 3) 只有一页且在网页里：回到起始页，而不是退回桌面
+        String u = cur == null ? null : cur.web.getUrl();
+        if (cur != null && !isInternal(u)) {
+            cur.web.loadUrl(startPage());
+            addr.setText("");
+            toast("已回到起始页");
+            return;
+        }
+        // 4) 已经在起始页：再按一次才退出，避免误滑直接掉回桌面
+        long now = System.currentTimeMillis();
+        if (now - lastBackAt < 2000) { super.onBackPressed(); return; }
+        lastBackAt = now;
+        toast("再按一次退出浏览器");
     }
 
     @Override
