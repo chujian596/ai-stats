@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.38</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.39</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -409,7 +409,7 @@ function renderImg(){
   var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
   var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
   h+='<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+d.period+' 期 · 118图库 '+d.colsTotal+' 个栏目</div>';
-  h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">已逐张识图 '+d.colsParsed+' 栏。12 个给出明确生肖指向的栏目共投 58 票，<b style="color:#c0392b">12 个生肖全部被覆盖，一个没落下</b>。所以这不是共识，是洒水覆盖——怎么开都能说“推过”。真正有区分度的只剩杀肖和个别重复号。</div>';
+  var totRec=0,cov=0,totKill=0; zs.forEach(function(x){ totRec+=x.rec; if(x.rec>0)cov++; totKill+=x.kill; }); var covTxt = cov>=12 ? '<b style="color:#c0392b">12 个生肖全部被覆盖</b>，等于洒水，怎么开都能说“推过”' : '覆盖 <b>'+cov+'/12</b> 个生肖'; h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">'+d.colsTotal+' 张图纸里读出 '+d.colsParsed+' 栏有明确生肖指向，共投 <b>'+totRec+'</b> 票、杀肖 <b>'+totKill+'</b> 票；'+covTxt+'。'+(d.period>=321?'本期还没开奖，数字是开奖前的预测口径，开奖后再结算命中。':'')+'</div>';
   zs.forEach(function(x){
     var w=Math.round(x.rec/mx*100), neg=x.net<=3;
     h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px">'
