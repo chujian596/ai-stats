@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.194-Pro';
+var APP_VER = 'v58.195-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2067,7 +2067,7 @@ function renderSideCustPay(){
         const fk=new Set(Object.keys(flownPerPos));
         Object.keys(sales0).forEach(k=>fk.add(k));
         fk.forEach(function(k){
-          if(k==='_em_total'||k.indexOf('平特')===0||k.indexOf('连肖')===0) return;
+          if(k==='_em_total'||k.indexOf('平特')===0||k.indexOf('连肖')===0||k.indexOf('二中二')===0) return;
           flySpec+=flownRealOf(k);
         });
         flySpecBack+=flownRealOf(String(lastDraw.specialNum).padStart(2,'0'))*payMult;
@@ -2893,7 +2893,7 @@ function refreshFlySummary(){
           + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span></div>'
         + '<div style="padding-top:3px">总单 <b>' + total.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + _r.totalFly.toFixed(0) + '</b></div>'
         + (function(){
-            var _flownAll = 0; try { _flownAll = totalFlownReal(); } catch(e){ _flownAll = _r.already; }
+            var _flownAll = 0; try { _flownAll = flownRows().reduce(function(t,r){ return t + r.a; }, 0); } catch(e){ _flownAll = _r.already; }
             var _still = Math.max(0, _r.totalFly - _flownAll);
             return '<div>已飞 ' + _flownAll.toFixed(0) + ' ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _still.toFixed(0) + '</b></div>';
           })()
@@ -2961,6 +2961,24 @@ function flyGroupText(g){
   return g.codes.join(' ') + ' 各' + g.amt.toFixed(0);
 }
 
+// 已飞行：既含清单里存的，也含「即飞」产品（连肖/二中二三中三）自动算的那部分
+function flownRows(){
+  var r;
+  try { r = getThisRoundFly(); } catch(e){ r = { lines: [] }; }
+  var rows = [], seen = {};
+  (r.lines||[]).forEach(function(l){
+    if(!(l.done > 0)) return;
+    var key = (l.code === '二中二/三中三合计') ? '_em_total' : l.code;
+    rows.push({ k: l.code, a: l.done, key: key });
+    seen[key] = 1;
+  });
+  Object.keys(flownPerPos).forEach(function(k){
+    if(seen[k] || !(flownPerPos[k] > 0)) return;
+    rows.push({ k: (k === '_em_total' ? '二中二/三中三合计' : k), a: flownRealOf(k), key: k });
+  });
+  rows.sort(function(x, y){ return (y.a - x.a); });
+  return rows;
+}
 var _flyDirOpen = true;      // 飞单总目录默认打开
 var _flyEditOpen = false;    // 已飞清单默认收起
 function toggleFlyDir(){ _flyDirOpen = !_flyDirOpen; showAllFlyDir(); }
@@ -2986,9 +3004,7 @@ function showAllFlyDir(){
      + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _dg.showSum.toFixed(0) + '）</span>'
      + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
      + '</div>';
-  var _flownRows = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; })
-    .map(function(k){ return { k: k, p: flownPerPos[k] || 0, a: flownRealOf(k) }; })
-    .sort(function(x, y){ return (y.a - x.a) || (y.p - x.p); });
+  var _flownRows = flownRows();
   var _flownRowsSum = _flownRows.reduce(function(t, r){ return t + r.a; }, 0);
   h += '<div id="flyDirBody" style="display:' + (_flyDirOpen ? 'block' : 'none') + '">';
   h += '<div style="display:flex">';
@@ -3075,15 +3091,16 @@ function flyEditListHtml(){
   }
   out += '<div id="flyEditBody">';
   out += '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
-  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; })
-    .sort(function(a, b){ return (flownRealOf(b) - flownRealOf(a)) || ((flownPerPos[b]||0) - (flownPerPos[a]||0)); });
+  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; });
+  if(!ks.length){ try { ks = flownRows().map(function(r){ return r.key; }); } catch(e){} }
+  ks = ks.sort(function(a, b){ return (flownRealOf(b) - flownRealOf(a)) || ((flownPerPos[b]||0) - (flownPerPos[a]||0)); });
   if(!ks.length){
     out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
   } else {
     ks.forEach(function(k){
       var a = flownRealOf(k);
       out += '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'
-         + '<span style="min-width:88px;color:#333">' + k + '</span>'
+         + '<span style="min-width:88px;color:#333">' + (k === '_em_total' ? '二中二/三中三合计' : k) + '</span>'
          + '<input type="number" value="' + a + '" onchange="flySetAmt(\'' + k + '\', this.value)" style="width:64px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:12px">'
          + '<span style="color:#999;font-size:10px">元</span>'
          + '<button onclick="flyCancelOne(\'' + k + '\')" style="margin-left:auto;border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:2px 8px;font-size:11px">撤销</button>'
@@ -6406,7 +6423,7 @@ function actualPnL(){
     const _fk2 = new Set(Object.keys(flownPerPos));
     Object.keys(ss).forEach(function(k){ _fk2.add(k); });
     _fk2.forEach(function(k){
-      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0) return; // 下面单独算
+      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0 || k.indexOf('二中二') === 0) return; // 下面单独算
       flyOut += flownRealOf(k);
     });
     if(lastDraw){
@@ -6561,7 +6578,7 @@ function renderOrdersList(){
     const _flyKeys = new Set(Object.keys(flownPerPos));
     Object.keys(sales).forEach(k => _flyKeys.add(k));
     _flyKeys.forEach(k => {
-      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0) return; // 这三类下面单独算
+      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0 || k.indexOf('二中二') === 0) return; // 这三类下面单独算
       flyOutTotal += flownRealOf(k);
     });
     // 特码飞单中奖：只有开的那个号上家赔47倍
