@@ -239,8 +239,12 @@ function loadAll(){
         dbox.appendChild(dataCard(period, items));
         var miss = items.filter(function(i){ return !i.ok; });
         if(miss.length){
-          dbox.appendChild(el('<div class="hint" style="margin-top:8px;color:#cf1322">还缺：' +
-            miss.map(function(i){ return esc(i.file); }).join('、') + '</div>'));
+          var noImg = miss.filter(function(i){ return /consensus|cross/.test(i.file); });
+          var other = miss.filter(function(i){ return !/consensus|cross/.test(i.file); });
+          var tip = '';
+          if(noImg.length) tip += '图库未留档（换期后旧图被替换，无法回补）：' + noImg.map(function(i){return esc(i.file);}).join('、');
+          if(other.length) tip += (tip?'；':'') + '缺：' + other.map(function(i){return esc(i.file);}).join('、');
+          dbox.appendChild(el('<div class="hint" style="margin-top:8px;color:#b45309">' + tip + '</div>'));
         }
       });
     });

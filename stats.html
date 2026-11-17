@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.37</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.38</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -404,7 +404,7 @@ function loadImg(){
 
 function renderImg(){
   var p=$('panelImg'), d=state.img;
-  if(!d){ p.innerHTML='<div class="muted" style="padding:12px">'+LATEST_PER+' 期图库识图还没生成（论坛与杀肖数据已更新）。若刚抓取过，下拉刷新一次；图库栏需要逐张看图，属另一条流程。</div>'; return; }
+  if(!d){ p.innerHTML='<div class="muted" style="padding:12px">'+LATEST_PER+' 期图库未留档：图库站点只保留当期图纸，换期后旧图即被替换，无法回补。论坛与杀肖数据不受影响；要看图库请在该期开奖前抓一次快照。</div>'; return; }
   var zs=(d.zodiacs||[]).slice().sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
   var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
   var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
