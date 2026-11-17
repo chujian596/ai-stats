@@ -154,6 +154,15 @@ a{color:#000}
   <div class="row"><div class="k">怎么查</div><div class="v">把 localStorage 的 _mode 分别设成 single 和 bundle，录「红波 100（各号）」，两边都应是 17 项 1700 元；录「22 100」两边都是 1 项 100 元。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#19 · v58.176</div>
+  <div class="t">历史「只记玩法名」的老单，一键修正<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">早期存下的红波/单数/大小类订单只有 1 项，金额少记、号码表看不见、飞单飞不出、开奖不赔。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">当时按「一个玩法=一件商品」入账，没展开成号码。数据结构只存 codes + codeAmts，无 isPer 标记。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">新增「修正老单」按钮（排行榜那排），扫当前账本 + 香港池 + 全部归档。每码金额取 codeAmts，两种早期路径都能还原：各号单 100 → 17×100=1700；总额单 5.88 → 17×5.88=100。号码单、平特、连肖等原样不动，改完弹窗汇报条数与金额变化。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">点「修正老单」，确认框会先报找到几条；改完看订单记录里是否变成 17 项、金额 1700。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">
