@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.39</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.41</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -63,6 +63,7 @@
     <div class="tab" id="tabTw" onclick="switchTab('tw')">站点栏目</div>
     <div class="tab" id="tabForum" onclick="switchTab('forum')">论坛帖子</div>
     <div class="tab" id="tabHot" onclick="switchTab('hot')">开奖记录</div>
+    <div class="tab" id="tabCmp" onclick="switchTab('cmp')">历期对比</div>
     <div class="tab on" id="tabImg" onclick="switchTab('img')">本期数据</div>
     <div class="tab" id="tabDoc" onclick="switchTab('doc')">帮助</div>
   </div>
@@ -75,6 +76,7 @@
   <div id="panelTw" style="display:none"></div>
   <div id="panelForum" style="display:none"></div>
   <div id="panelHot" style="display:none"></div>
+  <div id="panelCmp" style="display:none"></div>
   <div id="panelImg" style="display:none"></div>
   <div id="panelDoc" style="display:none"></div>
   <div class="muted" style="margin-top:20px;line-height:1.6">注：以上均为历史数据统计，开奖为随机事件，过往命中率不代表以后结果，仅供参考。</div>
@@ -341,7 +343,7 @@ function authorStats(a){
 
 function classifyLabel(cls){ return cls==='good'?'准的':cls==='bad'?'差的':'观察'; }
 
-var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', doc:'Doc' , img:'Img' };
+var TAB_MAP={ overview:'Overview', kill:'Kill', rec:'Rec', rank:'Rank', tw:'Tw', forum:'Forum', hot:'Hot', cmp:'Cmp', doc:'Doc' , img:'Img' };
 var TAB_HINT={
   overview: '下一期哪些肖最该避开、哪些被推荐最多——只看这一页就够了',
   rank: '所有资料源按命中率从高到低排，绿色=准的，红色=差的，灰色=样本不足',
@@ -350,14 +352,83 @@ var TAB_HINT={
   tw: '联盟站各栏目明细：每个栏目每期杀什么、准了几期错了几期',
   forum: '论坛各帖子明细：每个作者每期杀什么、准了几期错了几期',
   hot: '最近开了哪些特号、哪些号出得多（热号）哪些没出过（冷号）',
+  cmp: '同一位作者、同一类资料，跨 4 期谁准谁差——不是看一期，是看连续命中',
   doc: '这页是什么、数据从哪来、怎么判断准不准'
 , img:'118图库30个栏目：谁推了几个肖、谁在杀、推减杀净下来还剩什么' };
+var CMP_CACHE=null;
+function loadCmp(){
+  if(CMP_CACHE) return Promise.resolve(CMP_CACHE);
+  return Promise.all([
+    fetchJson('official-history.json',8000).catch(function(){return {};}),
+    fetchJson('data/periods.json',6000).catch(function(){return {};})
+  ]).then(function(r){
+    var off=r[0]||{}, periods=((r[1]||{}).periods||[]).slice();
+    var jobs=periods.map(function(per){
+      return fetchJson('data/forum-'+per+'.json',10000).then(function(d){ return {per:per, d:d}; }).catch(function(){ return null; });
+    });
+    return Promise.all(jobs).then(function(list){
+      CMP_CACHE={off:off, list:list.filter(function(it){ return it && ((it.d||{}).detail||[]).length>=100; })};
+      return CMP_CACHE;
+    });
+  });
+}
+function renderCmp(){
+  var p=$('panelCmp');
+  p.innerHTML='<div class="muted" style="padding:12px">正在统计各期…</div>';
+  loadCmp().then(function(c){
+    var off=c.off, list=c.list;
+    if(!list.length){ p.innerHTML='<div class="muted" style="padding:12px">没有可对比的期（需要 data/forum-期号.json）。</div>'; return; }
+    var agg={}; var cover=[];
+    list.forEach(function(it){
+      var per=it.per, sp=(off[String(per)]||{}).specialZod||'', det=(it.d||{}).detail||[];
+      cover.push(per+'期 '+(sp?('开 '+sp+'，'):'无开奖结果，')+det.length+' 条');
+      if(!sp) return;
+      det.forEach(function(x){
+        var a=x.a||'匿名', zs=(x.z||[]);
+        var o=agg[a]||(agg[a]={name:a, per:{}, rec:0, hit:0, kill:0, miss:0, zsum:0});
+        o.per[per]=1;
+        if(x.k){
+          o.kill++; if(zs.indexOf(sp)>=0) o.miss++;
+        }else if(zs.length){
+          o.rec++; o.zsum+=zs.length; if(zs.indexOf(sp)>=0) o.hit++;
+        }
+      });
+    });
+    var rows=Object.keys(agg).map(function(k){ return agg[k]; })
+      .filter(function(o){ return o.rec+o.kill>0; })
+      .sort(function(a,b){
+        var ar=a.rec? a.hit/a.rec : -1, br=b.rec? b.hit/b.rec : -1;
+        return br-ar || (b.rec+b.kill)-(a.rec+a.kill);
+      });
+    var h='<div class="card"><div style="font-weight:700;font-size:15px;margin-bottom:6px">跨期对比 · 谁真准</div>'
+      +'<div class="muted" style="margin-bottom:10px">'+cover.join('；')+'</div>'
+      +'<div class="muted" style="margin-bottom:10px">推荐命中 = 他推的肖里有没有开出特肖；漏杀 = 他杀的肖里开出了特肖。样本少于 2 期的灰色显示，别当真。</div>'
+      +'<table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px">'
+      +'<colgroup><col style="width:32%"><col style="width:8%"><col style="width:12%"><col style="width:26%"><col style="width:22%"></colgroup>'
+      +'<tr style="color:#888;text-align:left"><th style="padding:6px 4px">来源/作者</th><th>期数</th><th>均推</th><th>推荐命中</th><th>杀肖漏杀</th></tr>';
+    rows.slice(0,40).forEach(function(o){
+      var np=Object.keys(o.per).length;
+      var rr=o.rec? Math.round(o.hit/o.rec*100):null;
+      var kr=o.kill? Math.round(o.miss/o.kill*100):null;
+      var weak=np<2;
+      h+='<tr style="border-top:1px solid #f0f0f0;color:'+(weak?'#bbb':'#333')+'">'
+        +'<td style="padding:7px 4px;word-break:break-all">'+o.name+'</td>'
+        +'<td>'+np+'</td>'
+        +'<td style="color:#666">'+(o.rec? (Math.round(o.zsum/o.rec*10)/10)+'肖':'—')+'</td>'
+        +'<td style="color:'+(rr===null?'#bbb':(rr>=50?'#2e7d32':'#c62828'))+'">'+(rr===null?'—':(o.hit+'/'+o.rec+' · '+rr+'%'))+'</td>'
+        +'<td style="color:'+(kr===null?'#bbb':(kr>0?'#c62828':'#2e7d32'))+'">'+(kr===null?'—':(o.miss+'/'+o.kill+' · '+kr+'%'))+'</td></tr>';
+    });
+    h+='</table><div class="muted" style="margin-top:10px">共 '+rows.length+' 个有记录的作者。参与对比的期以「作者名齐全」为准（317/318 是回填快照、无作者名，未列入）；320 期图库未留档，图库侧只有 319 一期，暂不单列。</div></div>';
+    p.innerHTML=h;
+  }).catch(function(e){ p.innerHTML='<div class="muted" style="padding:12px">统计失败：'+e+'</div>'; });
+}
 function switchTab(t){
   Object.keys(TAB_MAP).forEach(function(k){
     $('panel'+TAB_MAP[k]).style.display = k===t?'':'none';
     $('tab'+TAB_MAP[k]).className='tab'+(k===t?' on':'');
   });
   $('tabHint').textContent = TAB_HINT[t] || '';
+  if(t==='cmp') renderCmp();
 }
 
 // 当前期号：优先读归档脚本写的 data/latest-period.json，读不到再退回 319
