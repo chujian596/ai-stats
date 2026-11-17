@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.185-Pro';
+var APP_VER = 'v58.186-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2953,6 +2953,7 @@ function showAllFlyDir(){
      + '<button onclick="applyManualFlyList()" style="flex:1;border:1px solid #000;background:#000;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700">按清单登记已飞</button>'
      + '<button onclick="if(document.getElementById(\'manualFlyInput\')){document.getElementById(\'manualFlyInput\').value=\'\';window._manualFlyBuf=\'\';}" style="border:1px solid #ccc;background:#fff;color:#666;border-radius:6px;padding:6px 10px;font-size:12px">清空</button>'
      + '</div></div>';
+    h += flyEditListHtml();
   box.innerHTML = h;
 }
 
@@ -2975,6 +2976,30 @@ function copyFlownList(){
     catch(e){ myAlert('复制失败，请手动记录'); }
     ta.remove();
   }
+}
+
+// 已飞清单：逐条可改额或撤销（飞单统计页 / 结算明细共用）
+function flyEditListHtml(){
+  var out = '';
+  out += '<div style="border-top:1px dashed #ddd;margin-top:6px;padding-top:6px">'
+     + '<div style="font-weight:700;font-size:12px;color:#333;margin-bottom:2px">已飞清单（可改额 / 撤销）</div>'
+     + '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
+  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).sort();
+  if(!ks.length){
+    out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
+  } else {
+    ks.forEach(function(k){
+      var a = flownPerPos[k] || 0;
+      out += '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'
+         + '<span style="min-width:88px;color:#333">' + k + '</span>'
+         + '<input type="number" value="' + a + '" onchange="flySetAmt(\'' + k + '\', this.value)" style="width:64px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:12px">'
+         + '<span style="color:#999;font-size:10px">元</span>'
+         + '<button onclick="flyCancelOne(\'' + k + '\')" style="margin-left:auto;border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:2px 8px;font-size:11px">撤销</button>'
+         + '</div>';
+    });
+  }
+  out += '</div>';
+  return out;
 }
 
 // 单独改某一条已飞金额（0 = 撤销），只动这一条，不影响别的号
@@ -7821,24 +7846,6 @@ function renderRisk(){
   h += `</div>`;
   if(flyTotal === 0){ h += `<div style="color:#999">无飞单</div>`; }
   else { h += `<div style="border-top:1px solid #ddd;margin-top:4px;padding-top:4px;font-weight:700">合计　${flyTotal.toFixed(0)}</div>`; }
-  // 已飞清单：逐条可改额或撤销，处理“补单还没来得及飞”的情况
-  h += `<div style="border-top:1px dashed #ddd;margin-top:6px;padding-top:6px">`
-     + `<div style="font-weight:700;font-size:12px;color:#333;margin-bottom:2px">已飞清单（可改额 / 撤销）</div>`
-     + `<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>`;
-  const _fk = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).sort();
-  if(!_fk.length){
-    h += `<div style="color:#bbb;font-size:11px">还没有已飞记录</div>`;
-  } else {
-    _fk.forEach(function(k){
-      const _a = flownPerPos[k] || 0;
-      h += `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">`
-         + `<span style="min-width:88px;color:#333">${k}</span>`
-         + `<input type="number" value="${_a}" onchange="flySetAmt('${k}', this.value)" style="width:64px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:12px">`
-         + `<span style="color:#999;font-size:10px">元</span>`
-         + `<button onclick="flyCancelOne('${k}')" style="margin-left:auto;border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:2px 8px;font-size:11px">撤销</button>`
-         + `</div>`;
-    });
-  }
   h += `</div>`;
   h += `</div>`;
   // 飞后残留
