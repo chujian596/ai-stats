@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.215-Pro';
+var APP_VER = 'v58.216-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2224,7 +2224,7 @@ function updateTitles(){
 }
 const SPLIT_KEY = sk('product_stats_split_v1');
 let splitTakeAll = 100;
-try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100; } catch(e){ splitTakeAll = 100; }
+try { var _sv = localStorage.getItem(SPLIT_KEY); if(_sv !== null){ var _pv = parseFloat(_sv); if(isFinite(_pv) && _pv >= 0) splitTakeAll = _pv; } } catch(e){}
 // 已飞累计（分批飞单）：key=位置代码，value=已飞金额
 let flownPerPos = {};
 try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } catch(e){ flownPerPos = {}; }
@@ -2469,7 +2469,7 @@ function cutRender(M){
 var cutMode = 'raw', cutPick = 78;
 try{
   var _cm = localStorage.getItem('cut_mode_v1'); if(_cm === 'cut' || _cm === 'raw') cutMode = _cm;
-  var _cp = parseFloat(localStorage.getItem('cut_pick_v1')); if(_cp > 0) cutPick = _cp;
+  var _cp = parseFloat(localStorage.getItem('cut_pick_v1')); if(isFinite(_cp) && _cp >= 0) cutPick = _cp;
 }catch(e){}
 function applyCutTolerance(){
   var v = parseFloat((document.getElementById('cutTolerance')||{}).value) || 0;
@@ -2479,11 +2479,11 @@ function applyCutTolerance(){
   if(top <= 0){ myAlert('当前没有有注号'); return; }
   var hit = 0;
   var oth = window.__othPay || 0;   // 平特/连肖最坏赔付，一起算进「我能扛」
-  for(var m = Math.floor(top); m >= 1; m--){
+  for(var m = Math.floor(top); m >= 5; m--){
     if(-(cutCalc(m).worst - oth) <= v){ hit = m; break; }
   }
   if(hit > 0){ pickCut(hit); }
-  else { myAlert('削到 1 元/号 也扛不住 ' + v + ' 元，这盘只能靠飞单摊尾部。'); }
+  else { myAlert('削到每号只留 5 元也扛不住 ' + v + ' 元，这盘削峰救不了，建议拒单或整盘飞掉。'); }
 }
 function switchCutMode(m){
   cutMode = (m === 'cut') ? 'cut' : 'raw';
@@ -7955,9 +7955,16 @@ function renderRisk(){
     var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
     if(r.line>=_dBase && e>=5){ _optM=m; _optR=r; _deepM=m; _deepR=r; } else { _dbroken=true; }
   });
-  // 压不到基准时，自动稳健退而取「亏得最少」的那一档，不要留 0（0 等于不削）
-  if(_optM <= 0 && _bestM > 0){ _optM = _bestM; }
+  // 压不到安全线时，按「亏损不超过总单 20%」找最省飞的那一档（最低每号留 5 元）；连 5 元都压不住就判「拒单」
+  var _sugWhy = '';
+  var _needReject = false;
+  if(_optM <= 0){
+    if(typeof rec20 === 'number' && rec20 === 0){ _optM = 100; _optR = _dTopR; _sugWhy = '不削也在总亏 20% 以内'; }
+    else if(typeof rec20 === 'number' && rec20 >= 5 && rec20 < _maxBet0){ _optM = rec20; _optR = cutCalc(rec20, true); _sugWhy = '亏损≤总额20%'; }
+    else { _needReject = true; }
+  }
   window.__optM = _optM>0 ? _optM : 0;
+  window.__needReject = _needReject;
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
   if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
@@ -7970,18 +7977,20 @@ function renderRisk(){
        + `<b onclick="pickCut(${_optM})" style="font-size:23px;line-height:1.1;color:#1677ff;cursor:pointer">${_optM}</b>`
        + `<span style="font-size:12px;color:#666">最坏 <b style="color:#cf1322">${(_optR.worst+_othNet).toFixed(0)}</b></span>`
        + `<span style="font-size:12px;color:#666">飞 <b>${_optR.flown.toFixed(0)}</b> 元</span>`
-       + `<span style="font-size:10px;color:#16a34a;border:1px solid #16a34a;border-radius:3px;padding:0 4px">最优落点</span>`
+       + `<span style="font-size:10px;color:#16a34a;border:1px solid #16a34a;border-radius:3px;padding:0 4px">${_sugWhy||'最优落点'}</span>`
        + `</div>`;
-    if(_dFl > 0.5){
-      var _ce = _dW > 0 ? _dW/_dFl : 99;
-      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">从 ${_diagTop} 再削要多飞 ${_dFl.toFixed(0)} 元，只换回 ${_dW.toFixed(0)} 元安全（每飞 1 元换 ${_ce.toFixed(1)} 元）</div>`;
-    } else if(_dFl < -0.5){
-      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 比建议少飞 ${(-_dFl).toFixed(0)} 元，最坏多亏 ${(-_dW).toFixed(0)} 元；按建议补上更划算</div>`;
-    } else {
+    if(Math.abs(_dFl) <= 0.5){
       h += `<div style="font-size:11px;color:#16a34a;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 已是最优落点，不用动</div>`;
+    } else if(_optM < (splitTakeAll||0)){
+      var _ce = _dW > 0 ? _dW/_dFl : 99;
+      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">从 ${_diagTop} 再削到 ${_optM} 要多飞 ${Math.abs(_dFl).toFixed(0)} 元，换回 ${_dW.toFixed(0)} 元安全（每飞 1 元换 ${_ce.toFixed(1)} 元）</div>`;
+    } else {
+      h += `<div style="font-size:11px;color:#b45309;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 削得太狠、白飞了 ${Math.abs(_dFl).toFixed(0)} 元：放到 ${_optM} 少飞这部分，最坏只从 ${(_curR.worst+_othNet).toFixed(0)} 变到 ${(_optR.worst+_othNet).toFixed(0)}，手上能多留本金</div>`;
     }
   } else if(_optM === 100){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 吃最大 ${_diagTop} 元/号 已守住基准，再往下削都是白飞</div>`;
+  } else if(_needReject){
+    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
   } else {
     // 守不住基准时，仍要告诉用户「性价比最好的那一档在哪、它到底差多少」，否则顶部说救不了、下面又推一档，读起来自相矛盾
     var _pm = 0, _pr = null;
@@ -8015,14 +8024,16 @@ function renderRisk(){
      + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>'
      + (function(){ var _fl=0; try{ _fl=totalFlownReal(); }catch(e){} 
         return _fl>0.5 ? '<div style="padding:0 0 3px;font-size:11px;color:#16a34a;line-height:1.5">已飞 <b>'+_fl.toFixed(0)+'</b> 元已锁定：切档位、点建议、勾自动稳健都只改“后续应飞”，不会清空已飞记录</div>' : ''; })();
-  // 本盘建议：直接把亏得最少的那一档摆出来，点一下就填
-  if(_bestM > 0 && _bestWorst > -1e9){
-    var _curIsBest = (Math.abs((splitTakeAll||0) - _bestM) < 0.01);
+  // 本盘建议：按「亏损≤总额20%」找最省飞的档，点一下就填；压不到就明说拒单
+  if(_optM > 0 && _optM < 100 && _optR){
+    var _curIsBest = (Math.abs((splitTakeAll||0) - _optM) < 0.01);
     h += '<div style="padding:0 0 4px;font-size:11px;line-height:1.5">'
        + (_curIsBest
-          ? '<span style="color:#16a34a">本盘建议 <b>' + _bestM + '</b> 档（亏最少 ' + (_bestWorst+_othNet).toFixed(0) + '）· 当前已用</span>'
-          : '<span style="color:#999">本盘建议 </span><a href="javascript:;" onclick="applyTh(' + _bestM + ')" style="color:#1677ff;font-weight:600;text-decoration:none">' + _bestM + ' 档（亏最少 ' + (_bestWorst+_othNet).toFixed(0) + '）</a><span style="color:#bbb"> · 点一下直接填</span>')
+          ? '<span style="color:#16a34a">本盘建议 <b>' + _optM + '</b> 档（最坏 ' + (_optR.worst+_othNet).toFixed(0) + '，' + (_sugWhy||'') + '）· 当前已用</span>'
+          : '<span style="color:#999">本盘建议 </span><a href="javascript:;" onclick="applyTh(' + _optM + ')" style="color:#1677ff;font-weight:600;text-decoration:none">' + _optM + ' 档（最坏 ' + (_optR.worst+_othNet).toFixed(0) + '，' + (_sugWhy||'') + '）</a><span style="color:#bbb"> · 点一下直接填</span>')
        + '</div>';
+  } else if(_needReject){
+    h += '<div style="padding:0 0 4px;font-size:11px;color:#cf1322;line-height:1.5">本盘没有能压到 20% 亏损线的档位，建议拒单；硬削只会把每号压到几块钱，飞完还是亏</div>';
   }
   var _noBet=0,_winArr=[],_losers=[];
   for(var _n=1;_n<=49;_n++){ var _kb=(numBets[_n]||0); var _ka=splitTakeAll>0?Math.min(_kb,splitTakeAll):0;
@@ -8033,7 +8044,7 @@ function renderRisk(){
      + `<span style="color:#999;font-size:10px;white-space:nowrap">开奖后按号算</span>`
      + `<span style="color:#16a34a">纯赚 ${_noBet}<span style="color:#999;font-size:10px">号</span></span><span style="color:#16a34a">小赚 ${_winArr.length}<span style="color:#999;font-size:10px">号</span></span><span style="color:#e67e22">小亏 ${_sl}<span style="color:#999;font-size:10px">号</span></span><span style="color:#cf1322">大亏 ${_bl}<span style="color:#999;font-size:10px">号</span></span>`
      + `<span style="flex:1"></span>`
-     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){try{if(localStorage.getItem('prev_th_before_auto')===null)localStorage.setItem('prev_th_before_auto',String(splitTakeAll))}catch(e){};applyTh(window.__optM||${rec20}||splitTakeAll);}else{try{var p=localStorage.getItem('prev_th_before_auto');if(p!==null){applyTh(parseFloat(p)||0);localStorage.removeItem('prev_th_before_auto')}}catch(e){}}try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
+     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){var _o=window.__optM||0;if(_o>0){try{if(localStorage.getItem('prev_th_before_auto')===null)localStorage.setItem('prev_th_before_auto',String(splitTakeAll))}catch(e){};applyTh(_o);}else{this.checked=false;try{localStorage.setItem('autoStable','0')}catch(e){};myAlert('这盘削到每号 5 元也压不到 20% 亏损线，没有可自动削的档位；建议拒单或手动定档。');}}else{try{var p=localStorage.getItem('prev_th_before_auto');if(p!==null){var _pp=parseFloat(p);applyTh((isFinite(_pp)&&(_pp===0||_pp>=5))?_pp:0);localStorage.removeItem('prev_th_before_auto')}}catch(e){}}try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
      + `</div>`;
   h += `</div>`;
   h += `</div>`;
@@ -8090,8 +8101,9 @@ function renderRisk(){
            + `<span style="font-size:12px;color:#666;white-space:nowrap">我能扛</span>`
            + `<input id="cutTolerance" type="number" placeholder="填金额" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">`
            + `<button onclick="applyCutTolerance()" style="padding:6px 12px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;white-space:nowrap">算档位</button>`
-           + `<button onclick="applyTh(${rec20})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>`
-           + `<button onclick="applyTh(${rec40})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>`
+           + (rec20 >= 5 ? `<button onclick="applyTh(${rec20})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>` : `<span style="padding:5px 7px;border:1px solid #eee;color:#bbb;border-radius:5px;font-size:11px;white-space:nowrap">20%线压不到</span>`)
+           + (rec40 >= 5 ? `<button onclick="applyTh(${rec40})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>` : `<span style="padding:5px 7px;border:1px solid #eee;color:#bbb;border-radius:5px;font-size:11px;white-space:nowrap">40%线压不到</span>`)
+           + `</div>`;
            + `</div>`;
         if(_lineM){
           var _lmR = cutCalc(_lineM, true);
