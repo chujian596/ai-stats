@@ -190,14 +190,14 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="rankTableBody" style="display:none;text-align:left">
     <div style="display:flex;gap:4px">
       <div style="flex:1;min-width:0">
-        <table style="font-size:12px">
-          <thead><tr><th>#</th><th>特号</th><th>各数</th><th>金额</th></tr></thead>
+        <table style="font-size:12px;table-layout:fixed;width:100%">
+          <thead><tr><th style="width:14%">#</th><th style="width:42%">特号</th><th style="width:44%">金额</th></tr></thead>
           <tbody id="tbody-rank-l"></tbody>
         </table>
       </div>
       <div style="flex:1;min-width:0">
-        <table style="font-size:12px">
-          <thead><tr><th>#</th><th>特号</th><th>各数</th><th>金额</th></tr></thead>
+        <table style="font-size:12px;table-layout:fixed;width:100%">
+          <thead><tr><th style="width:14%">#</th><th style="width:42%">特号</th><th style="width:44%">金额</th></tr></thead>
           <tbody id="tbody-rank-r"></tbody>
         </table>
       </div>
@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.161-Pro';
+var APP_VER = 'v58.173-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -896,6 +896,19 @@ function autoPayout(){
       // 累计上家盈亏
       try {
         let upCum = parseFloat(localStorage.getItem('upCum') || '0');
+        // 记录当天起点（今日盈亏）与本周起点（周一自动重置）
+        try {
+          var _today = new Date().toISOString().slice(0,10);
+          if(localStorage.getItem('upCumDayDate') !== _today){
+            localStorage.setItem('upCumDayDate', _today);
+            localStorage.setItem('upCumDayBase', upCum.toFixed(2));
+          }
+          var _wk = _weekKey();
+          if(localStorage.getItem('upCumWeekKey') !== _wk){
+            localStorage.setItem('upCumWeekKey', _wk);
+            localStorage.setItem('upCumWeekBase', upCum.toFixed(2));
+          }
+        } catch(e){}
         // 计算本期上家净盈亏
         const sales0 = getSplitSales();
         let flyOut0 = 0, flyBack0 = 0;
@@ -908,13 +921,23 @@ function autoPayout(){
             pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
           }
         });});
-        const drawZ0 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
+        const drawZ0 = new Set();
+        [...regularNums, specialNum].forEach(n => { const v = NUM2ZODIAC[n]; (Array.isArray(v) ? v : [v]).forEach(x => { if(x) drawZ0.add(x); }); });
         Object.entries(pteAgg0).forEach(([z, amt]) => {
           const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
           flyOut0 += extra;
-          if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * 1.8;
+          if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * (z === '马' ? 1.8 : payMultSingle);
         });
-        if(lxFlyAmt > 0){ flyOut0 += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBack0 += lxFlyAmt * 4; }
+        if(lxFlyAmt > 0){
+          flyOut0 += lxFlyAmt;
+          const drawZ2 = new Set();
+          [...regularNums, specialNum].forEach(n => { const v = NUM2ZODIAC[n]; (Array.isArray(v) ? v : [v]).forEach(x => { if(x) drawZ2.add(x); }); });
+          const lz = (lxFlyName||'').replace(/[0-9连]+$/,'');
+          if(lz.split('').every(z => drawZ2.has(z))){
+            const lxBase = lz.length === 2 ? 4 : (lz.length === 3 ? 10 : 30);
+            flyBack0 += lxFlyAmt * (lz.indexOf('马') >= 0 ? lxBase - 0.5 : lxBase);
+          }
+        }
         let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
         if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
@@ -4509,15 +4532,35 @@ function codeSalesForOrder(o, prod){
   return (Number(o.price)||0)*times;
 }
 let _texiaoChoice = null;
+// 当前店铺的开奖对象：A 店（澳门）用 lastDraw，B 店（香港）用 hkDrawObj()
+function curShopDraw(){
+  if(typeof shop !== 'undefined' && shop === 'B'){
+    var hd = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+    if(hd) return { period: hd.draw, regularNums: hd.regularNums, specialNum: hd.specialNum, isHK: true };
+    return null;
+  }
+  return lastDraw ? { period: lastDraw.period, regularNums: lastDraw.regularNums, specialNum: lastDraw.specialNum, isHK: false } : null;
+}
 function updateDrawInfoBar(){
   var el = document.getElementById('drawInfoTxt');
   if(!el) return;
-  if(lastDraw){
-    var nums = lastDraw.regularNums.concat([lastDraw.specialNum]);
+  var isHK = (typeof shop !== 'undefined' && shop === 'B');
+  var d = curShopDraw();
+  if(d){
+    var nums = d.regularNums.concat([d.specialNum]);
     var numsStr = nums.map(function(n){ return String(n).padStart(2,'0'); });
-    el.textContent = '期' + (lastDraw.period||'?') + ' 特' + String(lastDraw.specialNum).padStart(2,'0') + ' ' + numsStr.join(' ');
+    el.textContent = (isHK ? '港 ' : '澳 ') + '期' + (d.period || '?') + ' 特' + String(d.specialNum).padStart(2,'0') + ' ' + numsStr.join(' ');
   } else {
-    el.textContent = '未获取开奖数据';
+    el.textContent = isHK ? '未获取香港开奖数据' : '未获取开奖数据';
+  }
+}
+// 启动时按店铺把号码球画对（B 店不该出现澳门球）
+function renderBallsForStore(){
+  var d = curShopDraw();
+  if(d && d.regularNums && d.regularNums.length >= 6){
+    renderLiveBalls(d.regularNums.concat([d.specialNum]), true);
+  } else {
+    renderLiveBalls([]);
   }
 }
 function autoFetchDraw(retry){
@@ -4577,9 +4620,20 @@ function autoFetchDraw(retry){
     fetch(u + sep + 't=' + Date.now(), {cache: 'no-store'})
       .then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
       .then(function(d){
-        var snap = d && d.macao;
+        var _isHKshop = (typeof shop !== 'undefined' && shop === 'B');
+        var snap = d && (_isHKshop ? d.hongkong : d.macao);
         if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('empty');
         done();
+        if(_isHKshop){
+          // 香港店：只更新香港开奖与显示，不走澳门结算
+          try { localStorage.setItem(sk('hk_draw_cache'), JSON.stringify({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' })); } catch(e){}
+          _hkBarVisible = true;
+          try { renderHKDraw(); } catch(e){}
+          renderLiveBalls(snap.numbers.map(Number), true);
+          updateDrawInfoBar();
+          myAlert('香港 ' + snap.draw + ' 期开奖已更新。');
+          return;
+        }
         applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
       })
       .catch(function(){ tryNext(); });
@@ -6034,9 +6088,21 @@ function hideSub(code){
   restoreIfNeeded();
 renderAll();
 }
-function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); }
+function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
+// 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
+function _hitLabel(c){
+  if(c.indexOf('平特') === 0) return '平' + c.replace('平特','');
+  if(c.indexOf('连肖') === 0) return '连' + c.replace('连肖','');
+  if(/^(二中二|三中二|三中三):/.test(c)) return '二/三 ' + c.split(':')[1];
+  var m = c.match(/^(\d{1,2})号/); if(m) return '特' + m[1];
+  return c;
+}
+function _fmtAmt(v){
+  v = Number(v) || 0;
+  return Math.abs(v - Math.round(v)) < 0.005 ? String(Math.round(v)) : v.toFixed(2);
+}
 function calcOrderWinDetail(o, dr){
   // dr 可传香港开奖对象；不传就用澳门当期 lastDraw
   var d = dr || lastDraw;
@@ -6058,7 +6124,7 @@ function calcOrderWinDetail(o, dr){
         const mult = zs.includes('马') ? base-0.5 : base;
         const w = bet * mult;
         total += w;
-        lines.push(code + ' 下注' + bet.toFixed(0) + ' ×' + mult + ' = ' + w.toFixed(2));
+        lines.push(_hitLabel(code) + '　' + _fmtAmt(bet) + ' ×' + mult + ' = ' + _fmtAmt(w));
       }
     } else if(code.startsWith('平特')){
       const z = code.replace('平特','');
@@ -6082,13 +6148,13 @@ function calcOrderWinDetail(o, dr){
         var emMult = code.indexOf('二中二:')===0 ? 60 : (code.indexOf('三中三:')===0 ? 600 : 20);
         var w2 = bet * emMult;
         total += w2;
-        lines.push(code.replace(':', ' ') + ' 下注' + bet.toFixed(0) + ' ×' + emMult + ' = ' + w2.toFixed(2));
+        lines.push(_hitLabel(code) + '　' + _fmtAmt(bet) + ' ×' + emMult + ' = ' + _fmtAmt(w2));
       }
     } else if(/^\d{2}$/.test(code)){
       if(Number(code) === d.specialNum){
         const w = bet * payMult;
         total += w;
-        lines.push(code + '号 下注' + bet.toFixed(0) + ' ×' + payMult + ' = ' + w.toFixed(2));
+        lines.push(_hitLabel(code + '号') + '　' + _fmtAmt(bet) + ' ×' + payMult + ' = ' + _fmtAmt(w));
       }
     }
   });
@@ -6205,7 +6271,7 @@ function renderOrdersList(){
       const spFly = Math.max(0, (sales[spKey]||0) - splitTakeAll);
       if(spFly > 0){
         flyBackTotal += spFly * 47;
-        flyBackLines.push('特码' + spKey + '　' + spFly.toFixed(0) + ' ×47 = ' + (spFly*47).toFixed(0));
+        flyBackLines.push('特' + spKey + '  ' + spFly.toFixed(0) + ' ×47 = ' + (spFly*47).toFixed(0));
       }
     }
     // 平特飞单
@@ -6227,7 +6293,7 @@ function renderOrdersList(){
           if(drawZods.has(z)){
             var pteMult = (z === '马') ? 1.8 : payMultSingle;   // 只有平特马是 1.8，其他跟客户同口径
             flyBackTotal += extra * pteMult;
-            flyBackLines.push('平特' + z + '　' + extra.toFixed(0) + ' ×' + pteMult + ' = ' + (extra*pteMult).toFixed(0));
+            flyBackLines.push('平' + z + '  ' + extra.toFixed(0) + ' ×' + pteMult + ' = ' + (extra*pteMult).toFixed(0));
           }
         }
       });
@@ -6245,7 +6311,7 @@ function renderOrdersList(){
           var lxBase = zods.length === 2 ? 4 : (zods.length === 3 ? 10 : (zods.length === 4 ? 30 : 4));
           var lxMult = zods.indexOf('马') >= 0 ? (lxBase - 0.5) : lxBase;
           flyBackTotal += lxFlyAmt * lxMult;
-          flyBackLines.push('连肖' + lz + '　' + lxFlyAmt.toFixed(0) + ' ×' + lxMult + ' = ' + (lxFlyAmt*lxMult).toFixed(0));
+          flyBackLines.push('连' + lz + '  ' + lxFlyAmt.toFixed(0) + ' ×' + lxMult + ' = ' + (lxFlyAmt*lxMult).toFixed(0));
         }
       }
     }
@@ -6264,7 +6330,7 @@ function renderOrdersList(){
             if(allHit && amt > 0){
               var emMult2 = c.indexOf('二中二:')===0 ? 60 : (c.indexOf('三中三:')===0 ? 600 : 20);
               flyBackTotal += amt * emMult2;
-              flyBackLines.push(c.replace(':',' ') + '　' + amt.toFixed(0) + ' ×' + emMult2 + ' = ' + (amt*emMult2).toFixed(0));
+              flyBackLines.push(c.replace(/^(二中二|三中二|三中三):/, '二/三 ').replace(':',' ') + '  ' + amt.toFixed(0) + ' ×' + emMult2 + ' = ' + (amt*emMult2).toFixed(0));
             }
           }
         });
@@ -6316,7 +6382,7 @@ function renderOrdersList(){
           upCopyLines.push(`${prod} ${sn.join('.')}复${k===2?'二':'三'}各组${amt}`);
           group.forEach(([c]) => used2.add(c));
         } else {
-          upCopyLines.push(`${code} ${amt.toFixed(0)}`);
+          upCopyLines.push(`${code.replace(':',' ')} ${amt.toFixed(0)}`);
           used2.add(code);
         }
       });
@@ -6342,19 +6408,22 @@ function renderOrdersList(){
   } catch(e){}
   // 返水：飞走金额按比例返给我
   let rebateOn = true, rebateRate = 0.03;
-  try { rebateOn = localStorage.getItem('rebateOn') !== '0'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
+  try { rebateOn = localStorage.getItem('rebateOn') === '1'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
   const rebateAmt = rebateOn ? flyOutTotal * rebateRate : 0;
   const owedAmt = lastDraw ? (flyOutTotal - flyBackTotal) : 0;
   const netSettle = lastDraw ? (rebateAmt - owedAmt) : null;
-  let copyTail = upCopyLines.join('\n') + `\n${cpSp.toFixed(0)} + ${cpZd.toFixed(0)} + ${cpEm.toFixed(0)} = ${flyOutTotal.toFixed(0)}`;
-  if(rebateOn && flyOutTotal > 0) copyTail += `\n返水:${flyOutTotal.toFixed(0)}×${(rebateRate*100).toFixed(0)}%=+${rebateAmt.toFixed(0)}`;
+  var _perTxt = (lastDraw && lastDraw.period) ? ('  ' + lastDraw.period + ' 期') : '';
+  let copyTail = '飞单对账' + _perTxt + '\n'
+    + `合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平 ${cpZd.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
+  if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
   if(lastDraw){
-    copyTail += '\n命中明细:';
+    copyTail += '\n\n明细:';
     if(flyBackLines.length){ flyBackLines.forEach(function(l){ copyTail += '\n  ' + l; }); }
-    else copyTail += '\n  （无）';
-    copyTail += `\n命中额:${flyBackTotal.toFixed(0)}\n总账单:${owedAmt.toFixed(0)}`;
-    copyTail += `\n结算:${netSettle>=0?'+':''}${netSettle.toFixed(0)}`;
-  } else copyTail += '\n未开奖，结算待定';
+    else copyTail += '\n  本期没有命中项';
+    copyTail += `\n合计:+${flyBackTotal.toFixed(0)}`;
+    copyTail += `\n\n总账单 ${flyOutTotal.toFixed(0)} - ${flyBackTotal.toFixed(0)} = ${owedAmt.toFixed(0)}`;
+    copyTail += `\n结算 ${netSettle>=0?'+':'-'}${Math.abs(netSettle).toFixed(0)}`;
+  } else copyTail += '\n\n未开奖，结算待定';
   window._upCopy = copyTail;
   h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">`;
   h += `<div onclick="toggleOd('upDetail',this)" style="padding:8px;cursor:pointer">`;
@@ -6374,7 +6443,15 @@ function renderOrdersList(){
   if(rebateOn && flyOutTotal > 0) h += `<span style="margin-left:auto;color:#16a34a;font-weight:600">返水 +${rebateAmt.toFixed(0)}</span>`;
   h += `</div>`;
   let upCum = 0; try { upCum = parseFloat(localStorage.getItem('upCum') || '0'); } catch(e){}
-  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">累计你赚</span><b style="color:${upCum>=0?'#16a34a':'#cf1322'}">${upCum.toFixed(0)}</b></div>`;
+  var upToday = 0, upWeek = 0;
+  try {
+    if(localStorage.getItem('upCumDayDate') === new Date().toISOString().slice(0,10)) upToday = upCum - parseFloat(localStorage.getItem('upCumDayBase') || '0');
+    if(localStorage.getItem('upCumWeekKey') === _weekKey()) upWeek = upCum - parseFloat(localStorage.getItem('upCumWeekBase') || '0');
+  } catch(e){}
+  var _sg = function(v){ return (v >= 0 ? '+' : '-') + Math.abs(v).toFixed(0); };
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;padding-top:2px;border-top:1px dashed #eee"><span style="color:#999">本周盈亏（周一起）</span><b style="font-size:13px;color:${upWeek>=0?'#16a34a':'#cf1322'}">${_sg(upWeek)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:11px;padding-top:2px"><span style="color:#999">今日盈亏</span><b style="color:${upToday>=0?'#16a34a':'#cf1322'}">${_sg(upToday)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:10px;padding-top:2px"><span style="color:#bbb">历史累计</span><b style="color:#bbb">${_sg(upCum)}</b></div>`;
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
   // 三栏：左特码 中肖 右二中二三中三
@@ -6478,7 +6555,7 @@ function renderOrdersList(){
   h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   if(flyBackLines.length){
     h += `<div style="margin:3px 0;padding:5px 6px;background:#fff7f7;border:1px solid #f3d6d6;border-radius:6px;font-weight:400">`;
-    h += `<div style="font-size:11px;color:#999;margin-bottom:2px">命中明细（上家该赔的）</div>`;
+    h += `<div style="font-size:11px;color:#999;margin-bottom:2px">明细</div>`;
     flyBackLines.forEach(function(l){
       h += `<div style="font-size:12px;color:#cf1322">${esc(l)}</div>`;
     });
@@ -6532,22 +6609,24 @@ function custDetailBlock(list, dr, title){
   var t = '【' + title + '】\n';
   // 下单：按玩法归类，只报各类金额
   t += '下单：\n';
-  var ORDER = ['特', '平肖', '连肖', '二中二', '三中二', '三中三', '其他'];
+  var MERGE = {'特':'特', '平肖':'平', '连肖':'平', '二中二':'二/三', '三中二':'二/三', '三中三':'二/三', '其他':'其他'};
+  var agg = {};
+  Object.keys(cats).forEach(function(k){ var g = MERGE[k] || '其他'; agg[g] = (agg[g]||0) + cats[k]; });
+  var ORDER = ['特', '平', '二/三', '其他'];
   var any = false;
   ORDER.forEach(function(k){
-    if(cats[k] && Math.abs(cats[k]) > 0.001){ t += '  ' + k + ':' + cats[k].toFixed(0) + '\n'; any = true; }
+    if(agg[k] && Math.abs(agg[k]) > 0.001){ t += '  ' + k + ' ' + _fmtAmt(agg[k]) + '\n'; any = true; }
   });
   if(!any) t += '  （无）\n';
-  t += '  合计 ' + betTotal.toFixed(0) + '\n';
+  t += '  合计 ' + _fmtAmt(betTotal) + '\n';
   t += '命中：\n';
-  if(!hits.length) t += '  （本期无中奖）\n';
+  if(!hits.length) t += '  （本期无命中）\n';
   hits.forEach(function(l){ t += '  ' + l + '\n'; });
-  t += '  中奖合计 ' + winTotal.toFixed(2) + '\n';
+  t += '  合计 ' + _fmtAmt(winTotal) + '\n';
   var net = winTotal - betTotal;
-  // 客户视角、纯记账口径：只报数，不评价输赢（不用「亏」「赚」「你赚」）
-  t += '本期合计\n';
-  t += '  下注 ' + betTotal.toFixed(0) + ' ｜ 中奖 ' + winTotal.toFixed(2)
-     + ' ｜ 结余 ' + (net >= 0 ? '+' : '') + net.toFixed(2) + '\n';
+  t += '汇总：\n';
+  t += '  投入 ' + _fmtAmt(betTotal) + ' ｜ 命中 ' + _fmtAmt(winTotal)
+     + ' ｜ 结余 ' + (net >= 0 ? '+' : '') + _fmtAmt(net) + '\n';
   return { text: t, bet: betTotal, win: winTotal, net: net };
 }
 
@@ -6558,21 +6637,23 @@ function buildCustOrdersText(cust){
   var text = (cust || '散客') + '\n';
   var b1 = 0, w1 = 0, b2 = 0, w2 = 0;
   if(macList.length){
-    var m = custDetailBlock(macList, lastDraw, '澳门 ' + (lastDraw ? ('期' + (lastDraw.period || '')) : '未开奖'));
+    var _mNums = lastDraw ? (lastDraw.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(lastDraw.specialNum).padStart(2,'0')) : '';
+    var m = custDetailBlock(macList, lastDraw, lastDraw ? ('澳 ' + (lastDraw.period || '') + ' 期　' + _mNums) : '澳 未开奖');
     text += m.text;
     b1 = m.bet; w1 = m.win;
   }
   if(hkList.length){
     var hd = hkDrawObj();
-    var h = custDetailBlock(hkList, hd, '香港 ' + (hd ? ('期' + (hd.draw || '')) : '未开奖'));
+    var _hNums = hd ? (hd.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(hd.specialNum).padStart(2,'0')) : '';
+    var h = custDetailBlock(hkList, hd, hd ? ('港 ' + (hd.draw || '') + ' 期　' + _hNums) : '港 未开奖');
     text += h.text;
     b2 = h.bet; w2 = h.win;
   }
   if(macList.length && hkList.length){
     var tb = b1 + b2, tw = w1 + w2, tn = tw - tb;
     text += '【港澳合计】\n';
-    text += '  下注 ' + tb.toFixed(0) + ' ｜ 中奖 ' + tw.toFixed(2)
-       + ' ｜ 结余 ' + (tn >= 0 ? '+' : '') + tn.toFixed(2) + '\n';
+    text += '  投入 ' + _fmtAmt(tb) + ' ｜ 命中 ' + _fmtAmt(tw)
+       + ' ｜ 结余 ' + (tn >= 0 ? '+' : '') + _fmtAmt(tn) + '\n';
   }
   return text;
 }
@@ -6648,6 +6729,24 @@ function simAddNum(bets, cap, nAdd, amtEach){
   }
   return { kept:K2, worst:K2-47*M2, added:K2-K, line:K2/47, maxKeep:M2 };
 }
+// 补号模拟的清单版：返回具体补了哪些号（原来的 simAddNum 只给总数）
+function simPickList(bets, cap, nAdd, amtEach){
+  var arr = [];
+  for(var i=1;i<=49;i++) arr.push({ no:i, v: Math.min(bets[i]||0, cap) });
+  var out = [];
+  for(var j=0;j<nAdd;j++){
+    arr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+    var low = arr[0];
+    if(low.v >= cap) break;
+    var add = Math.min(amtEach, cap - low.v);
+    if(add <= 0) break;
+    out.push({ no: low.no, before: low.v, after: low.v + add, add: add });
+    low.v += add;
+  }
+  return out;
+}
+function _pad2(n){ return String(n).length<2 ? '0'+n : String(n); }
+
 // 反推：要让最坏不小于 target，需要补多少钱
 function simNeedAmount(bets, cap, target){
   var self=[];
@@ -6771,9 +6870,16 @@ function renderNeedListByBudget(){
     + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>'
     + '<div style="font-size:11px;color:#888;margin-top:4px">复制后直接发下家，格式「号码 空格 金额」。收到的号录进订单后，这一行自动消失。</div>';
 }
+function needTargetSet(v){
+  window.__needTarget = String(Math.round(v));
+  var el = document.getElementById('needTarget');
+  if(el) el.value = Math.round(v);
+  renderNeedList();
+}
 function renderNeedList(){
   var t = parseFloat((document.getElementById('needTarget')||{}).value);
-  if(!isFinite(t)) t = -800;
+  if(!isFinite(t) && window.__needTarget !== undefined) t = parseFloat(window.__needTarget);
+  if(!isFinite(t)) t = Math.round(window.__curWorst || 0);
   var r = buildNeedList(t);
   var box = document.getElementById('needBox');
   if(!box) return;
@@ -7428,14 +7534,28 @@ function renderRisk(){
       var _sK = _kept, _sM = Math.min(100, _cap);
       var _sBest = simAddNum(_sb, _scap, 49, _scap);
       var _simRows = '';
+      // 当前盘面最坏（刷新时同步给「目标最坏」输入框）
+      window.__curWorst = _kept - 47 * Math.max.apply(null, _bets.map(function(b){ return Math.min(b.nb, _cap); }));
+      var _ntv = (window.__needTarget !== undefined && window.__needTarget !== null && window.__needTarget !== '') ? window.__needTarget : Math.round(window.__curWorst);
+      // 现在注额最少的 12 个号，先给人看"哪些号能补"
+      var _lowArr = [];
+      for(var _li=1;_li<=49;_li++) _lowArr.push({ no:_li, v: Math.min(_sb[_li]||0, _scap) });
+      _lowArr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+      var _lowHint = '<div style="font-size:11px;color:#555;margin:2px 0 4px;line-height:1.5">现在最少的 12 个号（补这些最划算）：<br><b style="color:#333">'
+        + _lowArr.slice(0,12).map(function(x){ return _pad2(x.no) + ' ' + x.v.toFixed(0); }).join('　')
+        + '</b><span style="color:#999">　括号里是「现在的注→补后」</span></div>';
       [[5,50],[10,50],[15,50],[20,50],[5,_scap],[10,_scap],[20,_scap]].forEach(function(p){
         var r2 = simAddNum(_sb, _scap, p[0], p[1]);
         var d = r2.added;
         var col = d>0 ? '#16a34a' : '#999';
-        _simRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f7f7f7">`
+        var _pk = simPickList(_sb, _scap, p[0], p[1]);
+        var _pkTxt = _pk.map(function(x){ return _pad2(x.no) + '(' + x.before.toFixed(0) + '→' + x.after.toFixed(0) + ')'; }).join(' ');
+        _simRows += `<div style="padding:3px 0;border-bottom:1px solid #f7f7f7">`
+          + `<div style="display:flex;justify-content:space-between;font-size:12px">`
           + `<span>补 ${p[0]} 号 到 ${p[1]} 元</span>`
           + `<span style="color:${col}">+${d.toFixed(0)}</span>`
-          + `<b style="color:${r2.worst>=0?'#16a34a':'#cf1322'}">${(r2.worst>=0?'+':'')+r2.worst.toFixed(0)}</b></div>`;
+          + `<b style="color:${r2.worst>=0?'#16a34a':'#cf1322'}">${(r2.worst>=0?'+':'')+r2.worst.toFixed(0)}</b></div>`
+          + `<div style="font-size:10px;color:#999;margin-top:1px;word-break:break-all">${_pkTxt||'（已补满）'}</div></div>`;
       });
       h += `<div style="border-top:1px solid #eee;margin-top:8px;padding-top:8px">`
          + `<div onclick="var b=document.getElementById('simBox');b.style.display=b.style.display==='none'?'':'none'" style="cursor:pointer;font-size:13px;font-weight:600;color:#374151">接单预演 · 补号模拟 ▶</div>`
@@ -7446,6 +7566,7 @@ function renderRisk(){
          + `<span style="margin-left:6px">最坏 ${(_kept - 47*Math.max.apply(null,_bets.map(function(b){return Math.min(b.nb,_cap);}))).toFixed(0)}</span>`
          + `</div>`
          + `<div style="font-size:11px;color:#666;margin-bottom:3px">补**最低**的号（补新号不会抬高最重号，纯粹加自留）：</div>`
+         + _lowHint
          + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;padding-bottom:2px;border-bottom:1px solid #eee"><span>补法</span><span>进自留</span><span>补后最坏</span></div>`
          + _simRows
          + `<div style="font-size:11px;color:#16a34a;margin-top:5px">上限：49 个号全补到 ${_scap} 元，共需 ${_sBest.added.toFixed(0)} 元 → 最坏 ${(_sBest.worst>=0?'+':'')+_sBest.worst.toFixed(0)}（全盘任何号开出都赚）</div>`
@@ -7458,8 +7579,12 @@ function renderRisk(){
          + `<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">要收的号（照着这个去问下家）</div>`
          + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
          + `<span style="font-size:11px;color:#666;white-space:nowrap">目标最坏</span>`
-         + `<input id="needTarget" type="number" value="-800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
+         + `<input id="needTarget" type="number" value="${_ntv}" onchange="window.__needTarget=this.value" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
          + `<button onclick="renderNeedList()" style="padding:5px 10px;border:1px solid #1677ff;background:#1677ff;color:#fff;border-radius:5px;font-size:12px;white-space:nowrap">算清单</button></div>`
+         + `<div style="display:flex;gap:5px;margin-bottom:5px">`
+         + `<button onclick="needTargetSet(0)" style="flex:1;padding:4px;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;font-size:11px">按不亏算（差多少）</button>`
+         + `<button onclick="needTargetSet(Math.round(window.__curWorst||0))" style="flex:1;padding:4px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px">按当前最坏看</button></div>`
+         + `<div style="font-size:10px;color:#999;margin-bottom:4px">默认填的是你当前盘的最坏值；想「一开任何号都不亏」就点左边那个，它会算出还要收多少钱。</div>`
          + `<div style="display:flex;gap:5px;align-items:center;margin-bottom:5px">`
          + `<span style="font-size:11px;color:#666;white-space:nowrap">我手上</span>`
          + `<input id="needBudget" type="number" placeholder="多少钱" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:5px;padding:5px;font-size:12px">`
@@ -7701,7 +7826,7 @@ function renderAll(){
   const left = subCodes.slice(0, 25);
   const right = subCodes.slice(25);
   const rowHtml = (list, startIdx) => list.map((r, i) =>
-    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:15px;font-weight:700">${r.q}</td><td style="font-size:13px;font-weight:600;color:#333">${r.a.toFixed(2)}</td></tr>`
+    `<tr><td style="color:#999">${startIdx+i}</td><td>${colorBadge(r.key)}</td><td style="font-size:13px;font-weight:600;color:#333">${r.a.toFixed(2)}</td></tr>`
   ).join('');
   document.getElementById('tbody-rank-l').innerHTML = rowHtml(left, 1);
   document.getElementById('tbody-rank-r').innerHTML = rowHtml(right, 26);
@@ -8652,7 +8777,7 @@ try {
 } catch(e){}
 
 setTimeout(function(){ try { billCheckRollover(); } catch(e){} }, 350);
-setTimeout(function(){ try { updateDrawInfoBar(); } catch(e){} }, 500);
+setTimeout(function(){ try { updateDrawInfoBar(); renderBallsForStore(); } catch(e){} }, 500);
 
 // 实时时钟
 setInterval(function(){

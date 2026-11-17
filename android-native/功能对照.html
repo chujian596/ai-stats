@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>原生版 · 功能按键对照</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f5f5;color:#1f2329;font:14px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:26px 14px 56px}
+.wrap{max-width:940px;margin:0 auto}
+h1{font-size:23px}
+.sub{color:#646a73;font-size:12.5px;margin:6px 0 18px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
+.card{background:#fff;border-radius:12px;padding:14px}
+.card b{display:block;font-size:24px}
+.card span{font-size:11.5px;color:#646a73}
+section{background:#fff;border-radius:12px;padding:16px 16px 6px;margin-top:12px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{text-align:left;font-size:11.5px;color:#646a73;font-weight:500;border-bottom:1px solid #e5e6eb;padding:8px 6px}
+td{border-bottom:1px solid #e5e6eb;padding:8px 6px;vertical-align:top;font-size:13px;word-break:break-all}
+td:nth-child(1){width:34px;color:#86909c;font-size:11.5px}
+td:nth-child(2){width:27%}
+.c{width:20%;color:#646a73}
+.s{width:20%;font-size:12.5px}
+.ok{color:#1f2329} .mid{color:#8a6d3b} .bad{color:#b42318}
+tr:last-child td{border-bottom:0}
+.note{background:#fff;border-radius:12px;padding:16px;margin-top:12px}
+.note h3{font-size:14px;margin-bottom:6px}
+.note li{margin-left:16px;color:#646a73;font-size:13px;line-height:1.85}
+.note li b{color:#1f2329}
+</style></head><body><div class="wrap">
+<h1>原生版 · 功能按键对照</h1>
+<div class="sub">2026-11-17　逐项对照专业版 v58.173-Pro　共 37 项</div>
+<div class="cards">
+<div class="card"><b>25</b><span>原生版按钮，全点过 0 异常</span></div>
+<div class="card"><b>81/81</b><span>解析赔付结算断言</span></div>
+<div class="card"><b>45/45</b><span>原有逻辑回归</span></div>
+<div class="card"><b>0</b><span>崩溃</span></div>
+</div>
+<section>
+<table><thead><tr><th>#</th><th>功能</th><th>专业版</th><th>原生版</th><th>状态</th></tr></thead>
+<tr><td>1</td><td>顶部汇总（日期/N单/收/赔）</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>2</td><td>客户切换</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>3</td><td>时钟</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>4</td><td>店铺切换</td><td class="c">澳门/香港 两个按钮</td><td class="c">一个文字点击循环</td><td class="s mid">形式不同，已存重启保持</td></tr>
+<tr><td>5</td><td>订单输入区</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>6</td><td>订单累计（行数+金额）</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>7</td><td>7 个号码球</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>8</td><td>输入框</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致（电脑渲染不出字，装机正常）</td></tr>
+<tr><td>9</td><td>开奖行</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致，点开弹窗录入</td></tr>
+<tr><td>10</td><td>自动获取开奖</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致（联网部分待攻破）</td></tr>
+<tr><td>11</td><td>手动录入</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>12</td><td>清空（输入框）</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>13</td><td>保存</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>14</td><td>排行榜</td><td class="c">tab 切换</td><td class="c">滚动定位</td><td class="s mid">形式不同，功能一致</td></tr>
+<tr><td>15</td><td>订单记录</td><td class="c">tab 切换</td><td class="c">滚动定位</td><td class="s mid">形式不同，功能一致</td></tr>
+<tr><td>16</td><td>今日归档</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>17</td><td>历史订单</td><td class="c">有</td><td class="c">有</td><td class="s mid">同一页</td></tr>
+<tr><td>18</td><td>清除订单</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>19</td><td>AI统计</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>20</td><td>飞单统计</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>21</td><td>盈利统计</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>22</td><td>平特肖</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>23</td><td>⚙ 设置面板</td><td class="c">独立面板</td><td class="c">设置卡片</td><td class="s mid">形式不同</td></tr>
+<tr><td>24</td><td>清空今日</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>25</td><td>清空累计</td><td class="c">有</td><td class="c">有</td><td class="s ok">一致</td></tr>
+<tr><td>26</td><td>导出备份</td><td class="c">导入备份/导出CSV</td><td class="c">导出备份/从剪贴板恢复</td><td class="s mid">功能一致，叫法不同</td></tr>
+<tr><td>27</td><td>撤销开奖记录</td><td class="c">有</td><td class="c">本轮补上</td><td class="s ok">新补</td></tr>
+<tr><td>28</td><td>复制香港单</td><td class="c">有</td><td class="c">本轮补上</td><td class="s ok">新补</td></tr>
+<tr><td>29</td><td>复制客户单 / 上家单</td><td class="c">复制</td><td class="c">复制客户单 / 复制上家单</td><td class="s ok">一致</td></tr>
+<tr><td>30</td><td>客户统计</td><td class="c">有（隐藏 tab）</td><td class="c">无</td><td class="s bad">缺</td></tr>
+<tr><td>31</td><td>清空赔付记录</td><td class="c">有</td><td class="c">无</td><td class="s bad">缺</td></tr>
+<tr><td>32</td><td>香港条（港彩期号横条）</td><td class="c">有</td><td class="c">无</td><td class="s bad">缺</td></tr>
+<tr><td>33</td><td>补号模拟</td><td class="c">有面板</td><td class="c">有，平铺在页内</td><td class="s mid">形式不同</td></tr>
+<tr><td>34</td><td>削峰测算</td><td class="c">有面板</td><td class="c">有，平铺在页内</td><td class="s mid">形式不同</td></tr>
+<tr><td>35</td><td>风险体检</td><td class="c">有面板</td><td class="c">有，平铺在页内</td><td class="s mid">形式不同</td></tr>
+<tr><td>36</td><td>飞单明细</td><td class="c">有面板</td><td class="c">有，平铺在页内</td><td class="s mid">形式不同</td></tr>
+<tr><td>37</td><td>澳门/香港分开算</td><td class="c">分开，不进总单</td><td class="c">本轮补上，已验</td><td class="s ok">新补，已过断言</td></tr>
+</table></section>
+<div class="note">
+<h3>本轮修掉的真问题</h3>
+<ul>
+<li><b>澳门单、香港单混在一起</b>：订单里根本没有「店铺」字段。已加，并修掉「存进去有、读回来丢」这个更隐蔽的 bug。</li>
+<li><b>切店铺重启就丢</b>：现在记住了，关掉再开还是上次那家。</li>
+<li><b>没有撤销开奖</b>：录错期号只能改不能撤，已补。</li>
+<li><b>没有复制香港单</b>：香港池的单据复制不出来，已补。</li>
+</ul>
+<h3 style="margin-top:14px">还没做</h3>
+<ul>
+<li><b>客户统计</b>、<b>清空赔付记录</b>、<b>香港期号横条</b>——这三块专业版有，原生版还没有。</li>
+<li><b>各面板还是平铺</b>：专业版是点按钮展开收起，原生版是全摊在长页里，得滚。</li>
+<li><b>联网开奖</b>：按你说的先放着。</li>
+</ul>
+</div></div></body></html>

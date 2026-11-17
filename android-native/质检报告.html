@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>原生录单 · 质检报告</title>
+<style>
+:root{--ink:#1f2329;--mid:#646a73;--line:#e5e6eb;--bg:#f5f5f5;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:28px 16px 64px}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-size:24px;letter-spacing:.5px}
+.sub{color:var(--mid);font-size:13px;margin-top:6px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 8px}
+.card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card b{display:block;font-size:26px;line-height:1.2}
+.card span{font-size:12px;color:var(--mid)}
+section{background:var(--card);border-radius:12px;padding:18px 18px 8px;margin-top:14px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+h2{font-size:17px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+em{font-style:normal;font-size:12px;color:var(--mid);font-weight:400}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
+th{text-align:left;color:var(--mid);font-weight:500;font-size:12px;border-bottom:1px solid var(--line);padding:8px 6px}
+td{border-bottom:1px solid var(--line);padding:9px 6px;vertical-align:top}
+.n{width:40px;color:var(--mid);font-size:12px}
+.d{width:34%;color:var(--mid);word-break:break-all}
+.s{width:74px;text-align:right}
+.ok{color:#1f2329} .bad{color:#b42318}
+tr:last-child td{border-bottom:0}
+.note{background:var(--card);border-radius:12px;padding:18px;margin-top:14px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.note h3{font-size:15px;margin-bottom:8px}
+.note li{margin-left:18px;color:var(--mid);font-size:14px;line-height:1.9}
+.note li b{color:var(--ink)}
+</style></head><body><div class="wrap">
+<h1>原生录单 · 质检报告</h1>
+<div class="sub">2026-11-17　包名 io.github.chujian596.app.ntv　口径对照专业版 v58.173-Pro</div>
+<div class="cards">
+<div class="card"><b>76/76</b><span>解析 · 赔付 · 结算断言</span></div>
+<div class="card"><b>45/45</b><span>原有逻辑回归</span></div>
+<div class="card"><b>23/23</b><span>界面按钮点击</span></div>
+<div class="card"><b>0</b><span>崩溃 / 无响应</span></div>
+</div>
+<section><h2>录单解析<em>48 项</em></h2>
+<table><thead><tr><th class="n">#</th><th>用例</th><th>实际结果</th><th class="s">判定</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>输入「22 140」</td><td class="d">22　140元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">2</td><td>输入「特码22 140」</td><td class="d">22　140元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">3</td><td>输入「特 22 140」</td><td class="d">22　140元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">4</td><td>输入「22各140」</td><td class="d">22　140元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">5</td><td>输入「05 06 各150」</td><td class="d">05|06　150元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">6</td><td>输入「22 34 各100」</td><td class="d">22|34　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">7</td><td>输入「22,34,46 各30」</td><td class="d">22|34|46　30元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">8</td><td>输入「01.02.03.04.05各10」</td><td class="d">01|02|03|04|05　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">9</td><td>输入「24-48-31-14-38各200」</td><td class="d">14|24|31|38|48　200元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">10</td><td>输入「22 34 100」</td><td class="d">22|34　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">11</td><td>输入「平特虎 1000」</td><td class="d">平特虎　1000元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">12</td><td>输入「虎平1000」</td><td class="d">平特虎　1000元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">13</td><td>输入「平特一肖猴 500」</td><td class="d">平特猴　500元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">14</td><td>输入「平特马龙兔 各100」</td><td class="d">平特兔|平特马|平特龙　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">15</td><td>输入「马龙兔平特肖 100」</td><td class="d">平特兔|平特马|平特龙　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">16</td><td>输入「连肖马龙 100」</td><td class="d">连肖马龙　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">17</td><td>输入「马连龙兔 100」</td><td class="d">连肖马龙兔　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">18</td><td>输入「三连肖马龙兔 100」</td><td class="d">连肖马龙兔　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">19</td><td>输入「马龙兔三连肖 100」</td><td class="d">连肖马龙兔　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">20</td><td>输入「平连马龙 100」</td><td class="d">连肖马龙　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">21</td><td>输入「二连肖鼠牛 100」</td><td class="d">连肖鼠牛　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">22</td><td>输入「二中二:03,04 100」</td><td class="d">二中二:03,04　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">23</td><td>输入「三中三:34,32,46 5」</td><td class="d">三中三:34,32,46　5元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">24</td><td>输入「三中三34 32 46 5」</td><td class="d">三中三:34,32,46　5元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">25</td><td>输入「34 32 46 三中三 5」</td><td class="d">三中三:34,32,46　5元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">26</td><td>输入「3中3 34 32 46 5」</td><td class="d">三中三:34,32,46　5元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">27</td><td>输入「三中二:02,15,28 10」</td><td class="d">三中二:02,15,28　10元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">28</td><td>输入「44-10-08-09-04-05复式三中三 5」</td><td class="d">共 20 组　5元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">29</td><td>输入「03.04.06.05.49复二 10」</td><td class="d">共 10 组　10元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">30</td><td>输入「0头 各10」</td><td class="d">共 9 组　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">31</td><td>输入「3头 各10」</td><td class="d">共 9 组　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">32</td><td>输入「尾5 各10」</td><td class="d">05|15|25|35|45　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">33</td><td>输入「蛇数 各10」</td><td class="d">02|14|26|38　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">34</td><td>输入「鼠数 各10」</td><td class="d">07|19|31|43　10元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">35</td><td>输入「红波 100」</td><td class="d">共 17 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">36</td><td>输入「蓝波单 100」</td><td class="d">共 8 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">37</td><td>输入「特单 100」</td><td class="d">共 25 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">38</td><td>输入「双数 100」</td><td class="d">共 24 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">39</td><td>输入「大 100」</td><td class="d">共 25 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">40</td><td>输入「合数单 100」</td><td class="d">共 25 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">41</td><td>输入「特红波 100」</td><td class="d">共 17 组　100元/号</td><td class="s ok">通过</td></tr>
+<tr><td class="n">42</td><td>输入「22 一百」</td><td class="d">22　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">43</td><td>输入「22 五十」</td><td class="d">22　50元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">44</td><td>输入「22/100」</td><td class="d">22　100元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">45</td><td>输入「新澳22 140」</td><td class="d">22　140元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">46</td><td>输入「澳门22 140」</td><td class="d">22　140元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">47</td><td>输入「22 140 abc」应报错</td><td class="d">—</td><td class="s ok">通过</td></tr>
+<tr><td class="n">48</td><td>输入「22 0」应报错</td><td class="d">—</td><td class="s ok">通过</td></tr>
+</tbody></table></section><section><h2>赔付命中<em>21 项</em></h2>
+<table><thead><tr><th class="n">#</th><th>用例</th><th>实际结果</th><th class="s">判定</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>赔付「22 140」开14 17 32 34 24特22</td><td class="d">赔 6580</td><td class="s ok">通过</td></tr>
+<tr><td class="n">2</td><td>赔付「22 140」开14 17 32 34 24特20</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">3</td><td>赔付「平特虎 1000」开14 17 32 34 24 46特20</td><td class="d">赔 2000</td><td class="s ok">通过</td></tr>
+<tr><td class="n">4</td><td>赔付「平特马 1000」开14 13 32 34 24 46特20</td><td class="d">赔 1800</td><td class="s ok">通过</td></tr>
+<tr><td class="n">5</td><td>赔付「平特虎 1000」开14 11 32 34 24 46特20</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">6</td><td>赔付「连肖马龙 100」开01 03 11 12 13 14特20</td><td class="d">赔 350</td><td class="s ok">通过</td></tr>
+<tr><td class="n">7</td><td>赔付「连肖马龙 100」开01 11 12 13 14 16特20</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">8</td><td>赔付「三连肖马龙兔 100」开01 03 04 11 12 13特20</td><td class="d">赔 950</td><td class="s ok">通过</td></tr>
+<tr><td class="n">9</td><td>赔付「四连肖马龙兔蛇 100」开01 03 04 02 12 13特20</td><td class="d">赔 2950</td><td class="s ok">通过</td></tr>
+<tr><td class="n">10</td><td>赔付「四连鼠牛虎兔 100」开07 06 17 16 12 13特20</td><td class="d">赔 3000</td><td class="s ok">通过</td></tr>
+<tr><td class="n">11</td><td>赔付「二中二:03,04 100」开03 04 11 12 13 14特20</td><td class="d">赔 6000</td><td class="s ok">通过</td></tr>
+<tr><td class="n">12</td><td>赔付「二中二:03,20 100」开03 04 11 12 13 14特20</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">13</td><td>赔付「三中三:03,04,06 100」开03 04 06 11 12 13特20</td><td class="d">赔 60000</td><td class="s ok">通过</td></tr>
+<tr><td class="n">14</td><td>赔付「三中二:03,04,06 100」开03 04 11 12 13 14特20</td><td class="d">赔 2000</td><td class="s ok">通过</td></tr>
+<tr><td class="n">15</td><td>赔付「三中二:03,06,09 100」开03 04 11 12 13 14特20</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">16</td><td>赔付「红波 10」开14 17 32 34 24 46特01</td><td class="d">赔 470</td><td class="s ok">通过</td></tr>
+<tr><td class="n">17</td><td>赔付「红波 10」开14 17 32 34 24 46特22</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">18</td><td>赔付「单数 10」开14 17 32 34 24 46特45</td><td class="d">赔 470</td><td class="s ok">通过</td></tr>
+<tr><td class="n">19</td><td>赔付「双数 10」开14 17 32 34 24 46特45</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+<tr><td class="n">20</td><td>赔付「大 10」开14 17 32 34 24 46特45</td><td class="d">赔 470</td><td class="s ok">通过</td></tr>
+<tr><td class="n">21</td><td>赔付「小 10」开14 17 32 34 24 46特45</td><td class="d">赔 0</td><td class="s ok">通过</td></tr>
+</tbody></table></section><section><h2>结算飞单<em>7 项</em></h2>
+<table><thead><tr><th class="n">#</th><th>用例</th><th>实际结果</th><th class="s">判定</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>红波 10 应记 170 元</td><td class="d">17 个红波号 × 10 = 170</td><td class="s ok">通过</td></tr>
+<tr><td class="n">2</td><td>单数 10 应记 250 元</td><td class="d">25 个单数号 × 10 = 250</td><td class="s ok">通过</td></tr>
+<tr><td class="n">3</td><td>5 单合计</td><td class="d">合计 1320 元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">4</td><td>盘面特号合计</td><td class="d">特号押注 315 元</td><td class="s ok">通过</td></tr>
+<tr><td class="n">5</td><td>22 号 cap100 自留</td><td class="d">注 140 → 自留 100</td><td class="s ok">通过</td></tr>
+<tr><td class="n">6</td><td>22 号 cap100 飞走</td><td class="d">飞 40 给上家</td><td class="s ok">通过</td></tr>
+<tr><td class="n">7</td><td>cap100 最坏结果</td><td class="d">最坏 -4425 元</td><td class="s ok">通过</td></tr>
+</tbody></table></section>
+<div class="note">
+<h3>属性玩法改成按号记账（本轮）</h3>
+<ul>
+<li>「红波 10」现在展开成 <b>17 个号各 10</b>，收 <b>170</b>；开红波特码赔 <b>470</b>。</li>
+<li>「单数 10」→ 25 个号各 10，收 <b>250</b>；「大 10」→ 25 个号，收 250。</li>
+<li>收益率恒为 <b>2/49 = 4.08%</b>，买几个号都一样——因为每号收 10、期望只赔 470/49≈9.59。</li>
+</ul>
+<h3 style="margin-top:16px">两端目前不一致（等你定）</h3>
+<ul>
+<li><b>专业版</b>把「红波 100」记成 <b>100 元</b>一笔，且不自动赔。</li>
+<li><b>原生版</b>已改成记 <b>1700 元</b>（17 个号各 100），命中按 47 赔。</li>
+<li>差异 16 倍，得统一：专业版也改，或者原生版退回去。</li>
+</ul>
+<h3 style="margin-top:16px">这轮查出来并已修的 5 个真问题</h3>
+<ul>
+<li><b>三中二赔少了</b>：原来要三个号全中，专业版是中两个就赔（20 倍）。</li>
+<li><b>二中二 / 三中三误判</b>：原来把特码算进命中，专业版只看正码。</li>
+<li><b>平特肖统计漏算</b>：带前缀的「平特虎」识别不出生肖。</li>
+<li><b>开奖行挤行</b>：改成显示文字 + 点开弹窗录入。</li>
+<li><b>两种「保存」重名</b>：设置卡里的改成「保存设置」。</li>
+</ul>
+<h3 style="margin-top:16px">还不能打包票的</h3>
+<ul>
+<li><b>店铺切香港</b>：现在只换文字，没换开奖数据源。</li>
+<li><b>输入框文字</b>：电脑渲染器画不出，只能装机验。</li>
+<li><b>断网</b>：录单、结算、归档全本地，断网可用；自动获取开奖会失败并提示。</li>
+</ul>
+</div></div></body></html>

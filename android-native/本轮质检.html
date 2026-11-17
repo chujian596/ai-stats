@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>原生版 · 本轮质检</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f5f5;color:#1f2329;font:14px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding:26px 14px 56px}
+.wrap{max-width:940px;margin:0 auto}
+h1{font-size:23px}
+.sub{color:#646a73;font-size:12.5px;margin:6px 0 18px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.card{background:#fff;border-radius:12px;padding:14px}
+.card b{display:block;font-size:24px}
+.card span{font-size:11.5px;color:#646a73}
+section{background:#fff;border-radius:12px;padding:18px 16px 14px;margin-top:12px}
+h2{font-size:15px;margin-bottom:10px}
+h2 i{font-style:normal;color:#86909c;font-size:11.5px;margin-left:6px}
+ul{margin-left:2px}
+li{margin:0 0 7px 16px;font-size:13.5px;color:#4a4f56}
+li b{color:#1f2329}
+table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:6px}
+th{text-align:left;font-size:11.5px;color:#646a73;font-weight:500;border-bottom:1px solid #e5e6eb;padding:7px 6px}
+td{border-bottom:1px solid #e5e6eb;padding:7px 6px;font-size:12.5px;vertical-align:top;word-break:break-all}
+td:nth-child(1){width:31%}
+td:nth-child(2),td:nth-child(3){width:31%}
+td:nth-child(4){width:12%;text-align:right;font-weight:600}
+tr:last-child td{border-bottom:0}
+.bad{color:#b42318}
+.hi{background:#fbfbfb}
+.flow{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.chip{background:#f2f3f5;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#4a4f56}
+.chip.on{background:#1f2329;color:#fff}
+</style></head><body><div class="wrap">
+<h1>原生版 · 本轮质检</h1>
+<div class="sub">2026-11-17　照着专业版源码跑同一批输入做对拍，不是凭记忆</div>
+<div class="cards">
+<div class="card"><b>45/45</b><span>原有逻辑回归</span></div>
+<div class="card"><b>81/81</b><span>解析 赔付 结算</span></div>
+<div class="card"><b>26</b><span>按钮全点，0 异常</span></div>
+<div class="card"><b>29/36</b><span>双端解析一致</span></div>
+</div>
+
+<section>
+<h2>这轮新做的四件</h2>
+<ul>
+<li><b>赔付记录</b>：结算时自动记一条「自动结算 · 期X 特XX · 金额」，可逐条删、可清空，顶上显示合计。</li>
+<li><b>客户统计</b>：客户下拉里加了入口，按客户列单数、下注、中奖、盈利，按注额从高到低排。</li>
+<li><b>香港期号横条</b>：只有录过港彩开奖才出现，显示「香港 期121 六个平码 特XX」。</li>
+<li><b>面板改成点开收</b>：AI统计 / 飞单统计 / 盈利统计 / 排行榜 / 历史订单，五个都验过「点前收起、点后展开」，再点收起。首页从四千多像素缩到一千二。</li>
+</ul>
+</section>
+
+<section>
+<h2>双端对拍 <i>同一批 36 条输入，专业版 parseLine 与原生版 parseLine 逐条比</i></h2>
+<div class="flow">
+<div class="chip on">一致 29 条</div><div class="chip on">差异 9 条</div><div class="chip">全部集中在属性玩法</div>
+</div>
+<table><thead><tr><th>输入</th><th>专业版</th><th>原生版</th></tr></thead>
+<tr class="hi"><td>22 100</td><td>22｜100｜整注</td><td>22｜100｜整注</td></tr>
+<tr class="hi"><td>平特虎1000</td><td>平特虎｜1000｜整注</td><td>平特虎｜1000｜整注</td></tr>
+<tr class="hi"><td>三中三 42 43 48 5</td><td>三中三:42,43,48｜5</td><td>三中三:42,43,48｜5</td></tr>
+<tr class="hi"><td>1头100</td><td>11…19｜100｜整注</td><td>11…19｜100｜整注</td></tr>
+<tr class="hi"><td>5尾100 / 单双100 / 龙虎100</td><td>都认不出</td><td>都认不出</td></tr>
+<tr class="bad"><td>红波 100</td><td>红波｜100｜整注（记 100 元）</td><td>展开 17 个号｜各 100</td></tr>
+<tr class="bad"><td>单数 100</td><td>单数｜100｜整注</td><td>展开 25 个号｜各 100</td></tr>
+<tr class="bad"><td>红波单大 100</td><td>红波单大｜100｜整注</td><td>展开 3 个号｜各 100</td></tr>
+</table>
+<p style="font-size:13px;color:#4a4f56;margin-top:12px">这 9 条是同一件事：<b>属性玩法怎么记账</b>。专业版的实现是「红波」当一个商品、金额就是单价，弹窗文案却写着「17号×100=1700」。原生版按你三轮确认的口径来——属性管几个号就展开几个号、各算各的钱，所以「红波各10」是 170，「红波 100 选总额」是 100（摊成每号 5.88）。</p>
+</section>
+
+<section>
+<h2>你那个「累计你赚」的问题 <i>截图里的 +3315 / -2173</i></h2>
+<ul>
+<li><b>+3315 是当期结算</b>：这一期上家该赔你的减去你飞出去的。</li>
+<li><b>-2173 是历史累计</b>：把以前每一期的结算一路加到现在，中间某几期亏得多，就把正的吃掉了。</li>
+<li>它现在按周一起算，所以你问「什么时候到什么时候」——<b>本周一到今天</b>。</li>
+<li>它能起的作用就一个：<b>看这条线是不是在往坏处走</b>。连续几期都是负的，说明你飞出去的单在系统性亏，要么阈值定低了，要么上家赔率不对。</li>
+<li>你说「每次只算一个星期」就是现在这样；要不要连历史一起放着，你定，我按你说的改。</li>
+</ul>
+</section>
+
+<section>
+<h2>还差的</h2>
+<ul>
+<li>各面板的<b>内容排布</b>还没逐像素对（现在结构对、字号间距大致对，细节没量）。</li>
+<li><b>联网开奖</b>按下不动。</li>
+</ul>
+</section>
+</div></body></html>
