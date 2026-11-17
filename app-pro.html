@@ -618,7 +618,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.173-Pro';
+var APP_VER = 'v58.174-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4950,12 +4950,18 @@ function buildManualCodes(type, val){
     var c = w[0]+'波';
     if(/单/.test(val)) c += '单'; else if(/双/.test(val)) c += '双';
     if(/大/.test(val)) c += '大'; else if(/小/.test(val)) c += '小';
-    if(!products.find(function(p){return p.code===c;})) return {err:'没有「'+c+'」这个产品'};
-    return {codes:[c]};
+    var _wp = products.find(function(p){return p.code===c;});
+    if(!_wp) return {err:'没有「'+c+'」这个产品'};
+    // 属性按号展开（红波=17号、单数=25号…），与保存路径同口径
+    return {codes:(_wp.links || []).length ? _wp.links.slice() : [c]};
   }
-  if(type==='sd') return {codes:[/双/.test(val)?'双数':'单数']};
-  if(type==='big') return {codes:[/小/.test(val)?'小':'大']};
-  if(type==='he') return {codes:[/双/.test(val)?'合数双':'合数单']};
+  var _attrCodes = function(code){
+    var prod = products.find(function(p){ return p.code === code; });
+    return (prod && (prod.links||[]).length) ? prod.links.slice() : [code];
+  };
+  if(type==='sd') return {codes:_attrCodes(/双/.test(val)?'双数':'单数')};
+  if(type==='big') return {codes:_attrCodes(/小/.test(val)?'小':'大')};
+  if(type==='he') return {codes:_attrCodes(/双/.test(val)?'合数双':'合数单')};
   var m = val.match(/\d/);
   if(type==='head'){
     if(!m) return {err:'填一个数字 0-4'};
@@ -5797,6 +5803,20 @@ renderAll();
   window.__failedLines = [];
 
   const notes = [];
+  // 属性商品（波色/单双/大小/合数/三合一）无论哪种模式都按号展开：
+  // 红波=17 个号、单数=25 个号……否则单品模式会只存 1 个商品，
+  // 把「各号100」记成 100（应是 1700），而且属性 code 不参与赔付计算（永远不中）
+  const ATTR_SET = {};
+  ['红波','蓝波','绿波','单数','双数','大','小','合数单','合数双',
+   '红波单','红波双','绿波单','绿波双','蓝波单','蓝波双',
+   '红波大','红波小','蓝波大','蓝波小','绿波大','绿波小',
+   '红波单大','红波单小','红波双大','红波双小',
+   '蓝波单大','蓝波单小','蓝波双大','蓝波双小',
+   '绿波单大','绿波单小','绿波双大','绿波双小'].forEach(function(k){ ATTR_SET[k]=true; });
+  const _attrLinks = function(code){
+    const prod = products.find(function(x){ return x.code === code; });
+    return (prod && !prod.single && (prod.links||[]).length) ? prod.links : null;
+  };
   if(mode === 'bundle'){
     parsed.forEach(p => {
       const expanded = [];
@@ -5812,6 +5832,17 @@ renderAll();
         }
       });
       p.codes = expanded;
+    });
+  } else {
+    // 单品模式：普通产品不展开，但属性产品必须展开成号码
+    parsed.forEach(function(p){
+      var ex = [];
+      p.codes.forEach(function(c){
+        var links = ATTR_SET[c] ? _attrLinks(c) : null;
+        if(links && links.length){ links.forEach(function(l){ ex.push(l); }); }
+        else ex.push(c);
+      });
+      if(ex.length !== p.codes.length){ p.codes = ex; notes.push('属性已按号展开'); }
     });
   }
 

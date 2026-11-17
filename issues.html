@@ -136,6 +136,15 @@ a{color:#000}
   <div class="row"><div class="k">怎么查</div><div class="v">确认一次飞单后，立刻对比侧栏已飞与顶部已飞(实际)；再改一次阈值，看侧栏是否跟着变。任一不动就是漏重绘。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#17 · v58.174</div>
+  <div class="t">红波/单数/大小只存 1 个商品，金额和赔付都错<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">单品模式下「红波 各号100」只记 100 元（应 1700），实测更严重：属性商品根本没按号落到盘面上，飞单、风险、号码表都看不见这 17 个号。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">属性商品（红波/蓝波/绿波/单数/双数/大/小/合数/三合一）在产品表里是 1 个 code + links 数组。套餐模式有展开逻辑，所以默认模式是对的；单品模式没有展开，只存 1 个 code，amount = 单价 × 1。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">单品模式也对属性商品按号展开（红波17、蓝波16、单数25、大25、小24、红波单8、红波单大3…），共享一张属性白名单；手动录入的 wave/sd/big/he 四种也改为返回 links。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">切单品模式录「红波 各100」，看订单是不是 17 项、金额 1700；把特号改成红波内的号，赔付应出现 100×47=4700。手动录入选「波色 红波」应出 17 个号，不是 1 个。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">
