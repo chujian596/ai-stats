@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.212-Pro';
+var APP_VER = 'v58.213-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4642,8 +4642,13 @@ function parseLine(text){
         // 单个生肖没写平/特 → 默认特肖，展开全部号码
         var nums = NUM2ZODIAC_REV[zs].map(function(n){ return String(n).padStart(2,'0'); }).join(' ');
         codeText = codeText.replace(zs, nums);
+      } else if(isPer){
+        // 写了「各数/各X」：每个肖都按号×金额算，不再问（猪羊鼠各数5 = 三个肖全部号码各5）
+        var zNums = [];
+        zs.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ zNums.push(String(n).padStart(2,'0')); }); });
+        codeText = codeText.replace(zs, zNums.join(' '));
       } else {
-        // 多个生肖没写平/特 → 抛特殊错，保存处弹按钮让用户选
+        // 多个生肖、又没说单价 → 抛特殊错，保存处弹按钮让用户选
         var e = new Error('AMBIG_ZODIAC:' + zs);
         e.ambigZodiac = zs;
         throw e;

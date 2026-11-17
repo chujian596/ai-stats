@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.97';
+var APP_VER = 'v58.98';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -3711,6 +3711,14 @@ function parseLine(text){
   // 例："45 .47" → "45.47"（去掉点号前后多余空格）
   text = text.replace(/(\d)\s+\./g, '$1.');
   text = text.replace(/(\.\d)\s+(\d\.)/g, '$1$2');
+  // 短横线配对：整行只有「号-金额」两个数（17--35米 / 18-40），按号码 + 金额认，不再弹「每个多少钱」
+  var pairAmt = text.match(/^(\d{1,2})\s*[\-\u2010-\u2015\uFF0D]{1,2}\s*(\d+(?:\.\d+)?)\s*(?:元|米|块|钱|圆)?\s*$/);
+  if(pairAmt){
+    var _pa = parseInt(pairAmt[1],10), _pb = parseFloat(pairAmt[2]);
+    if(_pa >= 1 && _pa <= 49 && _pb > 0){
+      return { codes: [String(_pa).padStart(2,'0')], price: _pb, isPer: true };
+    }
+  }
   // 快速通道：整行就是"一串号码 + 各/个 + 金额"，直接认，不走后面容易出错的转换
   // 例：24-48-31-14-38各200 → [24,48,31,14,38] 各200
   // 分隔符：兼容英文减号 -、中文长横 – — ―、全横 － 等各种输入法横杠
@@ -3852,8 +3860,13 @@ function parseLine(text){
         // 单个生肖没写平/特 → 默认特肖，展开全部号码
         var nums = NUM2ZODIAC_REV[zs].map(function(n){ return String(n).padStart(2,'0'); }).join(' ');
         codeText = codeText.replace(zs, nums);
+      } else if(isPer){
+        // 写了「各数/各X」：每个肖都按号×金额算，不再问
+        var zNums = [];
+        zs.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ zNums.push(String(n).padStart(2,'0')); }); });
+        codeText = codeText.replace(zs, zNums.join(' '));
       } else {
-        // 多个生肖没写平/特 → 抛特殊错，保存处弹按钮让用户选
+        // 多个生肖、又没说单价 → 抛特殊错，保存处弹按钮让用户选
         var e = new Error('AMBIG_ZODIAC:' + zs);
         e.ambigZodiac = zs;
         throw e;
@@ -4073,10 +4086,11 @@ function renderLiveBalls(nums, specialFlag){
     var n = parseInt(nums[i]);
     var isSpecial = specialFlag && i === nums.length-1 && nums.length >= 7;
     var color = '#1f7a4c'; // 深绿
+    var isRed = false;
     for(var j=0; j<redNums.length; j++){
-      if(redNums[j] == n){ color = '#c8322b'; break; } // 深红
+      if(redNums[j] == n){ color = '#c8322b'; isRed = true; break; } // 深红
     }
-    if(color == '#1f7a4c'){
+    if(!isRed){
       for(var j=0; j<blueNums.length; j++){
         if(blueNums[j] == n){ color = '#2456a6'; break; } // 深蓝
       }
@@ -5918,7 +5932,8 @@ function renderOrdersList(){
   h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
-  h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:-'+(flyOutTotal-flyBackTotal).toFixed(0):'未开奖，结算待定'}</div>`;
+  var _needC = flyBackTotal - flyOutTotal;
+  h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:'+(_needC>=0?'+':'-')+Math.abs(_needC).toFixed(0):'未开奖，结算待定'}</div>`;
   h += `</div></div></div>`;
   box.innerHTML = h;
 }
