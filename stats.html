@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.41</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.42</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -473,9 +473,40 @@ function loadImg(){
   });
 }
 
+function renderImgFromForum(){
+  var p=$('panelImg'), per=curPer();
+  p.innerHTML='<div class="muted" style="padding:12px">正在按论坛帖子统计 '+per+' 期…</div>';
+  fetchJson('data/forum-'+per+'.json',12000).then(function(d){
+    var det=(d&&d.detail)||[];
+    if(!det.length){ p.innerHTML='<div class="muted" style="padding:12px">'+per+' 期暂时没有论坛数据。</div>'; return; }
+    var Z=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'], rec={}, kill={};
+    Z.forEach(function(z){rec[z]=0;kill[z]=0;});
+    det.forEach(function(x){
+      (x.z||[]).forEach(function(z){ if(rec[z]===undefined) return; if(x.k) kill[z]++; else rec[z]++; });
+    });
+    var zs=Z.map(function(z){return {z:z, rec:rec[z], kill:kill[z], net:rec[z]-kill[z]};})
+              .sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
+    var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
+    var tot=0; zs.forEach(function(x){tot+=x.rec;});
+    var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
+    h+='<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+per+' 期 · 仅论坛口径</div>';
+    h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">'+per+' 期图库图纸没留档（换期即被替换），这里改用当期论坛 '+det.length+' 帖统计：共 '+tot+' 票推荐。杀肖与推荐分开算，净值＝推－杀。</div>';
+    zs.forEach(function(x){
+      var w=Math.round(x.rec/mx*100), neg=x.net<=0;
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px">'
+        +'<div style="width:26px;text-align:center;font-weight:600">'+x.z+'</div>'
+        +'<div style="flex:1;height:14px;background:#f2f2f2;border-radius:7px;overflow:hidden">'
+        +'<div style="width:'+w+'%;height:100%;background:'+(neg?'#dcdcdc':'#d4af37')+'"></div></div>'
+        +'<div style="width:104px;text-align:right;color:#666">推 '+x.rec+' · 杀 '+x.kill+' · 净 <b style="color:'+(neg?'#c0392b':'#2e7d32')+'">'+(x.net>0?'+':'')+x.net+'</b></div></div>';
+    });
+    h+='<div class="muted" style="margin-top:10px">对比口径：图库那 30 栏从 319 起才有逐张识图，'+per+' 期缺，故以论坛统计替代；两套口径不要混着比。</div>';
+    h+='</div>';
+    p.innerHTML=h;
+  }).catch(function(e){ p.innerHTML='<div class="muted" style="padding:12px">'+per+' 期读取失败：'+e+'</div>'; });
+}
 function renderImg(){
   var p=$('panelImg'), d=state.img;
-  if(!d){ p.innerHTML='<div class="muted" style="padding:12px">'+LATEST_PER+' 期图库未留档：图库站点只保留当期图纸，换期后旧图即被替换，无法回补。论坛与杀肖数据不受影响；要看图库请在该期开奖前抓一次快照。</div>'; return; }
+  if(!d){ renderImgFromForum(); return; }
   var zs=(d.zodiacs||[]).slice().sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
   var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
   var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
