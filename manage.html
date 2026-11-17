@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资料系统总管理</title>
+<style>
+  :root{
+    --bg:#f5f6f7; --card:#fff; --line:#e5e5e5; --txt:#222; --sub:#999; --faint:#bbb;
+    --ok:#16a34a; --bad:#cf1322; --warn:#b45309; --okbg:#f0fdf4; --badbg:#fef2f2; --warnbg:#fffbeb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:14px 12px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 2px 12px}
+  h1{font-size:17px;font-weight:700;margin:0}
+  .meta{font-size:11px;color:var(--faint)}
+  button{font:inherit;border:1px solid #d9dde3;background:#fff;color:#1f2329;font-size:12px;
+    font-weight:600;border-radius:8px;padding:6px 12px;cursor:pointer}
+  button:active{background:#f0f0f0}
+  .sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .kpi b{display:block;font-size:20px;line-height:1.2}
+  .kpi span{font-size:11px;color:var(--sub)}
+  section{margin-bottom:12px}
+  .sec-title{display:flex;align-items:center;gap:8px;margin:14px 2px 8px;font-size:13px;color:#666;font-weight:600}
+  .sec-title i{flex:1;height:1px;background:var(--line);display:block}
+  .sys{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .sys-head{display:flex;align-items:flex-start;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;background:var(--faint)}
+  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)}
+  .grow{flex:1;min-width:0}
+  .name{font-size:14px;font-weight:600}
+  .url{font-size:11px;color:var(--sub);word-break:break-all;margin-top:2px}
+  .tag{display:inline-block;font-size:11px;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+  .tag.ok{background:var(--okbg);color:var(--ok);border:1px solid #bbf7d0}
+  .tag.bad{background:var(--badbg);color:var(--bad);border:1px solid #fecaca}
+  .tag.warn{background:var(--warnbg);color:var(--warn);border:1px solid #f0c36d}
+  .tag.mute{background:#f5f5f5;color:#888;border:1px solid #e5e5e5}
+  .kv{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:#666;margin-top:8px}
+  .kv b{color:var(--txt);font-weight:600}
+  .checks{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+  .chk{font-size:11px;border-radius:6px;padding:2px 7px;border:1px solid #e5e5e5;color:#666;background:#fafafa}
+  .chk.no{border-color:#fecaca;background:var(--badbg);color:var(--bad)}
+  .chk.yes{border-color:#bbf7d0;background:var(--okbg);color:var(--ok)}
+  .links{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .links a{font-size:12px;color:#1f2329;border:1px solid #d9dde3;border-radius:6px;padding:3px 9px;text-decoration:none;background:#fff}
+  .probs{margin-top:8px;font-size:12px;color:var(--bad);line-height:1.5}
+  .hint{font-size:12px;color:var(--sub);line-height:1.6;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  footer{margin-top:18px;font-size:11px;color:var(--faint);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>资料系统总管理</h1>
+    <button id="btnRefresh">重新检查</button>
+  </header>
+  <div class="meta" id="meta">正在检查…</div>
+
+  <div class="sum">
+    <div class="kpi"><b id="k1">—</b><span>系统/页面</span></div>
+    <div class="kpi"><b id="k2">—</b><span>在线</span></div>
+    <div class="kpi"><b id="k3">—</b><span>异常</span></div>
+    <div class="kpi"><b id="k4">—</b><span>本期期号</span></div>
+  </div>
+
+  <section>
+    <div class="sec-title">资料系统 <i></i></div>
+    <div id="sysList"></div>
+  </section>
+
+  <section>
+    <div class="sec-title">本期数据文件 <i></i></div>
+    <div id="dataList"></div>
+  </section>
+
+  <section>
+    <div class="sec-title">说明 <i></i></div>
+    <div class="hint">
+      点「重新检查」会按当前期号逐个拉一次文件，看是 200 还是 404、更新时间和字节数。<br>
+      红点＝打不开或文件缺失；黄点＝能打开但数据比期号旧；绿点＝正常。<br>
+      这里只做检查和跳转，不改任何数据。
+    </div>
+  </section>
+
+  <footer>资料系统总管理 · 每次打开自动检查一次</footer>
+</div>
+
+<script>
+var BASE = location.protocol === 'file:' ? 'https://chujian596.github.io/ai-stats/' : './';
+
+var SYS = [
+  { key:'stats',   name:'资料统计（主站）',   url:'stats.html',    ver:'v58.33' },
+  { key:'lab',     name:'资料中心',           url:'lab.html',      ver:'v58.20' },
+  { key:'portal',  name:'导航页',             url:'portal.html',   ver:'—' },
+  { key:'issues',  name:'问题本',             url:'issues.html',   ver:'—' },
+  { key:'apps',    name:'应用登记',           url:'apps.html',     ver:'—' },
+  { key:'manage',  name:'资料系统总管理',     url:'manage.html',   ver:'本页' },
+  { key:'appPro',  name:'录单（专业版）',     url:'app-pro.html',  ver:'读 version.txt' },
+  { key:'app',     name:'录单（客户版）',     url:'app.html',      ver:'读 version.txt' }
+];
+
+function fmtBytes(n){
+  if(n == null) return '—';
+  if(n < 1024) return n + ' B';
+  if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+function el(html){
+  var d = document.createElement('div');
+  d.innerHTML = html.trim();
+  return d.firstChild;
+}
+function get(url){
+  return fetch(url, {cache:'no-store'}).then(function(r){
+    return r.text().then(function(t){
+      var lm = r.headers.get('Last-Modified');
+      return { ok:r.ok, status:r.status, body:t, len:t.length, lm:lm ? new Date(lm) : null };
+    });
+  }).catch(function(e){ return { ok:false, status:0, body:'', len:0, lm:null, err:String(e) }; });
+}
+
+var period = null;
+var perUpdated = null;
+
+function checkPage(key, url, name, verLabel){
+  var full = BASE + url;
+  return get(full + (url.indexOf('?') < 0 ? ('?t=' + Date.now()) : '')).then(function(res){
+    var dot = 'bad', tag = '打不开';
+    if(res.ok){
+      dot = 'ok'; tag = 'HTTP ' + res.status;
+      // 页面里若写了版本号，取出来核对
+      if(/v58\.\d+[\w.-]*/.test(res.body)){
+        var m = res.body.match(/v58\.\d+[\w.-]*/);
+        if(m) verLabel = m[0];
+      }
+    }
+    return {
+      key:key, name:name, url:full, dot:dot, tag:tag,
+      ver:verLabel, len:res.len, lm:res.lm, status:res.status
+    };
+  });
+}
+
+function card(o){
+  var when = o.lm ? o.lm.toLocaleString('zh-CN', {hour12:false}) : '—';
+  var tagCls = o.dot === 'ok' ? 'ok' : (o.dot === 'warn' ? 'warn' : 'bad');
+  var html =
+    '<div class="sys">' +
+      '<div class="sys-head">' +
+        '<span class="dot ' + o.dot + '"></span>' +
+        '<div class="grow">' +
+          '<div class="name">' + o.name +
+            '<span class="tag ' + tagCls + '">' + o.tag + '</span>' +
+            (o.ver ? '<span class="tag mute">' + o.ver + '</span>' : '') +
+          '</div>' +
+          '<div class="url">' + o.url + '</div>' +
+          '<div class="kv"><span>大小 <b>' + fmtBytes(o.len) + '</b></span>' +
+            '<span>改动 <b>' + when + '</b></span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="links"><a href="' + o.url + '" target="_blank">打开</a></div>' +
+    '</div>';
+  return el(html);
+}
+
+function dataCard(per, items){
+  var okCount = items.filter(function(i){return i.ok;}).length;
+  var dot = okCount === items.length ? 'ok' : (okCount === 0 ? 'bad' : 'warn');
+  var chks = items.map(function(i){
+    return '<span class="chk ' + (i.ok ? 'yes' : 'no') + '">' + i.label + (i.ok ? '' : ' 缺') + '</span>';
+  }).join('');
+  return el(
+    '<div class="sys">' +
+      '<div class="sys-head">' +
+        '<span class="dot ' + dot + '"></span>' +
+        '<div class="grow">' +
+          '<div class="name">第 ' + per + ' 期资料包' +
+            '<span class="tag ' + (dot === 'ok' ? 'ok' : (dot === 'bad' ? 'bad' : 'warn')) + '">' +
+            okCount + '/' + items.length + ' 齐全</span>' +
+            (perUpdated ? '<span class="tag mute">归档 ' + perUpdated + '</span>' : '') +
+          '</div>' +
+          '<div class="checks">' + chks + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>');
+}
+
+function loadAll(){
+  document.getElementById('meta').textContent = '正在检查…';
+  get(BASE + 'data/latest-period.json?t=' + Date.now()).then(function(r){
+    try {
+      var j = JSON.parse(r.body);
+      period = j.period; perUpdated = j.updatedAt;
+    } catch(e){ period = null; }
+
+    var pages = SYS.map(function(s){ return checkPage(s.key, s.url, s.name, s.ver); });
+
+    var dataNames = [
+      ['forum-', '论坛帖'], ['consensus-', '杀肖共识'], ['cross-', '交叉对账'],
+      ['pingte-', '平特'], ['ratio-', '比例'], ['three-', '三中'], ['tpl-', '模板'],
+      ['archive-report-', '归档报告']
+    ];
+    var dataChecks = [];
+    if(period){
+      dataChecks = dataNames.map(function(pair){
+        var file = 'data/' + pair[0] + period + '.json';
+        return get(BASE + file + '?t=' + Date.now()).then(function(res){
+          return { label: pair[1], ok: res.ok, file: file, len: res.len };
+        });
+      });
+    }
+
+    Promise.all(pages).then(function(list){
+      var box = document.getElementById('sysList');
+      box.innerHTML = '';
+      list.forEach(function(o){ box.appendChild(card(o)); });
+
+      var online = list.filter(function(o){ return o.dot === 'ok'; }).length;
+      var bad = list.length - online;
+      document.getElementById('k1').textContent = list.length;
+      document.getElementById('k2').textContent = online;
+      document.getElementById('k3').textContent = bad;
+      document.getElementById('k4').textContent = period || '—';
+      document.getElementById('meta').textContent =
+        '检查时间 ' + new Date().toLocaleString('zh-CN', {hour12:false}) +
+        (period ? '　·　本期 ' + period + ' 期（归档 ' + (perUpdated || '—') + '）' : '　·　读不到 latest-period.json');
+
+      var dbox = document.getElementById('dataList');
+      dbox.innerHTML = '';
+      if(!period){
+        dbox.appendChild(el('<div class="hint">读不到 <b>data/latest-period.json</b>，没法判断本期该有哪些文件。</div>'));
+        return;
+      }
+      Promise.all(dataChecks).then(function(items){
+        dbox.appendChild(dataCard(period, items));
+        var miss = items.filter(function(i){ return !i.ok; });
+        if(miss.length){
+          dbox.appendChild(el('<div class="hint" style="margin-top:8px;color:#cf1322">还缺：' +
+            miss.map(function(i){ return esc(i.file); }).join('、') + '</div>'));
+        }
+      });
+    });
+  });
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('btnRefresh').addEventListener('click', loadAll);
+loadAll();
+</script>
+</body>
+</html>
