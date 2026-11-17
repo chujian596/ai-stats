@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.205-Pro';
+var APP_VER = 'v58.206-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -8135,10 +8135,11 @@ function renderRisk(){
   const _salesNow = getSplitSales();
   const _alreadyReal = _paidAllT;   // 与飞单统计「已飞」同一个数
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
-  const keptCashReal = keptCash;                 // 与风险面板同一口径
+  // 与「飞单统计」同一套：总单含二/三 → 自留 = 总单 - 已飞实付 - 待飞
+  var keptCashReal = fullTotalSales - _alreadyReal - _pendingReal;
   const _totalRealFly = _alreadyReal + _pendingReal;
   const _totalOrigFly = currentFly + pteFlyAmt + effectiveLxFly;
-  const _roundGap = _totalRealFly - _totalOrigFly;   // 负=少飞(留自己)；正=多飞(上家兜)
+  var _roundGap = 0; try { _roundGap = flyRoundGapTotal(); } catch(e){ _roundGap = 0; }   // 负=少飞(留自己)；正=多飞(上家兜)
   const _pendingOrig = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + l.amt, 0);
   const _shouldAll = _alreadyReal + _pendingReal;   // 已飞 + 待飞 = 补飞完的实际总飞
   const _stillNeed = Math.max(0, _shouldAll - _alreadyReal);
@@ -8168,8 +8169,8 @@ function renderRisk(){
     h += _gapLines.map(l => `${l.code}　${l.amt.toFixed(0)}→${flyShowAmt(l.amt).toFixed(0)}`).join('　｜　');
     h += `</div>`;
   }
-  const _cashNow = totalSales - _alreadyReal;
-  const _keptFinal = totalSales - _totalRealFly;
+  const _cashNow = fullTotalSales - _alreadyReal;
+  const _keptFinal = fullTotalSales - _alreadyReal - _pendingReal;
   h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${_keptFinal.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　现在手上 ${_cashNow.toFixed(0)}（总单减已飞）· 补飞完才是上面这个数</span><span></span></div>`;
   // 开奖后用实际值，否则用最坏预测
