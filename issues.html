@@ -163,6 +163,15 @@ a{color:#000}
   <div class="row"><div class="k">怎么查</div><div class="v">点「修正老单」，确认框会先报找到几条；改完看订单记录里是否变成 17 项、金额 1700。</div></div>
 </div>
 
+<div class="card">
+  <div class="no">#20 · v58.177</div>
+  <div class="t">所有确认弹窗带网址 + 「修正老单」按钮挤歪按钮行<span class="tag fix">已修</span></div>
+  <div class="row"><div class="k">现象</div><div class="v">恢复历史账本时弹出的框顶部有「网址为 https://chujian596.github.io 的网页显示：」，看着不像自己的系统；排行榜那排按钮由 4 个变 5 个，与第二排 4 个对不齐。</div></div>
+  <div class="row"><div class="k">根因</div><div class="v">全站 18 处确认用的是浏览器原生 confirm，WebView/浏览器都会自动加网址前缀；「修正老单」按钮加在第一排末尾，破坏了 4+4 对齐。</div></div>
+  <div class="row"><div class="k">修法</div><div class="v">18 处原生 confirm 全部换成页面自绘的 myConfirm（同款白框、黑色按钮文字，无网址）；「修正老单」按钮从界面撤掉，函数保留但无入口。部署脚本加版本闸门：APP_VER 与 version.txt 不一致直接中止。</div></div>
+  <div class="row"><div class="k">怎么查</div><div class="v">点历史订单里任意一天的「把这天恢复为当前账本」，弹窗顶部直接是提示内容，没有网址。排行榜那排仍是 4 个，两排齐平。</div></div>
+</div>
+
 <div class="gtitle">二、资料系统 · 更新与期号</div>
 
 <div class="card">

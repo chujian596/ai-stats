@@ -16,6 +16,16 @@ if [ -z "$TOKEN" ]; then
   exit 0
 fi
 
+# ===== 版本一致性闸门：页面 APP_VER 与 version.txt 必须一致，否则不部署 =====
+VER_PAGE=$(grep -o "v[0-9]+\.v[0-9]+-Pro" /dev/null 2>/dev/null)
+VER_PAGE=$(grep -oE "v[0-9]+\.[0-9]+-Pro" app-pro.html 2>/dev/null | head -1)
+VER_TXT=$(cat version.txt 2>/dev/null | tr -d '\n\r ')
+if [ -n "$VER_PAGE" ] && [ "$VER_PAGE" != "$VER_TXT" ]; then
+  echo "版本不一致：app-pro.html=$VER_PAGE  version.txt=$VER_TXT  已中止部署" >&2
+  echo "修正：printf '%s' '$VER_PAGE' > version.txt" >&2
+  exit 2
+fi
+
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
