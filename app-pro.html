@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.197-Pro';
+var APP_VER = 'v58.198-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2090,7 +2090,14 @@ function renderSideCustPay(){
         let emOn=true;try{emOn=localStorage.getItem('emFlyOn')!=='0';}catch(e){}
         if(emOn){
           const allN=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);
-          const emTot=(flownPerPos['_em_total']||0);
+          // 即飞开关打开时，二中二/三中三默认全部飞出（不落到 flownPerPos），这里要按订单额算
+          let emTotalAll=0;
+          orders.forEach(o=>{(o.codes||[]).forEach(c=>{
+            if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){
+              emTotalAll+=codeSalesForOrder(o,c);
+            }
+          });});
+          const emTot=(autoFlyOn ? emTotalAll : (flownPerPos['_em_total']||0));
           orders.forEach(o=>{(o.codes||[]).forEach(c=>{
             if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){
               const amt=codeSalesForOrder(o,c);
@@ -6470,9 +6477,16 @@ function actualPnL(){
       }
       // 二中二/三中三：按总额飞，命中按倍数赔回
       const allN = new Set([...lastDraw.regularNums, lastDraw.specialNum]);
+      let _emTotAll = 0;
       orders.forEach(function(o){ (o.codes||[]).forEach(function(c){
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
-          const amt = codeSalesForOrder(o,c);
+          _emTotAll += codeSalesForOrder(o,c);
+        }
+      });});
+      const _emFlownCap = autoFlyOn ? _emTotAll : (flownPerPos['_em_total']||0);
+      orders.forEach(function(o){ (o.codes||[]).forEach(function(c){
+        if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
+          const amt = Math.min(codeSalesForOrder(o,c), _emFlownCap);
           flyOut += amt;
           const nums = c.split(':')[1].split(',');
           if(nums.every(function(n){ return allN.has(Number(n)); })){
