@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.192-Pro';
+var APP_VER = 'v58.193-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1921,8 +1921,10 @@ function renderSideCustPay(){
     // 收集所有中奖code及其倍数和客户
     const winCodes = []; // {code, mult, custMap}
     orders.forEach(o => {
+      const _seenC = {};
       (o.codes||[]).forEach(c => {
         if(typeof c !== 'string') return;
+        if(_seenC[c]) return; _seenC[c] = true;
         let mult = 0;
         if(/^\d{2}$/.test(c)){
           if(Number(c) === Number(lastDraw.specialNum)) mult = payMult;
@@ -2045,8 +2047,9 @@ function renderSideCustPay(){
       try{
         const allNums=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);
         const drawZ=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-        orders.forEach(o=>{(o.codes||[]).forEach(c=>{
+        orders.forEach(o=>{const _sc={};(o.codes||[]).forEach(c=>{
           if(typeof c!=='string')return;
+          if(_sc[c])return; _sc[c]=true;
           if(/^\d{2}$/.test(c) && Number(c)===Number(lastDraw.specialNum)){ paySpec += codeSalesForOrder(o,c)*payMult; }
           else if(c.startsWith('平特')){ const z=c.replace('平特',''); if(drawZ.has(z)) payPte += codeSalesForOrder(o,c)*(z==='马'?1.8:payMultSingle); }
           else if(c.startsWith('连肖')){ const z=c.replace('连肖',''); if(z.split('').every(zz=>drawZ.has(zz))) payLx += codeSalesForOrder(o,c)*4; }
@@ -2054,7 +2057,7 @@ function renderSideCustPay(){
         });});
       }catch(e){}
     }
-    const totalPay = paySpec+payPte+payLx+payEm;
+    const totalPay = orders.reduce((s,o)=>s+calcOrderWin(o),0);   // 统一口径，避免这里再算一遍算错
     // 飞单各项
     let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
     if(lastDraw && lastDraw.specialNum){
