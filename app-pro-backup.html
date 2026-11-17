@@ -180,6 +180,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
+
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
@@ -282,8 +283,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <input id="newProductCode" class="input" placeholder="添加主产品名，如：手机壳（不要填数字）" style="flex:1">
       <button class="btn primary" style="min-width:80px" onclick="addProduct()">添加主产品</button>
     </div>
-    <p class="hint" style="margin:0 0 6px">两个通道：①<b>子产品 01-49</b> 一直都在，下面第一块改颜色和备注；②再下面是 <b>12 个套餐空位</b>，点编号框改成你的产品名，右边勾选包含哪几个子产品。</p>
-    <p style="font-weight:700;margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center">① 子产品列表（<span id="subCount">0</span> 个）<button onclick="resetSubs()" style="border:none;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700">重置为1-49</button></p>
+    <p class="hint" style="margin:0 0 6px">① <b>号码 01-49</b>（系统内置，改颜色和备注即可）；② <b>自定义玩法</b>：把红波、单数、大、合数这类玩法配成词，右边勾选它管哪些号码。<b>不配也能用，红波/单数/大小/合数/平特/连肖/三中三 系统已内置识别。</b></p>
+    <p style="font-weight:700;margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center">① 号码列表（<span id="subCount">0</span> 个）<button onclick="resetSubs()" style="border:none;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700">重置为1-49</button></p>
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <input id="newSubCode" class="input" placeholder="加新编号，如 51 或 手机壳红" style="flex:1;font-size:15px">
       <button class="btn primary" style="min-width:70px;padding:6px 10px;font-size:17px" onclick="addSub()">添加</button>
@@ -294,7 +295,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <tbody id="tbody-subs"></tbody>
       </table>
     </div>
-    <p style="font-weight:700;margin:12px 0 4px">② 主产品/套餐（自己添加）</p>
+    <p style="font-weight:700;margin:12px 0 4px">② 自定义玩法（可选，不配也能用）</p>
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>颜色</th><th>编号</th><th>备注名</th><th>子型号（颜色/规格）</th></tr></thead>
@@ -618,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.173-Pro';
+var APP_VER = 'v58.178-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1015,9 +1016,10 @@ function activateCode(){
   } catch(e) { myAlert('保存失败，请检查浏览器存储权限'); }
 }
 function resetCode(){
-  if(!confirm('清除本机授权码，重新输入？')) return;
-  try { localStorage.removeItem('fixed_device_id'); } catch(e){}
-  location.reload();
+  myConfirm('清除本机授权码，重新输入？', function(){
+    try { localStorage.removeItem('fixed_device_id'); } catch(e){}
+    location.reload();
+  });
 }
 /* 跳转到备用地址，并把当前授权码带过去（备用地址会自动写入） */
 function gotoBackupSite(){
@@ -1597,18 +1599,20 @@ renderAll();
   showAutoPay();
 }
 function delPay(idx){
-  if(!confirm('删除这笔赔付？')) return;
-  pays.splice(idx, 1);
-  savePays();
-  restoreIfNeeded();
-renderAll();
+  myConfirm('删除这笔赔付？', function(){
+    pays.splice(idx, 1);
+    savePays();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 function clearPays(){
-  if(!confirm('清空所有赔付记录？赔付金额归零')) return;
-  pays = [];
-  savePays();
-  restoreIfNeeded();
-renderAll();
+  myConfirm('清空所有赔付记录？赔付金额归零', function(){
+    pays = [];
+    savePays();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 function renderPays(){
   const tbody = document.getElementById('tbody-pay');
@@ -2126,6 +2130,23 @@ function renderSideCustPay(){
     h += '</div>';
   }
   box.innerHTML = h;
+  // ===== 联动：勾了「自动稳健」就跟盘面走，新单进来自动挪到当前最优落点 =====
+  try{
+    if(window.__autoSyncBusy) return;
+    var _asOn = false;
+    try{ _asOn = localStorage.getItem('autoStable') === '1'; }catch(e){}
+    var _opt = window.__optM || 0;
+    var _flock = 0; try{ _flock = totalFlownReal(); }catch(e){}
+    if(_asOn && _opt > 0 && Math.abs((splitTakeAll||0) - _opt) >= 5){
+      window.__autoSyncBusy = true;
+      splitTakeAll = _opt; saveSplitAll();
+      try{ localStorage.setItem('autoStable','1'); }catch(e){}
+      renderSplit();
+      window.__autoSyncBusy = false;
+      renderRisk();
+      return;
+    }
+  }catch(e){ try{ window.__autoSyncBusy = false; }catch(e2){} }
 }
 function sidePayCalc(){
   const rawProd = sidePaySel;
@@ -2145,12 +2166,12 @@ function sidePayCalc(){
   const totalSales = orders.reduce((s,o) => s + Number(o.amount||0), 0);
   const comp = prodSales * mult;
   const profit = totalSales - comp;
-  if(confirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总单金额${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`)){
+  myConfirm(`${prod}卖了${prodSales.toFixed(2)} × ${mult} = 赔${comp.toFixed(2)}\n总单金额${totalSales.toFixed(2)} - 赔 = 剩${profit.toFixed(2)}\n\n记入赔付？`, function(){
     pays.unshift({ product: prod, amount: comp, note: `${prod}卖${prodSales.toFixed(2)}×${mult}`, time: new Date().toLocaleString('zh-CN') });
     savePays();
     restoreIfNeeded();
-renderAll();
-  }
+    renderAll();
+  });
 }
 
 // 板块名称自定义
@@ -2215,7 +2236,7 @@ function realFlyAmount(k, bet){
   const done = flownPerPos[k] || 0;
   // 已飞额超过「按现阈值该飞」的量 → 这条记录不是当前这盘产生的（改过单/调过阈值/上一期残留），
   // 只认当前阈值该飞的部分，不把多出来的算进今天
-  if(done > should + 0.5) return should;
+  // 已飞一旦确认就锁定：调档位/补单只影响“后续应飞”，不回撤、不清零已飞记录
   const pending = Math.max(0, should - done);
   return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
 }
@@ -3235,7 +3256,7 @@ function getThisRoundFly(){
     const full = Math.max(0, sales[k] - splitTakeAll);
     if(full < 0.01) return;
     let done = flownPerPos[k] || 0;
-    if(done > full + 0.5) done = 0;   // 已飞超过该飞 → 旧记录，不算今天
+    // 已飞锁定：不因调档/补单清零
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3252,7 +3273,7 @@ function getThisRoundFly(){
     const full = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(full < 0.01) return;
     let done = flownPerPos[code] || 0;
-    if(done > full + 0.5) done = 0;   // 同上，旧记录不算
+    // 已飞锁定：不因调档/补单清零
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3293,7 +3314,7 @@ function getThisRoundFly(){
         lines.push({code: '二中二/三中三合计', amt: 0, full: emTotal, done: done, auto: true});
       } else {
         let done = flownPerPos['_em_total'] || 0;
-        if(done > emTotal + 0.5) done = 0;   // 旧登记额大于今天的合计 → 不算今天
+        // 已飞锁定：不因调档/补单清零
         const round = Math.max(0, emTotal - done);
         already += done;
         lines.push({code: '二中二/三中三合计', amt: round, full: emTotal, done: done, auto: false});
@@ -3318,16 +3339,17 @@ function confirmGroupFly(group){
   }
   const groupTotal = groupLines.reduce((s,l)=>s+l.amt,0);
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
-  if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
-  groupLines.forEach(l => {
-    var _k = l.code, _amt = l.amt;
-    if(_k === '二中二/三中三合计'){ flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; flownReal[_k] = (flownReal[_k]||0) + _amt; }
-    else { flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; if(_amt > 0) flownReal[_k] = (flownReal[_k]||0) + flyShowAmt(_amt); }
+  myConfirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？', function(){
+    groupLines.forEach(l => {
+      var _k = l.code, _amt = l.amt;
+      if(_k === '二中二/三中三合计'){ flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; flownReal[_k] = (flownReal[_k]||0) + _amt; }
+      else { flownPerPos[_k] = (flownPerPos[_k]||0) + _amt; if(_amt > 0) flownReal[_k] = (flownReal[_k]||0) + flyShowAmt(_amt); }
+    });
+    localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+    localStorage.setItem('flownReal', JSON.stringify(flownReal));
+    myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
+    calcSplit();
   });
-  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
-  localStorage.setItem('flownReal', JSON.stringify(flownReal));
-  myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
-  calcSplit();
 }
 
 function markFlyBtns(){
@@ -3983,11 +4005,12 @@ function removeProduct(code){
     myAlert(code + ' 是固定子产品（01-50），不能删除。\n主产品请用自己起的名字（例如：手机壳小米）。');
     return;
   }
-  if(!confirm('删除主产品「' + code + '」？\n（历史订单不会删，但这个套餐以后不再展开）')) return;
-  products = products.filter(p => !(p.code === code && (p.custom || (p.links||[]).length > 0 || !/^\d{2}$/.test(p.code))));
-  saveProducts();
-  restoreIfNeeded();
-renderAll();
+  myConfirm('删除主产品「' + code + '」？\n（历史订单不会删，但这个玩法以后不再展开）', function(){
+    products = products.filter(p => !(p.code === code && (p.custom || (p.links||[]).length > 0 || !/^\d{2}$/.test(p.code))));
+    saveProducts();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 function renameCode(oldCode, newCode){
   newCode = String(newCode).trim();
@@ -4073,13 +4096,14 @@ renderAll();
   document.getElementById('newSingleName').value = '';
 }
 function deleteSingle(code, uid){
-  if(!confirm('删除单品「' + code + '」？')) return;
-  let i = -1;
-  if(uid) i = products.findIndex(p => p.code === code && p.single && p._uid === uid);
-  if(i < 0) i = products.findIndex(p => p.code === code && p.single);
-  if(i >= 0) products.splice(i, 1);
-  saveProducts(); renderSettings(); restoreIfNeeded();
-renderAll();
+  myConfirm('删除单品「' + code + '」？', function(){
+    let i = -1;
+    if(uid) i = products.findIndex(p => p.code === code && p.single && p._uid === uid);
+    if(i < 0) i = products.findIndex(p => p.code === code && p.single);
+    if(i >= 0) products.splice(i, 1);
+    saveProducts(); renderSettings(); restoreIfNeeded();
+    renderAll();
+  });
 }
 function saveCustomerRoster(){
   const name = document.getElementById('customerName').value.trim();
@@ -4091,11 +4115,12 @@ function saveCustomerRoster(){
 renderAll();
 }
 function removeRoster(name){
-  if(!confirm('删除？')) return;
-  roster = roster.filter(n => n !== name);
-  saveRoster();
-  restoreIfNeeded();
-renderAll();
+  myConfirm('删除客户「' + name + '」？', function(){
+    roster = roster.filter(n => n !== name);
+    saveRoster();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 function esc(s){
   return String(s == null ? '' : s)
@@ -4157,16 +4182,16 @@ function cpLookup(){
 }
 
 function cpQuickPay(cust, code, amt){
-  if(!confirm('给客户「' + cust + '」赔付 ' + amt.toFixed(2) + ' 元？')) return;
-  custpays.unshift({ customer: cust, product: code, amount: amt, note: '商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
-  saveCP();
-  // 同时记入总赔付，让顶部净收更新
-  pays.unshift({ product: code, amount: amt, note: cust+' 商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
-  savePays();
-  cpLookup();
-  renderCP();
-  restoreIfNeeded();
-renderAll();
+  myConfirm('给客户「' + cust + '」赔付 ' + amt.toFixed(2) + ' 元？', function(){
+    custpays.unshift({ customer: cust, product: code, amount: amt, note: '商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
+    saveCP();
+    pays.unshift({ product: code, amount: amt, note: cust+' 商品'+code+'赔付', time: new Date().toLocaleString('zh-CN') });
+    savePays();
+    cpLookup();
+    renderCP();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 
 function cpAdd(){
@@ -4184,10 +4209,11 @@ function cpAdd(){
 }
 
 function cpDelete(idx){
-  if(!confirm('删除这条赔付？')) return;
-  custpays.splice(idx, 1);
-  saveCP();
-  renderCP();
+  myConfirm('删除这条赔付？', function(){
+    custpays.splice(idx, 1);
+    saveCP();
+    renderCP();
+  });
 }
 
 function renderCP(){
@@ -4524,6 +4550,66 @@ function parseLine(text){
   return { codes, price, isPer };
 }
 
+
+// 属性玩法（红波/单数/大/合数…）→ 它管的那几个号码。用于把早期「只存1个玩法名」的老单还原成号码
+function attrLinksOf(code){
+  const prod = products.find(function(x){ return x.code === code; });
+  return (prod && !prod.single && (prod.links||[]).length) ? prod.links.slice() : null;
+}
+// 老单展开：每码金额按 codeAmts 取（各号单=单价，总额单=摊后单价），
+// 所以两种早期路径都能还原：100 → 17×100=1700；5.88 → 17×5.88=100
+function fixLegacyAttrOrder(o){
+  const codes = o.codes || [];
+  let changed = false, newCodes = [], newAmts = {};
+  const fallback = Number(o.amount||0) / Math.max(1, codes.length);
+  codes.forEach(function(c){
+    const links = attrLinksOf(c);
+    const per = (o.codeAmts && o.codeAmts[c] != null) ? Number(o.codeAmts[c]) : fallback;
+    if(links){
+      links.forEach(function(l){ newCodes.push(l); newAmts[l] = (newAmts[l]||0) + per; });
+      changed = true;
+    } else {
+      newCodes.push(c);
+      newAmts[c] = (newAmts[c]||0) + per;
+    }
+  });
+  if(!changed) return null;
+  let total = 0;
+  Object.keys(newAmts).forEach(function(k){ total += newAmts[k]; });
+  const before = Number(o.amount||0);
+  o.codes = newCodes; o.codeAmts = newAmts; o.amount = total; o.price = total; o.qty = newCodes.length;
+  return { before: before, after: total };
+}
+
+function fixLegacyAttrAll(){
+  let n = 0, before = 0, after = 0;
+  const pools = [];
+  if(typeof orders !== 'undefined') pools.push(orders);
+  if(typeof hkOrders !== 'undefined') pools.push(hkOrders);
+  if(typeof billArchive !== 'undefined'){
+    Object.keys(billArchive||{}).forEach(function(d){ if(billArchive[d] && Array.isArray(billArchive[d].orders)) pools.push(billArchive[d].orders); });
+  }
+  const scan = [];
+  pools.forEach(function(pool){ pool.forEach(function(o){ scan.push(o); }); });
+  let hit = 0;
+  scan.forEach(function(o){
+    const codes = o.codes || [];
+    if(!codes.some(function(c){ return attrLinksOf(c); })) return;
+    hit++;
+  });
+  if(hit === 0){ myAlert('没有需要修正的老单：所有订单都已经是按号记录的了'); return; }
+  myConfirm('找到 ' + hit + ' 条「只记了玩法名、没展开号码」的老单：\n金额会按每号单价重新算，号码表/飞单/赔付也会一并恢复正常。\n\n改完不能自动还原，确定修正？', function(){
+    scan.forEach(function(o){
+      const r = fixLegacyAttrOrder(o);
+      if(r){ n++; before += r.before; after += r.after; }
+    });
+    try{ saveOrders(); }catch(e){}
+    try{ if(typeof billSaveArchive === 'function') billSaveArchive(); }catch(e){}
+    try{ if(typeof savePays === 'function') savePays(); }catch(e){}
+    try{ renderAll(); }catch(e){}
+    myAlert('已修正 ' + n + ' 条老单。\n金额 ' + before.toFixed(2) + ' 元 → ' + after.toFixed(2) + ' 元。\n号码表、飞单、赔付配方已跟着更新。');
+  });
+}
 
 function codeSalesForOrder(o, prod){
   if(o.codeAmts && o.codeAmts[prod]) return o.codeAmts[prod];
@@ -4950,12 +5036,18 @@ function buildManualCodes(type, val){
     var c = w[0]+'波';
     if(/单/.test(val)) c += '单'; else if(/双/.test(val)) c += '双';
     if(/大/.test(val)) c += '大'; else if(/小/.test(val)) c += '小';
-    if(!products.find(function(p){return p.code===c;})) return {err:'没有「'+c+'」这个产品'};
-    return {codes:[c]};
+    var _wp = products.find(function(p){return p.code===c;});
+    if(!_wp) return {err:'没有「'+c+'」这个产品'};
+    // 属性按号展开（红波=17号、单数=25号…），与保存路径同口径
+    return {codes:(_wp.links || []).length ? _wp.links.slice() : [c]};
   }
-  if(type==='sd') return {codes:[/双/.test(val)?'双数':'单数']};
-  if(type==='big') return {codes:[/小/.test(val)?'小':'大']};
-  if(type==='he') return {codes:[/双/.test(val)?'合数双':'合数单']};
+  var _attrCodes = function(code){
+    var prod = products.find(function(p){ return p.code === code; });
+    return (prod && (prod.links||[]).length) ? prod.links.slice() : [code];
+  };
+  if(type==='sd') return {codes:_attrCodes(/双/.test(val)?'双数':'单数')};
+  if(type==='big') return {codes:_attrCodes(/小/.test(val)?'小':'大')};
+  if(type==='he') return {codes:_attrCodes(/双/.test(val)?'合数双':'合数单')};
   var m = val.match(/\d/);
   if(type==='head'){
     if(!m) return {err:'填一个数字 0-4'};
@@ -5797,23 +5889,39 @@ renderAll();
   window.__failedLines = [];
 
   const notes = [];
-  if(mode === 'bundle'){
-    parsed.forEach(p => {
-      const expanded = [];
-      p.codes.forEach(c => {
-        const prod = products.find(x => x.code === c && (x.links || []).length) || products.find(x => x.code === c);
-        if(prod && (prod.links || []).length && !prod.single){
-          prod.links.forEach(l => expanded.push(l));
-        } else {
-          expanded.push(c);
-          if(!/^\d{1,2}$/.test(c) && c.indexOf(':') < 0 && !(prod && prod.single)){
-            notes.push('「' + c + '」在套餐模式但没勾选子型号，按1件记录');
-          }
+  // 属性商品（波色/单双/大小/合数/三合一）无论哪种模式都按号展开：
+  // 红波=17 个号、单数=25 个号……否则单品模式会只存 1 个商品，
+  // 把「各号100」记成 100（应是 1700），而且属性 code 不参与赔付计算（永远不中）
+  const ATTR_SET = {};
+  ['红波','蓝波','绿波','单数','双数','大','小','合数单','合数双',
+   '红波单','红波双','绿波单','绿波双','蓝波单','蓝波双',
+   '红波大','红波小','蓝波大','蓝波小','绿波大','绿波小',
+   '红波单大','红波单小','红波双大','红波双小',
+   '蓝波单大','蓝波单小','蓝波双大','蓝波双小',
+   '绿波单大','绿波单小','绿波双大','绿波双小'].forEach(function(k){ ATTR_SET[k]=true; });
+  const _attrLinks = function(code){
+    const prod = products.find(function(x){ return x.code === code; });
+    return (prod && !prod.single && (prod.links||[]).length) ? prod.links : null;
+  };
+  // 只有一套逻辑：号码 01-49 原样保留，玩法词（红波/单数/大/合数/自定义组合）一律按 links 展开成号码。
+  // 原来「套餐模式/单品模式」两个分支已合并——模式只影响录入时的语法糖，账本里从来只有号码。
+  parsed.forEach(function(p){
+    var expanded = [];
+    p.codes.forEach(function(c){
+      var prod = products.find(function(x){ return x.code === c && (x.links || []).length; })
+              || products.find(function(x){ return x.code === c; });
+      if(prod && (prod.links || []).length && !prod.single){
+        prod.links.forEach(function(l){ expanded.push(l); });
+        if(ATTR_SET[c]) notes.push('属性已按号展开');
+      } else {
+        expanded.push(c);
+        if(!/^\d{1,2}$/.test(c) && c.indexOf(':') < 0 && !(prod && prod.single)){
+          notes.push('「' + c + '」没有子号码配置，按1件记录');
         }
-      });
-      p.codes = expanded;
+      }
     });
-  }
+    p.codes = expanded;
+  });
 
   const customer = document.getElementById('customerName').value.trim() || '散客';
   const created = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -6045,20 +6153,22 @@ function clearProduct(code){
   const msg = isSub
     ? '清除「' + code + '」的累计记录？\n（会删掉包含这个编号的订单，编号本身保留）'
     : '删除「' + code + '」这个产品及其所有累计记录？';
-  if(!confirm(msg)) return;
-  orders = orders.filter(o => !(o.codes || []).includes(code));
-  if(!isSub){
-    products = products.filter(p => !(p.code === code && (p.custom || (p.links||[]).length > 0)));
-    saveProducts();
-  }
-  saveOrders();
-  restoreIfNeeded();
-renderAll();
+  myConfirm(msg, function(){
+    orders = orders.filter(o => !(o.codes || []).includes(code));
+    if(!isSub){
+      products = products.filter(p => !(p.code === code && (p.custom || (p.links||[]).length > 0)));
+      saveProducts();
+    }
+    saveOrders();
+    restoreIfNeeded();
+    renderAll();
+  });
 }
 function resetSubs(){
-  if(!confirm('重置子产品为 01-49 完整列表？\n（之前隐藏/删除的编号会全部恢复，自定义加的编号保留）')) return;
-  try { localStorage.removeItem(PKEY + '_hidden'); } catch(e){}
-  location.reload();
+  myConfirm('重置号码为 01-49 完整列表？\n（之前隐藏/删除的编号会全部恢复，自定义加的编号保留）', function(){
+    try { localStorage.removeItem(PKEY + '_hidden'); } catch(e){}
+    location.reload();
+  });
 }
 function addSub(){
   const inp = document.getElementById('newSubCode');
@@ -6077,7 +6187,7 @@ function addSub(){
 renderAll();
 }
 function hideSub(code){
-  if(!confirm('把编号 ' + code + ' 从子产品里去掉？\n（累计记录保留，但以后录单不再认这个号）')) return;
+  myConfirm('把编号 ' + code + ' 从号码表里去掉？\n（累计记录保留，但以后录单不再认这个号）', function(){
   try {
     const hidden = JSON.parse(localStorage.getItem(PKEY + '_hidden') || '[]');
     if(!hidden.includes(code)) hidden.push(code);
@@ -6086,7 +6196,8 @@ function hideSub(code){
   products = products.filter(p => p.code !== code);
   saveProducts();
   restoreIfNeeded();
-renderAll();
+  renderAll();
+  });
 }
 function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
@@ -7400,7 +7511,9 @@ function renderRisk(){
   h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 安全线 ${_dBase.toFixed(0)} 元/号（中位注额）· 现在每号能留 ${_curLine.toFixed(1)} · 超线号 ${overCnt}/49</div>`;
   h += '<div style="display:flex;align-items:center;gap:5px;padding:0 0 3px;font-size:11px;color:#666">阈值'
      + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
-     + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>';
+     + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>'
+     + (function(){ var _fl=0; try{ _fl=totalFlownReal(); }catch(e){} 
+        return _fl>0.5 ? '<div style="padding:0 0 3px;font-size:11px;color:#16a34a;line-height:1.5">已飞 <b>'+_fl.toFixed(0)+'</b> 元已锁定：切档位、点建议、勾自动稳健都只改“后续应飞”，不会清空已飞记录</div>' : ''; })();
   // 本盘建议：直接把亏得最少的那一档摆出来，点一下就填
   if(_bestM > 0 && _bestWorst > -1e9){
     var _curIsBest = (Math.abs((splitTakeAll||0) - _bestM) < 0.01);
@@ -7696,10 +7809,8 @@ function renderRisk(){
   const _alreadyReal = [..._todayKeys].reduce((a,k)=>{
     if(k === '_em_total') return a;
     const _b = _salesNow[k] || 0;
-    const _s = Math.max(0, _b - (splitTakeAll||0));
-    const _d = flownPerPos[k] || 0;
-    if(_b > 0 && _d > _s + 0.5) return a;   // 已飞超过该飞 → 旧记录，不算今天的
-    return a + flownRealOf(k);
+    if(!(_b > 0)) return a;                  // 今天这号没人下注，旧记录不算
+    return a + flownRealOf(k);               // 已飞锁定：不因调档/补单被抹掉
   }, 0);
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
   const keptCashReal = keptCash;                 // 与风险面板同一口径
@@ -7939,7 +8050,7 @@ function renderAll(){
     chipRow.innerHTML = mergedRows.map(r => {
       const on = (r.name === selected) ? ' on' : '';
       const cnt = r.orders > 0 ? `${r.orders}单` : '';
-      return `<span class="chip${on}" style="cursor:pointer;user-select:none;-webkit-user-select:none" onclick="selectCustomer('${esc(r.name)}')" oncontextmenu="event.preventDefault();if(confirm('删除客户 ${esc(r.name)}？'))removeRoster('${esc(r.name)}')">${esc(r.name)}<span class="cnt">${cnt}</span></span>`;
+      return `<span class="chip${on}" style="cursor:pointer;user-select:none;-webkit-user-select:none" onclick="selectCustomer('${esc(r.name)}')" oncontextmenu="event.preventDefault();removeRoster('${esc(r.name)}')">${esc(r.name)}<span class="cnt">${cnt}</span></span>`;
     }).join('');
   }
 
@@ -8683,11 +8794,12 @@ function billOpenHistory(){
 
 function billCloseHistory(){ const m = document.getElementById('billHistMask'); if(m) m.remove(); }
 function billDelete(k){
-  if(!confirm('确认删除 ' + k + ' 的历史账单？此操作不可恢复。')) return;
-  delete billArchive[k];
-  localStorage.setItem(BILL_KEY, JSON.stringify(billArchive));
-  billCloseHistory();
-  billOpenHistory();
+  myConfirm('确认删除 ' + k + ' 的历史账单？此操作不可恢复。', function(){
+    delete billArchive[k];
+    localStorage.setItem(BILL_KEY, JSON.stringify(billArchive));
+    billCloseHistory();
+    billOpenHistory();
+  });
 }
 function billCloseView(){ const m = document.getElementById('billViewMask'); if(m) m.remove(); }
 
@@ -8732,7 +8844,7 @@ function billSplitOld(){
   const oldOnes = orders.filter(o => String(o.ts || o.createdAt || '').slice(0,10) < book);
   if(!oldOnes.length){ myAlert('当前账本里没有早于 ' + book + ' 的订单'); return; }
   const days = new Set(oldOnes.map(o => String(o.ts || o.createdAt || '').slice(0,10)));
-  if(!confirm('把 ' + oldOnes.length + ' 笔、跨 ' + days.size + ' 天的旧订单，按日期拆进历史账单？\n当前账本只保留 ' + book + ' 的订单。')) return;
+  myConfirm('把 ' + oldOnes.length + ' 笔、跨 ' + days.size + ' 天的旧订单，按日期拆进历史账单？\n当前账本只保留 ' + book + ' 的订单。', function(){
   const groups = {};
   orders.forEach(o => { const d = String(o.ts || o.createdAt || '').slice(0,10); (groups[d] = groups[d] || []).push(o); });
   Object.keys(groups).forEach(d => {
@@ -8750,12 +8862,13 @@ function billSplitOld(){
   if(typeof renderAll === 'function') renderAll();
   billRefreshBar(); billCloseHistory(); billOpenHistory();
   myAlert('已拆分 ' + oldOnes.length + ' 笔到 ' + days.size + ' 天历史账单。');
+  });
 }
 
 function billRestore(k){
   const a = billArchive[k];
   if(!a) return;
-  if(!confirm('把 ' + k + ' 恢复为当前账本？今天已有的记录会先自动归档，不会丢。')) return;
+  myConfirm('把 ' + k + ' 恢复为当前账本？今天已有的记录会先自动归档，不会丢。', function(){
   billArchiveNow(true);
   orders = JSON.parse(JSON.stringify(a.orders || []));
   pays = JSON.parse(JSON.stringify(a.pays || []));
@@ -8768,6 +8881,7 @@ function billRestore(k){
   if(typeof renderAll === 'function') renderAll();
   billRefreshBar();
   myAlert('已切到 ' + k + ' 的账本。');
+  });
 }
 
 /* 每次主界面重绘后同步顶部账单日 */

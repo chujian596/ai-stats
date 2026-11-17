@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.177-Pro';
+var APP_VER = 'v58.178-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2130,6 +2130,23 @@ function renderSideCustPay(){
     h += '</div>';
   }
   box.innerHTML = h;
+  // ===== 联动：勾了「自动稳健」就跟盘面走，新单进来自动挪到当前最优落点 =====
+  try{
+    if(window.__autoSyncBusy) return;
+    var _asOn = false;
+    try{ _asOn = localStorage.getItem('autoStable') === '1'; }catch(e){}
+    var _opt = window.__optM || 0;
+    var _flock = 0; try{ _flock = totalFlownReal(); }catch(e){}
+    if(_asOn && _opt > 0 && Math.abs((splitTakeAll||0) - _opt) >= 5){
+      window.__autoSyncBusy = true;
+      splitTakeAll = _opt; saveSplitAll();
+      try{ localStorage.setItem('autoStable','1'); }catch(e){}
+      renderSplit();
+      window.__autoSyncBusy = false;
+      renderRisk();
+      return;
+    }
+  }catch(e){ try{ window.__autoSyncBusy = false; }catch(e2){} }
 }
 function sidePayCalc(){
   const rawProd = sidePaySel;
@@ -2219,7 +2236,7 @@ function realFlyAmount(k, bet){
   const done = flownPerPos[k] || 0;
   // 已飞额超过「按现阈值该飞」的量 → 这条记录不是当前这盘产生的（改过单/调过阈值/上一期残留），
   // 只认当前阈值该飞的部分，不把多出来的算进今天
-  if(done > should + 0.5) return should;
+  // 已飞一旦确认就锁定：调档位/补单只影响“后续应飞”，不回撤、不清零已飞记录
   const pending = Math.max(0, should - done);
   return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
 }
@@ -3239,7 +3256,7 @@ function getThisRoundFly(){
     const full = Math.max(0, sales[k] - splitTakeAll);
     if(full < 0.01) return;
     let done = flownPerPos[k] || 0;
-    if(done > full + 0.5) done = 0;   // 已飞超过该飞 → 旧记录，不算今天
+    // 已飞锁定：不因调档/补单清零
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3256,7 +3273,7 @@ function getThisRoundFly(){
     const full = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(full < 0.01) return;
     let done = flownPerPos[code] || 0;
-    if(done > full + 0.5) done = 0;   // 同上，旧记录不算
+    // 已飞锁定：不因调档/补单清零
     const round = Math.max(0, full - done);
     totalFly += full;
     already += done;
@@ -3297,7 +3314,7 @@ function getThisRoundFly(){
         lines.push({code: '二中二/三中三合计', amt: 0, full: emTotal, done: done, auto: true});
       } else {
         let done = flownPerPos['_em_total'] || 0;
-        if(done > emTotal + 0.5) done = 0;   // 旧登记额大于今天的合计 → 不算今天
+        // 已飞锁定：不因调档/补单清零
         const round = Math.max(0, emTotal - done);
         already += done;
         lines.push({code: '二中二/三中三合计', amt: round, full: emTotal, done: done, auto: false});
@@ -7494,7 +7511,9 @@ function renderRisk(){
   h += `<div style="font-size:11px;color:#999;line-height:1.55;margin-bottom:3px">盘形 ${_dShape} · 最重 ${heaviestNum}号占 ${_dShare.toFixed(1)}% · ${_dVals.length}号有注 · 安全线 ${_dBase.toFixed(0)} 元/号（中位注额）· 现在每号能留 ${_curLine.toFixed(1)} · 超线号 ${overCnt}/49</div>`;
   h += '<div style="display:flex;align-items:center;gap:5px;padding:0 0 3px;font-size:11px;color:#666">阈值'
      + '<input id="cutThInput" type="number" value="' + (splitTakeAll||0) + '" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)" style="width:56px;border:1px solid #ddd;border-radius:4px;padding:1px 4px;font-size:12px">元/号'
-     + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>';
+     + '<span style="color:#999">（与飞单统计同一个数，改哪边都一样）</span></div>'
+     + (function(){ var _fl=0; try{ _fl=totalFlownReal(); }catch(e){} 
+        return _fl>0.5 ? '<div style="padding:0 0 3px;font-size:11px;color:#16a34a;line-height:1.5">已飞 <b>'+_fl.toFixed(0)+'</b> 元已锁定：切档位、点建议、勾自动稳健都只改“后续应飞”，不会清空已飞记录</div>' : ''; })();
   // 本盘建议：直接把亏得最少的那一档摆出来，点一下就填
   if(_bestM > 0 && _bestWorst > -1e9){
     var _curIsBest = (Math.abs((splitTakeAll||0) - _bestM) < 0.01);
@@ -7790,10 +7809,8 @@ function renderRisk(){
   const _alreadyReal = [..._todayKeys].reduce((a,k)=>{
     if(k === '_em_total') return a;
     const _b = _salesNow[k] || 0;
-    const _s = Math.max(0, _b - (splitTakeAll||0));
-    const _d = flownPerPos[k] || 0;
-    if(_b > 0 && _d > _s + 0.5) return a;   // 已飞超过该飞 → 旧记录，不算今天的
-    return a + flownRealOf(k);
+    if(!(_b > 0)) return a;                  // 今天这号没人下注，旧记录不算
+    return a + flownRealOf(k);               // 已飞锁定：不因调档/补单被抹掉
   }, 0);
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
   const keptCashReal = keptCash;                 // 与风险面板同一口径
