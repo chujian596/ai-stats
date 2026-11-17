@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.36</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.37</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -378,7 +378,7 @@ function renderPeriodBar(list){
   }).join('');
   el.innerHTML='<span style="color:#666;font-weight:600">期号</span>'
     +'<select id="perSel" onchange="setViewPer(this.value)" style="border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;background:#fff">'+opts+'</select>'
-    +'<span style="color:#999;font-size:11px">'+(VIEW_PER?'看往期，切回最新点右侧按钮':'当前最新期')+'</span>'
+    +'<span style="color:#999;font-size:11px">'+(VIEW_PER?(Number(VIEW_PER)<319?'看往期（该期仅存论坛记录）':'看往期，切回最新点右侧按钮'):'当前最新期')+'</span>'
     +(VIEW_PER?'<button onclick="setViewPer(0)" style="border:1px solid #000;background:#fff;border-radius:6px;padding:4px 8px;font-size:12px">回到当期</button>':'');
 }
 function fetchLatestPeriod(){
