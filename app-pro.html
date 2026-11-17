@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.200-Pro';
+var APP_VER = 'v58.201-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1886,11 +1886,11 @@ function renderSplitSide(){
   var _bo = function(fn, label, extra){
     return '<button onclick="' + fn + '" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:7px;font-size:14px;' + (extra||'') + '">' + label + '</button>';
   };
-  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('spec','特号') + _bo('showAllFlyDir()','飞单目录') + '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('spec','特号') + _bo('flyDirBtnToggle()','飞单目录') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('pte','平特') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('lx','连肖') + _bo('copySelectedFly()','复制') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">（连/二/三）自动飞<br><span style="color:#999;font-size:11px">勾选直接默认连肖/二中二/三中三已飞（自行复制给上家）</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">5 元档</span><br><span style="color:#999;font-size:11px">勾选后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();try{afterFlyFlagChange();}catch(e){}" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞（转发上家），不跟澳门单混；没香港单时这块不显示</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
@@ -3025,6 +3025,13 @@ function flownRows(){
 }
 var _flyDirOpen = true;      // 飞单总目录默认打开
 var _flyEditOpen = false;    // 已飞清单默认收起
+function flyDirBtnToggle(){
+  var box = document.getElementById('sideSplitResult');
+  if(!box || !box.innerHTML.trim()){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} return; }
+  var body = document.getElementById('flyDirBody');
+  if(!body){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} return; }
+  toggleFlyDir();
+}
 function toggleFlyDir(){ _flyDirOpen = !_flyDirOpen; showAllFlyDir(); }
 function toggleFlyEdit(){ _flyEditOpen = !_flyEditOpen; showAllFlyDir(); }
 function showAllFlyDir(){
@@ -3046,7 +3053,7 @@ function showAllFlyDir(){
   var _flownRows = flownRows();
   var _flownRowsSum = _flownRows.reduce(function(t, r){ return t + r.a; }, 0);
   let h = '<div style="font-size:12px;line-height:1.3">';
-  h += '<div onclick="toggleFlyDir()" style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer">'
+  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px">'
      + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _flownRowsSum.toFixed(0) + '）</span>'
      + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
      + '</div>';
