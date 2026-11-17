@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.187-Pro';
+var APP_VER = 'v58.188-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -635,6 +635,37 @@ function _siteBase(){
   if(location.protocol === 'file:' || !location.hostname) return 'https://chujian596.github.io/ai-stats';
   var p = location.pathname.replace(/\/[^\/]*$/, '');
   return location.origin + p;
+}
+// 版本号比较：v58.187 > v58.186，别被 CDN 缓存的旧 version.txt 骗了
+function _verTuple(v){
+  var m = String(v||'').match(/v?(\d+)\.(\d+)(?:\.(\d+))?/);
+  if(!m) return [0,0,0];
+  return [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3]||0,10)];
+}
+function _verCmp(a, b){
+  var x = _verTuple(a), y = _verTuple(b);
+  for(var i=0;i<3;i++){ if(x[i] !== y[i]) return x[i] > y[i] ? 1 : -1; }
+  return 0;
+}
+// 三个来源同时问，取最新的那个（GitHub raw 不吃 CDN 缓存）
+function fetchRemoteVer(){
+  var urls = [
+    'https://raw.githubusercontent.com/chujian596/ai-stats/main/version.txt?t=' + Date.now(),
+    'https://aistats-9uo.pages.dev/version.txt?t=' + Date.now(),
+    'version.txt?t=' + Date.now()
+  ];
+  return Promise.all(urls.map(function(u){
+    return fetch(u, {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).catch(function(){ return ''; });
+  })).then(function(list){
+    var best = '';
+    list.forEach(function(v){
+      v = String(v||'').trim();
+      if(!/^v?\d+(\.\d+)+/.test(v)) return;
+      if(_verCmp(v, best) > 0) best = v;
+    });
+    if(best) return best;
+    throw new Error('no version source');
+  });
 }
 function _onlineURL(){
   var isPro = /Pro/.test(APP_VER);
@@ -657,19 +688,22 @@ function _onlineURL(){
 })();
 // 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
 function hardUpdateTo(v){
-  // 先清除PWA缓存
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      regs.forEach(function(reg){ reg.unregister(); });
-    });
+  var done = false;
+  function go(){ if(done) return; done = true; location.replace(_onlineURL()); }
+  // 先清 PWA / 缓存，清完再跳，最多等 1.2 秒
+  var jobs = [];
+  if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+    jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){
+      return Promise.all(regs.map(function(reg){ return reg.unregister(); }));
+    }).catch(function(){}));
   }
-  // 清除所有缓存
-  if('caches' in window){
-    caches.keys().then(function(names){
-      names.forEach(function(name){ caches.delete(name); });
-    });
+  if('caches' in window && caches.keys){
+    jobs.push(caches.keys().then(function(names){
+      return Promise.all(names.map(function(n){ return caches.delete(n); }));
+    }).catch(function(){}));
   }
-  location.replace(_onlineURL());
+  setTimeout(go, 1200);
+  Promise.all(jobs).then(go).catch(go);
 }
 // 版本检查统一由下方 fetch 处理（仅提示、不自动跳转）
 // 自动同步版本号到标题栏，杜绝硬编码
@@ -678,11 +712,8 @@ document.addEventListener('DOMContentLoaded', function(){
   if(s) s.textContent = APP_VER;
 });
 // 版本检查：只提示，绝不自动跳转
-fetch('version.txt?t=' + Date.now(), {cache: 'no-cache'})
-  .then(r => r.text())
-  .then(v => {
-    v = v.trim();
-    if(!/^v?\d+\.\d{1,3}(-[A-Za-z]+)?$/.test(v)){ return; }
+fetchRemoteVer()
+  .then(function(v){
     if(normVer(v) !== normVer(APP_VER)){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
@@ -4802,8 +4833,7 @@ function refreshPage(){
   try { if(typeof renderSplitSide === 'function') renderSplitSide(); } catch(e){}
   var btn = document.getElementById('refreshBtn');
   if(btn) btn.textContent = '检查中…';
-  fetch('version.txt?t=' + Date.now(), {cache:'no-store'})
-    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+  fetchRemoteVer()
     .then(function(v){
       var remote = String(v || '').trim();
       if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
