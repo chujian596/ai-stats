@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.221-Pro';
+var APP_VER = 'v58.222-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7771,10 +7771,10 @@ function renderRisk(){
   function worstAt(T){
     let fly = 0;
     for(let i=1;i<=49;i++) fly += Math.max(0, (numBets[i]||0) - T);
-    const thisLxFly = T === 0 ? lxTotalSalesSum : lxFlyAmt;
-    const kept = totalSales - fly - pteFlyAmt - thisLxFly;
+    const specSales = totalSales - pteTotalSalesSum - lxTotalSalesSum;   // 只算特号这部分的销售额
+    const kept = specSales - fly;
     const maxKept = T > 0 ? Math.min(numBets[sorted[0]]||0, T) : 0;
-    return kept - maxKept*payMult - totalOtherPayout;
+    return kept - maxKept*payMult;
   }
   function findT(target){
     const maxBet = numBets[sorted[0]]||100;
@@ -7911,7 +7911,7 @@ function renderRisk(){
   const afterFlyPayout = specialPayout + totalOtherPayout;
   const afterFlyNet = worstNet;
   // 亏损线修正：先扣掉平特/连肖这些固定赔付，剩下的钱才够特号赔；除以赔率就是单号最多能压的数
-  const breakevenThreshold = Math.max(0, ((typeof keptCash === 'number' ? keptCash : totalSales) - ptePayout - lxPayout) / (payMult || 1));
+  const breakevenThreshold = Math.max(0, ((totalSales - pteTotalSalesSum - lxTotalSalesSum) - specRealFly) / (payMult || 1));
   // ===== 风险体检：亏损线 / 亏损号占比 / 危险注额占比 =====
   let overCnt = 0, overAmt = 0;
   for(let i=1;i<=49;i++){
@@ -7940,14 +7940,15 @@ function renderRisk(){
     _dBase=_db0+5; _dBaseSrc='最密集层 '+_db0+'–'+(_db0+10);
   }
   var _dShare = _diagTot>0 ? _diagMax/_diagTot*100 : 0;
-  var _othPay = (typeof ptePayout === 'number' ? ptePayout : 0) + (typeof lxPayout === 'number' ? lxPayout : 0); // 平特+连肖自留要赔的钱（特号以外的账）
-  var _othNet = (typeof pteKept === 'number' ? pteKept : 0) + (typeof lxKept === 'number' ? lxKept : 0) - _othPay; // 其他产品的净账：自留现金 - 最坏赔付
+  // 削峰只算特号：平特/连肖由用户自己按各自赔率单独评估，不再并进档位与建议
+  var _othPay = 0;
+  var _othNet = 0;
   try{ window.__othPay = _othPay; window.__othNet = _othNet; }catch(e){}
   var _dShape = (_dShare>=30||_dVals.length<20)?'畸形':(_dShare>=20||_dVals.length<30)?'偏态':(_dShare>=10||_dVals.length<40)?'中等':'均衡';
   var _curLine = _diagTop>0 ? cutCalc(_diagTop, true).line : 0;
   var _dTopR = cutCalc((typeof splitTakeAll === 'number' ? splitTakeAll : 0), true);   // 当前实际生效的那一档（0=不削）
-  var _optM = 0, _optR = null;
-  if(_dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; }
+  var _optM = 0, _optR = null, _noCut = false;
+  if(_dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; _noCut = true; }
   var _maxBet0 = 0;                     // 盘里最大单号注额，阈值高于它＝一个号都削不动，这一档不能当断点
   try{ cutBets().forEach(function(b){ if(b.nb > _maxBet0) _maxBet0 = b.nb; }); }catch(e){}
   var _dbroken = false, _deepM = 0, _deepR = null;
@@ -7967,7 +7968,7 @@ function renderRisk(){
     var _pick = (recTol !== null ? recTol : rec20);
     var _pickWhy = (_userTol > 0 ? '我能扛 ' + _userTol.toFixed(0) + ' 元' : '亏损≤总额20%');
     if(_pick === 0){ _needReject = true; }   // findT 返回 0 = 连全飞都压不到目标线，不是「不削达标」
-    else if(typeof _pick === 'number' && _pick >= _maxBet0){ _optM = 100; _optR = cutCalc(100, true); _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在总亏 20% 以内'); }
+    else if(typeof _pick === 'number' && _pick >= _maxBet0){ _optM = 100; _optR = cutCalc(100, true); _noCut = true; _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在总亏 20% 以内'); }
     else if(typeof _pick === 'number' && _pick >= 5 && _pick < _maxBet0){
       _optM = _pick; _optR = cutCalc(_optM, true); _sugWhy = _pickWhy;
       if(_userTol > 0){ var _g=0; while(_optM > 5 && (cutCalc(_optM,true).worst + _othNet) < -_userTol && _g++ < 500){ _optM--; } _optR = cutCalc(_optM, true); }
@@ -7981,7 +7982,7 @@ function renderRisk(){
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
-  var _isNoCut = (_optM >= 100);
+  var _isNoCut = !!_noCut;
   if(_optR && _optM > 0 && !_isNoCut){
     var _curR = cutCalc(_diagTop, true), _dFl = _curR.flown - _optR.flown, _dW = _curR.worst - _optR.worst;
     h += `<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0 9px;padding:3px 0 1px">`
@@ -7999,9 +8000,6 @@ function renderRisk(){
     } else {
       h += `<div style="font-size:11px;color:#b45309;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 削得太狠、白飞了 ${Math.abs(_dFl).toFixed(0)} 元：放到 ${_optM} 少飞这部分，最坏只从 ${(_curR.worst+_othNet).toFixed(0)} 变到 ${(_optR.worst+_othNet).toFixed(0)}，手上能多留本金</div>`;
     }
-  }
-  if(_othPay > 0 || (typeof pteKept === 'number' && pteKept > 0)){
-    h += `<div style="padding:1px 0 0;font-size:11px;color:#999;line-height:1.5">联合账：特号 + 平特（按最多 7 肖同时中）+ 连肖，合计最坏已并入下面的档位数字（平特自留 ${(typeof pteKept==='number'?pteKept.toFixed(0):0)} 元、最坏赔 ${_othPay.toFixed(0)} 元）</div>`;
   }
   if(_isNoCut){
     var _ncR = cutCalc(100, true);
@@ -8096,9 +8094,9 @@ function renderRisk(){
       h += `<div id="cutCard" style="display:${riskBoxOpen?'':'none'};margin-top:0;padding:2px 10px 10px;background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;font-size:13px">`;
       h += `<div style="border-top:1px dashed #e5e5e5;padding-top:8px;margin-bottom:6px;font-weight:700;color:#333">每号自留上限（就是上面那个阈值，同一个数）</div>`;
       h += `<div style="margin:-2px 0 6px;font-size:12px;color:#333">下面号码表按 <b style="color:#1677ff">每号最多留 ${_cap.toFixed(0)} 元</b> 算；改上面的阈值，这里和飞单统计一起跟着变</div>`;
-      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin:-2px 0 8px">数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大${_othPay>0?'；下面的最坏都并入了平特/连肖：自留 '+(typeof pteKept==='number'?pteKept.toFixed(0):0)+' 元、最坏赔 '+_othPay.toFixed(0)+' 元，合计 '+_othNet.toFixed(0)+' 元':''}。</div>`;
+      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin:-2px 0 8px">数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。下面的数只算特号；平特、连肖按各自赔率自己看（平特卡在上面单独列）。</div>`;
       if(true){
-        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后的最坏净盈亏，已含平特/连肖；完全不削是 ${(base.worst+_othNet).toFixed(0)}）</div>`;
+        h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后特号的最坏净盈亏，只算特号；完全不削是 ${(base.worst+_othNet).toFixed(0)}）</div>`;
         h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
         // 不削这一档：阈值 0 = 一分不飞，全部自己扛
         h += `<div onclick="pickCut(0)" style="padding:5px 6px;border-radius:6px;cursor:pointer;${(splitTakeAll||0)===0?'background:#eef4ff;border:1px solid #1677ff':'background:#fafafa;border:1px solid #eee'}">`
@@ -8146,7 +8144,7 @@ function renderRisk(){
          + `<span>号码表（每号最多留 <b>${_cap}</b> 元）｜每行＝这个号开出时整本账的盈亏</span>`
          + `<span>自留 ${_kept.toFixed(0)} · 飞 ${(_tot-_kept).toFixed(0)}</span></div>`;
       var _pteKept = (typeof pteFlyTakeAll === 'number' && pteFlyTakeAll > 0) ? Object.keys(pteBetByZod||{}).reduce(function(x,z){ return x + Math.min(pteBetByZod[z]||0, pteFlyTakeAll); }, 0) : 0;
-      h += `<div style="font-size:11px;color:#888;margin-bottom:4px">特号 01–49 合计 ${_tot.toFixed(0)} 元；每行净盈亏已扣掉平特/连肖自留最坏赔付 ${_othPay.toFixed(0)} 元（平特自留 ${_pteKept.toFixed(0)} 元）。<br>本表是<b>最坏口径</b>：假设平特 7 肖全中，只扣最坏赔付、不加平特没中时的收入；平特/连肖全不中时，每行净盈亏各加回 ${_othPay.toFixed(0)} 元。</div>`;
+      h += `<div style="font-size:11px;color:#888;margin-bottom:4px">特号 01–49 合计 ${_tot.toFixed(0)} 元；每行＝这个特号开出时<b>特号这部分的盈亏</b>，不含平特/连肖（平特自留 ${_pteKept.toFixed(0)} 元，按上面平特卡自己算）。</div>`;
       var _arr = _bets.slice().sort(function(a,b){ return b.nb - a.nb; });
       // 没人买的号也要列出来：注额 0、自留 0，开出来净赚全部自留金
       for(var _q=1; _q<=49; _q++){
