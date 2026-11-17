@@ -140,13 +140,30 @@ public class LauncherActivity extends Activity {
         return wrap;
     }
 
+    private static boolean isInternal(String u) {
+        return u == null || u.startsWith("file://") || u.startsWith("data:") || u.startsWith("about:");
+    }
+
+    private static String showUrl(String u) {
+        return isInternal(u) ? "" : u;
+    }
+
+    private String tabLabel(Tab t) {
+        String title = t.title == null ? "" : t.title.trim();
+        if (title.startsWith("data:") || title.startsWith("about:")) title = "";
+        if (!title.isEmpty()) return title;
+        String u = t.web.getUrl();
+        if (isInternal(u)) return "起始页";
+        try { String h = Uri.parse(u).getHost(); return h == null ? "网页" : h; } catch (Exception e) { return "网页"; }
+    }
+
     private void refreshChips() {
         if (tabStrip == null) return;
         tabStrip.removeAllViews();
         for (final Tab t : tabs) {
             TextView chip = new TextView(this);
-            String s = t.title == null || t.title.isEmpty() ? "新标签" : t.title;
-            if (s.length() > 10) s = s.substring(0, 10) + "…";
+            String s = tabLabel(t);
+            if (s.length() > 8) s = s.substring(0, 8) + "…";
             chip.setText(s);
             chip.setTextSize(12);
             chip.setSingleLine(true);
@@ -183,8 +200,7 @@ public class LauncherActivity extends Activity {
         pages.removeAllViews();
         pages.addView(t.holder, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        String u = t.web.getUrl();
-        addr.setText(u == null || u.startsWith("file://") ? "" : u);
+        addr.setText(showUrl(t.web.getUrl()));
         refreshChips();
     }
 
@@ -214,7 +230,7 @@ public class LauncherActivity extends Activity {
             cur = t;
             pages.addView(t.holder, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            addr.setText(url.startsWith("file://") || url.startsWith("data:") ? "" : url);
+            addr.setText(showUrl(url));
         }
         refreshChips();
         return t;
@@ -316,12 +332,16 @@ public class LauncherActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (cur != null && view == cur.web) addr.setText(url.startsWith("file://") ? "" : url);
+                if (cur != null && view == cur.web) addr.setText(showUrl(url));
                 String t = view.getTitle();
                 for (Tab tab : tabs) {
                     if (tab.web == view) {
-                        tab.title = (t == null || t.isEmpty())
-                                ? (url.startsWith("file://") ? "常用站点" : Uri.parse(url).getHost()) : t;
+                        if (t != null && (t.startsWith("data:") || t.startsWith("about:"))) t = "起始页";
+                        if (t == null || t.isEmpty()) {
+                            if (isInternal(url)) t = "起始页";
+                            else { try { t = Uri.parse(url).getHost(); } catch (Exception ignored) {} }
+                        }
+                        tab.title = t;
                         break;
                     }
                 }
