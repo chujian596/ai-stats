@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.204-Pro';
+var APP_VER = 'v58.205-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7564,7 +7564,14 @@ function renderRisk(){
       });
     });
     if(lxFlyAmt > 0){ actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * 4); }
-    const actualNet = keptCash - actualSpecPayout - actualPtePayout - actualLxPayout;
+    var _apNow = null; try { _apNow = actualPnL(); } catch(e){}
+    var _pendNow = 0;
+    try {
+      var _rl = getThisRoundFly();
+      (_rl.lines||[]).forEach(function(l){ if(l.amt > 0.01){ var a=l.amt; if(parseFloat(getFlyRoundMode())>0) a=flyShowAmt(a); _pendNow += a; } });
+      _pendNow = Math.round(_pendNow);
+    } catch(e){}
+    const actualNet = _apNow ? (_apNow.net - _pendNow) : (keptCash - actualSpecPayout - actualPtePayout - actualLxPayout);
     h += `<div style="margin:6px 0;padding:12px;background:#f8f9fa;border-radius:8px;font-size:15px;line-height:1.8;border:1px solid #e5e5e5">`;
     const regNums = (lastDraw.regularNums||[]).map(n => String(n).padStart(2,'0') + (NUM2ZODIAC[n]||'')).join(' ');
     h += `<div style="font-weight:700;font-size:15px;margin-bottom:4px">已开奖：特${String(dn).padStart(2,'0')} ${dz}</div>`;
@@ -8091,17 +8098,28 @@ function renderRisk(){
   h += `</div>`;
   // 飞后残留
   h += `<div style="border-top:1px solid #e9d5ff;margin-top:8px;padding-top:8px">`;
-  h += `<div style="display:flex;justify-content:space-between"><span>飞出去·特号（本轮该飞，未凑整）</span><b style="color:#cf1322">${currentFly.toFixed(0)}</b></div>`;
-  if(pteFlyAmt > 0){
-    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（平特那边赔）</span><b style="color:#cf1322">${pteFlyAmt.toFixed(0)}</b></div>`;
+  // 全部按已飞实付口径，和「飞单统计」顶部、结算明细同一套数
+  var _paidRowsT = []; try { _paidRowsT = flownRows(); } catch(e){}
+  var _paidAllT = _paidRowsT.reduce(function(t,x){ return t + x.a; }, 0);
+  var _paidEmT = 0;
+  try { _paidEmT = (emFlyOn ? (autoFlyOn ? emFlySales : flownRealOf('_em_total')) : 0); } catch(e){}
+  var _paidPteT = 0, _paidLxT = 0;
+  Object.keys(flownPerPos).forEach(function(k){
+    if(k.indexOf('平特') === 0) _paidPteT += flownRealOf(k);
+    else if(k.indexOf('连肖') === 0) _paidLxT += flownRealOf(k);
+  });
+  var _paidSpecT = Math.max(0, _paidAllT - _paidEmT - _paidPteT - _paidLxT);
+  h += `<div style="display:flex;justify-content:space-between"><span>飞出去·特号（已实操）</span><b style="color:#cf1322">${_paidSpecT.toFixed(0)}</b></div>`;
+  if(_paidPteT > 0){
+    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（平特那边赔）</span><b style="color:#cf1322">${_paidPteT.toFixed(0)}</b></div>`;
   }
-  if(lxFlyAmt > 0){
-    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（连肖那边赔）</span><b style="color:#cf1322">${lxFlyAmt.toFixed(0)}</b></div>`;
+  if(_paidLxT > 0){
+    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（连肖那边赔）</span><b style="color:#cf1322">${_paidLxT.toFixed(0)}</b></div>`;
   }
-  if(emFlyOn && emFlySales > 0){
-    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（二中二三中三那边赔）</span><b style="color:#cf1322">${emFlySales.toFixed(0)}</b></div>`;
+  if(_paidEmT > 0){
+    h += `<div style="display:flex;justify-content:space-between"><span>飞出去（二中二三中三那边赔）</span><b style="color:#cf1322">${_paidEmT.toFixed(0)}</b></div>`;
   }
-  const flySum = currentFly + pteFlyAmt + lxFlyAmt + (emFlyOn ? emFlySales : 0);
+  const flySum = _paidAllT;
   if(flySum > 0){
     h += `<div style="display:flex;justify-content:space-between;border-top:1px dashed #e0e0e0;margin-top:3px;padding-top:5px"><span>飞出去合计</span><b style="color:#cf1322">${flySum.toFixed(0)}</b></div>`;
   }
@@ -8115,19 +8133,14 @@ function renderRisk(){
     if(typeof c === 'string' && (c.startsWith('平特') || c.startsWith('连肖'))) _todayKeys.add(c);
   }));
   const _salesNow = getSplitSales();
-  const _alreadyReal = [..._todayKeys].reduce((a,k)=>{
-    if(k === '_em_total') return a;
-    const _b = _salesNow[k] || 0;
-    if(!(_b > 0)) return a;                  // 今天这号没人下注，旧记录不算
-    return a + flownRealOf(k);               // 已飞锁定：不因调档/补单被抹掉
-  }, 0);
+  const _alreadyReal = _paidAllT;   // 与飞单统计「已飞」同一个数
   const _pendingReal = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + flyShowAmt(l.amt), 0);
   const keptCashReal = keptCash;                 // 与风险面板同一口径
-  const _totalRealFly = totalSales - keptCash;
+  const _totalRealFly = _alreadyReal + _pendingReal;
   const _totalOrigFly = currentFly + pteFlyAmt + effectiveLxFly;
   const _roundGap = _totalRealFly - _totalOrigFly;   // 负=少飞(留自己)；正=多飞(上家兜)
   const _pendingOrig = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + l.amt, 0);
-  const _shouldAll = (_fr2.totalFly || 0);
+  const _shouldAll = _alreadyReal + _pendingReal;   // 已飞 + 待飞 = 补飞完的实际总飞
   const _stillNeed = Math.max(0, _shouldAll - _alreadyReal);
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　已飞累计 ${_alreadyReal.toFixed(0)}（含早前确认过的）· 按现阈值还该飞 ${_shouldAll.toFixed(0)}，扣掉已飞还要补 ${_stillNeed.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
   if(_alreadyReal > _shouldAll + 20 && _shouldAll > 0){
@@ -8156,7 +8169,8 @@ function renderRisk(){
     h += `</div>`;
   }
   const _cashNow = totalSales - _alreadyReal;
-  h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${keptCashReal.toFixed(0)}</b></div>`;
+  const _keptFinal = totalSales - _totalRealFly;
+  h += `<div style="display:flex;justify-content:space-between"><span>自留现金</span><b>${_keptFinal.toFixed(0)}</b></div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　现在手上 ${_cashNow.toFixed(0)}（总单减已飞）· 补飞完才是上面这个数</span><span></span></div>`;
   // 开奖后用实际值，否则用最坏预测
   let dSpecPayout = specialPayout, dPtePayout = ptePayout, dLxPayout = lxPayout, dNet = afterFlyNet;
