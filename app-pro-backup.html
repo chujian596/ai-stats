@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.181-Pro';
+var APP_VER = 'v58.182-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6264,7 +6264,9 @@ function calcOrderWinDetail(o, dr){
     } else if(code.startsWith('平特')){
       const z = code.replace('平特','');
       // NUM2ZODIAC 的值是数组（['虎']），旧代码拿数组跟字符串全等比较，永远不成立 → 平特中奖也算不出来
-      const hitP = d.regularNums.some(function(n){
+      // 平特肖按 7 个号算：6 个平号 + 特号，任一命中即中（与自动结算同口径）
+      const allP = d.regularNums.concat([d.specialNum]);
+      const hitP = allP.some(function(n){
         var v = NUM2ZODIAC[n];
         return Array.isArray(v) ? v.indexOf(z) >= 0 : v === z;
       });
