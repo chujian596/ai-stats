@@ -136,7 +136,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
       </div>
-      <div id="liveBalls" style="display:none;flex-wrap:nowrap;gap:4px;padding:8px 2px;justify-content:center;align-items:flex-start;min-height:52px;overflow-x:auto"></div>
+      <div id="liveBalls" style="display:none;flex-wrap:nowrap;gap:3px;padding:8px 0;justify-content:center;align-items:flex-start;min-height:56px;overflow-x:auto"></div>
       
       <textarea id="input" placeholder="输入订单" style="width:100%;min-height:100px;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:14px;box-sizing:border-box;resize:vertical;margin:0"></textarea>
       <div id="drawInfoBar" style="font-size:11px;color:#999;margin:4px 2px 0;line-height:1.5;display:flex;justify-content:space-between;align-items:center">
@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.209-Pro';
+var APP_VER = 'v58.210-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4964,14 +4964,14 @@ function renderLiveBalls(nums, specialFlag){
   for(var i=0; i<nums.length; i++){
     var n = parseInt(nums[i]);
     var isSpecial = specialFlag && i === nums.length-1 && nums.length >= 7;
-    var color = '#129e5a'; // 纯绿
+    var color = 'linear-gradient(160deg,#4cc27f,#139a58)'; // 绿
     var isRed = false;
     for(var j=0; j<redNums.length; j++){
-      if(redNums[j] == n){ color = '#dc2b20'; isRed = true; break; } // 纯红
+      if(redNums[j] == n){ color = 'linear-gradient(160deg,#ef5f52,#d13a2c)'; isRed = true; break; } // 红
     }
     if(!isRed){
       for(var j=0; j<blueNums.length; j++){
-        if(blueNums[j] == n){ color = '#1565d8'; break; } // 纯蓝
+        if(blueNums[j] == n){ color = 'linear-gradient(160deg,#4f93ef,#1f5fd0)'; break; } // 蓝
       }
     }
     // 圆形号码 + 下方生肖小字，特号用「+」隔开；纯色白字
@@ -4981,10 +4981,11 @@ function renderLiveBalls(nums, specialFlag){
     }
     var _zod = (typeof NUM2ZODIAC !== 'undefined' && NUM2ZODIAC[n]) ? NUM2ZODIAC[n] : '';
     html += '<span style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">'
-         + '<span style="width:34px;height:34px;border-radius:50%;background:'+color+';'
+         + '<span style="width:38px;height:38px;border-radius:50%;background:'+color+';'
          + 'display:flex;align-items:center;justify-content:center;'
-         + 'font-size:17px;font-weight:700;line-height:1;letter-spacing:-.3px;'
-         + 'color:#fff;font-variant-numeric:tabular-nums;">'+String(n).padStart(2,'0')+'</span>'
+         + 'box-shadow:0 1px 3px rgba(0,0,0,.18),inset 0 -2px 4px rgba(0,0,0,.10);'
+         + 'font-size:18px;font-weight:700;line-height:1;letter-spacing:-.3px;'
+         + 'color:#fff !important;font-variant-numeric:tabular-nums;-webkit-text-fill-color:#fff;">'+String(n).padStart(2,'0')+'</span>'
          + '<span style="margin-top:2px;font-size:10px;line-height:1.1;color:#666;font-weight:600">'+esc(_zod)+'</span>'
          + '</span>';
   }
