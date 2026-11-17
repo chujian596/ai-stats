@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.196-Pro';
+var APP_VER = 'v58.197-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1752,15 +1752,13 @@ function renderPaySide(){
   let h = '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   const _ap = actualPnL();
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:2px">`
-     + `<span>总单 <b style="color:#1a1a1a">${_ap.sales.toFixed(0)}</b></span>`
-     + `<span>客户赔付 <b style="color:#cf1322">${_ap.settled?('-'+_ap.payout.toFixed(0)):'未结算'}</b></span>`
-     + `<span>毛净 <b style="color:${(_ap.sales-_ap.payout)>=0?'#166534':'#cf1322'}">${(_ap.sales-_ap.payout).toFixed(0)}</b></span>`
-     + `</div>`
-     + `<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:4px">`
-     + `<span>已飞实付 <b style="color:#cf1322">${_ap.flyOut.toFixed(0)}</b></span>`
-     + `<span>上家赔回 <b style="color:#16a34a">+${_ap.flyBack.toFixed(0)}</b></span>`
-     + `<span>实际盈亏 <b style="font-size:14px;color:${_ap.net>=0?'#166534':'#cf1322'}">${_ap.net>=0?'+':''}${_ap.net.toFixed(0)}</b></span>`
+  h += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;font-size:12px;color:#666;margin-bottom:4px">`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">总单</span><b style="color:#1a1a1a;font-size:14px">${_ap.sales.toFixed(0)}</b></div>`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">客户赔付</span><b style="color:#cf1322;font-size:14px">${_ap.settled?('-'+_ap.payout.toFixed(0)):'未结算'}</b></div>`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">毛净</span><b style="color:${(_ap.sales-_ap.payout)>=0?'#166534':'#cf1322'};font-size:14px">${(_ap.sales-_ap.payout).toFixed(0)}</b></div>`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">已飞实付</span><b style="color:#cf1322;font-size:14px">${_ap.flyOut.toFixed(0)}</b></div>`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">上家赔回</span><b style="color:#16a34a;font-size:14px">+${_ap.flyBack.toFixed(0)}</b></div>`
+     + `<div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:11px;color:#888">实际盈亏</span><b style="font-size:14px;color:${_ap.net>=0?'#166534':'#cf1322'}">${_ap.net>=0?'+':''}${_ap.net.toFixed(0)}</b></div>`
      + `</div>`;
   h += `</div>`;
   if(!lastDraw){
@@ -2878,9 +2876,21 @@ function renderHKFlyBox(){
 // 飞单相关开关变更后：侧栏摘要 + 整页（顶部三数在 renderRisk 里）一起重绘，
 // 否则会出现「侧栏已飞 110、顶部还是 0」这种两处打架。
 function afterFlyFlagChange(){
+  var _y = window.scrollY || window.pageYOffset || 0;
+  var _sp = document.getElementById('splitBody');
+  var _open = !!(_sp && _sp.style.display !== 'none');
   try { refreshFlySummary(); } catch(e){}
   try { renderAll(); } catch(e){}
+  // 重绘会把飞单统计面板关掉、页面滚回顶部；这里原样恢复，撤销/改额就留在原地
+  try {
+    var sp2 = document.getElementById('splitBody');
+    if(sp2 && _open && sp2.style.display === 'none'){
+      sp2.style.display = '';
+      try { if(typeof calcSplit === 'function') calcSplit(); } catch(e){}
+    }
+  } catch(e){}
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
+  try { window.scrollTo(0, _y); } catch(e){}
 }
 function refreshFlySummary(){
   try {
@@ -3048,8 +3058,7 @@ function showAllFlyDir(){
   h += '</div>';
   h += '</div>';
   h += '</div>';
-  h += '</div>';
-  // 手动插入飞单清单（贴进来两个数一行：号码 金额）
+  // 手动插入飞单清单（贴进来两个数一行：号码 金额）—— 同属这张卡
   h += '<div style="margin-top:6px;border-top:1px dashed #ddd;padding-top:6px">'
      + '<div style="font-size:10px;color:#666;font-weight:700;margin-bottom:3px">手动登记飞单（一行一个：<span style="color:#999">22 140</span> 或 <span style="color:#999">平特虎 1000</span>）</div>'
      + '<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:52px;border:1px solid #ddd;border-radius:6px;padding:5px;font-size:12px;box-sizing:border-box;resize:vertical" placeholder="22 140&#10;34 90&#10;平特虎 1000">' + esc(window._manualFlyBuf || '') + '</textarea>'
@@ -3057,7 +3066,8 @@ function showAllFlyDir(){
      + '<button onclick="applyManualFlyList()" style="flex:1;border:1px solid #000;background:#000;color:#fff;border-radius:6px;padding:6px;font-size:12px;font-weight:700">按清单登记已飞</button>'
      + '<button onclick="if(document.getElementById(\'manualFlyInput\')){document.getElementById(\'manualFlyInput\').value=\'\';window._manualFlyBuf=\'\';}" style="border:1px solid #ccc;background:#fff;color:#666;border-radius:6px;padding:6px 10px;font-size:12px">清空</button>'
      + '</div></div>';
-    h += flyEditListHtml();
+    h += flyEditListHtml(true);
+  h += '</div>'; // 关闭 flyDirBody：三块同属一张卡
   box.innerHTML = h;
 }
 
@@ -3083,13 +3093,15 @@ function copyFlownList(){
 }
 
 // 已飞清单：逐条可改额或撤销（飞单统计页 / 结算明细共用）
-function flyEditListHtml(){
+function flyEditListHtml(embedded){
   var out = '';
   var _cnt = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).length;
   out += '<div style="border-top:1px dashed #ddd;margin-top:6px;padding-top:6px">'
-     + '<div onclick="toggleFlyEdit()" style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333;cursor:pointer">'
-     + '<span>' + (_flyEditOpen ? '▼' : '▶') + ' 已飞清单（可改额 / 撤销）</span><span style="font-weight:400;color:#999;font-size:10px">' + _cnt + ' 条</span></div>';
-  if(!_flyEditOpen){
+     + (embedded
+        ? '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>已飞清单（可改额 / 撤销）</span><span style="font-weight:400;color:#999;font-size:10px">' + _cnt + ' 条</span></div>'
+        : '<div onclick="toggleFlyEdit()" style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333;cursor:pointer"><span>' + (_flyEditOpen ? '▼' : '▶') + ' 已飞清单（可改额 / 撤销）</span><span style="font-weight:400;color:#999;font-size:10px">' + _cnt + ' 条</span></div>')
+     + '';
+  if(!embedded && !_flyEditOpen){
     out += '<div style="font-size:10px;color:#999;margin-top:2px">点标题展开，可逐条改额或撤销</div></div>';
     return out;
   }
