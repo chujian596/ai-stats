@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.216-Pro';
+var APP_VER = 'v58.217-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7970,7 +7970,8 @@ function renderRisk(){
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
-  if(_optR && _optM > 0 && _optM < 100){
+  var _isNoCut = (_optM >= 100);
+  if(_optR && _optM > 0 && !_isNoCut){
     var _curR = cutCalc(_diagTop, true), _dFl = _curR.flown - _optR.flown, _dW = _curR.worst - _optR.worst;
     h += `<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0 9px;padding:3px 0 1px">`
        + `<span style="font-size:11px;color:#999">建议</span>`
@@ -7982,12 +7983,12 @@ function renderRisk(){
     if(Math.abs(_dFl) <= 0.5){
       h += `<div style="font-size:11px;color:#16a34a;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 已是最优落点，不用动</div>`;
     } else if(_optM < (splitTakeAll||0)){
-      var _ce = _dW > 0 ? _dW/_dFl : 99;
-      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">从 ${_diagTop} 再削到 ${_optM} 要多飞 ${Math.abs(_dFl).toFixed(0)} 元，换回 ${_dW.toFixed(0)} 元安全（每飞 1 元换 ${_ce.toFixed(1)} 元）</div>`;
+      var _gain = -_dW, _ce = _gain > 0 ? _gain/Math.abs(_dFl) : 0;
+      h += `<div style="font-size:11px;color:#999;line-height:1.5;margin-bottom:2px">从 ${_diagTop} 再削到 ${_optM} 要多飞 ${Math.abs(_dFl).toFixed(0)} 元，换回 ${_gain.toFixed(0)} 元安全（每飞 1 元换 ${_ce.toFixed(1)} 元）</div>`;
     } else {
       h += `<div style="font-size:11px;color:#b45309;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 削得太狠、白飞了 ${Math.abs(_dFl).toFixed(0)} 元：放到 ${_optM} 少飞这部分，最坏只从 ${(_curR.worst+_othNet).toFixed(0)} 变到 ${(_optR.worst+_othNet).toFixed(0)}，手上能多留本金</div>`;
     }
-  } else if(_optM === 100){
+  } else if(_isNoCut){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 吃最大 ${_diagTop} 元/号 已守住基准，再往下削都是白飞</div>`;
   } else if(_needReject){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
@@ -8025,7 +8026,7 @@ function renderRisk(){
      + (function(){ var _fl=0; try{ _fl=totalFlownReal(); }catch(e){} 
         return _fl>0.5 ? '<div style="padding:0 0 3px;font-size:11px;color:#16a34a;line-height:1.5">已飞 <b>'+_fl.toFixed(0)+'</b> 元已锁定：切档位、点建议、勾自动稳健都只改“后续应飞”，不会清空已飞记录</div>' : ''; })();
   // 本盘建议：按「亏损≤总额20%」找最省飞的档，点一下就填；压不到就明说拒单
-  if(_optM > 0 && _optM < 100 && _optR){
+  if(_optM > 0 && !_isNoCut && _optR){
     var _curIsBest = (Math.abs((splitTakeAll||0) - _optM) < 0.01);
     h += '<div style="padding:0 0 4px;font-size:11px;line-height:1.5">'
        + (_curIsBest
@@ -8056,6 +8057,11 @@ function renderRisk(){
     if(_top > 0 && typeof isOwnerDevice === 'function' && isOwnerDevice()){
       var _cap  = (splitTakeAll > 0) ? splitTakeAll : _top;   // 阈值只有一个：号码表、飞单统计、档位卡都用这个数
       var _lv   = [95,90,85,80,78,70,63,55,47,40,30,21];
+      // 高于 95 的档也要能看见：当前阈值、建议档、20%/40% 目标档都补进列表，按大小排好
+      [Math.round(splitTakeAll||0), Math.round(_optM||0), Math.round(rec20||0), Math.round(rec40||0)].forEach(function(m){
+        if(m > 0 && _lv.indexOf(m) < 0) _lv.push(m);
+      });
+      _lv.sort(function(a,b){ return b-a; });
       var base  = cutCalc(0, true);                            // 真·不削：一分不飞
       var bestM = 0, bestEff = 0;
       _lv.forEach(function(m){
