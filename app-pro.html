@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.188-Pro';
+var APP_VER = 'v58.189-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2918,6 +2918,10 @@ function flyGroupText(g){
   return g.codes.join(' ') + ' 各' + g.amt.toFixed(0);
 }
 
+var _flyDirOpen = true;      // 飞单总目录默认打开
+var _flyEditOpen = false;    // 已飞清单默认收起
+function toggleFlyDir(){ _flyDirOpen = !_flyDirOpen; showAllFlyDir(); }
+function toggleFlyEdit(){ _flyEditOpen = !_flyEditOpen; showAllFlyDir(); }
 function showAllFlyDir(){
   currentFlyGroup = null;
   const r = getThisRoundFly();
@@ -2935,10 +2939,11 @@ function showAllFlyDir(){
   const _dg = buildFlyGroups(done, true);
   const _mode = getFlyRoundMode();
   let h = '<div style="font-size:12px;line-height:1.3">';
-  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px">'
-     + '<span>飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _dg.showSum.toFixed(0) + '）</span>'
+  h += '<div onclick="toggleFlyDir()" style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer">'
+     + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _dg.showSum.toFixed(0) + '）</span>'
      + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
      + '</div>';
+  h += '<div id="flyDirBody" style="display:' + (_flyDirOpen ? 'block' : 'none') + '">';
   h += '<div style="display:flex">';
   // 左：未飞
   h += '<div style="flex:1;border-right:1px solid #eee;min-width:0;display:flex;flex-direction:column">';
@@ -2973,6 +2978,7 @@ function showAllFlyDir(){
          + '<span style="font-size:12px;color:#999;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
     });
   }
+  h += '</div>';
   h += '</div>';
   h += '</div>';
   h += '</div>';
@@ -3012,9 +3018,16 @@ function copyFlownList(){
 // 已飞清单：逐条可改额或撤销（飞单统计页 / 结算明细共用）
 function flyEditListHtml(){
   var out = '';
+  var _cnt = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).length;
   out += '<div style="border-top:1px dashed #ddd;margin-top:6px;padding-top:6px">'
-     + '<div style="font-weight:700;font-size:12px;color:#333;margin-bottom:2px">已飞清单（可改额 / 撤销）</div>'
-     + '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
+     + '<div onclick="toggleFlyEdit()" style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333;cursor:pointer">'
+     + '<span>' + (_flyEditOpen ? '▼' : '▶') + ' 已飞清单（可改额 / 撤销）</span><span style="font-weight:400;color:#999;font-size:10px">' + _cnt + ' 条</span></div>';
+  if(!_flyEditOpen){
+    out += '<div style="font-size:10px;color:#999;margin-top:2px">点标题展开，可逐条改额或撤销</div></div>';
+    return out;
+  }
+  out += '<div id="flyEditBody">';
+  out += '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
   var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).sort();
   if(!ks.length){
     out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
@@ -3029,6 +3042,7 @@ function flyEditListHtml(){
          + '</div>';
     });
   }
+  out += '</div>';
   out += '</div>';
   return out;
 }
