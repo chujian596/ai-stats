@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.203-Pro';
+var APP_VER = 'v58.204-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6867,10 +6867,12 @@ function renderOrdersList(){
     const drawZodsD = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)) : new Set();
     const allDrawNums = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum]) : new Set();
     Object.keys(salesD).sort().forEach(k => {
-      const extra = Math.max(0, salesD[k] - splitTakeAll);
-      if(extra > 0){
+      const due = Math.max(0, salesD[k] - splitTakeAll);
+      const paidK = flownRealOf(k);
+      const showK = paidK > 0 ? paidK : due;
+      if(due > 0 || paidK > 0){
         const hit = lastDraw && Number(k) === lastDraw.specialNum;
-        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${extra.toFixed(0)}${hit?' ←命中':''}</div>`;
+        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(!upL) upL = '<div style="color:#bbb">—</div>';
@@ -6882,10 +6884,12 @@ function renderOrdersList(){
       }
     });});
     Object.entries(pteD).forEach(([z, amt]) => {
-      const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
-      if(extra > 0){
+      const dueP = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
+      const paidP = flownRealOf('平特'+z);
+      const showP = paidP > 0 ? paidP : dueP;
+      if(dueP > 0 || paidP > 0){
         const hit = drawZodsD.has(z);
-        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${extra.toFixed(0)}${hit?' ←命中':''}</div>`;
+        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(lxFlyAmt > 0){
@@ -6940,7 +6944,11 @@ function renderOrdersList(){
   let spOut = 0, zdOut = 0, emOut2 = 0;
   try {
     const sD = getSplitSales();
-    Object.keys(sD).forEach(k => spOut += Math.max(0, sD[k] - splitTakeAll));
+    Object.keys(sD).forEach(k => {
+      const due = Math.max(0, sD[k] - splitTakeAll);
+      const paid = flownRealOf(k);
+      spOut += (paid > 0 ? paid : due);
+    });
     const pD = {};
     orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && c.startsWith('平特')){
@@ -6948,7 +6956,11 @@ function renderOrdersList(){
         pD[z] = (pD[z]||0) + codeSalesForOrder(o, c);
       }
     });});
-    Object.values(pD).forEach(a => zdOut += Math.max(0, a - pteFlyTakeAll));
+    Object.entries(pD).forEach(([z, a]) => {
+      const due = pteFlyTakeAll > 0 ? Math.max(0, a - pteFlyTakeAll) : a;
+      const paid = flownRealOf('平特'+z);
+      zdOut += (paid > 0 ? paid : due);
+    });
     zdOut += lxFlyAmt;
     let emOnX = true; try { emOnX = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
     if(emOnX) orders.forEach(o => { (o.codes||[]).forEach(c => {
@@ -6970,8 +6982,9 @@ function renderOrdersList(){
     h += `<div style="font-size:11px;color:#999">本期没有命中项，上家不用赔</div>`;
   }
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
-  h += `<div>总账单:${flyOutTotal.toFixed(0)}-${flyBackTotal.toFixed(0)}=${(flyOutTotal-flyBackTotal).toFixed(0)}</div>`;
-  h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:-'+(flyOutTotal-flyBackTotal).toFixed(0):'未开奖，结算待定'}</div>`;
+  var _need = flyBackTotal - flyOutTotal;
+  h += `<div>上家需结算:${flyBackTotal.toFixed(0)}-${flyOutTotal.toFixed(0)}=${_need>=0?'+':'-'}${Math.abs(_need).toFixed(0)}</div>`;
+  h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:'+(_need>=0?'+':'-')+Math.abs(_need).toFixed(0):'未开奖，结算待定'}</div>`;
   h += `</div></div></div>`;
   box.innerHTML = h;
 }
