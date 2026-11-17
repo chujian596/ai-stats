@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.218-Pro';
+var APP_VER = 'v58.219-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -7790,6 +7790,11 @@ function renderRisk(){
   const rec0 = findT(0);
   const rec20 = findT(-totalSales*0.2);
   const rec40 = findT(-totalSales*0.4);
+  // 建议线：用户填了「我能扛」金额就优先按它算，没填才按总单 20%
+  let _userTol = 0;
+  try { _userTol = parseFloat(localStorage.getItem('cut_tol_v1')) || 0; } catch(e){}
+  if(_userTol < 0) _userTol = 0;
+  const recTol = _userTol > 0 ? findT(-_userTol) : null;
   // 自动稳健：开了就把阈值自动设为稳健值（最坏亏≤当天20%）
   let autoStable = false;
   try { autoStable = localStorage.getItem('autoStable') === '1'; } catch(e){}
@@ -7959,8 +7964,13 @@ function renderRisk(){
   var _sugWhy = '';
   var _needReject = false;
   if(_optM <= 0){
-    if(typeof rec20 === 'number' && rec20 === 0){ _optM = 100; _optR = _dTopR; _sugWhy = '不削也在总亏 20% 以内'; }
-    else if(typeof rec20 === 'number' && rec20 >= 5 && rec20 < _maxBet0){ _optM = rec20; _optR = cutCalc(rec20, true); _sugWhy = '亏损≤总额20%'; }
+    var _pick = (recTol !== null ? recTol : rec20);
+    var _pickWhy = (_userTol > 0 ? '我能扛 ' + _userTol.toFixed(0) + ' 元' : '亏损≤总额20%');
+    if(_pick === 0){ _optM = 100; _optR = _dTopR; _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在总亏 20% 以内'); }
+    else if(typeof _pick === 'number' && _pick >= 5 && _pick < _maxBet0){
+      _optM = _pick; _optR = cutCalc(_optM, true); _sugWhy = _pickWhy;
+      if(_userTol > 0){ var _g=0; while(_optM > 5 && (cutCalc(_optM,true).worst + _othNet) < -_userTol && _g++ < 500){ _optM--; } _optR = cutCalc(_optM, true); }
+    }
     else { _needReject = true; }
   }
   window.__optM = _optM>0 ? _optM : 0;
@@ -7988,7 +7998,11 @@ function renderRisk(){
     } else {
       h += `<div style="font-size:11px;color:#b45309;line-height:1.5;margin-bottom:2px">当前 ${_diagTop} 削得太狠、白飞了 ${Math.abs(_dFl).toFixed(0)} 元：放到 ${_optM} 少飞这部分，最坏只从 ${(_curR.worst+_othNet).toFixed(0)} 变到 ${(_optR.worst+_othNet).toFixed(0)}，手上能多留本金</div>`;
     }
-  } else if(_isNoCut){
+  }
+  if(_othPay > 0 || (typeof pteKept === 'number' && pteKept > 0)){
+    h += `<div style="padding:1px 0 0;font-size:11px;color:#999;line-height:1.5">联合账：特号 + 平特（按最多 7 肖同时中）+ 连肖，合计最坏已并入下面的档位数字（平特自留 ${(typeof pteKept==='number'?pteKept.toFixed(0):0)} 元、最坏赔 ${_othPay.toFixed(0)} 元）</div>`;
+  }
+  if(_isNoCut){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 吃最大 ${_diagTop} 元/号 已守住基准，再往下削都是白飞</div>`;
   } else if(_needReject){
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
@@ -8110,7 +8124,7 @@ function renderRisk(){
         h += `</div>`;
         h += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">`
            + `<span style="font-size:12px;color:#666;white-space:nowrap">我能扛</span>`
-           + `<input id="cutTolerance" type="number" placeholder="填金额" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">`
+           + `<input id="cutTolerance" type="number" value="${_userTol>0?_userTol:''}" placeholder="填金额" onchange="try{var _v=parseFloat(this.value)||0;if(_v>0)localStorage.setItem('cut_tol_v1',String(_v));else localStorage.removeItem('cut_tol_v1');}catch(e){};renderRisk()" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:13px">`
            + `<button onclick="applyCutTolerance()" style="padding:6px 12px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;white-space:nowrap">算档位</button>`
            + (rec20 >= 5 ? `<button onclick="applyTh(${rec20})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤20%</button>` : `<span style="padding:5px 7px;border:1px solid #eee;color:#bbb;border-radius:5px;font-size:11px;white-space:nowrap">20%线压不到</span>`)
            + (rec40 >= 5 ? `<button onclick="applyTh(${rec40})" style="padding:5px 7px;border:1px solid #ddd;background:#fff;color:#666;border-radius:5px;font-size:11px;white-space:nowrap">≤40%</button>` : `<span style="padding:5px 7px;border:1px solid #eee;color:#bbb;border-radius:5px;font-size:11px;white-space:nowrap">40%线压不到</span>`)
