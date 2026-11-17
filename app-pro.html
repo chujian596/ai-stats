@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.217-Pro';
+var APP_VER = 'v58.218-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -8057,7 +8057,12 @@ function renderRisk(){
     if(_top > 0 && typeof isOwnerDevice === 'function' && isOwnerDevice()){
       var _cap  = (splitTakeAll > 0) ? splitTakeAll : _top;   // 阈值只有一个：号码表、飞单统计、档位卡都用这个数
       var _lv   = [95,90,85,80,78,70,63,55,47,40,30,21];
-      // 高于 95 的档也要能看见：当前阈值、建议档、20%/40% 目标档都补进列表，按大小排好
+      var _topRaw0 = 0; _bets.forEach(function(b){ if(b.nb > _topRaw0) _topRaw0 = b.nb; });
+      // 单号注额超过 95 时，补大额档（100/120/150/200/300/500/1000…），只在「削得动」的范围内补
+      [2000,1500,1200,1000,800,600,500,400,300,250,200,150,120,100].forEach(function(m){
+        if(m < _topRaw0 && _lv.indexOf(m) < 0) _lv.push(m);
+      });
+      // 当前阈值、建议档、20%/40% 目标档也补进去，按大小排好
       [Math.round(splitTakeAll||0), Math.round(_optM||0), Math.round(rec20||0), Math.round(rec40||0)].forEach(function(m){
         if(m > 0 && _lv.indexOf(m) < 0) _lv.push(m);
       });
@@ -8086,7 +8091,7 @@ function renderRisk(){
            + `<div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>自留 ${base.kept.toFixed(0)} · 飞 ${base.flown.toFixed(0)}</span></div>`
            + `<div style="font-size:11px;color:#888">动 0 号</div></div>`;
         var _lineM = 0;
-        var _topRaw = 0; _bets.forEach(function(b){ if(b.nb > _topRaw) _topRaw = b.nb; });
+        var _topRaw = _topRaw0;
         _lv.forEach(function(m){
           if(m >= _topRaw) return;   // 削不动最重单号的档位直接不列
           var r = cutCalc(m, true), df = r.flown - base.flown, dw = r.worst - base.worst;
