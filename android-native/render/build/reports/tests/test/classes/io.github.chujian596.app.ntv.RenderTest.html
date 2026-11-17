@@ -23,7 +23,7 @@
 <tr>
 <td>
 <div class="infoBox" id="tests">
-<div class="counter">8</div>
+<div class="counter">10</div>
 <p>tests</p>
 </div>
 </td>
@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">12.814s</div>
+<div class="counter">16.147s</div>
 <p>duration</p>
 </div>
 </td>
@@ -78,43 +78,53 @@
 </tr>
 </thead>
 <tr>
+<td class="success">bareZodiacNoDialog</td>
+<td class="success">0.506s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
 <td class="success">clickEveryButton</td>
-<td class="success">1.521s</td>
+<td class="success">2.050s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">dumpRiskText</td>
+<td class="success">0.448s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">empty</td>
-<td class="success">0.278s</td>
+<td class="success">0.283s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">gridButtons</td>
-<td class="success">1.149s</td>
+<td class="success">1.076s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">panelsToggle</td>
-<td class="success">0.125s</td>
+<td class="success">0.343s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">recordAndDraw</td>
-<td class="success">0.508s</td>
+<td class="success">0.805s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">settle</td>
-<td class="success">0.940s</td>
+<td class="success">1.316s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">shopSplit</td>
-<td class="success">7.661s</td>
+<td class="success">8.345s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">waveDialogs</td>
-<td class="success">0.632s</td>
+<td class="success">0.975s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -122,94 +132,659 @@
 <div id="tab1" class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@165726ca in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@165726ca in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@165726ca in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@165726ca in: RESUMED
+<pre>D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf32d95 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf32d95 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf32d95 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf32d95 in: RESUMED
 CHECK 澳门单数=1 香港单数=0
-CHECK 切店前标签=澳门 ▾
-CHECK 切店后标签=香港 ▾
+CHECK 切店前标签=澳门&#x1f1f2;&#x1f1f4; ▾
+CHECK 切店后标签=香港&#x1f1ed;&#x1f1f0; ▾
 CHECK 切店后 澳门=1 香港=1
 SHOP PASS
 CHECK 香港合计=200.0
-SHOT p1_店铺分池 822x1292
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46fa2e0b in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46fa2e0b in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46fa2e0b in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46fa2e0b in: RESUMED
+SHOT p1_店铺分池 822x2725
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@a848f78 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@a848f78 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@a848f78 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@a848f78 in: RESUMED
 CLICK 保存 -&gt; 已保存 3 笔
-CLICK 排行榜 -&gt; 已保存 3 笔
+CLICK 排行榜 -&gt; 排行榜已收起
 scrollY after 排行榜 = 0
-CLICK 订单记录 -&gt; 已保存 3 笔
-CLICK AI统计 -&gt; 已保存 3 笔
+CLICK 订单记录 -&gt; 排行榜已收起
+CLICK AI统计 -&gt; 排行榜已收起
 PANEL AI统计 &gt;&gt;&gt; none
-CLICK 盈利统计 -&gt; 已保存 3 笔
+CLICK 盈利统计 -&gt; 排行榜已收起
 PANEL 盈利统计 &gt;&gt;&gt; none
-CLICK 平特肖 -&gt; 已保存 3 笔
-PANEL 平特肖 &gt;&gt;&gt; 今天收的生肖注额： |   虎　1000 |   鸡　230 |  / 
+CLICK 平特肖 -&gt; 排行榜已收起
+PANEL 平特肖 &gt;&gt;&gt; none
 CLICK 今日归档 -&gt; 已归档 3 单，今日清空
-SHOT 04_点了按钮 822x3269
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2272f8f1 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2272f8f1 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2272f8f1 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2272f8f1 in: RESUMED
+SHOT 04_点了按钮 822x1909
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@23400020 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@23400020 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@23400020 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@23400020 in: RESUMED
 CLICK 保存 -&gt; 已保存 7 笔
 CLICK 订单记录 -&gt; 已保存 7 笔
-SHOT 02_录单后 822x1959
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5738a264 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5738a264 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5738a264 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5738a264 in: RESUMED
+SHOT 02_录单后 822x3460
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1240195 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1240195 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1240195 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1240195 in: RESUMED
+CLICK 保存 -&gt; 已保存 4 笔
+=== 裸生肖整批回显 ===
+本次已保存：
+特号 10 22 34 46 × 50 = 200.00元
+特号 08 20 32 44 04 16 28 40 × 25 = 200.00元
+特号 09 21 33 45 12 24 36 48 × 20 = 160.00元
+特号 02 14 26 38 06 18 30 42 × 15 = 120.00元
+合计680.00元
+
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a6032bb in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a6032bb in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a6032bb in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a6032bb in: RESUMED
+CLICK 保存 -&gt; 已保存 3 笔
+=== AI统计正文 ===
+当前飞单阈值（实时）特号 100 ｜ 平特 0 ｜ 连肖 0
+总单
+1400
+全部产品订单总额
+已飞(实际)
+0
+历史上已确认飞出的
+待飞
+1000
+按当前阈值还该飞
+三个数不同口径：总单是全部产品订单；已飞是之前手动确认过的累计；待飞是照当前阈值「特号 100 / 平特 0 / 连肖 0」还算该飞多少。下方号码表的「飞」只算特号 01–49，跟这三个不是一回事。
+持仓分析（飞单后）（开奖前预测） · 最坏 -4650 ▶
+持仓费用：总单 300 元，自留 400 元，最坏 -4650 元
+特号独立盈亏：全号都中要赔 4700 元（按每号留 100 元 × 47 倍）
+不亏：每号最多留 0 元（阈值 0）
+只亏当天 20%（-60）：每号最多留 0 元（阈值 0）
+只亏当天 40%（-120）：每号最多留 0 元（阈值 0）
+这里的数按当前盘面算，改了上方阈值或录了新单会自动重算。
+特号持仓 · 下注 300 · 最坏 -4400（开22） ▶
+平特持仓 · 下注 1000 / 自留 0 · 最坏赔 0（最多1肖同时中） ▶
+风险体检 · 削峰
+每号留到 105 才安全（盘面中位注额），现在做不到：最划算的 21 档最坏 -924、每号只能留 1.3，还差 103.7 元/号；再往下多飞也没多少改善，缺口只能加飞或拒单
+盘形 畸形 · 最重 22号占 33.3% · 3号有注 · 安全线 105 元/号（中位注额）· 现在每号能留 6.4 · 超线号 3/49
+阈值
+100
+元/号
+（与飞单统计同一个数，改哪边都一样）
+本盘建议 21 档（亏最少 -924）· 点一下直接填
+开奖后按号算 
+纯赚 46
+号 
+小赚 0
+号 
+小亏 0
+号 
+大亏 3
+号
+挑模式（两模式共用下面这张号码表）
+按录单阈值 100 元/号
+✓ 正在用 · 留多·赚多亏多
+按削峰档 78 元/号
+留多·赚多亏多
+下面号码表当前按 录单阈值 100 元/号 计算
+数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。
+号码表（录单阈值 100 元/号）｜每行＝这个号开出时整本账的盈亏
+自留 300 · 飞 0
+本表只算特号 01–49（合计 300 元）；平特/连肖/三中三另算，当前自留 0 元
+号 注额→自留 飞
+开出净盈亏
+22鸡
+100→100
+-4400
+34鸡
+100→100
+-4400
+45狗
+100→100
+-4400
+01马
+0→0
+ 没人买
++300
+02蛇
+0→0
+ 没人买
++300
+03龙
+0→0
+ 没人买
++300
+04兔
+0→0
+ 没人买
++300
+05虎
+0→0
+ 没人买
++300
+06牛
+0→0
+ 没人买
++300
+07鼠
+0→0
+ 没人买
++300
+08猪
+0→0
+ 没人买
++300
+09狗
+0→0
+ 没人买
++300
+10鸡
+0→0
+ 没人买
++300
+11猴
+0→0
+ 没人买
++300
+12羊
+0→0
+ 没人买
++300
+13马
+0→0
+ 没人买
++300
+14蛇
+0→0
+ 没人买
++300
+15龙
+0→0
+ 没人买
++300
+16兔
+0→0
+ 没人买
++300
+17虎
+0→0
+ 没人买
++300
+18牛
+0→0
+ 没人买
++300
+19鼠
+0→0
+ 没人买
++300
+20猪
+0→0
+ 没人买
++300
+21狗
+0→0
+ 没人买
++300
+23猴
+0→0
+ 没人买
++300
+号 注额→自留 飞
+开出净盈亏
+24羊
+0→0
+ 没人买
++300
+25马
+0→0
+ 没人买
++300
+26蛇
+0→0
+ 没人买
++300
+27龙
+0→0
+ 没人买
++300
+28兔
+0→0
+ 没人买
++300
+29虎
+0→0
+ 没人买
++300
+30牛
+0→0
+ 没人买
++300
+31鼠
+0→0
+ 没人买
++300
+32猪
+0→0
+ 没人买
++300
+33狗
+0→0
+ 没人买
++300
+35猴
+0→0
+ 没人买
++300
+36羊
+0→0
+ 没人买
++300
+37马
+0→0
+ 没人买
++300
+38蛇
+0→0
+ 没人买
++300
+39龙
+0→0
+ 没人买
++300
+40兔
+0→0
+ 没人买
++300
+41虎
+0→0
+ 没人买
++300
+42牛
+0→0
+ 没人买
++300
+43鼠
+0→0
+ 没人买
++300
+44猪
+0→0
+ 没人买
++300
+46鸡
+0→0
+ 没人买
++300
+47猴
+0→0
+ 没人买
++300
+48羊
+0→0
+ 没人买
++300
+49马
+0→0
+ 没人买
++300
+红＝开出来亏，绿＝赚；注额→自留，飞是该号飞出去的钱；按注额从大到小排，左列接右列；灰字「没人买」的号开出来全赚自留金。
+这张表按当前阈值从零算（每号留 100），不看早前已飞过多少；所以这里的自留总额可能跟上面「自留现金」不一样，两者口径不同，别对不上就以为错了。
+接单预演 · 补号模拟 ▶
+&#x1f4c4; 飞单明细 ▶
+阈值 特 100 ｜ 平 0 ｜ 连 0
+— 虎 1000
+合计　1000
+飞出去·特号（本轮该飞，未凑整）0
+飞出去（平特那边赔）1000
+飞出去合计1000　已飞累计 0（含早前确认过的） · 按现阈值还该飞 1000，扣掉已飞还要补 1000 → 凑整后 1000
+飞完实付（不含二/三中三）1000
+未凑整，按原额飞
+自留现金400　现在手上 1400（总单减已飞）· 补飞完才是上面这个数
+├ 特号赔付4700
+├ 平特赔付0
+└ 连肖赔付350
+总赔付风险5050
+自留后最坏净盈亏-4650
+
+=== 展开持仓分析 ===
+当前飞单阈值（实时）特号 100 ｜ 平特 0 ｜ 连肖 0
+总单
+1400
+全部产品订单总额
+已飞(实际)
+0
+历史上已确认飞出的
+待飞
+1000
+按当前阈值还该飞
+三个数不同口径：总单是全部产品订单；已飞是之前手动确认过的累计；待飞是照当前阈值「特号 100 / 平特 0 / 连肖 0」还算该飞多少。下方号码表的「飞」只算特号 01–49，跟这三个不是一回事。
+持仓分析（飞单后）（开奖前预测） · 最坏 -4650 ▶
+持仓费用：总单 300 元，自留 400 元，最坏 -4650 元
+特号独立盈亏：全号都中要赔 4700 元（按每号留 100 元 × 47 倍）
+不亏：每号最多留 0 元（阈值 0）
+只亏当天 20%（-60）：每号最多留 0 元（阈值 0）
+只亏当天 40%（-120）：每号最多留 0 元（阈值 0）
+这里的数按当前盘面算，改了上方阈值或录了新单会自动重算。
+特号持仓 · 下注 300 · 最坏 -4400（开22） ▶
+平特持仓 · 下注 1000 / 自留 0 · 最坏赔 0（最多1肖同时中） ▶
+风险体检 · 削峰
+每号留到 105 才安全（盘面中位注额），现在做不到：最划算的 21 档最坏 -924、每号只能留 1.3，还差 103.7 元/号；再往下多飞也没多少改善，缺口只能加飞或拒单
+盘形 畸形 · 最重 22号占 33.3% · 3号有注 · 安全线 105 元/号（中位注额）· 现在每号能留 6.4 · 超线号 3/49
+阈值
+100
+元/号
+（与飞单统计同一个数，改哪边都一样）
+本盘建议 21 档（亏最少 -924）· 点一下直接填
+开奖后按号算 
+纯赚 46
+号 
+小赚 0
+号 
+小亏 0
+号 
+大亏 3
+号
+挑模式（两模式共用下面这张号码表）
+按录单阈值 100 元/号
+✓ 正在用 · 留多·赚多亏多
+按削峰档 78 元/号
+留多·赚多亏多
+下面号码表当前按 录单阈值 100 元/号 计算
+数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。
+号码表（录单阈值 100 元/号）｜每行＝这个号开出时整本账的盈亏
+自留 300 · 飞 0
+本表只算特号 01–49（合计 300 元）；平特/连肖/三中三另算，当前自留 0 元
+号 注额→自留 飞
+开出净盈亏
+22鸡
+100→100
+-4400
+34鸡
+100→100
+-4400
+45狗
+100→100
+-4400
+01马
+0→0
+ 没人买
++300
+02蛇
+0→0
+ 没人买
++300
+03龙
+0→0
+ 没人买
++300
+04兔
+0→0
+ 没人买
++300
+05虎
+0→0
+ 没人买
++300
+06牛
+0→0
+ 没人买
++300
+07鼠
+0→0
+ 没人买
++300
+08猪
+0→0
+ 没人买
++300
+09狗
+0→0
+ 没人买
++300
+10鸡
+0→0
+ 没人买
++300
+11猴
+0→0
+ 没人买
++300
+12羊
+0→0
+ 没人买
++300
+13马
+0→0
+ 没人买
++300
+14蛇
+0→0
+ 没人买
++300
+15龙
+0→0
+ 没人买
++300
+16兔
+0→0
+ 没人买
++300
+17虎
+0→0
+ 没人买
++300
+18牛
+0→0
+ 没人买
++300
+19鼠
+0→0
+ 没人买
++300
+20猪
+0→0
+ 没人买
++300
+21狗
+0→0
+ 没人买
++300
+23猴
+0→0
+ 没人买
++300
+号 注额→自留 飞
+开出净盈亏
+24羊
+0→0
+ 没人买
++300
+25马
+0→0
+ 没人买
++300
+26蛇
+0→0
+ 没人买
++300
+27龙
+0→0
+ 没人买
++300
+28兔
+0→0
+ 没人买
++300
+29虎
+0→0
+ 没人买
++300
+30牛
+0→0
+ 没人买
++300
+31鼠
+0→0
+ 没人买
++300
+32猪
+0→0
+ 没人买
++300
+33狗
+0→0
+ 没人买
++300
+35猴
+0→0
+ 没人买
++300
+36羊
+0→0
+ 没人买
++300
+37马
+0→0
+ 没人买
++300
+38蛇
+0→0
+ 没人买
++300
+39龙
+0→0
+ 没人买
++300
+40兔
+0→0
+ 没人买
++300
+41虎
+0→0
+ 没人买
++300
+42牛
+0→0
+ 没人买
++300
+43鼠
+0→0
+ 没人买
++300
+44猪
+0→0
+ 没人买
++300
+46鸡
+0→0
+ 没人买
++300
+47猴
+0→0
+ 没人买
++300
+48羊
+0→0
+ 没人买
++300
+49马
+0→0
+ 没人买
++300
+红＝开出来亏，绿＝赚；注额→自留，飞是该号飞出去的钱；按注额从大到小排，左列接右列；灰字「没人买」的号开出来全赚自留金。
+这张表按当前阈值从零算（每号留 100），不看早前已飞过多少；所以这里的自留总额可能跟上面「自留现金」不一样，两者口径不同，别对不上就以为错了。
+接单预演 · 补号模拟 ▶
+&#x1f4c4; 飞单明细 ▶
+阈值 特 100 ｜ 平 0 ｜ 连 0
+— 虎 1000
+合计　1000
+飞出去·特号（本轮该飞，未凑整）0
+飞出去（平特那边赔）1000
+飞出去合计1000　已飞累计 0（含早前确认过的） · 按现阈值还该飞 1000，扣掉已飞还要补 1000 → 凑整后 1000
+飞完实付（不含二/三中三）1000
+未凑整，按原额飞
+自留现金400　现在手上 1400（总单减已飞）· 补飞完才是上面这个数
+├ 特号赔付4700
+├ 平特赔付0
+└ 连肖赔付350
+总赔付风险5050
+自留后最坏净盈亏-4650
+
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6ba69b7b in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6ba69b7b in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6ba69b7b in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6ba69b7b in: RESUMED
 CLICK 保存 -&gt; 已保存 6 笔
 CLICK 手动录入 -&gt; 已保存 6 笔
 CLICK 飞单统计 -&gt; 开奖已保存，已重算
 PANEL 飞单统计 &gt;&gt;&gt; 格式：期号 六个号码，最后一个是特码 / 320 05 14 17 32 34 24 + 20 / 
 CLICK 盈利统计 -&gt; 开奖已保存，已重算
-SHOT 03_开奖结算后 822x4264
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@536d57e0 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@536d57e0 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@536d57e0 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@536d57e0 in: RESUMED
+SHOT 03_开奖结算后 822x1835
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2a00a075 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2a00a075 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2a00a075 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2a00a075 in: RESUMED
 CLICK 保存 -&gt; null
 WAVE 单项弹窗 选项=总额100（摊到17号，每个5.9元） / 各号100（17号×100=1700元） / 取消 / 
-WAVE 选总额后 顶部=2026-11-17　1 单　收 100
+WAVE 选总额后 顶部=2026-11-17　本日 1 单 · 收 100.00 · 净 100.00
 CLICK 清空 -&gt; 已保存 1 笔
 CLICK 保存 -&gt; 已保存 1 笔
-WAVE 选各号后 顶部=2026-11-17　2 单　收 1800
+WAVE 选各号后 顶部=2026-11-17　本日 2 单 · 收 1800.00 · 净 1800.00
 CLICK 清空 -&gt; 已保存 1 笔
 CLICK 保存 -&gt; 已保存 1 笔
 WAVE 多项弹窗 内容=这个订单有 2 项要选 | 每项选一个，全选完点确定 | 红波 100元（17个号） | 单数 200元（25个号） | 
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57cc657b in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57cc657b in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57cc657b in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57cc657b in: RESUMED
-SHOT 01_空盘 822x1292
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6609543c in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6609543c in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6609543c in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6609543c in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5f1abc7e in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5f1abc7e in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5f1abc7e in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5f1abc7e in: RESUMED
+SHOT 01_空盘 822x2593
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@70a626ad in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@70a626ad in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@70a626ad in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@70a626ad in: RESUMED
 CLICK 保存 -&gt; 已保存 4 笔
+BTN ok  刷新 → toast=正在获取开奖…
 BTN ok  自动获取开奖 → toast=正在获取开奖…
 BTN ok  保存 → toast=先输入订单
 BTN ok  手动录入 → 弹窗
 BTN ok  清空 → toast=先输入订单
-BTN ok  排行榜 → toast=先输入订单
-BTN ok  订单记录 → toast=先输入订单
-BTN ok  排行榜 → toast=先输入订单
-BTN ok  今日归档 → toast=已归档 4 单，今日清空
-BTN ok  历史订单 → toast=已归档 4 单，今日清空
-BTN ok  清除订单 → toast=订单已清空
-BTN ok  AI统计 → toast=订单已清空
-BTN ok  飞单统计 → toast=订单已清空
-BTN ok  盈利统计 → toast=订单已清空
-BTN ok  平特肖 → toast=今天还没单
-BTN ok  归档并清空今日 → toast=今天还没有订单
-BTN ok  重算 → toast=今天还没有订单
-BTN ok  应用 → toast=今天还没有订单
-BTN ok  金额凑整 5 元档 → toast=今天还没有订单
-BTN ok  复制飞单 → toast=已复制飞单 1045 元，共 3 行
-BTN ok  确认已飞 → 弹窗
-BTN ok  清空已飞 → 弹窗
+BTN ok  撤单 → 弹窗
+BTN ok  复制 → toast=已复制 散客 的单
+BTN ok  删除 → toast=已删除
+BTN ok  删除 → toast=已删除
+BTN ok  删除 → toast=已删除
+BTN ok  删除 → toast=已删除
+BTN ok  撤销上一单 → toast=没有可撤销的订单
+BTN ok  归档并清空 → toast=今天还没有订单
+BTN ok  复制客户单 → toast=已复制
+BTN ok  复制上家单 → toast=已复制
+BTN ok  排行榜 → toast=排行榜已收起
+BTN ok  订单记录 → toast=排行榜已收起
+BTN ok  排行榜 → toast=排行榜已收起
+BTN ok  今日归档 → toast=今天还没有订单
+BTN ok  历史订单 → toast=今天还没有订单
+BTN ok  清除订单 → toast=订单已清空（已飞登记一起清零）
+BTN ok  AI统计 → toast=订单已清空（已飞登记一起清零）
+BTN ok  飞单统计 → toast=订单已清空（已飞登记一起清零）
+BTN ok  盈利统计 → toast=订单已清空（已飞登记一起清零）
+BTN ok  平特肖 → toast=订单已清空（已飞登记一起清零）
+BTN ok  重算 → toast=订单已清空（已飞登记一起清零）
+BTN ok  自动稳健（自动切到最优落点） → toast=订单已清空（已飞登记一起清零）
+BTN ok  应用 → toast=订单已清空（已飞登记一起清零）
+BTN ok  特号 → toast=订单已清空（已飞登记一起清零）
+BTN ok  飞单目录 → 弹窗
+BTN ok  平特 → toast=订单已清空（已飞登记一起清零）
+BTN ok  重置已飞 → 弹窗
+BTN ok  连肖 → toast=订单已清空（已飞登记一起清零）
+BTN ok  复制 → toast=已复制飞单 1045 元，共 3 行
+BTN ok  二中二三中三 → toast=已复制飞单 1045 元，共 3 行
+BTN ok  确认飞单 → 弹窗
+BTN ok  即飞产品自动复制（连肖/二中二/三中三） → toast=已复制飞单 1045 元，共 3 行
+BTN ok  金额凑整 5 元档 → toast=已复制飞单 1045 元，共 3 行
+BTN ok  按清单登记已飞 → toast=先把清单贴进输入框
+BTN ok  清空 → toast=先把清单贴进输入框
 BTN ok  保存设置 → toast=已改为 2
 BTN ok  清空今日 → toast=今日订单已清空
 BTN ok  清空累计 → toast=上家累计已归零
@@ -217,19 +792,29 @@ BTN ok  导出备份 → toast=已复制
 BTN ok  从剪贴板恢复 → 弹窗
 BTN ok  撤销开奖记录 → toast=澳门开奖已撤销
 BTN ok  复制香港单 → toast=已复制
+BTN ok  资料统计 → toast=已复制
 BTN ok  清空赔付记录 → toast=赔付记录已清空
-BTN ok  复制客户单 → toast=已复制
-BTN ok  复制上家单 → toast=已复制
-BTN 合计 31 个，异常 0 个
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57d79547 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57d79547 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57d79547 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@57d79547 in: RESUMED
-PANEL AI统计 点前=8 点后=0 PASS
-PANEL 飞单统计 点前=8 点后=0 PASS
-PANEL 盈利统计 点前=8 点后=0 PASS
-PANEL 排行榜 点前=8 点后=0 PASS
-PANEL 历史订单 点前=8 点后=0 PASS
+BTN ok  导出统计CSV → toast=CSV 已保存：/tmp/robolectric-RenderTest_clickEveryButton9407549192538130706/external-files/统计20261117_1733.csv
+内容也复制到剪贴板了
+BTN ok  备份JSON → 弹窗
+BTN ok  导入备份 → 弹窗
+BTN ok  粘贴导入 → 弹窗
+BTN ok  一键恢复上次备份 → 弹窗
+BTN ok  清空全部数据 → 弹窗
+BTN ok  ⚙ 设置 → 弹窗
+BTN 合计 56 个，异常 0 个
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26dcbe3a in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26dcbe3a in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26dcbe3a in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26dcbe3a in: RESUMED
+CLICK 保存 -&gt; 已保存 3 笔
+PANEL 排行榜 独占=true 有内容=true PASS &gt;&gt;&gt; 每号最多自留 | 100 | 特号合计 230　自留 190　飞 40　最坏 -4510 | # | 特号 | 金额 | 1 | 22鸡 | 140 | 2 | 34鸡 | 90 | 3 | 01马 | 0 | 4 | 02蛇 | 0 | 5 | 03龙 | 0 | 6 | 04兔 | 0 | 7 | 05虎 | 0 | 8 | 06牛 | 0 | 9 | 07鼠 | 0 | 10 | 08猪 | 0 | 11 | 09狗 | 0 | 12 | 10鸡 | 0 | 13 | 11猴 | 0 | 14 | 12羊 | 0 | 15 | 13马 | 0 | 16 | 14蛇 | 0 | 17 | 15龙 | 0 | 18 | 16兔 | 0 | 19 | 17虎 | 0 | 20 | 18牛 | 0 | 21 | 19鼠 | 0 | 22 | 20猪 | 0 | 23 | 21狗 | 0 | 24 | 23猴 | 0 | 25 | 24羊 | 0 | # | 特号 | 金额 | 26 | 25马 | 0 | 27 | 26蛇 | 0 | 28 | 27龙 | 0 | 29 | 28兔 | 0 | 30 | 29虎 | 0 | 31 | 30牛 | 0 | 32 | 31鼠 | 0 | 33 | 32猪 | 0 | 34 | 33狗 | 0 | 35 | 35猴 | 0 | 36 | 36羊 | 0 | 37 | 37马 | 0 | 38 | 38蛇 | 0 | 39 | 39龙 | 0 | 40 | 40兔 | 0 | 41 | 41虎 | 0 | 42 | 42牛 | 0 | 43 | 43鼠 | 0 | 44 | 44猪 | 0 | 45 | 45狗 | 0 | 46 | 46鸡 | 0 | 47 | 47猴 | 0 | 48 | 48羊 | 0 | 49 | 49马 | 0 | 
+PANEL AI统计 独占=true 有内容=true PASS &gt;&gt;&gt; 当前飞单阈值（实时）特号 100 ｜ 平特 0 ｜ 连肖 0 | 总单 | 1230 | 全部产品订单总额 | 已飞(实际) | 0 | 历史上已确认飞出的 | 待飞 | 1040 | 按当前阈值还该飞 | 三个数不同口径：总单是全部产品订单；已飞是之前手动确认过的累计；待飞是照当前阈值「特号 100 / 平特 0 / 连肖 0」还算该飞多少。下方号码表的「飞」只算特号 01–49，跟这三个不是一回事。 | 持仓分析（飞单后）（开奖前预测） · 最坏 -4510 ▶ | 持仓费用：总单 230 元，自留 190 元，最坏 -4510 元 | 特号独立盈亏：全号都中要赔 4700 元（按每号留 100 元 × 47 倍） | 不亏：每号最多留 0 元（阈值 0） | 只亏当天 20%（-46）：每号最多留 0 元（阈值 0） | 只亏当天 40%（-92）：每号最多留 0 元（阈值 0） | 这里的数按当前盘面算，改了上方阈值或录了新单会自动重算。 | 特号持仓 · 下注 230 · 最坏 -4510（开22） ▶ | 平特持仓 · 下注 1000 / 自留 0 · 最坏赔 0（最多1肖同时中） ▶ | 风险体检 · 削峰 | 每号留到 95 才安全（盘面中位注额），现在做不到：最划算的 21 档最坏 -945、每号只能留 0.9，还差 94.1 元/号；再往下多飞也没多少改善，缺口只能加飞或拒单 | 盘形 畸形 · 最重 22号占 60.9% · 2号有注 · 安全线 95 元/号（中位注额）· 现在每号能留 4.0 · 超线号 2/49 | 阈值 | 100 | 元/号 | （与飞单统计同一个数，改哪边都一样） | 本盘建议 21 档（亏最少 -945）· 点一下直接填 | 开奖后按号算  | 纯赚 47 | 号  | 小赚 0 | 号  | 小亏 0 | 号  | 大亏 2 | 号 | 挑模式（两模式共用下面这张号码表） | 按录单阈值 100 元/号 | ✓ 正在用 · 留多·赚多亏多 | 按削峰档 78 元/号 | 留多·赚多亏多 | 下面号码表当前按 录单阈值 100 元/号 计算 | 数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。 | 号码表（录单阈值 100 元/号）｜每行＝这个号开出时整本账的盈亏 | 自留 190 · 飞 40 | 本表只算特号 01–49（合计 230 元）；平特/连肖/三中三另算，当前自留 0 元 | 号 注额→自留 飞 | 开出净盈亏 | 22鸡 | 140→100 |  飞40 | -4510 | 34鸡 | 90→90 | -4040 | 01马 | 0→0 |  没人买 | +190 | 02蛇 | 0→0 |  没人买 | +190 | 03龙 | 0→0 |  没人买 | +190 | 04兔 | 0→0 |  没人买 | +190 | 05虎 | 0→0 |  没人买 | +190 | 06牛 | 0→0 |  没人买 | +190 | 07鼠 | 0→0 |  没人买 | +190 | 08猪 | 0→0 |  没人买 | +190 | 09狗 | 0→0 |  没人买 | +190 | 10鸡 | 0→0 |  没人买 | +190 | 11猴 | 0→0 |  没人买 | +190 | 12羊 | 0→0 |  没人买 | +190 | 13马 | 0→0 |  没人买 | +190 | 14蛇 | 0→0 |  没人买 | +190 | 15龙 | 0→0 |  没人买 | +190 | 16兔 | 0→0 |  没人买 | +190 | 17虎 | 0→0 |  没人买 | +190 | 18牛 | 0→0 |  没人买 | +190 | 19鼠 | 0→0 |  没人买 | +190 | 20猪 | 0→0 |  没人买 | +190 | 21狗 | 0→0 |  没人买 | +190 | 23猴 | 0→0 |  没人买 | +190 | 24羊 | 0→0 |  没人买 | +190 | 号 注额→自留 飞 | 开出净盈亏 | 25马 | 0→0 |  没人买 | +190 | 26蛇 | 0→0 |  没人买 | +190 | 27龙 | 0→0 |  没人买 | +190 | 28兔 | 0→0 |  没人买 | +190 | 29虎 | 0→0 |  没人买 | +190 | 30牛 | 0→0 |  没人买 | +190 | 31鼠 | 0→0 |  没人买 | +190 | 32猪 | 0→0 |  没人买 | +190 | 33狗 | 0→0 |  没人买 | +190 | 35猴 | 0→0 |  没人买 | +190 | 36羊 | 0→0 |  没人买 | +190 | 37马 | 0→0 |  没人买 | +190 | 38蛇 | 0→0 |  没人买 | +190 | 39龙 | 0→0 |  没人买 | +190 | 40兔 | 0→0 |  没人买 | +190 | 41虎 | 0→0 |  没人买 | +190 | 42牛 | 0→0 |  没人买 | +190 | 43鼠 | 0→0 |  没人买 | +190 | 44猪 | 0→0 |  没人买 | +190 | 45狗 | 0→0 |  没人买 | +190 | 46鸡 | 0→0 |  没人买 | +190 | 47猴 | 0→0 |  没人买 | +190 | 48羊 | 0→0 |  没人买 | +190 | 49马 | 0→0 |  没人买 | +190 | 红＝开出来亏，绿＝赚；注额→自留，飞是该号飞出去的钱；按注额从大到小排，左列接右列；灰字「没人买」的号开出来全赚自留金。 | 这张表按当前阈值从零算（每号留 100），不看早前已飞过多少；所以这里的自留总额可能跟上面「自留现金」不一样，两者口径不同，别对不上就以为错了。 | 接单预演 · 补号模拟 ▶ | &#x1f4c4; 飞单明细 ▶ | 阈值 特 100 ｜ 平 0 ｜ 连 0 | — 22 140 | — 虎 1000 | 合计　1040 | 飞出去·特号（本轮该飞，未凑整）40 | 飞出去（平特那边赔）1000 | 飞出去合计1040　已飞累计 0（含早前确认过的） · 按现阈值还该飞 1040，扣掉已飞还要补 1040 → 凑整后 1040 | 飞完实付（不含二/三中三）1040 | 未凑整，按原额飞 | 自留现金190　现在手上 1230（总单减已飞）· 补飞完才是上面这个数 | ├ 特号赔付4700 | ├ 平特赔付0 | └ 连肖赔付0 | 总赔付风险4700 | 自留后最坏净盈亏-4510 | 
+PANEL 飞单统计 独占=true 有内容=true PASS &gt;&gt;&gt; 特号 | 100 | 平特 | 0 | 连肖 | 0 | 特=每个号最多留多少；平=每个平特肖留多少；连=连肖留多少。0 表示全飞 | 勾选后这些产品自动默认已飞，仅用于统计客单赔付 | 勾选后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留 | 当前阈值 | 特号 100 ｜ 平特 0 ｜ 连肖 0 | 总单  | 1230 |  ｜ 总飞出去  | 1040 | 已飞 0 ｜ 本轮应飞 |  1040 | 飞单总目录（待飞1040 / 已飞0） | 未飞 1040 | 22  | 各40 | 　40 | 平特虎  | 各1000 | 　1000 | 已飞 0 | 复制已飞 | 暂无 | 特号明细（1 行） | 22 | 该飞 40 | 　还该飞 40 | 手动登记飞单（一行一个：22 140 或 平特虎 1000） | 本周盈亏（周一起）  +0 | 今日盈亏  +0 | 历史累计  +0 | 录上开奖才出本期结算 | 
+PANEL 盈利统计 独占=true 有内容=true PASS &gt;&gt;&gt; 总单 1230 | 赔付 0 | 毛净 1230 | 未获取开奖数据，录了就自动出结算 | 
+PANEL 历史订单 独占=true 有内容=true PASS &gt;&gt;&gt; 今天（未归档） | 净 1230.00 | 3 单 · 收 1230.00 · 赔付 0.00 | 
+PANEL 平特肖 独占=true 有内容=true PASS &gt;&gt;&gt; 虎 | 1单 | 1000 | 自留 0　最坏赔 0（×2） | 倍数：普通肖 ×2，马 ×1.80；当前平特全飞 | 
+PANEL 合计 6/6
 </pre>
 </span>
 </div>
@@ -241,7 +826,7 @@ PANEL 历史订单 点前=8 点后=0 PASS
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="http://www.gradle.org">Gradle 8.11.1</a> at Nov 17, 2026, 9:18:42 AM</p>
+<a href="http://www.gradle.org">Gradle 8.11.1</a> at Nov 17, 2026, 5:33:28 PM</p>
 </div>
 </div>
 </body>

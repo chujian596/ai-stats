@@ -23,7 +23,7 @@
 <tr>
 <td>
 <div class="infoBox" id="tests">
-<div class="counter">1</div>
+<div class="counter">14</div>
 <p>tests</p>
 </div>
 </td>
@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">12.128s</div>
+<div class="counter">20.946s</div>
 <p>duration</p>
 </div>
 </td>
@@ -81,8 +81,73 @@
 </tr>
 </thead>
 <tr>
+<td class="success">bareZodiac</td>
+<td class="success">0.546s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">clearInputHidesSaved</td>
+<td class="success">7.851s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">clearIsClean</td>
+<td class="success">0.403s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">customerRoster</td>
+<td class="success">0.205s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">flyAmountsMatchPro</td>
+<td class="success">0.619s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">flyGridAndSwitches</td>
+<td class="success">0.561s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">funcBar</td>
+<td class="success">0.420s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">hkDrawBar</td>
+<td class="success">0.310s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
 <td class="success">matrix</td>
-<td class="success">12.128s</td>
+<td class="success">7.345s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">multiBareZodiacBatch</td>
+<td class="success">0.296s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">panelsToggleBothWays</td>
+<td class="success">1.448s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">positionAnalysisHasBody</td>
+<td class="success">0.224s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">splitOldOrdersToArchive</td>
+<td class="success">0.256s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">sweepAllPanels</td>
+<td class="success">0.462s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -93,90 +158,393 @@
 <pre>WARNING: No manifest file found at ./AndroidManifest.xml.
 Falling back to the Android OS resources only.
 To remove this warning, annotate your test class with @Config(manifest=Config.NONE).
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@47829565 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@47829565 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@47829565 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@47829565 in: RESUMED
+  [OK] 保存后回显在
+  [OK] 清空后回显消失
+  [OK] 清空后页面上再没有「本次已保存」
+  [OK] 清空不动订单
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4855cff4 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4855cff4 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4855cff4 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4855cff4 in: RESUMED
+  [OK] AI统计：点开有内容
+  [OK] AI统计：再点收起
+  [OK] 飞单统计：点开有内容
+  [OK] 飞单统计：再点收起
+  [OK] 盈利统计：点开有内容
+  [OK] 盈利统计：再点收起
+  [OK] 平特肖：点开有内容
+  [OK] 平特肖：再点收起
+  [OK] 排行榜：点开有内容
+  [OK] 排行榜：再点收起
+  [OK] 订单记录能开
+  [OK] 订单记录能关
 ========== 按钮功能矩阵 ==========
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1abf1404 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1abf1404 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1abf1404 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1abf1404 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3edad373 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3edad373 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3edad373 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3edad373 in: RESUMED
   [OK] 保存：单数 +1　实际 1
   [OK] 保存：金额入账　收 100.0
   [OK] 保存：输入框已清　''
-  [OK] 保存：顶部跟着走　2026-11-17　1 单　收 100
+  [OK] 保存：顶部跟着走　2026-11-17　本日 1 单 · 收 100.00 · 净 100.00
   [OK] 清空：输入框空　''
   [OK] 手动录入：弹窗标题　有框
   [OK] 手动录入：期号落账　期 320
   [OK] 手动录入：特码落账　特 7
-  [OK] 手动录入：开奖写入顶部　2026-11-17　1 单　收 100　赔 0
+  [OK] 手动录入：开奖写入顶部　2026-11-17　本日 1 单 · 收 100.00 · 净 100.00
   [OK] 撤销开奖：期号清空　期 0
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@29b7f9e2 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@29b7f9e2 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@29b7f9e2 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@29b7f9e2 in: RESUMED
-  [OK] 排行榜：点一下切换　前=false 后=true
-  [OK] 订单记录：点一下切换　前=false 后=true
-  [OK] AI统计：点一下切换　前=false 后=true
-  [OK] 飞单统计：点一下切换　前=false 后=true
-  [OK] 盈利统计：点一下切换　前=false 后=true
-  [OK] 历史订单：点一下切换　前=false 后=true
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7870658 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7870658 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7870658 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7870658 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6d1f669f in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6d1f669f in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6d1f669f in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6d1f669f in: RESUMED
+  [OK] 排行榜：点一下显示出来　后=true
+  [OK] AI统计：点一下显示出来　后=true
+  [OK] 飞单统计：点一下显示出来　后=true
+  [OK] 盈利统计：点一下显示出来　后=true
+  [OK] 历史订单：点一下显示出来　后=true
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3c5e2aad in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3c5e2aad in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3c5e2aad in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3c5e2aad in: RESUMED
+TAGS: scroll custpick shop input draw hkdraw savemsg orders rankcard panel-rank panel-ai panel-fly panel-profit panel-hist panel-pte cfg pays funcbar 
   [OK] 重算：自留上限生效　cap 0.0 最坏 -4600.0→0.0
   [OK] 清除订单：今日清零　剩 0
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@517e0ab7 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@517e0ab7 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@517e0ab7 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@517e0ab7 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2873f492 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2873f492 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2873f492 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2873f492 in: RESUMED
   [OK] 今日归档：订单清空　剩 0
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@72ead87c in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@72ead87c in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@72ead87c in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@72ead87c in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@18a3b530 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@18a3b530 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@18a3b530 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@18a3b530 in: RESUMED
   [OK] 导出备份：剪贴板有内容　剪贴板=有
   [OK] 清空今日：清零　剩 0
   [OK] 清空累计：归零　累计 0.0
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@17ea56e5 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@17ea56e5 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@17ea56e5 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@17ea56e5 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@34b0acd8 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@34b0acd8 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@34b0acd8 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@34b0acd8 in: RESUMED
   [OK] 赔付记录：写入　条数 1
   [OK] 清空赔付记录：清零　条数 0
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@52bff717 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@52bff717 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@52bff717 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@52bff717 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1fe869d0 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1fe869d0 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1fe869d0 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@1fe869d0 in: RESUMED
   [OK] 复制客户单：进剪贴板　散客 / 下单： /   特22 100 /   合计 100
-  [OK] 复制上家单：进剪贴板　飞单对账 0 期 / 合计 100 元（特22 100）
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2793e85c in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2793e85c in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2793e85c in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2793e85c in: RESUMED
+  [OK] 复制上家单：进剪贴板　飞单对账 / 合计 100 元（特 100 + 平 0 + 二/三 0） /  / 未开奖，结算待定
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46894186 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46894186 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46894186 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@46894186 in: RESUMED
   [OK] 凑整：开关写进存储　flyRound=true
-  [OK] 凑整：目录出现「各」行　0、3→5），多飞的自付、少飞的自己留 飞单目录（1 行） 22 各170 凑整前 168，凑整后 170（多飞 2） 复制飞单 确认已飞 清空已飞 
+  [OK] 凑整：目录出现「各」行　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
   [OK] 凑整：显示凑整前后差　有
   [OK] 凑整：复制飞单进剪贴板
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3193adb9 in: PRE_ON_CREATE
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3193adb9 in: CREATED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3193adb9 in: STARTED
-D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3193adb9 in: RESUMED
-  [OK] 三段账：显示总单　0、3→5），多飞的自付、少飞的自己留 飞单目录（3 行） 22 各50 45 各35 平特虎 各1000 凑整前 1083，凑整后 1085（多飞 2） 复制飞单 确认已飞 清空已飞 
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26b0d32f in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26b0d32f in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26b0d32f in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@26b0d32f in: RESUMED
+  [OK] 三段账：显示总单　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
   [OK] 三段账：显示已飞
   [OK] 三段账：显示待飞
-  [OK] 三段账：显示合计
-  [OK] 三段账：显示自留现金
-  [OK] 三段账：总单金额正确(1130)　0、3→5），多飞的自付、少飞的自己留 飞单目录（3 行） 22 各50 45 各35 平特虎 各1000 凑整前 1083，凑整后 1085（多飞 2） 复制飞单 确认已飞 清空已飞 
-  [OK] 三段账：待飞金额正确(1083)　0、3→5），多飞的自付、少飞的自己留 飞单目录（3 行） 22 各50 45 各35 平特虎 各1000 凑整前 1083，凑整后 1085（多飞 2） 复制飞单 确认已飞 清空已飞 
+  [OK] 三段账：显示总飞出去
+  [OK] 三段账：显示本轮应飞
+  [OK] 三段账：总单金额正确(1130)　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 三段账：待飞金额正确(1083)　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
   [OK] 三阈值：特输入框在
   [OK] 三阈值：平输入框在
   [OK] 三阈值：连输入框在
-  [OK] 三段账：确认已飞按钮在
-  [OK] 三段账：清空已飞按钮在
+  [OK] 三段账：确认飞单按钮在
+  [OK] 三段账：重置已飞按钮在
   [OK] 三段账：确认后已飞记入存储　flown=3 项
-  [OK] 三段账：确认后待飞归0　0、3→5），多飞的自付、少飞的自己留 飞单目录（0 行） 没有要飞的 
-  [OK] 三段账：确认后自留现金=总单　0、3→5），多飞的自付、少飞的自己留 飞单目录（0 行） 没有要飞的 
+  [OK] 三段账：确认后待飞归0　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 三段账：确认后总单仍是 1130　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@229eb1ac in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@229eb1ac in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@229eb1ac in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@229eb1ac in: RESUMED
+  [OK] 已录入：空态提示　已录入  还没有订单，上面录一单就会显示在这里 撤销上一单 归档并清空 复制客户单 复制上家单 
+  [OK] 保存后：回显「本次已保存」　本次已保存：
+特号 22 = 100 = 100.00元
+合计100.00元 
+  [OK] 保存后：回显按专业版格式　本次已保存：
+特号 22 = 100 = 100.00元
+合计100.00元 
+  [OK] 已录入：出现客户分组　已录入 1 单　下注 100　亏损 100 开奖记录 暂无开奖记录 叶  (1单) 下注 100　中
+  [OK] 已录入：显示单数
+  [OK] 已录入：显示下注金额
+  [OK] 已录入：有撤单按钮
+  [OK] 已录入：有复制按钮
+  [OK] 已录入：有撤销上一单
+  [OK] 已录入：有归档并清空
+  [OK] 已录入：第二单后单数=2　已录入 2 单　下注 150　亏损 150 开奖记录 暂无开奖记录 叶  (2单) 下注 150　中
+  [OK] 撤销上一单：回到 1 单　已录入 1 单　下注 100　亏损 100 开奖记录 暂无开奖记录 叶  (1单) 下注 100　中
+  [OK] 撤单：清空该客户　已录入  还没有订单，上面录一单就会显示在这里 撤销上一单 归档并清空 复制客户单 复制上家单 
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3dbd2ef3 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3dbd2ef3 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3dbd2ef3 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3dbd2ef3 in: RESUMED
+  (按钮没找到: 设置)
+  [OK] 设置：有平特倍数　设置 平特单肖倍数 2 保存设置 特码固定 47，二中二 60，三中二 20，三中三 600，连肖 
+  [OK] 设置：有导出备份
+  [OK] 设置：有从剪贴板恢复
+  [OK] 设置：有撤销开奖记录
+  [OK] 设置：有资料统计入口　设置 平特单肖倍数 2 保存设置 特码固定 47，二中二 60，三中二 20，三中三 600，连肖 
+  [OK] 设置：有复制香港单
+  [OK] 设置：有清空今日
+  [OK] 设置：有清空累计
+  [OK] 设置：赔率口径说明
+  [OK] 备份：有内容　len=189
+  [OK] 设置：平特倍数可保存　1.90
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@75daf61b in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@75daf61b in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@75daf61b in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@75daf61b in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6b287571 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6b287571 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6b287571 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6b287571 in: RESUMED
+  [OK] 八宫格·排行榜　每号最多自留 21 重算 特号合计 70　自留 21　飞 49　最坏 -966 # 特号 金额 1 
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4f50faeb in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4f50faeb in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4f50faeb in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4f50faeb in: RESUMED
+  [OK] 八宫格·历史订单　今天（未归档） 净 70.00 1 单 · 收 70.00 · 赔付 0.00 1单 1 单 · 净
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@b281537 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@b281537 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@b281537 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@b281537 in: RESUMED
+  [OK] 八宫格·AI统计　当前飞单阈值（实时）特号 21 ｜ 平特 0 ｜ 连肖 0 总单 70 全部产品订单总额 已飞(实际
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4da3cbf8 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4da3cbf8 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4da3cbf8 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4da3cbf8 in: RESUMED
+  [OK] 八宫格·飞单统计　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@13b0b8cb in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@13b0b8cb in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@13b0b8cb in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@13b0b8cb in: RESUMED
+  [OK] 八宫格·盈利统计　总单 70 赔付 0 毛净 70 未获取开奖数据，录了就自动出结算 
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@401f2a38 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@401f2a38 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@401f2a38 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@401f2a38 in: RESUMED
+  [OK] 八宫格·平特肖　点了有响应
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@41f4f68b in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@41f4f68b in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@41f4f68b in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@41f4f68b in: RESUMED
+  [OK] 八宫格·今日归档　点了有响应
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@102be83f in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@102be83f in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@102be83f in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@102be83f in: RESUMED
+  [OK] 八宫格·清除订单　剩 0 单
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4d4cf3f6 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4d4cf3f6 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4d4cf3f6 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4d4cf3f6 in: RESUMED
+  [OK] 大按钮·排行榜　有排行榜卡片
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4e74e6c3 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4e74e6c3 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4e74e6c3 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4e74e6c3 in: RESUMED
+  [OK] 大按钮·订单记录　有已录入卡片
 ========== 矩阵汇总 ==========
-通过 45 项，失败 0 项
+通过 78 项，失败 0 项
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@566c28cf in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@566c28cf in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@566c28cf in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@566c28cf in: RESUMED
+  [OK] 持仓分析标题在
+  (按钮没找到: 持仓分析)
+  [OK] 正文有总单/自留/最坏
+  [OK] 正文有不亏建议
+  [OK] 正文有 20% / 40% 建议
+  (按钮没找到: 特号持仓)
+  [OK] 特号持仓表有飞字小字
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4b7e3c07 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4b7e3c07 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4b7e3c07 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4b7e3c07 in: RESUMED
+  [OK] 功能设置条在
+  [OK] 功能设置的块在最底部
+  [OK] 顶部汇总带本日/净/两位小数　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 顶部汇总有版本号　2026-11-17　本日 1 单 · 收 100.00 · 净 100.00 v1.0 客户：散客 ▾ 17:33:08 澳门&#x1f1f2;&#x1f1f4; ▾ 订单输入区 订单累计：特号100　平/连:0/0　二/三:0 还没开奖，录了开奖这里出球  未获取开奖数据 刷新 自动获取开奖  保存 手动录入 清空 本次已保存：
+特号 22 = 100 = 100.00元
+合计100.00元 已录入 1 单　下注 100　亏损 100 开奖记录 暂无开奖记录 散客  (1单) 下注 100　中奖 0　亏损 100 撤单 复制 展开详细清单 ▼ 22 100 17:33 合计 100 删除 撤销上一单 归档并清空 复制客户单 复制上家单 排行榜 订单记录 排行榜 今日归档 历史订单 清除订单 AI统计 飞单统计 盈利统计 平特肖 每号最多自留 100 重算 特号合计 100　自留 100　飞 0　最坏 -4600 # 特号 金额 1 22鸡 100 2 01马 0 3 02蛇 0 4 03龙 0 5 04兔 0 6 05虎 0 7 06牛 0 8 07鼠 0 9 08猪 0 10 09狗 0 11 10鸡 0 
+  [OK] 展开后出现全部项
+  [OK] 备份存到 app 内
+  [OK] CSV 进剪贴板
+  [OK] 恢复回 1 单　实际 1
+  [OK] 清空后无订单
+  [OK] 清空后已飞归零
+  [OK] 清空全部后没有内部备份（与专业版一致）
+  (按钮没找到: 设置)
+  [OK] 设置弹窗出现
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@64c33f96 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@64c33f96 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@64c33f96 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@64c33f96 in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a503ff9 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a503ff9 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a503ff9 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7a503ff9 in: RESUMED
+  [OK] 旧单被搬走，只剩今天的　剩 1
+  [OK] 历史里多了一份
+  [OK] 搬进历史的单还在
+  [OK] 搬进历史的单保留店铺
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@c560c2c in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@c560c2c in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@c560c2c in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@c560c2c in: RESUMED
+  [OK] 网格：四行按钮都在　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 网格：三条勾选在
+  [OK] 即飞：开关写入存储　autoFly=true
+  [OK] 即飞：连肖自动计入已飞　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 即飞：本轮应飞归 0　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 网格：点平特出明细块
+  [OK] 网格：点特号出明细块
+  [OK] 香港勾选：香港店显示
+  [OK] 香港勾选：澳门店不显示
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@24bbe3cd in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@24bbe3cd in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@24bbe3cd in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@24bbe3cd in: RESUMED
+  [OK] 整批多肖：不弹窗（专业版自动按特肖）
+  [OK] 整批多肖：一次存满 6 单　实际 6
+  [OK] 整批多肖：合计 930　合计 930.0
+  [OK] 整批多肖：回显合计 930.00　本次已保存：
+特号 10 22 34 46 × 50 = 200.00元
+特号 22 34 45 ×
+  [OK] 单肖：不弹窗
+  [OK] 单肖：4 个号各 25　100.0
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6191d39c in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6191d39c in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6191d39c in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@6191d39c in: RESUMED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf4889d in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf4889d in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf4889d in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@7bf4889d in: RESUMED
+  [OK] 飞单：总单 363　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 飞单：总飞出去 279　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 飞单：已飞 0　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 飞单：本轮应飞 279　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 飞单：22号该飞49
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4dea849a in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4dea849a in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4dea849a in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@4dea849a in: RESUMED
+  [OK] 确认后：已飞 279　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 确认后：本轮应飞 0　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@632066e in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@632066e in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@632066e in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@632066e in: RESUMED
+  [OK] 凑整：本轮 280　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 凑整：22 各50
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@687a5406 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@687a5406 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@687a5406 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@687a5406 in: RESUMED
+  [OK] 空盘：AI统计空态　还没有订单，录了单这里自动出统计 
+  [OK] 空盘：无开奖结果块
+  [OK] 空盘：无持仓分析
+  [OK] 空盘：无风险体检
+  [OK] 空盘：无号码表
+  [OK] 空盘：飞单空态　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 阈值：输入框可见且可点　44x42
+  [OK] 阈值：录入生效　cap=55.0
+  [OK] 阈值：面板回显 55
+  [OK] 面板可打开：排行榜　每号最多自留 100 重算 特号合计 0　自留 0　飞 0　最坏 +0 # 特号 金额 1 01马 
+  [OK] 面板可打开：AI统计　还没有订单，录了单这里自动出统计 
+  [OK] 面板可打开：飞单统计　少；连=连肖留多少。0 表示全飞 特号 飞单目录 平特 重置已飞 连肖 复制 二中二三中三 确认飞单 即飞产品自动复制（连肖/二中二/三中三） 勾选后这些产品自动默认已飞，仅用于统计客单赔付 金额凑整
+  [OK] 面板可打开：盈利统计　总单 0 赔付 0 毛净 0 未获取开奖数据，录了就自动出结算 
+  [OK] 面板可打开：历史订单　还没有归档记录。点顶部「今日归档」就会把当天存成一份，之后随时能翻。 
+  [OK] 面板可打开：平特肖　今天还没单 
+  [OK] 确认已飞写入存储　flown=1 项
+  [OK] 清除订单：订单清空
+  [OK] 清除订单：已飞一起清零　flown={}
+  [OK] 清除后：不再显示已飞/开奖/风险　还没有订单，录了单这里自动出统计 
+  [OK] 清除后：飞单无残留已飞
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5aea1a6a in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5aea1a6a in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5aea1a6a in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@5aea1a6a in: RESUMED
+  [OK] 名单存住 3 个　[阿强, 阿珍, 叶]
+  [OK] 客户列表含散客和其他　[散客, 阿强, 阿珍, 叶]
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@410479d in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@410479d in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@410479d in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@410479d in: RESUMED
+  [OK] 客户选择器在
+  [OK] 选客户弹窗弹出
+  [OK] 弹窗里三个客户都在　选客户（共 4 个，长按可删）  散客  阿强  阿珍  叶 ✓  新客户 取消 客户统计 
+  [OK] 弹窗显示共几个　选客户（共 4 个，长按可删）  散客  阿强  阿珍  叶 ✓  新客户 取消 客户统计 
+  [OK] 删掉后名单没了　[散客, 阿强, 叶]
+  [OK] 备份含 roster
+  [OK] 备份能还原名单　[叶, 阿强]
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@10367244 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@10367244 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@10367244 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@10367244 in: RESUMED
+  [OK] 多肖：不弹窗（专业版自动按特肖）
+  [OK] 多肖：直接存成功　单数 1
+  [OK] 多肖：号码数 13（马5龙4兔4）　实际 13
+  [OK] 多肖：金额 650　金额 650.0
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@391a4f37 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@391a4f37 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@391a4f37 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@391a4f37 in: RESUMED
+  [OK] 单肖：直接按特肖存　单数 1
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3218c575 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3218c575 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3218c575 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@3218c575 in: RESUMED
+  [OK] 特+多肖：合法录入　单数 1
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@11ab2345 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@11ab2345 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@11ab2345 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@11ab2345 in: RESUMED
+  [OK] 保存后有回显
+  [OK] 清除后回显消失　vis=8
+  [OK] 清除后输入框清空
+  [OK] 清除后订单为 0
+  [OK] 歧义弹窗弹出
+  [OK] 清除后歧义弹窗关闭
+  [OK] 有单时显示开奖块　当前飞单阈值（实时）特号 100 ｜ 平特 0 ｜ 连肖 0 总单 100 全部产品订单总额 已飞(
+  [OK] 点一次收起
+  [OK] 再点展开
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@69ada2da in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@69ada2da in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@69ada2da in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@69ada2da in: RESUMED
+  [OK] 香港条默认隐藏
+  [OK] 没香港单时不显示文字
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@255f8876 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@255f8876 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@255f8876 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@255f8876 in: RESUMED
+  [OK] 有香港单+开奖后显示
+  [OK] 格式：香港 期121　香港 期121　01 02 03 04 05 06 　特 48　11-17 17:33　下期 122 期 11-17 21:33
+  [OK] 格式：特 48　香港 期121　01 02 03 04 05 06 　特 48　11-17 17:33　下期 122 期 11-17 21:33
+  [OK] 格式：下期 122　香港 期121　01 02 03 04 05 06 　特 48　11-17 17:33　下期 122 期 11-17 21:33
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2543d302 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2543d302 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2543d302 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@2543d302 in: RESUMED
+  [OK] 香港条：超过24小时自动收起
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@ee67e09 in: PRE_ON_CREATE
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@ee67e09 in: CREATED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@ee67e09 in: STARTED
+D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainActivity@ee67e09 in: RESUMED
+  [OK] 香港条：只公布下期时默认不冒出（点获取才显示）
 </pre>
 </span>
 </div>
@@ -195,7 +563,7 @@ D/LifecycleMonitor: Lifecycle status change: io.github.chujian596.app.ntv.MainAc
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="http://www.gradle.org">Gradle 8.11.1</a> at Nov 17, 2026, 9:18:42 AM</p>
+<a href="http://www.gradle.org">Gradle 8.11.1</a> at Nov 17, 2026, 5:33:28 PM</p>
 </div>
 </div>
 </body>

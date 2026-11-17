@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.48</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.49</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -918,13 +918,17 @@ function renderRank(){
 
 function renderRec(){
   var list=state.authors.filter(function(a){return a.kind.indexOf('rec')===0;});
-  // 第一肖频次
+  var recPosts=((state.forum&&state.forum.columns)||[]).filter(function(c){return c.kind==='rec';});
+  // 第一肖频次（按当期归档帖子算，和推荐页其它卡同源）
   var firstCount={};
   // 按类型统计第一肖命中率
   var typeStat={ rec6:{h:0,m:0}, rec9:{h:0,m:0}, rec4:{h:0,m:0}, rec5:{h:0,m:0}, rec3:{h:0,m:0} };
+  recPosts.forEach(function(c){
+    var z=((c.current&&c.current.zods)||[])[0];
+    if(z) firstCount[z]=(firstCount[z]||0)+1;
+  });
   list.forEach(function(a){
     var s=authorStats(a);
-    if(s.curRow&&s.curRow.zods[0]) firstCount[s.curRow.zods[0]]=(firstCount[s.curRow.zods[0]]||0)+1;
     if(typeStat[a.kind]){ typeStat[a.kind].h+=s.fHit; typeStat[a.kind].m+=s.fMiss; }
   });
   function fr(t){ var d=typeStat[t]; var n=d.h+d.m; return n>0?Math.round(d.h/n*100)+'%':'—'; }
@@ -935,7 +939,7 @@ function renderRec(){
     +'<div class="row"><span>五肖 第一肖</span><span>'+fr('rec5')+'</span></div>'
     +'<div class="row"><span>三肖 第一肖</span><span>'+fr('rec3')+'</span></div></div>';
 
-  html+='<div class="card"><h2>本期推荐第一肖频次</h2><div class="muted">各帖推荐列表排第一的肖，被提到最多的</div><div class="board" style="margin-top:10px">';
+  html+='<div class="card"><h2>本期推荐第一肖频次</h2><div class="muted">'+curPer()+' 期 '+recPosts.length+' 条推荐帖里，排第一的肖被提到最多的</div><div class="board" style="margin-top:10px">';
   ZOD.forEach(function(z){
     var n=firstCount[z]||0;
     html+='<div class="cell"><div class="z">'+z+'</div><div class="n">'+n+'帖</div></div>';
@@ -948,7 +952,8 @@ function renderRec(){
     var s=authorStats(a);
     var pct=s.acc!=null?Math.round(s.acc*100)+'%':'—';
     var fpct=s.fAcc!=null?'第一肖'+Math.round(s.fAcc*100)+'%':'';
-    var curTxt=s.curRow?('本期：'+s.curRow.zods.join(' ')):'本期暂无';
+    var rp=a.rows&&(a.rows[String(curPer())]||a.rows[curPer()]);
+    var curTxt=rp&&rp.zods&&rp.zods.length?('本期：'+rp.zods.join(' ')):(s.curRow?('本期：'+s.curRow.zods.join(' ')):'本期暂无');
     html+='<div class="auth" onclick="this.classList.toggle(\'open\')">'
       +'<div class="top"><span class="name">'+esc(a.name)+'</span><span class="tag '+s.cls+'">'+classifyLabel(s.cls)+'</span></div>'
       +'<div class="meta">'+esc(a.topic)+' · 中'+s.hit+' 没中'+s.miss+' · 命中率'+pct+(fpct?' · '+fpct:'')+'</div>'

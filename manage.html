@@ -78,11 +78,17 @@
   </section>
 
   <section>
+    <div class="sec-title">各期资料（查串期） <i></i></div>
+    <div id="perMatrix"></div>
+  </section>
+
+  <section>
     <div class="sec-title">说明 <i></i></div>
     <div class="hint">
       点「重新检查」会按当前期号逐个拉一次文件，看是 200 还是 404、更新时间和字节数。<br>
       红点＝打不开或文件缺失；黄点＝能打开但数据比期号旧；绿点＝正常。<br>
-      这里只做检查和跳转，不改任何数据。
+      这里只做检查和跳转，不改任何数据。<br>
+      最下面「各期资料」按 data/period-matrix.json 列出每期八个文件齐不齐；日期号与文件里写的期号不一致会标红，那就是串期。
     </div>
   </section>
 
@@ -251,10 +257,39 @@ function loadAll(){
   });
 }
 
+function loadMatrix(){
+  var box=document.getElementById('perMatrix');
+  box.innerHTML='<div class="hint">正在读逐期体检…</div>';
+  var T=[['forum','论坛'],['tpl','模板'],['ratio','比例'],['three','三中'],['pingte','平特'],['archive-report','归档'],['consensus','图库'],['cross','交叉']];
+  get(BASE+'data/period-matrix.json?t='+Date.now()).then(function(r){
+    if(!r.ok){ box.innerHTML='<div class="hint">读不到 data/period-matrix.json（先跑 check_periods.py 生成）。</div>'; return; }
+    var m; try{ m=JSON.parse(r.body); }catch(e){ box.innerHTML='<div class="hint">period-matrix.json 解析失败。</div>'; return; }
+    var html='';
+    (m.periods||[]).slice().reverse().forEach(function(row){
+      var curTag = (String(row.period)===String(m.current)) ? '<span class="tag mute">当期</span>' : '';
+      var chips=T.map(function(t){
+        var f=row.files[t[0]]||{ok:false};
+        return '<span class="chk '+(f.ok?'yes':'no')+'">'+t[1]+(f.ok?'':' 缺')+'</span>';
+      }).join('');
+      var mm=(row.mismatch||[]).length;
+      html+='<div class="sys" style="padding:10px 12px">'
+        +'<div class="sys-head"><span class="dot '+(mm?'bad':(row.complete?'ok':'warn'))+'"></span>'
+        +'<div class="grow"><div class="name">第 '+row.period+' 期'+curTag
+        +'<span class="tag '+(mm?'bad':(row.complete?'ok':'warn'))+'">'+((row.mismatch||[]).length?'串期!':(row.complete?'齐全':(row.missing||[]).length+' 项缺'))+'</span></div>'
+        +'<div class="checks">'+chips+'</div>'
+        +(mm?('<div class="probs">'+row.mismatch.map(esc).join('；')+'</div>'):'')
+        +'</div></div></div>';
+    });
+    html+='<div class="hint">生成时间 '+(m.generatedAt||'—')+'。缺＝该期没存到这份资料（不是页面坏了）；标「串期!」才是文件里写的期号和文件名对不上，必须修。</div>';
+    box.innerHTML=html;
+  }).catch(function(e){ box.innerHTML='<div class="hint">体检读取失败：'+esc(e)+'</div>'; });
+}
+
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-document.getElementById('btnRefresh').addEventListener('click', loadAll);
+document.getElementById('btnRefresh').addEventListener('click', function(){ loadAll(); loadMatrix(); });
 loadAll();
+loadMatrix();
 </script>
 </body>
 </html>

@@ -221,16 +221,49 @@ public class RenderTest {
     public void panelsToggle() throws Exception {
         Activity a = Robolectric.buildActivity(MainActivity.class).setup().get();
         android.view.ViewGroup root = (android.view.ViewGroup) a.findViewById(android.R.id.content);
-        String[][] map = {{"AI统计","risk"},{"飞单统计","split"},{"盈利统计","settle"},{"排行榜","board"},{"历史订单","archive"}};
+        // 录一笔，保证面板有内容
+        EditText in = input(a);
+        in.setText("特码22 140\n特码34 90\n平特虎 1000");
+        click(a, "保存");
+        shadowOf(a.getMainLooper()).idle();
+        String[][] map = {{"排行榜","panel-rank"},{"AI统计","panel-ai"},{"飞单统计","panel-fly"},
+                          {"盈利统计","panel-profit"},{"历史订单","panel-hist"},{"平特肖","panel-pte"}};
+        String[] tags = {"panel-rank","panel-ai","panel-fly","panel-profit","panel-hist","panel-pte"};
+        int pass = 0;
         for (String[] m : map) {
-            android.view.View v = findTagDeep(root, m[1]);
-            if (v == null) { System.out.println("PANEL " + m[0] + " 找不到容器"); continue; }
-            int before = v.getVisibility();
             clickText(a, m[0]);
-            int after = v.getVisibility();
-            System.out.println("PANEL " + m[0] + " 点前=" + before + " 点后=" + after
-                    + (after != before ? " PASS" : " 没变化"));
+            shadowOf(a.getMainLooper()).idle();
+            boolean onlyThis = true;
+            for (String t : tags) {
+                android.view.View v = findTagDeep(root, t);
+                if (v == null) { onlyThis = false; break; }
+                boolean shouldShow = t.equals(m[1]);
+                if ((v.getVisibility() == android.view.View.VISIBLE) != shouldShow) onlyThis = false;
+            }
+            android.view.View v = findTagDeep(root, m[1]);
+            String body = v == null ? "" : textOf(v);
+            boolean hasContent = body.trim().length() > 0;
+            System.out.println("PANEL " + m[0] + " 独占=" + onlyThis + " 有内容=" + hasContent
+                    + (onlyThis && hasContent ? " PASS" : " FAIL") + " >>> "
+                    + body.replace("\n", " | "));
+            if (onlyThis && hasContent) pass++;
         }
+        System.out.println("PANEL 合计 " + pass + "/6");
+    }
+
+    private String textOf(android.view.View v) {
+        StringBuilder b = new StringBuilder();
+        java.util.List<android.view.View> vs = new java.util.ArrayList<>();
+        collect(v, vs);
+        for (android.view.View x : vs) {
+            if (x instanceof android.widget.TextView && !(x instanceof android.widget.Button)) {
+                CharSequence t = ((android.widget.TextView) x).getText();
+                if (t != null && t.length() > 0) b.append(t).append("\n");
+            } else if (x instanceof android.widget.EditText) {
+                b.append(((android.widget.EditText) x).getText()).append("\n");
+            }
+        }
+        return b.toString();
     }
 
     private android.view.View findTagDeep(android.view.View v, String tag) {
@@ -247,6 +280,56 @@ public class RenderTest {
 
     private void clickText(Activity a, String text) {
         for (View v : allViews(a)) if (v instanceof Button && text.equals(((Button) v).getText().toString())) { ((Button) v).performClick(); return; }
+    }
+
+    private boolean clickTextIn(android.view.View root, String text) {
+        List<android.view.View> all = new ArrayList<>();
+        collectAll(root, all);
+        for (android.view.View v : all) {
+            CharSequence cs = v instanceof android.widget.TextView ? ((android.widget.TextView) v).getText() : null;
+            if (cs != null && cs.toString().trim().endsWith(text)) { v.performClick(); return true; }
+        }
+        return false;
+    }
+
+    private void collectAll(android.view.View v, List<android.view.View> out) {
+        out.add(v);
+        if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) collectAll(g.getChildAt(i), out);
+        }
+    }
+
+    @Test
+    public void bareZodiacNoDialog() throws Exception {
+        // 专业版口径：多肖连写 + 各数 自动按特肖，不弹窗，一次 4 单
+        Activity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+        input(a).setText("鸡各数50\n猪兔各数25\n狗羊各数20\n蛇牛各数15");
+        click(a, "保存");
+        shadowOf(a.getMainLooper()).idle();
+        android.app.AlertDialog d = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        org.junit.Assert.assertNull(d);
+        android.view.ViewGroup r = (android.view.ViewGroup) a.findViewById(android.R.id.content);
+        String msg = textOf(findTagDeep(r, "savemsg"));
+        System.out.println("=== 裸生肖整批回显 ===\n" + msg);
+        org.junit.Assert.assertTrue(msg.contains("合计680.00元"));
+    }
+
+    @Test
+    public void dumpRiskText() throws Exception {
+        Activity a = Robolectric.buildActivity(MainActivity.class).setup().get();
+        EditText in = input(a);
+        in.setText("22 34 45各100\n平特虎 1000\n连肖马龙 100");
+        click(a, "保存");
+        shadowOf(a.getMainLooper()).idle();
+        clickText(a, "AI统计");
+        shadowOf(a.getMainLooper()).idle();
+        android.view.ViewGroup root = (android.view.ViewGroup) a.findViewById(android.R.id.content);
+        android.view.View v = findTagDeep(root, "panel-ai");
+        System.out.println("=== AI统计正文 ===\n" + (v == null ? "NULL" : textOf(v)));
+        clickText(a, "持仓分析");
+        shadowOf(a.getMainLooper()).idle();
+        System.out.println("=== 展开持仓分析 ===\n" + (v == null ? "NULL" : textOf(v)));
     }
 
     @Test
