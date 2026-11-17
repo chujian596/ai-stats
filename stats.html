@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.42</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.48</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -192,7 +192,7 @@ function loadTextwall(){
         rows:[{ period:per, zods:zs, verdict:'pending' }],
         cls:'watch', hit:0, miss:0, unresolved:0, changed:false, mismatch:[], changedPeriods:[], missingCount:0, fetchedAt:'' });
     });
-    state.tw={ source:{ siteName:'118图库（30 栏目逐张识图）', siteNo:'118', listApi:'data/img-extract.json' }, columns:cols };
+    state.tw={ source:{ siteName:'118图库（30 栏目逐张识图）', siteNo:'118', listApi:'data/img-extract.json' }, columns:cols, period:per };
   }).catch(function(){
     return fetchJson('textwall-snapshot.json').then(function(d){
       state.tw.source=(d&&d.source)||{};
@@ -635,36 +635,87 @@ function renderImg(){
 
 renderAll=
 function renderAll(){
+  loadKillHist().then(function(m){ if(m) renderKill(); });
   $('fetchedAt').textContent = state.fetchedAt?('上次更新：'+state.fetchedAt):'';
   renderOverview(); renderKill(); renderRec(); renderRank(); renderTw(); renderForum(); renderHot(); renderImg(); renderDoc();
 }
 
 // 杀肖汇总：各肖被多少准作者杀 / 多少差作者杀
-function renderKill(){
-  var list=state.authors.filter(function(a){return a.kind==='kill';});
-  var goodKill={}, badKill={};
-  list.forEach(function(a){
-    var s=authorStats(a);
-    if(!s.curRow) return;
-    s.curRow.zods.forEach(function(z){
-      if(s.cls==='good') goodKill[z]=(goodKill[z]||0)+1;
-      else if(s.cls==='bad') badKill[z]=(badKill[z]||0)+1;
+var KILLHIST=null, KILLHIST_BUSY=false;
+function loadKillHist(){
+  if(KILLHIST) return Promise.resolve(KILLHIST);
+  if(KILLHIST_BUSY) return Promise.resolve(null);
+  KILLHIST_BUSY=true;
+  return fetchJson('data/periods.json',6000).then(function(d){
+    var ps=((d&&d.periods)||[]).filter(function(p){ return !!state.official[p]; });
+    return Promise.all(ps.map(function(p){
+      return fetchJson('data/forum-'+p+'.json',12000).then(function(f){
+        return {p:p, det:(f&&f.detail)||[]};
+      }).catch(function(){ return {p:p, det:[]}; });
+    }));
+  }).then(function(list){
+    var m={};
+    list.forEach(function(it){
+      it.det.forEach(function(x){
+        if(!x.k) return;
+        var a=x.a||'匿名';
+        if(!m[a]) m[a]={};
+        m[a][it.p]=x.z||[];
+      });
     });
+    KILLHIST=m; KILLHIST_BUSY=false;
+    return m;
+  }).catch(function(){ KILLHIST_BUSY=false; return {}; });
+}
+function renderKill(){
+  var list=(state.authors||[]).filter(function(a){return a.kind==='kill';});
+  // 当期杀肖帖：以 data/forum-<当期>.json 为准（与「论坛杀肖票数」同一份数据）
+  var posts=((state.forum&&state.forum.columns)||[]).filter(function(c){ return c.kind==='kill'; });
+  var authByName={};
+  (state.authors||[]).forEach(function(a){ authByName[a.name+'|'+a.kind]=a; });
+  var goodKill={}, badKill={}, allKill={}, naKill={}, naPosts=0;
+  // 用已开奖期的实际漏杀情况给作者分类（够 2 期才定好坏）
+  function killCls(name){
+    var h=KILLHIST&&KILLHIST[name];
+    if(!h) return 'watch';
+    var n=0, miss=0;
+    Object.keys(h).forEach(function(p){
+      var o=state.official[p]; if(!o) return;
+      n++; if(h[p].indexOf(o.specialZod)>=0) miss++;
+    });
+    if(n>=2) return miss===0?'good':'bad';
+    return 'watch';
+  }
+  posts.forEach(function(c){
+    var zs=(c.current&&c.current.zods)||[];
+    var cls=killCls(c.name);
+    zs.forEach(function(z){
+      allKill[z]=(allKill[z]||0)+1;
+      if(cls==='good') goodKill[z]=(goodKill[z]||0)+1;
+      else if(cls==='bad') badKill[z]=(badKill[z]||0)+1;
+      else naKill[z]=(naKill[z]||0)+1;
+    });
+    if(cls!=='good'&&cls!=='bad'&&zs.length) naPosts++;
   });
-  var html='<div class="card"><h2>本期杀肖汇总（按作者准确率分）</h2><div class="muted">准的作者杀掉的肖（可参考排除） vs 差的作者杀掉的肖（留意反着看）</div><div class="board" style="margin-top:10px">';
+  var totalKill=0; Object.keys(allKill).forEach(function(z){totalKill+=allKill[z];});
+  var html='<div class="card"><h2>'+curPer()+' 期杀肖汇总（全部 '+totalKill+' 票）</h2>'
+    +'<div class="muted">这是 '+posts.length+' 条杀肖帖的实际票数（每条帖算 1 票，与下面「论坛杀肖票数」同源）。「准/差」只算历史命中率样本够的作者；'
+    +(naPosts? '有 <b>'+naPosts+'</b> 条的作者只出现在 1 期、判断不了准差，归到「样本不足」，票数照样算进总数。' : '样本都够。')
+    +'</div><div class="board" style="margin-top:10px">';
   ZOD.forEach(function(z){
-    var g=goodKill[z]||0, b=badKill[z]||0;
-    html+='<div class="cell"><div class="z">'+z+'</div><div class="n">准'+g+' / 差'+b+'</div></div>';
+    var all=allKill[z]||0, g=goodKill[z]||0, b=badKill[z]||0, n=naKill[z]||0;
+    html+='<div class="cell"><div class="z">'+z+'</div>'
+      +'<div class="n" style="font-size:18px;color:'+(all>=4?'#c0392b':'#333')+';font-weight:600">'+all+' 票</div>'
+      +'<div class="n" style="margin-top:4px;font-size:12px;color:#888">准'+g+' / 差'+b+(n?' / 样本不足'+n:'')+'</div></div>';
   });
-  html+='</div></div>';
+  html+='</div><div class="muted" style="margin-top:8px">读法：先看总票数（这期几个人在杀它），再看准/差；杀它的准作者多才当「可排除」，只有差作者在杀就反着看。单期样本小，别当结论。</div></div>';
 
   // ===== 文字墙（网站推荐）杀肖票数 =====
   var twKillCount = {};
   var twKillCols = 0;
   var twDetails = []; // 栏目明细
   var twSiteSet = {};
-  var twOffP = Object.keys(state.official||{}).map(Number);
-  var twNext = twOffP.length ? Math.max.apply(null, twOffP) + 1 : null;
+  var twNext = curPer();
   if(state.tw && state.tw.columns){
     state.tw.columns.forEach(function(col){
       if(col.siteNo) twSiteSet[col.siteNo] = 1;
@@ -687,6 +738,10 @@ function renderKill(){
   }
   var twSiteN = Object.keys(twSiteSet).length;
   // 栏目明细（每个栏目杀了哪几个肖）
+  var twSnapP=(state.tw&&state.tw.period)||null;
+  if(twKillCols===0 && twSnapP){
+    html+='<div class="card"><h2>网站推荐杀肖（文字墙栏目明细）</h2><div class="muted">文字墙快照最新一期是 <b>'+twSnapP+' 期</b>，当前 320/321 期没有它的杀肖栏目数据——所以这里空着，不是统计出错，也不会拿 '+twSnapP+' 期的旧数冒充当期。</div></div>';
+  } else {
   html+='<div class="card"><h2>网站推荐杀肖（文字墙栏目明细）</h2><div class="muted">共'+twKillCols+' 个杀肖栏目在 '+(twNext||'当期')+' 期有数据 · 来源站点 '+twSiteN+' 个</div><div style="margin-top:10px">';
   twDetails.forEach(function(d){
     var shortTitle = d.title.replace(/澳门香港大联盟【|】4901996.com/g, '').replace(/澳门大联盟【|】/g, '');
@@ -697,7 +752,7 @@ function renderKill(){
     html+='</span></div>';
   });
   if(twDetails.length===0) html+='<div class="muted">本期暂无文字墙杀肖数据</div>';
-  html+='</div></div>';
+  html+='</div></div>'; }
 
   // 票数汇总
   var twSorted = Object.keys(twKillCount).sort(function(a,b){return twKillCount[b]-twKillCount[a];});
@@ -715,27 +770,22 @@ function renderKill(){
   });
   html+='</div></div>';
 
-  // ===== 论坛杀肖票数 =====
+  // ===== 论坛杀肖票数（当期归档口径，和上面汇总同一份） =====
   var forumKillCount = {};
-  var forumKillPosts = 0;
-  list.forEach(function(a){
-    var s = authorStats(a);
-    if(s.curRow && s.curRow.zods && (twNext ? s.curRow.period === twNext : true)){
-      forumKillPosts++;
-      s.curRow.zods.forEach(function(z){
-        forumKillCount[z] = (forumKillCount[z]||0) + 1;
-      });
-    }
+  posts.forEach(function(c){
+    ((c.current&&c.current.zods)||[]).forEach(function(z){
+      forumKillCount[z] = (forumKillCount[z]||0) + 1;
+    });
   });
   var forumSorted = Object.keys(forumKillCount).sort(function(a,b){return forumKillCount[b]-forumKillCount[a];});
-  html+='<div class="card"><h2>论坛杀肖票数</h2><div class="muted">共 '+forumKillPosts+' 个杀肖帖在 '+(twNext||'当期')+' 期有数据（总数 '+list.length+'） · 每条来自不同发布者，各自算 1 票</div><div style="margin-top:10px">';
+  html+='<div class="card"><h2>论坛杀肖票数</h2><div class="muted">'+curPer()+' 期共 '+posts.length+' 条杀肖帖、'+totalKill+' 票（按当期归档 data/forum-'+curPer()+'.json 统计，每帖算 1 票）</div><div style="margin-top:10px">';
   forumSorted.forEach(function(z){
     var n = forumKillCount[z];
-    var pct = Math.round(n/Math.max(forumKillPosts,1)*100);
+    var pct = Math.round(n/Math.max(posts.length,1)*100);
     var color = n>=10?'#c62828':(n>=6?'#e65100':'#666');
     html+='<div class="row"><span class="zod kill">'+z+'</span><span style="color:'+color+';font-weight:700">'+n+'票（'+pct+'%）</span></div>';
   });
-  if(forumSorted.length===0) html+='<div class="muted">本期暂无论坛杀肖数据（资料还没更新到该期）</div>';
+  if(forumSorted.length===0) html+='<div class="muted">该期暂无杀肖帖（资料还没更新到该期）</div>';
   html+='</div></div>';
 
   // 作者列表
