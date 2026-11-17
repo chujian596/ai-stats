@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
-    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.49</span></h1>
+    <h1>资料统计 <span style="font-size:14px;color:#999;font-weight:normal">v58.50</span></h1>
     <button class="btn" id="refreshBtn" onclick="loadAll()">刷新</button>
   </div>
   <div class="muted" id="fetchedAt" style="margin:-6px 0 8px"></div>
@@ -171,20 +171,17 @@ function loadOfficial(){
   }).catch(function(){ state.official={}; });
 }
 
-// 文字墙对账快照（后端脚本生成，静态 JSON，同目录）
+// 图库识图快照：严格按当前所选期号取文件，找不到就空着，绝不拿别期顶替
 function loadTextwall(){
-  // 优先用 118 图库 30 栏目的识图结构化结果 data/img-extract.json
-  return fetchJson('data/img-extract.json',10000).then(function(d){
-    if(!d||!d.cols) throw new Error('empty');
+  var per=curPer();
+  function build(d, label){
     var Z='鼠牛虎兔龙蛇马羊猴鸡狗猪';
-    var per=d.period||LATEST_PER;
     var cols=[];
     Object.keys(d.cols).forEach(function(k){
       var c=d.cols[k]||{};
       var recZ=(c.rec||[]).filter(function(x){return Z.indexOf(x)>=0;});
       var killZ=(c.kill||[]).filter(function(x){return Z.indexOf(x)>=0;});
-      var hasKill=killZ.length>0;
-      var hasRec=recZ.length>0;
+      var hasKill=killZ.length>0, hasRec=recZ.length>0;
       var zs=hasKill?killZ:recZ;
       var t=c.title||k;
       cols.push({ name:t, title:t, topic:c.type||'', kind:hasKill?'kill':(hasRec?'rec':'other'),
@@ -192,12 +189,19 @@ function loadTextwall(){
         rows:[{ period:per, zods:zs, verdict:'pending' }],
         cls:'watch', hit:0, miss:0, unresolved:0, changed:false, mismatch:[], changedPeriods:[], missingCount:0, fetchedAt:'' });
     });
-    state.tw={ source:{ siteName:'118图库（30 栏目逐张识图）', siteNo:'118', listApi:'data/img-extract.json' }, columns:cols, period:per };
+    state.tw={ source:{ siteName:label, siteNo:'118', listApi:'data/img-extract-'+per+'.json' }, columns:cols, period:per, missing:false };
+  }
+  return fetchJson('data/img-extract-'+per+'.json',10000).then(function(d){
+    if(!d||!d.cols) throw new Error('empty');
+    build(d, '118图库（'+per+' 期逐张识图）');
   }).catch(function(){
-    return fetchJson('textwall-snapshot.json').then(function(d){
-      state.tw.source=(d&&d.source)||{};
-      state.tw.columns=(d&&d.columns)||[];
-    }).catch(function(){ state.tw={ source:{}, columns:[] }; });
+    // 旧文件名只代表 319 期，期号对不上就不用
+    return fetchJson('data/img-extract.json',10000).then(function(d){
+      if(!d||!d.cols||Number(d.period)!==Number(per)) throw new Error('period-mismatch');
+      build(d, '118图库（'+per+' 期逐张识图）');
+    }).catch(function(){
+      state.tw={ source:{ siteName:'该期无图库快照' }, columns:[], period:per, missing:true };
+    });
   });
 }
 
@@ -974,7 +978,12 @@ function twKindLabel(k){ return k==='kill'?'杀肖':k==='rec'?'推荐肖':'其�
 
 function renderTw(){
   var cols=state.tw.columns||[];
-  if(!cols.length){ $('panelTw').innerHTML='<div class="card"><div class="muted">暂无文字墙快照数据。</div></div>'; return; }
+  if(state.tw.missing){
+    $('panelTw').innerHTML='<div class="card"><h2>'+curPer()+' 期无图库快照</h2>'
+      +'<div class="muted">这一期没有逐张识图结果（图库站点只留当期图纸，换期即被替换）。为了不串期，这里不显示其他期的栏目数据。</div></div>';
+    return;
+  }
+  if(!cols.length){ $('panelTw').innerHTML='<div class="card"><div class="muted">'+curPer()+' 期暂无图库快照数据。</div></div>'; return; }
   var src=state.tw.source||{};
   function clsN(c){ return cols.filter(function(x){return x.cls===c;}).length; }
   var changedN=cols.filter(function(c){return c.changed;}).length;
@@ -984,6 +993,7 @@ function renderTw(){
   var oth=cols.filter(function(c){return c.kind==='other';});
 
   var html='<div class="card"><h2>来源</h2>'
+    +'<div class="row"><span>数据期</span><span>'+curPer()+' 期</span></div>'
     +'<div class="row"><span>站点</span><span>'+esc(src.siteName||'—')+'</span></div>'
     +'<div class="row"><span>站点号</span><span>'+esc(src.siteNo||'—')+'</span></div>'
     +'<div class="row"><span>栏目数</span><span>'+cols.length+'（杀 '+kill.length+' / 推荐 '+rec.length+' / 其他 '+oth.length+'）</span></div>'
@@ -1462,7 +1472,7 @@ function loadSnapshot(){
 loadSnapshot();
 switchTab('img');
 loadImg().then(function(){ renderImg(); }).catch(function(){});
-loadTextwall().then(function(){ renderTw(); });
+fetchLatestPeriod().then(function(){ return loadTextwall(); }).then(function(){ renderTw(); });
 loadForum().then(function(){ renderRank(); renderForum(); renderOverview(); }).catch(function(){});
 loadOfficial().then(function(){
   renderAll();
