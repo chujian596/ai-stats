@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.186-Pro';
+var APP_VER = 'v58.187-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2989,7 +2989,7 @@ function flyEditListHtml(){
     out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
   } else {
     ks.forEach(function(k){
-      var a = flownPerPos[k] || 0;
+      var a = flownRealOf(k);
       out += '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'
          + '<span style="min-width:88px;color:#333">' + k + '</span>'
          + '<input type="number" value="' + a + '" onchange="flySetAmt(\'' + k + '\', this.value)" style="width:64px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:12px">'
@@ -3017,6 +3017,7 @@ function flySetAmt(key, val){
   try { localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos)); } catch(e){}
   try { localStorage.setItem('flownReal', JSON.stringify(flownReal)); } catch(e){}
   afterFlyFlagChange();
+  try { if(typeof showAllFlyDir === 'function') showAllFlyDir(); } catch(e){}
 }
 function flyCancelOne(key){
   key = flyKeyNorm(key);
@@ -3033,16 +3034,36 @@ function applyManualFlyList(){
   if(!txt){ myAlert('先把清单贴进输入框'); return; }
   const rows = txt.split(/\n+/).map(s => s.trim()).filter(Boolean);
   let cnt = 0, sum = 0, bad = 0;
+  // 码 -> 存储键：号码补两位；平特X/连肖XX 原样；二中二三中三统一进合计
+  function _flyKey(code){
+    code = String(code).trim();
+    if(code === '_em_total') return '_em_total';
+    if(/^#?[0-9]{1,2}$/.test(code)) return String(parseInt(code.replace('#',''), 10)).padStart(2, '0');
+    if(/^[0-9]\.[0-9]/.test(code)) return null;
+    if(/^(二中二|三中二|三中三)/.test(code)) return '_em_total';
+    if(code.indexOf('平特') === 0 || code.indexOf('连肖') === 0) return code;
+    return null;
+  }
   rows.forEach(function(line){
-    const m = line.match(/^(平特[\u4e00-\u9fa5]|连肖[\u4e00-\u9fa5]{1,4}|二中二|三中三|三中二|[0-9]{1,2})\s*(?:各|每|个)?\s*[：:]?\s*([0-9]+(?:\.[0-9]+)?)$/);
-    if(!m){ bad++; return; }
-    let code = m[1];
-    const amt = parseFloat(m[2]);
-    if(/^[0-9]{1,2}$/.test(code)) code = String(parseInt(code, 10)).padStart(2, '0');
-    if(!(amt > 0)){ bad++; return; }
-    flownPerPos[code] = (flownPerPos[code] || 0) + amt;
-    flownReal[code] = (flownReal[code] || 0) + flyShowAmt(amt);
-    cnt++; sum += amt;
+    // 顿号/逗号/斜杠/点 都当分隔符；「各5」「每5」「个5」放最后表示每个码都这么多
+    let t = line.replace(/[，,、\/]/g, ' ').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+    let mAll = t.match(/^(.*?)\s*(?:各|每|个)?\s*([0-9]+(?:\.[0-9]+)?)\s*元?$/);
+    if(!mAll){ bad++; return; }
+    let head = mAll[1].trim(), amt = parseFloat(mAll[2]);
+    let codes = head ? head.split(' ') : [];
+    // 二中二/三中二/三中三 整串算一笔，里面的号码不当单号处理
+    if(/^(二中二|三中二|三中三)/.test(head)) codes = ['_em_total'];
+    // 支持「特41 100」这种带前缀写法
+    codes = codes.map(function(x){ return x.replace(/^特/, ''); });
+    // 「各5」时最后一个数字是每码金额；若写成「22 140」则 head 是 22、金额 140
+    if(!codes.length){ bad++; return; }
+    codes = codes.map(_flyKey).filter(Boolean);
+    if(!codes.length || !(amt > 0)){ bad++; return; }
+    codes.forEach(function(code){
+      flownPerPos[code] = (flownPerPos[code] || 0) + amt;
+      flownReal[code] = (flownReal[code] || 0) + flyShowAmt(amt);
+      cnt++; sum += amt;
+    });
   });
   if(cnt === 0){ myAlert('没认出来。格式要一行一个，如「22 140」或「平特虎 1000」'); return; }
   try { localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos)); } catch(e){}
