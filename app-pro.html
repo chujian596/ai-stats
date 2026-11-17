@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.220-Pro';
+var APP_VER = 'v58.221-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -8146,7 +8146,7 @@ function renderRisk(){
          + `<span>号码表（每号最多留 <b>${_cap}</b> 元）｜每行＝这个号开出时整本账的盈亏</span>`
          + `<span>自留 ${_kept.toFixed(0)} · 飞 ${(_tot-_kept).toFixed(0)}</span></div>`;
       var _pteKept = (typeof pteFlyTakeAll === 'number' && pteFlyTakeAll > 0) ? Object.keys(pteBetByZod||{}).reduce(function(x,z){ return x + Math.min(pteBetByZod[z]||0, pteFlyTakeAll); }, 0) : 0;
-      h += `<div style="font-size:11px;color:#888;margin-bottom:4px">特号 01–49 合计 ${_tot.toFixed(0)} 元；每行净盈亏已扣掉平特/连肖自留最坏赔付 ${_othPay.toFixed(0)} 元（平特自留 ${_pteKept.toFixed(0)} 元）</div>`;
+      h += `<div style="font-size:11px;color:#888;margin-bottom:4px">特号 01–49 合计 ${_tot.toFixed(0)} 元；每行净盈亏已扣掉平特/连肖自留最坏赔付 ${_othPay.toFixed(0)} 元（平特自留 ${_pteKept.toFixed(0)} 元）。<br>本表是<b>最坏口径</b>：假设平特 7 肖全中，只扣最坏赔付、不加平特没中时的收入；平特/连肖全不中时，每行净盈亏各加回 ${_othPay.toFixed(0)} 元。</div>`;
       var _arr = _bets.slice().sort(function(a,b){ return b.nb - a.nb; });
       // 没人买的号也要列出来：注额 0、自留 0，开出来净赚全部自留金
       for(var _q=1; _q<=49; _q++){
