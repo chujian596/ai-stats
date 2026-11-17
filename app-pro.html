@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.213-Pro';
+var APP_VER = 'v58.214-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4537,6 +4537,8 @@ function parseLine(text){
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
   const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*' + numRe + unitRe + '\\s*$'));
   let isPer, price, codeText;
+  // 只有写明「各数/各号/各码/每号」才算用户授权按号码逐个收；光写「各X」仍属歧义
+  const _perExplicit = !!(mGe && /各\s*(数|号|码)|每\s*(号|个号|码)/.test(mGe[0]));
   if(mGe){
     isPer = true;
     price = toPriceNum(mGe[1]);
@@ -4642,8 +4644,8 @@ function parseLine(text){
         // 单个生肖没写平/特 → 默认特肖，展开全部号码
         var nums = NUM2ZODIAC_REV[zs].map(function(n){ return String(n).padStart(2,'0'); }).join(' ');
         codeText = codeText.replace(zs, nums);
-      } else if(isPer){
-        // 写了「各数/各X」：每个肖都按号×金额算，不再问（猪羊鼠各数5 = 三个肖全部号码各5）
+      } else if(isPer && _perExplicit){
+        // 明确写了「各数/各号」：每个肖都按号×金额算，不再问（猪羊鼠各数5 = 三个肖全部号码各5）
         var zNums = [];
         zs.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ zNums.push(String(n).padStart(2,'0')); }); });
         codeText = codeText.replace(zs, zNums.join(' '));
@@ -5589,6 +5591,144 @@ function warnBatchNotSaved(){
   } catch(e){}
 }
 
+/* ===== 多肖 / 波色 带金额：一律先问「每肖各X 还是 共X 平分 还是 每号各X」 =====
+   规则：只有写明 各数/各号/各码/每号 才免问；其余（含「各100」「各一百」、中文金额）都弹一次 */
+function _mxAmount(str){
+  var m = (str||'').match(/(\d+(?:\.\d+)?)/);
+  if(m) return parseFloat(m[1]);
+  var cn = (str||'').match(/[零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+/);
+  if(!cn) return null;
+  var s = cn[0].replace(/〇/g,'零').replace(/壹/g,'一').replace(/贰/g,'二').replace(/叁/g,'三')
+    .replace(/肆/g,'四').replace(/伍/g,'五').replace(/陆/g,'六').replace(/柒/g,'七')
+    .replace(/捌/g,'八').replace(/玖/g,'九').replace(/拾/g,'十').replace(/佰/g,'百').replace(/仟/g,'千');
+  var map = {零:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+  var total = 0, cur = 0, unitSeen = '';
+  for(var i=0;i<s.length;i++){
+    var ch = s[i];
+    if(map[ch] !== undefined){ cur = map[ch]; }
+    else if(ch === '十'){ total += (cur || 1) * 10; cur = 0; unitSeen = '十'; }
+    else if(ch === '百'){ total += (cur || 1) * 100; cur = 0; unitSeen = '百'; }
+    else if(ch === '千'){ total += (cur || 1) * 1000; cur = 0; unitSeen = '千'; }
+    else if(ch === '万'){ total += (cur || 1) * 10000; cur = 0; unitSeen = '万'; }
+  }
+  // 口语省略：一百五=150 / 一千二=1200（无「零」且收尾是一位数字时按下一级）
+  if(cur && !/零/.test(s) && (unitSeen === '百' || unitSeen === '千')) cur = cur * 10;
+  total += cur;
+  return total > 0 ? total : null;
+}
+
+function scanAmbigAmount(text, from){
+  var lines = String(text).split('\n');
+  for(var i=(from||0);i<lines.length;i++){
+    var raw = lines[i].trim();
+    if(!raw) continue;
+    if(/^共\s*[0-9一二两三四五六七八九十]/.test(raw)) continue;   // 汇总行
+    if(/各\s*(数|号|码)|每\s*(号|个号|码)/.test(raw)) continue;      // 用户已写明单价
+    var mm = raw.match(/^(特|平特|平)?\s*([马蛇龙兔虎牛鸡猴狗猪鼠羊]{2,})(.*)$/);
+    if(mm){
+      var tail = mm[3] || '';
+      var amt = _mxAmount(tail);
+      if(amt){
+        var zods = mm[2], flat = [];
+        zods.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ flat.push(String(n).padStart(2,'0')); }); });
+        if(flat.length) return { idx:i, kind:'zod', prefix:mm[1]||'', zods:zods, amt:amt, codes:flat, label:(mm[1]||'')+zods };
+      }
+      continue;
+    }
+    var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(单数|双数|单|双|大数|小数|大|小)?(.*)$/);
+    if(wm){
+      var wtail = wm[3] || '';
+      var wamt = _mxAmount(wtail);
+      if(wamt){
+        var wv = wm[1].indexOf('波') > -1 ? wm[1] : wm[1] + '波';
+        var sd = (wm[2] || '').replace('数',''), dx = '';
+        var canonical = wv + (sd ? (sd === '单' || sd === '双' ? sd + '数' : sd) : '');
+        var pd = products.filter(function(p){ return p.code === canonical; })[0];
+        if(!pd){
+          var alt = canonical.replace(/数$/, '');
+          pd = products.filter(function(p){ return p.code === alt; })[0];
+          if(pd) canonical = alt;
+        }
+        if(pd && pd.links && pd.links.length > 1){
+          return { idx:i, kind:'wave', name:canonical, amt:wamt, codes:pd.links.slice(), label:canonical };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function showAmbigAmountDlg(hit, text){
+  window.__ambigAbort = true;
+  warnBatchNotSaved();
+  var nPcs = hit.codes.length, nZod = hit.kind === 'zod' ? hit.zods.length : 0;
+  function apply(mode){
+    window.__ambigAbort = false;
+    if(hit.kind === 'wave'){
+      // 波色交回原有机制：把选择带进去，由它替换产品名后照常走解析
+      window._waveChoice = (mode === 'total') ? 'total' : 'perNum';
+      window._waveCanonical = hit.name;
+      if(mode !== 'total') window._waveLastPerNum = true;
+      var wlines = String(text).split('\n'); wlines[hit.idx] = hit.label + hit.amt;
+      doSave(wlines.join('\n'));
+      return;
+    }
+    var ls = String(text).split('\n');
+    var zs = hit.zods.split('');
+    var isPing = (hit.prefix === '平特' || hit.prefix === '平');
+    var perZodAmt = (hit.amt / nZod).toFixed(4);
+    var rep;
+    if(mode === 'perZod'){
+      // 每肖各X：每个肖单独一行，各按该肖自己的金额算
+      rep = zs.map(function(z){ return (isPing ? '平' : '特') + z + hit.amt; }).join('\n');
+      if(!isPing) _texiaoChoice = 'total';      // 单个特肖行按「该肖总额」展开，不再问
+    } else if(mode === 'total'){
+      if(isPing){
+        rep = zs.map(function(z){ return '平' + z + perZodAmt; }).join('\n');
+      } else {
+        rep = '特' + hit.zods + hit.amt;
+        _texiaoChoice = 'total';
+      }
+    } else {
+      // 每号各X
+      if(isPing){
+        rep = zs.map(function(z){
+          var cnt = (NUM2ZODIAC_REV[z] || []).length;
+          return '平' + z + (cnt * hit.amt);
+        }).join('\n');
+      } else {
+        rep = '特' + hit.zods + hit.amt;
+        _texiaoChoice = 'perNum';
+      }
+    }
+    ls[hit.idx] = rep;
+    doSave(ls.join('\n'));
+  }
+  var ov = document.createElement('div');
+  ov.className = 'ai-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var sub = hit.kind === 'zod'
+    ? (nZod + '肖 ' + nPcs + '号')
+    : (nPcs + '个号');
+  var html = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">' + hit.label + ' ' + hit.amt + '元，怎么算？</div>'
+    + '<div style="padding:0 20px 14px;font-size:13px;text-align:center;color:#888">' + sub + '</div>'
+    + '<div style="border-top:1px solid #eee">';
+  if(hit.kind === 'zod'){
+    html += '<button id="mzA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">每肖各' + hit.amt + '（' + nZod + '肖共' + (nZod * hit.amt) + '元）</button>';
+  }
+  html += '<button id="mzB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">共' + hit.amt + '元平分（' + nPcs + '号，每个' + (hit.amt / nPcs).toFixed(2) + '）</button>'
+    + '<button id="mzC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">每号各' + hit.amt + '（' + nPcs + '号共' + (nPcs * hit.amt) + '元）</button>'
+    + '<button id="mzX" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
+    + '</div></div>';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  if(ov.querySelector('#mzA')) ov.querySelector('#mzA').onclick = function(){ ov.remove(); apply('perZod'); };
+  ov.querySelector('#mzB').onclick = function(){ ov.remove(); apply('total'); };
+  ov.querySelector('#mzC').onclick = function(){ ov.remove(); apply('perNum'); };
+  ov.querySelector('#mzX').onclick = function(){ ov.remove(); window.__ambigAbort = false; };
+}
+
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
@@ -5624,6 +5764,19 @@ function doSave(overrideText){
   try {
     var _miItems = scanMultiItems(text);
     if(_miItems.length >= 2){ showMultiDlg(_miItems, text); return; }
+  } catch(e){}
+  // 多肖 / 波色 只要没写「各数/各号」，一律先问算法（含中文金额、光写「各100」）
+  try {
+    var _ambHit = scanAmbigAmount(text);
+    var _g = 0;
+    while(_ambHit && ((_ambHit.kind === 'zod' && _texiaoChoice) || (_ambHit.kind === 'wave' && window._waveChoice)) && _g++ < 6){
+      _ambHit = scanAmbigAmount(text, _ambHit.idx + 1);
+    }
+    if(_ambHit && !window._multiAnswered){
+      showAmbigAmountDlg(_ambHit, text);
+      return;
+    }
+    window._multiAnswered = false;
   } catch(e){}
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
@@ -5770,7 +5923,9 @@ function doSave(overrideText){
         }
         if(!window._waveChoice){
           // 只有明确写了"各号"或"各数"才不弹窗
-          const hasExplicit = text.includes('各号') || text.includes('各数') || text.includes('各');
+          // 只看含波色的那一行，避免别行的「各」把这一行的问询吞掉
+          const _waveLine = String(text).split('\n').filter(l => /红波|蓝波|绿波|红|蓝|绿/.test(l))[0] || '';
+          const hasExplicit = /各\s*(号|数|码)|每\s*(号|个号|码)/.test(_waveLine);
           if(hasExplicit){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
           } else if(PARSE_DEFAULTS.waveAmount){
