@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.11-Pro';
+var APP_VER = 'v59.03.12-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -9397,6 +9397,53 @@ function fourBookCheck(){
   return { pending: pending, ok: ok, rows: rows, ap: ap, today: d };
 }
 
+function nextPeriodAfterSettle(){
+  var d = curShopDraw();
+  if(!d || !d.specialNum){
+    myAlert('还没有本期开奖记录。\n请先在首页点「自动获取开奖」，或手动录入开奖并确认「记入赔付」。');
+    return;
+  }
+  var ap = actualPnL();
+  var _periodTag = d.period ? ('期' + d.period) : '';
+  var _autoPay = null;
+  try{
+    _autoPay = (pays || []).filter(function(p){ return p && p.product === '自动结算'; }).find(function(p){
+      var n = String(p.note || '');
+      return (_periodTag && n.indexOf(_periodTag) >= 0) || (!_periodTag && n.indexOf('特' + d.specialNum) >= 0);
+    }) || null;
+  }catch(e){}
+  if(ap.payout > 0.01 && !_autoPay){
+    myAlert('本期还没有记入赔付，不能开下一期。\n请先点「自动获取开奖」，在结算弹窗里确认「记入赔付」；\n确认后再回来点「归档并开下一期」。');
+    return;
+  }
+  var s = billSum();
+  myConfirm('本期已结算，确认归档并开下一期？\n\n本期：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + ' 元\n本期订单、赔付、飞单、开奖记录会归档/清空，下一期从空白开始。\n不会复制上期号码，也不会自动生成新注单。', function(){
+    var ok = false;
+    try { ok = billArchiveNow(true); } catch(e){ ok = false; }
+    if(!ok){
+      myAlert('本期没有可归档的订单或赔付记录，未执行开下一期。');
+      return;
+    }
+    try{
+      if(shop === 'B'){
+        try{ localStorage.removeItem('hk_draw_cache_global'); }catch(e){}
+        try{ localStorage.removeItem(sk('hk_draw_cache')); }catch(e){}
+        try{ renderHKDraw(); }catch(e){}
+      } else {
+        try{ localStorage.removeItem(sk('lastDraw')); }catch(e){}
+        try{ localStorage.removeItem(sk('lastDrawPeriod')); }catch(e){}
+        lastDraw = null;
+      }
+      renderLiveBalls([]);
+      updateDrawInfoBar();
+      renderAll();
+      if(typeof renderRisk === 'function') renderRisk();
+      if(typeof billRefreshBar === 'function') billRefreshBar();
+    }catch(e){}
+    myAlert('已归档并开下一期：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + ' 元。\n下一期可以直接录单；本期已保留在「归档」里。');
+  });
+}
+
 function showTodayRecon(){
   var d = todayReconData();
   var fmt = function(v){ return Number(v || 0).toFixed(2); };
@@ -9464,12 +9511,14 @@ function showTodayRecon(){
   });
   h += '</div></details>';
   h += '</div>';
+  h += '<button id="trNext" style="width:100%;padding:12px;border:none;border-top:1px solid #eee;background:#f8f7ff;font-size:14px;color:#7c3aed;font-weight:700">归档并开下一期</button>';
   h += '<button id="trClose" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:15px;color:#7c3aed;font-weight:700">关闭</button>';
   h += '</div>';
   var ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = h;
   document.body.appendChild(ov);
+  ov.querySelector('#trNext').onclick = function(){ ov.remove(); nextPeriodAfterSettle(); };
   ov.querySelector('#trClose').onclick = function(){ ov.remove(); };
 }
 
@@ -9938,6 +9987,7 @@ function billArchiveNow(silent){
     orders: JSON.parse(JSON.stringify(activeOrders())),
     pays: JSON.parse(JSON.stringify(pays)),
     custpays: JSON.parse(JSON.stringify(custpays || [])),
+    draw: (typeof curShopDraw === 'function') ? curShopDraw() : null,
     savedAt: new Date().toISOString(),
     sum: s
   };
