@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.16-Pro';
+var APP_VER = 'v59.03.17-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -4651,6 +4651,12 @@ function normalizeComboLine(line){
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
+  // 尾数/头数自然写法归一：尾数5→尾5、5尾数→尾5、头数0→0头、0头数→0头、头0→0头、0尾→尾0
+  // 前置有数字时走反向写法（5尾/0头），不能被正写规则先吃掉金额
+  text = text.replace(/(^|[^0-9])(?:特)?\s*(?:尾数|尾)\s*(\d{1,2})/g, '$1尾$2');
+  text = text.replace(/(\d{1,2})\s*(?:尾数|尾)/g, '尾$1 ');
+  text = text.replace(/(^|[^0-9])(?:特)?\s*(?:头数|头)\s*(\d{1,2})/g, '$1$2头');
+  text = text.replace(/(\d{1,2})\s*(?:头数|头)/g, '$1头 ');
   // 「总共/共/合」是总额标记，不是号码：09总共5 / 09共5 / 09合5 都按 09 号 5 元
   text = text.replace(/(?:总共|共|合)\s*(?=[0-9零〇一二两三四五六七八九十百千万])/g, ' ');
   // 组合单「三中三 04-07-18组100」里的「组100」= 每组100，不是货币单位
@@ -4689,7 +4695,9 @@ function parseLine(text){
   if(_th){
     var _deg = parseInt(_th[1] || _th[4], 10);
     var _kind = _th[2] || _th[3];
-    var _explicit = !!(_th[5] && ((_th[5] === '各' && /^(号|数|码)$/.test(_th[6] || '')) || (_th[5] === '每' && /^(号|个|号|码|注)$/.test(_th[6] || ''))));
+    // 「尾5各100」「头4各100」的「各」本身就是每号，不需要再写「各号」；
+    // 旧逻辑只认「各号/各数/各码」，导致这两类单被当成总额，保存时还会弹一次「怎么算」。
+    var _explicit = !!(_th[5] && (_th[5] === '各' || _th[5] === '每'));
     var _nums = [];
     if(_kind === '尾'){
       if(_deg >= 0 && _deg <= 9){
