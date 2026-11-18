@@ -637,7 +637,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03-Test.5-Pro';
+var APP_VER = 'v59.03-Test.6-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -3835,6 +3835,15 @@ function calcSplit(){
       }
     });
   });
+  // 二中二/三中二/三中三当前下单额（只用于总额展示，不影响飞单计算）
+  let emTotal = 0;
+  _list.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中二:')===0 || c.indexOf('三中三:')===0)){
+        emTotal += codeSalesForOrder(o, c);
+      }
+    });
+  });
   // 计算全部飞出去
   let pteFlyAll = 0, lxFlyAll = 0, emFlyAll = 0;
   const pteAggAll = {};
@@ -3856,7 +3865,9 @@ function calcSplit(){
   // 分批飞单：已飞累计 vs 本轮应飞
   const _r = getThisRoundFly();
   let splitHtml = `<div style="line-height:2">` +
-    `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b> = <b>${(total+pteLxTotal).toFixed(2)}</b></div>` +
+    `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b>` +
+    (emTotal > 0 ? ` + 二中二三中三：<b>${emTotal.toFixed(2)}</b>` : '') +
+    ` = <b>${(total+pteLxTotal+emTotal).toFixed(2)}</b></div>` +
     `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
     `<div>应飞总额：<b style="color:#cf1322">${totalFly.toFixed(2)}</b></div>` +
     `<div style="font-size:13px;color:#666">已飞累计：${_r.already.toFixed(2)}　|　本轮应飞：<b style="color:#cf1322">${_r.thisRound.toFixed(2)}</b></div>`;
