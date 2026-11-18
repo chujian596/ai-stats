@@ -577,7 +577,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02-Test.3';
+var APP_VER = 'v59.02-Test.4';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -4788,6 +4788,8 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 预览确认后要按同一个选择重新解析，否则会再次弹“各肖/各号”
+  var _texiaoChoiceAtStart = _texiaoChoice;
   // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
   text = text.split('\n').map(normalizeComboLine).join('\n');
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
@@ -4864,10 +4866,12 @@ function doSave(overrideText){
   }
   // 检测特肖多肖：弹窗选择各肖还是各数
   if(!_texiaoChoice){
-    const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
-    // 写了"各数/各号"才明确按号算，直接过；只写"各5"仍弹窗问
-    if(txMatch && /[数号各]/.test(txMatch[2])){
+    const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个|肖)*)\s*([0-9]+(?:\.[0-9]+)?)/);
+    // 只有写了"各数/各号"才明确按号算；写"各肖"按每肖；光写"各100"必须弹窗问
+    if(txMatch && /各\s*(?:数|号)|^数|^号/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
+    } else if(txMatch && /各\s*肖|^肖/.test(txMatch[2])){
+      _texiaoChoice = 'perZod';
     } else if(txMatch && PARSE_DEFAULTS.teZod === 'perNum'){
       const zods3 = txMatch[1], pp4 = parseFloat(txMatch[3]);
       const allNums2 = [];
@@ -4884,15 +4888,18 @@ function doSave(overrideText){
         const ov = document.createElement('div');
         ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
         ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-          + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">特肖' + zods + ' ' + price + '元，怎么算？</div>'
+          + '<div style="padding:20px 20px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">特肖' + zods + ' ' + price + '元，怎么算？</div>'
+          + '<div style="padding:0 20px 10px;font-size:12px;color:#888;text-align:center">请选择「各肖」还是「各号」，不要直接落单</div>'
           + '<div style="border-top:1px solid #eee;margin-top:10px">'
-          + '<button id="txA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">平分' + price + '（' + numCount + '号共' + price + '元）</button>'
-          + '<button id="txB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">单个各' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
+          + '<button id="txA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">各肖' + price + '（' + zods.length + '肖共' + (zods.length*price) + '元）</button>'
+          + '<button id="txB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号共' + (numCount*price) + '元）</button>'
+          + '<button id="tx0" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#666;font-weight:600;border-bottom:1px solid #eee">全部共' + price + '（' + numCount + '号平分）</button>'
           + '<button id="txC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
           + '</div></div>';
         document.body.appendChild(ov);
-        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='total'; handleSave(); };
+        ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='perZod'; handleSave(); };
         ov.querySelector('#txB').onclick = () => { ov.remove(); _texiaoChoice='perNum'; handleSave(); };
+        ov.querySelector('#tx0').onclick = () => { ov.remove(); _texiaoChoice='total'; handleSave(); };
         ov.querySelector('#txC').onclick = () => { ov.remove(); _texiaoChoice=null; };
         return;
       }
@@ -5030,15 +5037,40 @@ function doSave(overrideText){
   if(_texiaoChoice){
     const choice = _texiaoChoice;
     _texiaoChoice = null;
-    text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
+    text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个|肖)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
       const p = parseFloat(price);
       const allNums = [];
       zods.split('').forEach(z => {
         (NUM2ZODIAC_REV[z]||[]).forEach(n => allNums.push(String(n).padStart(2,'0')));
       });
+      // 金额按分拆分，保证多行加总严格等于用户写的总额
+      function splitCents(total, n){
+        var cents = Math.round(Number(total) * 100);
+        var base = Math.floor(cents / n), rem = cents - base * n;
+        var arr = [];
+        for(var i=0;i<n;i++) arr.push((base + (i < rem ? 1 : 0)) / 100);
+        return arr;
+      }
+      function groupByAmount(nums, amounts){
+        var groups = [];
+        nums.forEach(function(n, i){
+          var amt = Number(amounts[i]).toFixed(2);
+          var g = groups.filter(function(x){ return x.amt === amt; })[0];
+          if(!g){ g = { amt: amt, nums: [] }; groups.push(g); }
+          g.nums.push(n);
+        });
+        return groups.map(function(g){ return g.nums.join(' ') + '各' + g.amt; }).join('\n');
+      }
       if(choice === 'total'){
-        // 平分：总额摊到每个号码
-        return allNums.join(' ') + '各' + (p / allNums.length).toFixed(4);
+        // 全部共：总额按分摊到每个号码，各行加总严格等于 p
+        return groupByAmount(allNums, splitCents(p, allNums.length));
+      }
+      if(choice === 'perZod'){
+        // 各肖：每个生肖合计 p，按该肖号码数按分平分
+        return zods.split('').map(function(z){
+          var zn = (NUM2ZODIAC_REV[z]||[]).map(function(n){ return String(n).padStart(2,'0'); });
+          return groupByAmount(zn, splitCents(p, zn.length || 1));
+        }).join('\n');
       }
       // 各号：每个号 X
       return allNums.join(' ') + '各' + p;
@@ -5349,15 +5381,20 @@ renderAll();
     let _pvTotal = 0;
     parsed.forEach(function(p){ _pvTotal += p.isPer ? p.price * p.codes.length : p.price; });
     if(window._waveTotalTarget != null) _pvTotal = Number(window._waveTotalTarget);
+    window.__previewTexiaoChoice = _texiaoChoiceAtStart;
     showPreviewDlg({
       customer: (document.getElementById('customerName') || {}).value || '散客',
       shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
       lines: _pvLines,
       total: _pvTotal
     }, function(){
+      var _pc = window.__previewTexiaoChoice || null;
+      window.__previewTexiaoChoice = null;
+      if(_pc) _texiaoChoice = _pc;
       window.__previewConfirmed = true;
       try { doSave(); } finally { window.__previewConfirmed = false; }
     }, function(){
+      window.__previewTexiaoChoice = null;
       window.__lastInputFp = null;
       window.__lastInputAt = 0;
     });
