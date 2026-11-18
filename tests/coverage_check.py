@@ -16,6 +16,7 @@ def grab(pat, optional=False):
         i+=1
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
+norm=grab(r'function normalizeComboLine\(')
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
 i2=s.index('return [{"code": "01"')
@@ -36,11 +37,12 @@ const document={getElementById:_el,createElement:function(){_popupCount++;return
 const localStorage={getItem:function(){return null;},setItem:function(){},removeItem:function(){}};
 function myAlert(m){ console.log('[ALERT] '+m); } function prompt(){ return null; }
 function myConfirm(m,cb){ if(typeof cb==='function') cb(); } function warnBatchNotSaved(){} function handleSave(){} function showMultiDlg(){}
-var orders=[],roster=[],storageOK=true,lastPrice=null,_texiaoChoice=null,mode='normal',pendingProduct=null;
+var orders=[],hkOrders=[],roster=[],storageOK=true,lastPrice=null,_texiaoChoice=null,mode='normal',pendingProduct=null;
 var shop='A';  // 店铺桩：A=澳门 B=香港，港单默认分流要用
 function saveOrders(){} function saveRoster(){} function restoreIfNeeded(){} function renderAll(){} function switchTab(){} function exportBackup(){} function autoPayout(){}
 const NUM2ZODIAC_REV={'马':[1,13,25,37,49],'蛇':[2,14,26,38],'龙':[3,15,27,39],'兔':[4,16,28,40],'虎':[5,17,29,41],'牛':[6,18,30,42],'鼠':[7,19,31,43],'猪':[8,20,32,44],'狗':[9,21,33,45],'鸡':[10,22,34,46],'猴':[11,23,35,47],'羊':[12,24,36,48]};
 const products = """ + prods + """;
+""" + norm + """
 function toPriceNum(x){const n=parseFloat(x);if(!isNaN(n))return n;const cn={零:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};const m=String(x).match(/(十|[一二两三四五六七八九][千百十]?[一二两三四五六七八九]?十?[一二两三四五六七八九]?)/);if(!m)return 0;const t=m[1];let v=0,p=0;while(p<t.length){const c=t[p];if(cn[c]!==undefined){v+=cn[c];p++;}else if(c==='十'){v=(v||1)*10;p++;}else if(c==='百'){v*=100;p++;}else if(c==='千'){v*=1000;p++;}else p++;}return v||0;}
 """
 
@@ -106,6 +108,17 @@ CASES = [
  ("断言-平特肖兔", "平特肖兔100", 100),
  ("断言-特猴各50", "特猴各50", 200),
  ("断言-特猴各5+平特一肖", "特猴各50\n平特一肖猴200", 400),
+ # ===== 组合玩法整类：产品前后、各种分隔符、金额贴合 =====
+ ("断言-组合裸逗号", "二中二03,10 100", 100),
+ ("断言-组合中文逗号", "三中二03，10，22 100", 100),
+ ("断言-组合产品在后", "03,10二中二100", 100),
+ ("断言-组合横杠在后", "07-24-32三中三100", 100),
+ ("断言-组合空格无冒号", "三中三 07 24 32 100", 100),
+ ("断言-组合斜杠", "二中二03/10 100", 100),
+ ("断言-组合连写金额", "三中二03,10,22100", 100),
+ ("断言-一行两组组合", "二中二03,10 100 三中三07,24,32 100", 200),
+ ("断言-香港组合", "香港 二中二03,10 100", 100),
+ ("断言-香港组合两行", "香港 03 100\n香港 二中二03,10 100", 200),
 
 ]
 
@@ -113,17 +126,19 @@ runner = pre + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + 
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){
-  orders=[]; _popupCount=0; _texiaoChoice=null; window._waveChoice=null; window._failedLines=[];
+  orders=[]; hkOrders=[]; _popupCount=0; _texiaoChoice=null; window._waveChoice=null; window._failedLines=[];
   let alertMsg='';
   const _origAlert = myAlert; myAlert = function(m){ alertMsg=m; };
   _el('input').value = text;
   let threw=null;
   try{ doSave(); }catch(e){ threw=e.message; }
   myAlert = _origAlert;
-  if(orders.length > 0 && expAmt !== undefined && Math.abs(orders.reduce(function(a,o){return a+o.amount;},0) - expAmt) > 0.01){
-    fail++; console.log('❌ '+name+' ⇒ 金额不符：期望 '+expAmt+'，实得 '+orders.reduce(function(a,o){return a+o.amount;},0));
-  } else if(orders.length > 0){
-    ok++; console.log('✅ '+name+' ⇒ '+orders.length+'单 共'+orders[0].amount+'米 '+orders[0].qty+'号'+(expAmt!==undefined?'（期望 '+expAmt+' ✓）':''));
+  const _allAmt = orders.reduce(function(a,o){return a+o.amount;},0) + hkOrders.reduce(function(a,o){return a+o.amount;},0);
+  const _anyCount = orders.length + hkOrders.length;
+  if(_anyCount > 0 && expAmt !== undefined && Math.abs(_allAmt - expAmt) > 0.01){
+    fail++; console.log('❌ '+name+' ⇒ 金额不符：期望 '+expAmt+'，实得 '+_allAmt);
+  } else if(_anyCount > 0){
+    ok++; console.log('✅ '+name+' ⇒ '+(orders.length?orders.length+'澳单':'')+(_anyCount-orders.length?(_anyCount-orders.length)+'港单 ':'')+'共'+_allAmt+'米'+(expAmt!==undefined?'（期望 '+expAmt+' ✓）':''));
   } else if(_popupCount > 0){
     needConfirm++; console.log('🟡 '+name+' ⇒ 弹窗需确认（正常流程）');
   } else {

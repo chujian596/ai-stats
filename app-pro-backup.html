@@ -378,8 +378,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         &nbsp;&nbsp;连肖龙虎兔100　龙虎兔三连肖100　平连龙虎100　三四连肖虎马龙兔100<br><br>
 
         <b style="color:var(--modalText,#fff)">⑤ 组合玩法</b><br>
-        &nbsp;&nbsp;二中二 03,10 100　二中二:03,10 100<br>
-        &nbsp;&nbsp;三中二 03,10,22 100　三中三 07,24,32 100<br>
+        &nbsp;&nbsp;二中二 03,10 100　二中二:03,10 100　03,10二中二100<br>
+        &nbsp;&nbsp;三中二 03,10,22 100　三中三 07,24,32 100　07,24,32三中三100<br>
         &nbsp;&nbsp;三中三:07,24,32 100　（用横杠写的 07-24-32 也会自动识别）<br><br>
 
         <b style="color:var(--modalText,#fff)">⑥ 快捷批量写法</b><br>
@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.230-Pro';
+var APP_VER = 'v58.231-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4556,6 +4556,28 @@ function stripHKMark(t){
           .replace(/(^|[^\u4e00-\u9fa5])港(?=\s*[\d一二三四五六七八九十])/g, '$1 ')
           .replace(/(^|[^\u4e00-\u9fa5])香(?=\s*[\d一二三四五六七八九十])/g, '$1 ');
 }
+// 组合玩法统一归一化：把「产品名 + 2/3个号码」无论用逗号、顿号、横杠、空格、斜杠分隔，
+// 也无论产品写在号码前还是号码后，统一成「产品:01,02,03 」这种带冒号的标准格式。
+// 这样后面所有按逗号分行的逻辑都不会再把组合号码拆散。
+function normalizeComboLine(line){
+  line = String(line || '');
+  var defs = [['二中二', 2], ['三中二', 3], ['三中三', 3]];
+  var SEP = '[\\s,，、\\-\\u2010-\\u2015\\/]+';
+  defs.forEach(function(d){
+    var prod = d[0], n = d[1];
+    var seq = '\\d{2}(?:' + SEP + '\\d{2}){' + (n - 1) + '}';
+    // 产品在前：二中二03,10 100 / 三中三 07 24 32 100
+    line = line.replace(new RegExp(prod + '\\s*[:：]?\\s*(' + seq + ')', 'g'), function(m, nums){
+      if(m.indexOf(':') >= 0 && m.indexOf('：') >= 0) return m;
+      return prod + ':' + (nums.match(/\d{2}/g) || []).slice(0, n).join(',') + ' ';
+    });
+    // 产品在后：03,10 二中二 100 / 07-24-32三中三100
+    line = line.replace(new RegExp('(' + seq + ')\\s*' + prod, 'g'), function(m, nums){
+      return prod + ':' + (nums.match(/\d{2}/g) || []).slice(0, n).join(',') + ' ';
+    });
+  });
+  return line.replace(/\s+/g, ' ').trim();
+}
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
   if(!text) return null;
@@ -5825,6 +5847,8 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
+  text = text.split('\n').map(normalizeComboLine).join('\n');
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
   text = text.split('\n').map(line => {
