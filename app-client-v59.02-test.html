@@ -577,7 +577,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02-Test.5';
+var APP_VER = 'v59.02-Test.6';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -4338,6 +4338,40 @@ function handleSave(){
   doSave();
 }
 
+// 统一选择弹窗：与「保存前预览」同一套白底圆角卡片
+// cfg = {title, subtitle, options:[{id,label,desc,amount,tone,onSelect}], cancelText, onCancel}
+function showCardChoice(cfg){
+  var ov = document.createElement('div');
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var opts = cfg.options || [];
+  var rows = opts.map(function(o, i){
+    var id = o.id || ('ccOpt' + i);
+    var tone = o.tone === 'red' ? '#c0392b' : (o.tone === 'blue' ? '#2471a3' : '#333');
+    var right = o.amount ? '<span style="font-size:15px;font-weight:700;color:' + tone + ';white-space:nowrap">' + o.amount + '</span>' : '';
+    var desc = o.desc ? '<span style="display:block;font-size:12px;color:#888;margin-top:3px;line-height:1.5">' + o.desc + '</span>' : '';
+    return '<button id="' + id + '" data-cc-idx="' + i + '" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 10px;border:none;border-bottom:1px dashed #eee;background:#fff;text-align:left">'
+      + '<span style="min-width:0"><span style="display:block;font-size:15px;font-weight:700;color:' + tone + '">' + o.label + '</span>' + desc + '</span>'
+      + right + '</button>';
+  }).join('');
+  var cancel = (cfg.cancelText === null || cfg.cancelText === false) ? '' : '<button id="ccCancel" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:14px;color:#999">' + (cfg.cancelText || '取消') + '</button>';
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 4px;text-align:center">'
+    + '<div style="font-size:17px;font-weight:700;color:#333">' + (cfg.title || '') + '</div>'
+    + (cfg.subtitle ? '<div style="font-size:12px;color:#888;margin-top:6px;line-height:1.6">' + cfg.subtitle + '</div>' : '')
+    + '</div>'
+    + '<div style="padding:8px 16px 10px">' + rows + '</div>'
+    + cancel
+    + '</div>';
+  document.body.appendChild(ov);
+  opts.forEach(function(o, i){
+    var btn = ov.querySelector('#' + (o.id || ('ccOpt' + i)));
+    if(btn) btn.onclick = function(){ ov.remove(); if(o.onSelect) o.onSelect(); else if(cfg.onPick) cfg.onPick(i); };
+  });
+  var cancelBtn = ov.querySelector('#ccCancel');
+  if(cancelBtn) cancelBtn.onclick = function(){ ov.remove(); if(cfg.onCancel) cfg.onCancel(); };
+  return ov;
+}
+
 function showFixDialog(rawLine, msg){
   var src = String(rawLine||'').trim();
   if(!src) return false;
@@ -4387,18 +4421,15 @@ function showFixDialog(rawLine, msg){
     teLine = '特' + zods.join('') + '各' + price + '米';
     pingLine = '平特' + zods.join('') + '各' + price + '米';
   }
-  var ov = document.createElement('div');
-  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:18px 20px 6px;font-size:16px;font-weight:700;text-align:center;color:#333">这行没认出来</div>'
-    + '<div style="padding:0 20px 8px;font-size:12px;color:#999;text-align:center;word-break:break-all">' + src + '</div>'
-    + '<div style="padding:0 20px 16px;font-size:14px;color:#333;text-align:center">我认成：<b>' + preview + '</b><br><span style="font-size:12px;color:#888">这样存对吗？</span></div>'
-    + '<div style="border-top:1px solid #eee">'
-    + '<button id="fxTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#c0392b;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
-    + '<button id="fxPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#2471a3;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
-    + '<button id="fxCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
-    + '</div></div>';
-  document.body.appendChild(ov);
+  var ov = showCardChoice({
+    title: '这行没认出来',
+    subtitle: '<div style="color:#999;word-break:break-all">' + src + '</div><div style="color:#333;margin-top:6px">我认成：<b>' + preview + '</b></div><div style="color:#888;margin-top:2px">这样存对吗？</div>',
+    options: [
+      { id:'fxTe', label:'按特码保存', desc:teLine, tone:'red', onSelect:function(){ apply(teLine); } },
+      { id:'fxPing', label:'按平特保存', desc:pingLine, tone:'blue', onSelect:function(){ apply(pingLine); } }
+    ],
+    cancelText: '取消'
+  });
   function apply(line){
     ov.remove();
     var box = document.getElementById('input');
@@ -4412,9 +4443,6 @@ function showFixDialog(rawLine, msg){
     box.value = arr.join('\n');
     doSave();
   }
-  ov.querySelector('#fxTe').onclick = function(){ apply(teLine); };
-  ov.querySelector('#fxPing').onclick = function(){ apply(pingLine); };
-  ov.querySelector('#fxCancel').onclick = function(){ ov.remove(); };
   return true;
 }
 var MANUAL_TYPES = [['num','号码'],['tezod','特肖'],['ping','平特肖'],['lian','连肖'],['wave','波色'],['sd','单双'],['big','大小'],['he','合数单双'],['head','头数'],['tail','尾数'],['ez','二中二'],['sz','三中三']];
@@ -4695,20 +4723,22 @@ function showMultiDlg(items, text){
     var unit = (it.kind === 'ping') ? '肖' : '个号';
     var aLabel = (it.kind === 'ping') ? ('共' + it.amt + '（每肖' + (it.amt / it.count).toFixed(2) + '）') : ('共' + it.amt + '（每号' + (it.amt / it.count).toFixed(2) + '）');
     var bLabel = (it.kind === 'ping') ? ('每肖' + it.amt + '（共' + (it.count * it.amt) + '）') : ('每号' + it.amt + '（共' + (it.count * it.amt) + '）');
-    rows += '<div style="padding:10px 0;border-top:1px solid #eee">'
-      + '<div style="font-size:13px;color:#666;margin-bottom:6px">' + (it.disp || it.name) + ' ' + it.amt + '元（' + it.count + unit + '）</div>'
-      + '<div style="display:flex;gap:6px">'
-      + '<button data-i="' + i + '" data-v="total" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + aLabel + '</button>'
-      + '<button data-i="' + i + '" data-v="per" style="flex:1;min-width:0;padding:10px 4px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;color:#333">' + bLabel + '</button>'
+    rows += '<div style="padding:12px 0;border-bottom:1px dashed #eee">'
+      + '<div style="font-size:14px;font-weight:700;color:#333;margin-bottom:7px">' + (it.disp || it.name) + ' <span style="font-weight:400;color:#888">' + it.amt + ' 元 · ' + it.count + unit + '</span></div>'
+      + '<div style="display:flex;flex-direction:column;gap:6px">'
+      + '<button data-i="' + i + '" data-v="total" style="width:100%;padding:11px 10px;border:1px solid #eee;border-radius:8px;background:#fff;font-size:13px;color:#333;text-align:left">' + aLabel + '</button>'
+      + '<button data-i="' + i + '" data-v="per" style="width:100%;padding:11px 10px;border:1px solid #eee;border-radius:8px;background:#fff;font-size:13px;color:#333;text-align:left">' + bLabel + '</button>'
       + '</div></div>';
   });
-  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:16px 16px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">这个订单有 ' + items.length + ' 项要选</div>'
-    + '<div style="padding:0 16px 8px;font-size:12px;color:#999;text-align:center">每项选一个，全选完点确定</div>'
-    + '<div style="padding:0 16px">' + rows + '</div>'
-    + '<div style="padding:12px 16px 16px;display:flex;gap:8px;border-top:1px solid #eee">'
-    + '<button id="miCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;color:#666">取消</button>'
-    + '<button id="miOk" disabled style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#aaa;font-size:14px;font-weight:700">确定</button>'
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:20px 20px 4px;text-align:center">'
+    + '<div style="font-size:17px;font-weight:700;color:#333">这单有 ' + items.length + ' 项要选</div>'
+    + '<div style="font-size:12px;color:#888;margin-top:6px">每项选择一个算法，选完点确定</div>'
+    + '</div>'
+    + '<div style="padding:8px 16px 10px">' + rows + '</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="miCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:14px;color:#999;border-right:1px solid #eee">取消</button>'
+    + '<button id="miOk" disabled style="flex:1;padding:14px;border:none;background:#fff;color:#aaa;font-size:14px;font-weight:700">确定</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelectorAll('button[data-i]').forEach(function(b){
@@ -4833,34 +4863,29 @@ function doSave(overrideText){
       document.getElementById('input').value = text;
     } else if(pingMatch && !/[数号]/.test(pingMatch[2])){
       const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
-      const ov = document.createElement('div');
-      ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-      ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-        + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">平特' + pz + ' ' + pp + '元，怎么算？</div>'
-        + '<div style="border-top:1px solid #eee;margin-top:10px">'
-        + '<button id="pA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">' + pz.length + '肖共' + pp + '元（平分，合计' + pp + '）</button>'
-        + '<button id="pB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">每肖' + pp + '（共' + (pz.length*pp) + '元）</button>'
-        + '<button id="pC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
-        + '</div></div>';
-      document.body.appendChild(ov);
-      ov.querySelector('#pA').onclick = () => {
-        ov.remove();
-        const _cents = Math.round(pp * 100), _base = Math.floor(_cents / pz.length), _rem = _cents - _base * pz.length;
-        text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
-          () => pz.split('').map((z, i) => '平' + z + (((_base + (i < _rem ? 1 : 0)) / 100).toFixed(2))).join('\n'));
-        document.getElementById('input').value = text;
-        _texiaoChoice = 'pingPerZod';
-        handleSave();
-      };
-      ov.querySelector('#pB').onclick = () => {
-        ov.remove();
-        // 拆成每个肖一行：平虎80 平龙80 平兔80
-        text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
-          () => pz.split('').map(z => '平' + z + pp).join('\n'));
-        document.getElementById('input').value = text;
-        _texiaoChoice = 'pingPerZod'; handleSave();
-      };
-      ov.querySelector('#pC').onclick = () => { ov.remove(); _texiaoChoice=null; };
+      const money = function(v){ return Number(v).toFixed(2); };
+      showCardChoice({
+        title: '平特 ' + pz + ' · ' + pp + ' 元',
+        subtitle: '这笔钱怎么分？确认后才会落单',
+        options: [
+          { id:'pA', label:pz.length + '肖共 ' + pp, desc:'按 ' + pz.length + ' 肖平分，合计 ' + money(pp) + ' 元', amount:money(pp), onSelect:function(){
+            const _cents = Math.round(pp * 100), _base = Math.floor(_cents / pz.length), _rem = _cents - _base * pz.length;
+            text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
+              () => pz.split('').map((z, i) => '平' + z + (((_base + (i < _rem ? 1 : 0)) / 100).toFixed(2))).join('\n'));
+            document.getElementById('input').value = text;
+            _texiaoChoice = 'pingPerZod';
+            handleSave();
+          } },
+          { id:'pB', label:'每肖 ' + pp, desc:'每个生肖各 ' + pp + '，共 ' + pz.length + ' 肖', amount:money(pz.length*pp), onSelect:function(){
+            text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
+              () => pz.split('').map(z => '平' + z + pp).join('\n'));
+            document.getElementById('input').value = text;
+            _texiaoChoice = 'pingPerZod'; handleSave();
+          } }
+        ],
+        cancelText: '取消',
+        onCancel: function(){ _texiaoChoice=null; }
+      });
       return;
     }
   }
@@ -4989,20 +5014,17 @@ function doSave(overrideText){
           const numCount = prodDef.links.length;
           window.__ambigAbort = true;
           warnBatchNotSaved();
-          const ov = document.createElement('div');
-          ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-          ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-            + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">请选择注单方式</div>'
-            + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666">' + canonical + ' ' + price + '元（' + numCount + '个号）</div>'
-            + '<div style="border-top:1px solid #eee">'
-            + '<button id="wvA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:600;border-bottom:1px solid #eee">总额' + price + '（摊到' + numCount + '号，每个' + (price/numCount).toFixed(1) + '元）</button>'
-            + '<button id="wvB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:600;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号×' + price + '=' + (numCount*price) + '元）</button>'
-            + '<button id="wvC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
-            + '</div></div>';
-          document.body.appendChild(ov);
-          ov.querySelector('#wvA').onclick = () => { ov.remove(); window._waveChoice='total'; window._waveCanonical=canonical; window._waveTotalTarget=price; window.__ambigAbort=false; handleSave(); };
-          ov.querySelector('#wvB').onclick = () => { ov.remove(); window._waveChoice='perNum'; window._waveCanonical=canonical; window._waveLastPerNum=true; window.__ambigAbort=false; handleSave(); };
-          ov.querySelector('#wvC').onclick = () => { ov.remove(); window._waveChoice=null; window.__ambigAbort=false; };
+          const money = function(v){ return Number(v).toFixed(2); };
+          showCardChoice({
+            title: canonical + ' · ' + price + ' 元',
+            subtitle: '这笔钱怎么分？共 ' + numCount + ' 个号码',
+            options: [
+              { id:'wvA', label:'总额 ' + price, desc:'摊到 ' + numCount + ' 个号码，每个约 ' + (price/numCount).toFixed(2) + ' 元', amount:money(price), onSelect:function(){ window._waveChoice='total'; window._waveCanonical=canonical; window._waveTotalTarget=price; window.__ambigAbort=false; handleSave(); } },
+              { id:'wvB', label:'各号 ' + price, desc:numCount + ' 个号码各 ' + price + ' 元', amount:money(numCount*price), onSelect:function(){ window._waveChoice='perNum'; window._waveCanonical=canonical; window._waveLastPerNum=true; window.__ambigAbort=false; handleSave(); } }
+            ],
+            cancelText: '取消',
+            onCancel: function(){ window._waveChoice=null; window.__ambigAbort=false; }
+          });
           return;
           }
         }
@@ -7153,17 +7175,13 @@ function myConfirm(msg, cb){
 
 // 多选项弹窗：myChoice('标题', '说明', ['选项1','选项2'], pick=>{pick为下标})
 function myChoice(title, msg, opts, cb){
-  const ov = document.createElement('div');
-  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-  let btns = '';
-  opts.forEach((o,i)=>{ btns += '<button data-i="'+i+'" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:16px;color:#333;font-weight:600">'+o+'</button>'; });
-  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:20px 20px 8px;font-size:16px;font-weight:700;text-align:center;color:#333">'+title+'</div>'
-    + '<div style="padding:0 20px 16px;font-size:14px;text-align:center;color:#666;line-height:1.6">'+msg+'</div>'
-    + btns + '</div>';
-  document.body.appendChild(ov);
-  ov.querySelectorAll('button').forEach(b=>{
-    b.onclick = () => { ov.remove(); cb(parseInt(b.dataset.i)); };
+  showCardChoice({
+    title: title,
+    subtitle: msg,
+    options: opts.map(function(o, i){
+      return { label: o, onSelect: function(){ cb(i); } };
+    }),
+    cancelText: null
   });
 }
 

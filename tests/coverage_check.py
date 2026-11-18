@@ -37,6 +37,8 @@ const document={getElementById:_el,createElement:function(){_popupCount++;return
 const localStorage={getItem:function(){return null;},setItem:function(){},removeItem:function(){}};
 function myAlert(m){ console.log('[ALERT] '+m); } function prompt(){ return null; }
 function myConfirm(m,cb){ if(typeof cb==='function') cb(); } function warnBatchNotSaved(){} function handleSave(){} function showMultiDlg(){}
+// 统一选择弹窗桩：测试只关心是否弹窗/是否落单，不渲染真实 UI
+function showCardChoice(cfg){ return document.createElement('div'); }
 var orders=[],hkOrders=[],roster=[],storageOK=true,lastPrice=null,_texiaoChoice=null,mode='normal',pendingProduct=null;
 var shop='A';  // 店铺桩：A=澳门 B=香港，港单默认分流要用
 function saveOrders(){} function saveRoster(){} function restoreIfNeeded(){} function renderAll(){} function switchTab(){} function exportBackup(){} function autoPayout(){}
