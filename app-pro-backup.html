@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.226-Pro';
+var APP_VER = 'v58.227-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1905,13 +1905,13 @@ function renderSideCustPay(){
   const multSingleInput = document.getElementById('sidePayMultSingle');
   let h = '<div style="margin-top:6px;font-size:15px"></div>';
   // 开奖后：自动显示所有中奖产品的客户赔付
-  if(lastDraw && lastDraw.specialNum){
-    const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
-    const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
-    // 收集所有中奖code及其倍数和客户
+  if((lastDraw && lastDraw.specialNum) || (typeof hkDrawObj === 'function' && hkDrawObj())){
+    const regular = (lastDraw && lastDraw.regularNums) || [];
+    const allNums = new Set(lastDraw ? [...regular, lastDraw.specialNum] : []);
+    const drawZ = new Set((lastDraw ? [...regular, lastDraw.specialNum] : []).map(n => NUM2ZODIAC[n]).filter(Boolean));
+    // 收集所有中奖code及其倍数和客户（澳门号没录入时，只算香港那部分）
     const winCodes = []; // {code, mult, custMap}
-    orders.forEach(o => {
+    if(lastDraw && lastDraw.specialNum) orders.forEach(o => {
       const _seenC = {};
       (o.codes||[]).forEach(c => {
         if(typeof c !== 'string') return;
@@ -1944,7 +1944,21 @@ function renderSideCustPay(){
         }
       });
     });
-    if(winCodes.length === 0){
+    // 香港单按香港开奖单独算一遍，港澳两边都显示在同一个赔付面板里
+    const hkHitLines = [];
+    try{
+      const _hd = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+      if(_hd && typeof hkOrders !== 'undefined'){
+        hkOrders.forEach(o => {
+          const det = calcOrderWinDetail(o, _hd);
+          if(det.total > 0){
+            const cust = o.customer || '散客';
+            det.lines.forEach(l => hkHitLines.push(cust + '：' + l));
+          }
+        });
+      }
+    }catch(e){}
+    if(winCodes.length === 0 && hkHitLines.length === 0){
       h = '<div style="color:#999;padding:8px;font-size:14px">本期无中奖产品</div>';
     } else {
       winCodes.forEach(wc => {
@@ -1961,6 +1975,14 @@ function renderSideCustPay(){
         });
         h += '</div>';
       });
+      if(hkHitLines.length){
+        h += '<div style="background:#fffbe6;border:1px solid #f0c36d;border-radius:6px;padding:10px;margin-top:4px">';
+        h += '<div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#b45309">香港单赔付</div>';
+        hkHitLines.forEach(function(l){
+          h += '<div style="font-size:13px;color:#333;padding:3px 0;border-bottom:1px solid #fdf0d5">' + esc(l) + '</div>';
+        });
+        h += '</div>';
+      }
     }
   } else {
     // 未开奖：按选中产品显示
@@ -2002,7 +2024,7 @@ function renderSideCustPay(){
   }
   // 客户盈亏小结
   const custBuy = {};
-  orders.forEach(o => {
+  orders.concat(typeof hkOrders !== 'undefined' ? hkOrders : []).forEach(o => {
     const c = o.customer || '散客';
     if(!custBuy[c]) custBuy[c] = 0;
     custBuy[c] += Number(o.amount)||0;
@@ -2034,21 +2056,27 @@ function renderSideCustPay(){
     // 逐笔流水账
     // 先算各项赔付
     let paySpec=0,payPte=0,payLx=0,payEm=0;
-    if(lastDraw && lastDraw.specialNum){
+    // 澳门单用澳门开奖，香港单用香港开奖，两边各自算完再合计
+    const _hkdPay = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+    const _accPay = (list, d) => {
+      if(!d || !d.regularNums) return;
       try{
-        const allNums=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);
-        const drawZ=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-        orders.forEach(o=>{const _sc={};(o.codes||[]).forEach(c=>{
+        const allNums=new Set([...(d.regularNums||[]),d.specialNum]);
+        const drawZ=new Set([...(d.regularNums||[]),d.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
+        list.forEach(o=>{const _sc={};(o.codes||[]).forEach(c=>{
           if(typeof c!=='string')return;
           if(_sc[c])return; _sc[c]=true;
-          if(/^\d{2}$/.test(c) && Number(c)===Number(lastDraw.specialNum)){ paySpec += codeSalesForOrder(o,c)*payMult; }
+          if(/^\d{2}$/.test(c) && Number(c)===Number(d.specialNum)){ paySpec += codeSalesForOrder(o,c)*payMult; }
           else if(c.startsWith('平特')){ const z=c.replace('平特',''); if(drawZ.has(z)) payPte += codeSalesForOrder(o,c)*(z==='马'?1.8:payMultSingle); }
           else if(c.startsWith('连肖')){ const z=c.replace('连肖',''); if(z.split('').every(zz=>drawZ.has(zz))) payLx += codeSalesForOrder(o,c)*lxOddsOf(z); }
-          else if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){ const nums=c.split(':')[1].split(','); if(emHitOf(c, function(n){ return allNums.has(Number(n)); })){ if(c.indexOf('二中二:')===0) payEm += codeSalesForOrder(o,c)*60; else if(c.indexOf('三中三:')===0) payEm += codeSalesForOrder(o,c)*600; else payEm += codeSalesForOrder(o,c)*20; } }
+          else if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){ if(emHitOf(c, function(n){ return allNums.has(Number(n)); })){ if(c.indexOf('二中二:')===0) payEm += codeSalesForOrder(o,c)*60; else if(c.indexOf('三中三:')===0) payEm += codeSalesForOrder(o,c)*600; else payEm += codeSalesForOrder(o,c)*20; } }
         });});
       }catch(e){}
-    }
-    const totalPay = orders.reduce((s,o)=>s+calcOrderWin(o),0);   // 统一口径，避免这里再算一遍算错
+    };
+    _accPay(orders, lastDraw);
+    _accPay(typeof hkOrders !== 'undefined' ? hkOrders : [], _hkdPay);
+    const totalPay = orders.reduce((s,o)=>s+calcOrderWin(o),0)
+      + (typeof hkOrders !== 'undefined' ? hkOrders.reduce((s,o)=>s+calcOrderWinDetail(o, _hkdPay).total,0) : 0);   // 澳门+香港合计，统一口径
     // 飞单各项
     let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
     if(lastDraw && lastDraw.specialNum){
@@ -2782,26 +2810,32 @@ function hkSummaryLine(){
   if(!hkOrders.length) return '';
   return '<div style="padding-top:2px;color:#b45309">香港 <b>' + hkOrders.length + '</b> 单 ｜ 合计 <b>' + hkTotalAmount().toFixed(0) + '</b></div>';
 }
-// 香港号码分组（同金额并成一行「各X」，复刻澳门目录的写法）
+// 香港单分组：号码同金额并成一行；平特/连肖/组合这类玩法各占一行，不再被过滤掉
 function hkGroups(){
-  var sales = {};   // code -> 金额
+  var nums = {};    // 号码 code -> 金额
+  var other = {};   // 其它玩法 code -> 金额
   hkOrders.forEach(function(o){
     var seen = {};
     (o.codes||[]).forEach(function(c){
-      if(!/^\d{2}$/.test(c)) return;
       if(seen[c]) return; seen[c] = true;
-      sales[c] = (sales[c]||0) + Number(codeSalesForOrder(o, c)||0);
+      var amt = Number(codeSalesForOrder(o, c) || 0);
+      if(amt <= 0.01) return;
+      if(/^\d{2}$/.test(c)) nums[c] = (nums[c]||0) + amt;
+      else other[c] = (other[c]||0) + amt;
     });
   });
-  var by = {};      // 金额 -> [code]
-  Object.keys(sales).forEach(function(c){
-    if(sales[c] <= 0.01) return;
-    var a = hkRoundOn() ? flyShowAmt(sales[c], parseFloat(hkRoundSel()) || 5) : Math.round(sales[c]);
+  var by = {};      // 号码金额 -> [code]
+  Object.keys(nums).forEach(function(c){
+    var a = hkRoundOn() ? flyShowAmt(nums[c], parseFloat(hkRoundSel()) || 5) : Math.round(nums[c]);
     (by[a] = by[a] || []).push(c);
   });
-  return Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).map(function(a){
+  var out = Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).map(function(a){
     return { amt: a, codes: by[a].sort() };
   });
+  Object.keys(other).sort().forEach(function(c){
+    out.push({ amt: Math.round(other[c]), codes: [c] });
+  });
+  return out;
 }
 
 function hkRoundOn(){ try{ return localStorage.getItem('hk_round_on') === '1'; }catch(e){ return false; } }
@@ -2826,27 +2860,28 @@ function hkDrawObj(){
   return { draw: c.draw, specialNum: Number(c.nums[6]), regularNums: c.nums.slice(0,6).map(Number) };
 }
 function hkPayoutInfo(){
-  var c = hkDrawCache();
-  if(!c || !c.nums || c.nums.length < 7) return null;
-  var sp = String(c.nums[6]).padStart(2,'0');
-  var sales = 0, hits = [];
+  var d = hkDrawObj();
+  if(!d) return null;
+  var sp = String(d.specialNum).padStart(2,'0');
+  var sales = 0, pay = 0, hits = [];
   hkOrders.forEach(function(o){
-    (o.codes||[]).forEach(function(code){
-      if(!/^\d{2}$/.test(code)) return;
-      var amt = Number(codeSalesForOrder(o, code) || 0);
-      if(amt <= 0) return;
-      sales += amt;
-      if(code === sp) hits.push({ code: code, amt: amt, pay: amt * (payMult||47) });
-    });
+    var amt = Number(o.amount || 0);
+    if(amt <= 0) return;
+    sales += amt;
+    // 玩法与澳门一致：号码、平特、连肖、二中二/三中二/三中三都按香港开奖算
+    var det = calcOrderWinDetail(o, d);
+    if(det.total > 0){
+      pay += det.total;
+      det.lines.forEach(function(l){ hits.push(l); });
+    }
   });
-  var pay = hits.reduce(function(s,h){ return s + h.pay; }, 0);
-  return { draw: c.draw, sp: sp, sales: sales, pay: pay, net: sales - pay, hits: hits };
+  return { draw: d.draw, sp: sp, sales: sales, pay: pay, net: sales - pay, hits: hits };
 }
 function hkFlyDone(){ try{ return localStorage.getItem(sk('hk_fly_done')) === '1'; }catch(e){ return false; } }
 function setHKFlyDone(v){ try{ localStorage.setItem(sk('hk_fly_done'), v ? '1' : '0'); }catch(e){} }
 function hkCopyText(){
   var gs = hkGroups();
-  var lines = gs.map(function(g){ return '香港 ' + g.codes.join(' ') + ' 各' + g.amt.toFixed(0); });
+  var lines = gs.map(function(g){ return '香港 ' + g.codes.join(' ').replace(/:/g,'') + ' 各' + g.amt.toFixed(0); });
   var tot = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
   lines.push('合计 ' + tot.toFixed(0));
   return lines.join('\n');
@@ -2886,7 +2921,7 @@ function renderHKFlyBox(){
        + '期<b>' + (_hp.draw||'') + '</b> 开 <b>' + _hp.sp + '</b>（特）　'
        + '收 <b>' + _hp.sales.toFixed(0) + '</b>　赔 <b style="color:#cf1322">' + _hp.pay.toFixed(0) + '</b>　净 '
        + '<b style="color:' + (_hp.net>=0?'#16a34a':'#cf1322') + '">' + _hp.net.toFixed(0) + '</b>'
-       + (_hp.hits.length ? '<br>中奖号：' + _hp.hits.map(function(x){ return x.code+' 各'+x.amt.toFixed(0); }).join('、') : '<br><span style="color:#999">本期无中奖号</span>')
+       + (_hp.hits.length ? '<br>中奖：' + _hp.hits.join('、') : '<br><span style="color:#999">本期无中奖项</span>')
        + '</div>';
   } else {
     h += '<div style="padding:3px 4px;background:#fff;border-top:1px solid #f7e3b5;font-size:10px;color:#bbb">香港开奖未到，拉了开奖结果后自动算赔付</div>';
