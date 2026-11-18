@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.225-Pro';
+var APP_VER = 'v58.226-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2691,7 +2691,13 @@ function flyThChanged(){
 }
 // ===== 香港开奖：只有存在香港单时才显示，没有就不占位置 =====
 function hkDrawCache(){
+  // 香港开奖是同一份：先读全局副本，再退回本店旧键，避免在澳门店看不到香港店的港奖
+  try{ var g = localStorage.getItem('hk_draw_cache_global'); if(g) return JSON.parse(g); }catch(e){}
   try{ return JSON.parse(localStorage.getItem(sk('hk_draw_cache')) || 'null'); }catch(e){ return null; }
+}
+function hkSetDrawCache(c){
+  try{ localStorage.setItem('hk_draw_cache_global', JSON.stringify(c)); }catch(e){}
+  try{ localStorage.setItem(sk('hk_draw_cache'), JSON.stringify(c)); }catch(e){}
 }
 var _hkBarVisible = false;   // 只在本次点过「自动获取开奖」且拉到香港数据后才显示；刷新页面即复位
 function hideHKBar(){ _hkBarVisible = false; renderHKDraw(); }
@@ -2732,7 +2738,7 @@ function fetchHKDrawNow(){
         var c = { draw: hk && hk.draw, nums: (hk && hk.winner_numbers) || [], at: hk && hk.drawn_at,
                   nextDraw: nx && nx.draw, nextAt: nx && nx.draw_at };
         if(!c.nextAt && !c.nums.length) return;
-        try{ localStorage.setItem(sk('hk_draw_cache'), JSON.stringify(c)); }catch(e){}
+        try{ hkSetDrawCache(c); }catch(e){}
         _hkBarVisible = true;
         renderHKDraw();
       }).catch(function(){});
@@ -2760,7 +2766,7 @@ function refreshHKDraw(){
         var c = { draw: hk && hk.draw, nums: (hk && hk.winner_numbers) || [], at: hk && hk.drawn_at,
                   nextDraw: nx && nx.draw, nextAt: nx && nx.draw_at };
         if(!c.nextAt && !c.nums.length) return;
-        try{ localStorage.setItem(sk('hk_draw_cache'), JSON.stringify(c)); }catch(e){}
+        try{ hkSetDrawCache(c); }catch(e){}
         // 刚开完奖（24 小时内）才自动显示；平时保持隐藏，要点一次获取才看
         if(hkDrawIsFresh(c)){ _hkBarVisible = true; renderHKDraw(); }
       }).catch(function(){});
@@ -4943,7 +4949,7 @@ function autoFetchDraw(retry){
         done();
         if(_isHKshop){
           // 香港店：只更新香港开奖与显示，不走澳门结算
-          try { localStorage.setItem(sk('hk_draw_cache'), JSON.stringify({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' })); } catch(e){}
+          try { hkSetDrawCache({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' }); } catch(e){}
           _hkBarVisible = true;
           try { renderHKDraw(); } catch(e){}
           renderLiveBalls(snap.numbers.map(Number), true);
@@ -6621,9 +6627,9 @@ function lxOddsOf(zs){
   return zs && zs.indexOf('马') >= 0 ? base - 0.5 : base;
 }
 function calcOrderWinDetail(o, dr){
-  // dr 可传香港开奖对象；不传就用澳门当期 lastDraw
-  var d = dr || lastDraw;
-  if(!d) return { total: 0, lines: [] };
+  // dr 传香港开奖对象；不传（undefined）就用澳门 lastDraw；显式传 null 表示港奖未到，按 0 算，绝不拿澳门号去顶港单
+  var d = (dr === null) ? null : (dr || lastDraw);
+  if(!d || !d.regularNums) return { total: 0, lines: [] };
   let total = 0;
   const lines = [];
   const seen = {};
