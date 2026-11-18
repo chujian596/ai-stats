@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.14-Pro';
+var APP_VER = 'v59.03.15-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -8408,7 +8408,11 @@ function renderRisk(){
   try{ window.__othPay = _othPay; window.__othNet = _othNet; }catch(e){}
   var _dShape = (_dShare>=30||_dVals.length<20)?'畸形':(_dShare>=20||_dVals.length<30)?'偏态':(_dShare>=10||_dVals.length<40)?'中等':'均衡';
   var _curLine = _diagTop>0 ? cutCalc(_diagTop, true).line : 0;
-  var _dTopR = cutCalc((typeof splitTakeAll === 'number' ? splitTakeAll : 0), true);   // 当前实际生效的那一档（0=不削）
+  // 基准不能取 0：0 = 全飞时 kept=0，和任何档位比效率都是 0，会误判成「不削」；
+  // 自动稳健从 0 起勾时就会先落 100，下一帧又变 55，重复勾选来回跳。这里最低按 5 元基准算。
+  var _refTh = (typeof splitTakeAll === 'number' ? splitTakeAll : 0);
+  if(_refTh < 5) _refTh = 5;
+  var _dTopR = cutCalc(_refTh, true);   // 当前实际生效的那一档（0 按 5 元基准评估）
   var _optM = 0, _optR = null, _noCut = false;
   if(_specSalesBase > 0 && _dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; _noCut = true; }
   var _maxBet0 = 0;                     // 盘里最大单号注额，阈值高于它＝一个号都削不动，这一档不能当断点
