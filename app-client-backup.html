@@ -557,10 +557,22 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.98';
+var APP_VER = 'v58.99';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
+/* 只把「更高版本」当新版本；云端残留的低版本号绝不提示回退 */
+function verParts(v){
+  var m = normVer(v).match(/v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/i);
+  return m ? [parseInt(m[1],10)||0, parseInt(m[2],10)||0, parseInt(m[3],10)||0] : [0,0,0];
+}
+function isNewerVersion(v, cur){
+  var a = verParts(v), b = verParts(cur);
+  for(var i=0;i<3;i++){
+    if(a[i] !== b[i]) return a[i] > b[i];
+  }
+  return false;
+}
 window.onerror = function(msg, url, line){
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
@@ -620,7 +632,7 @@ fetch('version-client.txt?t=' + Date.now(), {cache: 'no-cache'})
   .then(v => {
     v = v.trim();
     if(!/^v?\d+\.\d{1,3}(-[A-Za-z]+)?$/.test(v)){ return; }
-    if(normVer(v) !== normVer(APP_VER)){
+    if(isNewerVersion(v, APP_VER)){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
       bar.textContent='发现新版本 '+v+'，点这里更新';
@@ -3706,6 +3718,8 @@ function stripHKMark(t){
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
   if(!text) return null;
+  // 「总共/共/合」是总额标记，不是号码：09总共5 / 09共5 / 09合5 都按 09 号 5 元
+  text = text.replace(/(?:总共|共|合)\s*(?=[0-9零〇一二两三四五六七八九十百千万])/g, ' ');
   // 预处理：修复点号分隔号码列表里的空格输入错误（在快速通道之前先做）
   // 例："20.2 3.25" → "20.23.25"（被空格拆开的两位数自动合并）
   // 例："45 .47" → "45.47"（去掉点号前后多余空格）
@@ -3836,7 +3850,7 @@ function parseLine(text){
   // 头数展开：0头→01-09, 1头→10-19, ...
   codeText = codeText.replace(/(\d)头/g, (m, h) => {
     const nums = [];
-    for(let i=1;i<=9;i++){
+    for(let i=0;i<=9;i++){
       const n = parseInt(h)*10 + i;
       if(n >= 1 && n <= 49) nums.push(String(n).padStart(2,'0'));
     }
@@ -4117,7 +4131,7 @@ function refreshPage(){
     .then(function(v){
       var remote = String(v || '').trim();
       if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
-      if(remote && normVer(remote) !== normVer(APP_VER) && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
+      if(isNewerVersion(remote, APP_VER) && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
         if(btn) btn.textContent = '刷新';
         myChoice('有新版本',
           '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
@@ -4564,6 +4578,28 @@ function _miProducts(){
       && !/平特|连肖|二中二|三中三|三中二/.test(p.code);
   });
 }
+/* 多个「生肖+金额」并列（虎500羊400 / 虎两百 龙一百 马三百）→ 一次弹窗，不再逐个弹 */
+function scanMultiZodPairs(text){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  var out = [], off = 0;
+  String(text).split('\n').forEach(function(line){
+    var lineOut = [];
+    if(!/平特|平肖|连肖|平连|各|共|号|数|个|注|码|只|组/.test(line)){
+      var re = new RegExp('([' + ZODS + '])\\s*([0-9]+(?:\\.[0-9]+)?)', 'g'), m;
+      while((m = re.exec(line))){
+        lineOut.push({
+          kind:'te', name:m[1], disp:m[1], amt:parseFloat(m[2]),
+          count:(NUM2ZODIAC_REV[m[1]] || []).length,
+          nums:(NUM2ZODIAC_REV[m[1]] || []).map(function(n){ return String(n).padStart(2,'0'); }),
+          idx:off + m.index, len:m[0].length
+        });
+      }
+    }
+    if(lineOut.length >= 2) out = out.concat(lineOut);
+    off += line.length + 1;
+  });
+  return out;
+}
 function scanMultiItems(text){
   var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   var out = [], m, prod;
@@ -4662,6 +4698,8 @@ function showMultiDlg(items, text){
       var s = per.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
       if(it.kind === 'ping'){
         rep = (it.zods || []).map(function(z){ return '平' + z + s; }).join(String.fromCharCode(10));
+      } else if(it.kind === 'te'){
+        rep = (it.nums || []).map(function(n){ return n + ' ' + s; }).join(String.fromCharCode(10));
       } else {
         var pd = products.filter(function(x){ return x.code === it.name; })[0];
         var lk = (pd && pd.links) || [];
@@ -4712,6 +4750,14 @@ function doSave(overrideText){
     }
     return line;
   }).filter(l => l !== '').join('\n');
+  // 平特多肖统一成前缀写法，避免「马龙兔平特肖100」「平特肖龙虎兔100」绕过弹窗
+  text = text.split('\n').map(function(line){
+    line = line.replace(/^平特肖\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/, '平特');
+    line = line.replace(/^平肖\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/, '平特');
+    line = line.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*平特肖?/g, '平特$1');
+    line = line.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*平肖/g, '平特$1');
+    return line;
+  }).join('\n');
   if(!_isOverride) document.getElementById('input').value = text;
   // 一行里出现多个"多号产品+金额" → 一次弹窗全选完，不用弹多次
   try {
@@ -4721,17 +4767,17 @@ function doSave(overrideText){
   // 平特多肖也要问：每肖p 还是 几肖共p平分
   if(!_texiaoChoice){
     const pingMatch = text.match(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
-    if(pingMatch && !/[数号]/.test(pingMatch[2]) && pingMatch[1].length === 1){
+    if(pingMatch && !/[数号各]/.test(pingMatch[2]) && pingMatch[1].length === 1){
       // 单个平特肖：单一对象，不问，直接按每肖
       const pzs1 = pingMatch[1], pps1 = parseFloat(pingMatch[3]);
       text = text.replace(new RegExp('平特?(' + pzs1 + ')\\s*(?:各|数|号|个)*\\s*' + pps1), '平' + pzs1 + pps1);
       document.getElementById('input').value = text;
-    } else if(pingMatch && !/[数号]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
+    } else if(pingMatch && !/[数号各]/.test(pingMatch[2]) && PARSE_DEFAULTS.pingZod === 'perZod'){
       const pz2 = pingMatch[1], pp2 = parseFloat(pingMatch[3]);
       text = text.replace(new RegExp('平特?(' + pz2 + ')\\s*(?:各|数|号|个)*\\s*' + pp2),
         () => pz2.split('').map(z => '平' + z + pp2).join('\n'));
       document.getElementById('input').value = text;
-    } else if(pingMatch && !/[数号]/.test(pingMatch[2])){
+    } else if(pingMatch && !/[数号各]/.test(pingMatch[2])){
       const pz = pingMatch[1], pp = parseFloat(pingMatch[3]);
       const ov = document.createElement('div');
       ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -4745,9 +4791,9 @@ function doSave(overrideText){
       document.body.appendChild(ov);
       ov.querySelector('#pA').onclick = () => {
         ov.remove();
-        const _pun = pp / pz.length;
+        const _cents = Math.round(pp * 100), _base = Math.floor(_cents / pz.length), _rem = _cents - _base * pz.length;
         text = text.replace(new RegExp('平特?(' + pz + ')\\s*(?:各|数|号|个)*\\s*' + pp),
-          () => pz.split('').map(z => '平' + z + _pun.toFixed(4)).join('\n'));
+          () => pz.split('').map((z, i) => '平' + z + (((_base + (i < _rem ? 1 : 0)) / 100).toFixed(2))).join('\n'));
         document.getElementById('input').value = text;
         _texiaoChoice = 'pingPerZod';
         handleSave();
@@ -4923,6 +4969,11 @@ function doSave(overrideText){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
+  // 多笔生肖并列：虎500羊400 / 虎两百 龙一百 马三百 → 一次弹窗全选
+  try {
+    var _mzItems = scanMultiZodPairs(text);
+    if(_mzItems.length >= 2){ showMultiDlg(_mzItems, text); return; }
+  } catch(e){}
   // 按选择展开特肖
   if(_texiaoChoice){
     const choice = _texiaoChoice;
@@ -4963,7 +5014,7 @@ function doSave(overrideText){
       // 行首的"特"是玩法前缀，紧贴的数字是号码不是金额
       else if(_last === '特' && _before.trim() === '特') _isAmt = false;
       else if(_num > 49) _isAmt = true;
-      else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头尾]/.test(_last)) _isAmt = true;
+      else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头]/.test(_last)) _isAmt = true;
       if(_isAmt) _amts.push({i:_m.index, l:_m[0].length});
     }
     if(_amts.length >= 2){
