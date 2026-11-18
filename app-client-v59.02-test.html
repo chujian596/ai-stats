@@ -577,7 +577,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02-Test.4';
+var APP_VER = 'v59.02-Test.5';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -4887,15 +4887,25 @@ function doSave(overrideText){
         zods.split('').forEach(z => { numCount += ((NUM2ZODIAC_REV[z] || []).length); });
         const ov = document.createElement('div');
         ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-        ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:340px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-          + '<div style="padding:20px 20px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">特肖' + zods + ' ' + price + '元，怎么算？</div>'
-          + '<div style="padding:0 20px 10px;font-size:12px;color:#888;text-align:center">请选择「各肖」还是「各号」，不要直接落单</div>'
-          + '<div style="border-top:1px solid #eee;margin-top:10px">'
-          + '<button id="txA" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">各肖' + price + '（' + zods.length + '肖共' + (zods.length*price) + '元）</button>'
-          + '<button id="txB" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#333;font-weight:700;border-bottom:1px solid #eee">各号' + price + '（' + numCount + '号共' + (numCount*price) + '元）</button>'
-          + '<button id="tx0" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#666;font-weight:600;border-bottom:1px solid #eee">全部共' + price + '（' + numCount + '号平分）</button>'
-          + '<button id="txC" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
-          + '</div></div>';
+        const money = function(v){ return Number(v).toFixed(2); };
+        ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+          + '<div style="padding:20px 20px 4px;text-align:center">'
+          + '<div style="font-size:17px;font-weight:700;color:#333">特肖 ' + zods + ' · ' + price + ' 元</div>'
+          + '<div style="font-size:12px;color:#888;margin-top:6px">这笔钱怎么分？确认后才会落单</div>'
+          + '</div>'
+          + '<div style="padding:8px 16px 10px">'
+          + '<button id="txA" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 10px;border:none;border-bottom:1px dashed #eee;background:#fff;text-align:left">'
+          + '<span><span style="display:block;font-size:15px;font-weight:700;color:#333">各肖 ' + price + '</span><span style="display:block;font-size:12px;color:#888;margin-top:3px">每个生肖合计 ' + price + '，共 ' + zods.length + ' 肖</span></span>'
+          + '<span style="font-size:15px;font-weight:700;color:#7c3aed;white-space:nowrap">' + money(zods.length*price) + ' 元</span></button>'
+          + '<button id="txB" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 10px;border:none;border-bottom:1px dashed #eee;background:#fff;text-align:left">'
+          + '<span><span style="display:block;font-size:15px;font-weight:700;color:#333">各号 ' + price + '</span><span style="display:block;font-size:12px;color:#888;margin-top:3px">每个号码各 ' + price + '，共 ' + numCount + ' 号</span></span>'
+          + '<span style="font-size:15px;font-weight:700;color:#7c3aed;white-space:nowrap">' + money(numCount*price) + ' 元</span></button>'
+          + '<button id="tx0" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 10px;border:none;border-bottom:1px dashed #eee;background:#fff;text-align:left">'
+          + '<span><span style="display:block;font-size:15px;font-weight:600;color:#555">全部共 ' + price + '</span><span style="display:block;font-size:12px;color:#888;margin-top:3px">' + numCount + ' 个号码平分总额</span></span>'
+          + '<span style="font-size:15px;font-weight:600;color:#555;white-space:nowrap">' + money(price) + ' 元</span></button>'
+          + '</div>'
+          + '<button id="txC" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:14px;color:#999">取消</button>'
+          + '</div>';
         document.body.appendChild(ov);
         ov.querySelector('#txA').onclick = () => { ov.remove(); _texiaoChoice='perZod'; handleSave(); };
         ov.querySelector('#txB').onclick = () => { ov.remove(); _texiaoChoice='perNum'; handleSave(); };
