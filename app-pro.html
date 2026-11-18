@@ -617,7 +617,8 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03-Pro';
+var APP_VER = 'v59.03.1-Pro';
+window.__previewEnabled = true; // 专业版保留保存前预览（不要把试用横幅一起删掉）
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -712,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // 版本检查：只提示，绝不自动跳转
 fetchRemoteVer()
   .then(function(v){
-    if(normVer(v) !== normVer(APP_VER)){
+    if(_verCmp(v, APP_VER) > 0){
       var bar=document.createElement('div');
       bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
       bar.textContent='发现新版本 '+v+'，点这里更新';
@@ -5170,7 +5171,7 @@ function refreshPage(){
     .then(function(v){
       var remote = String(v || '').trim();
       if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
-      if(remote && normVer(remote) !== normVer(APP_VER) && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
+      if(remote && _verCmp(remote, APP_VER) > 0 && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
         if(btn) btn.textContent = '刷新';
         myChoice('有新版本',
           '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
