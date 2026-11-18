@@ -518,7 +518,6 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <b style="color:var(--modalText,#fff)">3. 香港飞单</b><br>
         &nbsp;&nbsp;飞单面板底部有单独的<b style="color:var(--modalText,#fff)">黄框「香港单」</b>，同金额自动并成「各X」<br>
         &nbsp;&nbsp;三个按钮：复制香港单 / 确认已飞 / 重置<br>
-        &nbsp;&nbsp;旁边勾选框「<b style="color:var(--modalText,#fff)">香港单自动飞</b>」：勾上等于直接标已飞（转发上家）<br><br>
 
         <b style="color:var(--modalText,#fff)">4. 香港凑整</b><br>
         &nbsp;&nbsp;黄框标题旁点「凑整」：点一下 5 档 → 再点 10 档 → 再点关闭，<b style="color:var(--modalText,#fff)">默认关</b><br>
@@ -620,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.233-Pro';
+var APP_VER = 'v58.234-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1902,7 +1901,6 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">（连/二/三）自动飞<br><span style="color:#999;font-size:11px">勾选直接默认连肖/二中二/三中三已飞（自行复制给上家）</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">5 元档</span><br><span style="color:#999;font-size:11px">勾选后每个号就近凑到 5 的倍数（34→35、31→30、3→5），多飞的自付、少飞的自己留</span></label>`;
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();try{afterFlyFlagChange();}catch(e){}" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞（转发上家），不跟澳门单混；没香港单时这块不显示</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="hkFlyBox" style="margin-top:4px"></div>';
@@ -2100,7 +2098,7 @@ function renderSideCustPay(){
     let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
     // 香港单是整店飞出：确认已飞或开了自动飞，就把香港总收当飞走、香港总赔当上家赔回
     let flyHK=0, flyHKBack=0, hkFlyOn=false;
-    try{ hkFlyOn = (typeof hkFlyDone === 'function') && (hkFlyDone() || hkAutoFlyOn()); }catch(e){}
+    try{ hkFlyOn = (typeof hkFlyDone === 'function') && hkFlyDone(); }catch(e){}
     if(hkFlyOn && typeof hkOrders !== 'undefined' && hkOrders.length){
       hkOrders.forEach(function(o){ flyHK += Number(o.amount || 0); });
       if(_hkdPay){ flyHKBack = hkOrders.reduce(function(s2,o){ return s2 + calcOrderWinDetail(o, _hkdPay).total; }, 0); }
@@ -2882,7 +2880,6 @@ function cycleHKRound(){
   }catch(e){}
   renderHKFlyBox();
 }
-function hkAutoFlyOn(){ try{ return localStorage.getItem(sk('hk_auto_fly')) === '1'; }catch(e){ return false; } }
 // 香港单赔付速算：拿到香港开奖结果后，按同一套赔率（payMult）算收/赔/净
 // 把香港开奖缓存转成和澳门 lastDraw 同形的对象，供 calcOrderWinDetail 复用
 function hkDrawObj(){
@@ -2942,10 +2939,10 @@ function renderHKFlyBox(){
   if(!hkOrders.length){ box.innerHTML = ''; return; }   // 没香港单就整块不显示
   var gs = hkGroups();
   var total = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
-  var done = hkFlyDone() || hkAutoFlyOn();
+  var done = hkFlyDone();
   var h = '<div style="border:1px solid #f0c36d;border-radius:6px;overflow:hidden">';
   h += '<div style="background:#fffbe6;padding:3px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;border-bottom:1px solid #f7e3b5">'
-     + '<span>香港单 · ' + hkOrders.length + ' 单' + (hkAutoFlyOn() ? '（自动飞）' : '')
+     + '<span>香港单 · ' + hkOrders.length + ' 单'
      + ' <a href="javascript:cycleHKRound()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:4px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
      + '<span>' + (done ? '已飞' : '待飞') + ' ' + total.toFixed(0) + '</span></div>';
   h += '<div style="max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">';
@@ -6828,7 +6825,7 @@ function actualPnL(){
       if(hd) hp = hkOrders.reduce(function(s2,o){ return s2 + calcOrderWinDetail(o,hd).total; }, 0);
       sales += hs;
       payout += hp;
-      if(typeof hkFlyDone === 'function' && (hkFlyDone() || hkAutoFlyOn())){
+      if(typeof hkFlyDone === 'function' && hkFlyDone()){
         flyOut += hs; flyBack += hp;
       }
       if(hd) hkSettled = true;
@@ -7360,7 +7357,7 @@ function renderOrdersList(){
       let hsU = 0, hpU = 0;
       hkOrders.forEach(o => { hsU += Number(o.amount)||0; });
       if(hdU) hpU = hkOrders.reduce((s2,o)=>s2+calcOrderWinDetail(o,hdU).total,0);
-      const flownU = !!(typeof hkFlyDone === 'function' && (hkFlyDone() || hkAutoFlyOn()));
+      const flownU = !!(typeof hkFlyDone === 'function' && hkFlyDone());
       const settleU = hpU - hsU;
       h += `<div style="border-top:2px solid #f0c36d;margin-top:10px;padding-top:8px">`;
       h += `<div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:4px">香港单目录（整店飞）</div>`;
