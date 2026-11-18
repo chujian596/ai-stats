@@ -16,6 +16,7 @@ def grab(pat, optional=False):
         i+=1
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
+cnToNum=grab(r'function cnToNum\('); normAmt=grab(r'function normalizeChineseAmountText\(')
 norm=grab(r'function normalizeComboLine\(')
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
@@ -70,6 +71,11 @@ CASES = [
  ("多肖三个", "特马兔狗各10"),
  ("裸肖各(需确认)", "马兔各5"),
  ("单肖", "特马各10"),
+ # 大小写金额：中文/大写必须和阿拉伯数字走同一套弹窗
+ ("中文金额-特肖", "特马龙兔各一百"),
+ ("大写金额-特肖", "特马龙兔各壹佰"),
+ ("中文金额-平特", "平特马龙兔各一百"),
+ ("中文金额-波色", "红波一百"),
  # 连肖
  ("X连YZ", "马连龙兔10块"),
  ("连肖二", "连肖龙虎兔100"),
@@ -133,7 +139,7 @@ CASES = [
 
 ]
 
-runner = pre + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
+runner = pre + cnToNum + "\n" + normAmt + "\n" + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){

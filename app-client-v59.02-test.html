@@ -577,7 +577,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02-Test.6';
+var APP_VER = 'v59.02-Test.7';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -3721,6 +3721,24 @@ function toPriceNum(tok){
   if(/^[0-9.]/.test(tok)) return parseFloat(tok);
   return cnToNum(tok);
 }
+
+// 把中文金额（小写一百/大写壹佰）统一成阿拉伯数字，供弹窗和解析共用
+function normalizeChineseAmountText(t){
+  t = String(t == null ? '' : t);
+  var upper = {'壹':'一','贰':'二','叁':'三','肆':'四','伍':'五','陆':'六','柒':'七','捌':'八','玖':'九','拾':'十','佰':'百','仟':'千'};
+  t = t.replace(/[壹贰叁肆伍陆柒捌玖拾佰仟]/g, function(ch){ return upper[ch] || ch; });
+  // 「各/每/共/合」后面的中文金额转数字，如 各一百 → 各100
+  t = t.replace(/(各|每|共|合)\s*([零〇一二两三四五六七八九十百千万]+)/g, function(m, pre, num){
+    var n = cnToNum(num);
+    return n ? pre + n : m;
+  });
+  // 常见无标记中文金额
+  t = t.replace(/一百/g,'100').replace(/两百/g,'200').replace(/三百/g,'300').replace(/四百/g,'400').replace(/五百/g,'500')
+       .replace(/六百/g,'600').replace(/七百/g,'700').replace(/八百/g,'800').replace(/九百/g,'900')
+       .replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50')
+       .replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
+  return t;
+}
 // ===== 香港单识别：行首「香港」「港24 43」算香港单；「阿港21」「香菜21」不算 =====
 function isHKLine(t){
   t = String(t || '');
@@ -4818,6 +4836,8 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 大小写金额先统一：各一百 / 各壹佰 都要和 各100 走同一套弹窗
+  text = normalizeChineseAmountText(text);
   // 预览确认后要按同一个选择重新解析，否则会再次弹“各肖/各号”
   var _texiaoChoiceAtStart = _texiaoChoice;
   // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
