@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.08';
+var APP_VER = 'v59.09';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -726,23 +726,26 @@ function autoPayout(){
       }
       else if(code.startsWith('平特')){
         var z = code.replace('平特','');
-        if(regularZodiacs.indexOf(z) >= 0){
+        if(hitZodiacSet[z]){
           mult = code === '平特马' ? 1.8 : payMultSingle;
         }
       }
       else if(code.indexOf('二中二:') === 0){
+        var all7 = new Set(regularNums.concat([specialNum]));
         var picks = code.split(':')[1].split(',');
-        var allIn = picks.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; });
+        var allIn = picks.every(function(n){ return all7.has(parseInt(n)); });
         if(allIn) mult = 60;
       }
       else if(code.indexOf('三中三:') === 0){
+        var all7b = new Set(regularNums.concat([specialNum]));
         var picks3 = code.split(':')[1].split(',');
-        var allIn3 = picks3.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; });
+        var allIn3 = picks3.every(function(n){ return all7b.has(parseInt(n)); });
         if(allIn3) mult = 600;
       }
       else if(code.indexOf('三中二:') === 0){
+        var all7c = new Set(regularNums.concat([specialNum]));
         var picks32 = code.split(':')[1].split(',');
-        var hitCount = picks32.filter(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; }).length;
+        var hitCount = picks32.filter(function(n){ return all7c.has(parseInt(n)); }).length;
         if(hitCount >= 2) mult = 20;
       }
       else if(/^\d{2}$/.test(code)){

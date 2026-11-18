@@ -30,4 +30,5 @@ echo "107 项矩阵已在第 2 步逐项断言，失败即中止"
 
 echo
 echo "自动部分通过。别忘了跑人工项："
-echo "  见 tests/RELEASE_CHECKLIST.md 第二段（该弹/不该弹/多选合并/明细合并/其他功能）"
+echo "  见 tests/RELEASE_CHECKLIST.md 第二段（该弹/不该弹/多选合并/明细合并/其他功能）
+  混搭命中/赔付：浏览器执行 tests/settle_mixed.js，要求 3/3 PASS"
