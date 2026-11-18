@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.12-Pro';
+var APP_VER = 'v59.03.13-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -2210,23 +2210,8 @@ function renderSideCustPay(){
     h += '</div>';
   }
   box.innerHTML = h;
-  // ===== 联动：勾了「自动稳健」就跟盘面走，新单进来自动挪到当前最优落点 =====
-  try{
-    if(window.__autoSyncBusy) return;
-    var _asOn = false;
-    try{ _asOn = localStorage.getItem(sk('autoStable')) === '1'; }catch(e){}
-    var _opt = window.__optM || 0;
-    var _flock = 0; try{ _flock = totalFlownReal(); }catch(e){}
-    if(_asOn && _opt > 0 && Math.abs((splitTakeAll||0) - _opt) >= 5){
-      window.__autoSyncBusy = true;
-      splitTakeAll = _opt; saveSplitAll();
-      try{ localStorage.setItem(sk('autoStable'),'1'); }catch(e){}
-      renderSplit();
-      window.__autoSyncBusy = false;
-      renderRisk();
-      return;
-    }
-  }catch(e){ try{ window.__autoSyncBusy = false; }catch(e2){} }
+  // 自动稳健只在勾选那一刻应用一次，之后不再随每次渲染追着最优值改阈值。
+  // 早期这里每次渲染都追 __optM，阈值变化又会改变 __optM，导致 100/300/55 来回跳。
 }
 function sidePayCalc(){
   var _list = activeOrders();
@@ -3551,12 +3536,14 @@ function getThisRoundFly(){
   keys.forEach(k => {
     const full = Math.max(0, sales[k] - splitTakeAll);
     if(full < 0.01) return;
-    let done = flownPaidOf(k);
-    // 已飞锁定：不因调档/补单清零
-    const round = Math.max(0, full - done);
+    // 关键：待飞按「原始已飞记账额」扣，不能按凑整后的实付额扣。
+    // 例：应飞 36，凑整实付 35，记账仍是 36；若拿 35 去算会剩 1，再凑整又飞 5，造成二次飞单。
+    const booked = Number((flownPerPos || {})[k] || 0);
+    const done = flownPaidOf(k);
+    const round = Math.max(0, full - booked);
     totalFly += full;
     already += done;
-    lines.push({code: k, amt: round, full: full, done: done, auto: false});
+    lines.push({code: k, amt: round, full: full, done: done, booked: booked, auto: false});
   });
   // 平特（手动分批飞）
   const pteMap = {};
@@ -3568,12 +3555,13 @@ function getThisRoundFly(){
   Object.entries(pteMap).sort((a,b)=>b[1]-a[1]).forEach(([code,amt]) => {
     const full = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
     if(full < 0.01) return;
-    let done = flownPaidOf(code);
-    // 已飞锁定：不因调档/补单清零
-    const round = Math.max(0, full - done);
+    // 同特号：待飞用原始记账额，不用凑整实付额，避免尾差被二次凑成 5 元再飞
+    const booked = Number((flownPerPos || {})[code] || 0);
+    const done = flownPaidOf(code);
+    const round = Math.max(0, full - booked);
     totalFly += full;
     already += done;
-    lines.push({code: code, amt: round, full: full, done: done, auto: false});
+    lines.push({code: code, amt: round, full: full, done: done, booked: booked, auto: false});
   });
   // 连肖（即飞开关开了就全飞，也记已飞）
   if(lxFlyAmt > 0){
