@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.20-Pro';
+var APP_VER = 'v59.03.21-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -4651,6 +4651,13 @@ function normalizeComboLine(line){
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
+  // 生肖/连肖/特肖/平特中间的空格先合并，避免「连肖龙 虎 兔」被当成「连肖龙」
+  const _zchars = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  text = text.replace(new RegExp('(['+_zchars+'])\\s+(?=['+_zchars+'])', 'g'), '$1');
+  text = text.replace(/连\s*肖\s*/g, '连肖');
+  text = text.replace(new RegExp('平\\s*特\\s*(?=['+_zchars+'])', 'g'), '平特');
+  text = text.replace(new RegExp('特\\s*肖\\s*(?=['+_zchars+'])', 'g'), '特肖');
+  text = text.replace(new RegExp('特\\s+(?=['+_zchars+'])', 'g'), '特');
   // 每数各100 / 每号各100 / 每组各100 → 各100；口语「每数100」也按每号处理
   text = text.replace(/每\s*(?:数|号|个|码|注|组|只)\s*各?/g, '各');
   // 多尾/多头写法：尾1.2.3.4.5.6.7.8.9 / 头1.2.3.4、尾1-9 / 头1-4、空格分隔，可带各100
@@ -4749,6 +4756,14 @@ function parseLine(text){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
+  // 号码范围：01至03 / 01到03 / 01~03 → 01 02 03（仅 01-49，降序或越界保留原样报错）
+  text = text.replace(/(\d{2})\s*(?:至|到|~|～)\s*(\d{2})/g, function(m, a, b){
+    var s = parseInt(a, 10), e = parseInt(b, 10);
+    if(s < 1 || e > 49 || s > e) return m;
+    var arr = [];
+    for(var i = s; i <= e; i++) arr.push(String(i).padStart(2,'0'));
+    return arr.join(' ');
+  });
   // 尾数/头数：0尾=10/20/30/40；0头=01-09；1头=10-19；4头=40-49
   // 只写金额时按“总额”返回，交给保存前的“这串怎么算”统一确认；写各号/每号才直接按号。
   var _th = text.match(/^(?:特)?(?:(\d{1,2})\s*(尾|头)|(尾|头)\s*(\d{1,2}))\s*(?:(各|每)(号|数|码|个|注)?)?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?\s*$/);
