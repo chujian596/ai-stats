@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.231-Pro';
+var APP_VER = 'v58.232-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4580,6 +4580,8 @@ function normalizeComboLine(line){
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
+  // 组合单「三中三 04-07-18组100」里的「组100」= 每组100，不是货币单位
+  if(/(二中二|三中二|三中三)/.test(text)) text = text.replace(/(^|[^各])组\s*(?=\d)/g, '$1各组');
   if(!text) return null;
   // 预处理：修复点号分隔号码列表里的空格输入错误（在快速通道之前先做）
   // 例："20.2 3.25" → "20.23.25"（被空格拆开的两位数自动合并）
@@ -6254,7 +6256,7 @@ renderAll();
 
   const parsed = [], errors = [];
   let lastPrice = null, lastIsPer = false;
-  let pendingProduct = null;
+  let pendingProduct = null, pendingProductMark = '';
   // 预扫描：从所有行里找一个默认价格（各组XX格式）
   let defaultPrice = null;
   for(const ln of mergedLines){
@@ -6280,15 +6282,20 @@ renderAll();
   }
   workLines.forEach((line, i) => {
     const trimmed = line.trim();
-    // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行
-    if(/^(三中三|二中二|三中二)[:：\s]*$/.test(trimmed)){
-      pendingProduct = trimmed.replace(/[:：\s]*$/, '');
+    // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行；允许前面带香港/澳门
+    var _pm = trimmed.match(/^(香港|澳门|澳|港)?\s*(三中三|二中二|三中二)[:：\s]*$/);
+    if(_pm){
+      pendingProduct = _pm[2];
+      pendingProductMark = _pm[1] || '';
       return;
     }
-    // 如果有暂存产品名，且本行是数字组合，拼到前面
+    // 如果有暂存产品名，且本行是数字组合，拼到前面，并保留原来的港澳标记
     if(pendingProduct && /\d{2}/.test(trimmed)){
-      line = pendingProduct + ' ' + line;
+      line = (pendingProductMark ? pendingProductMark + ' ' : '') + pendingProduct + ' ' + line;
+      pendingProduct = null; pendingProductMark = '';
     }
+    // 合并后统一归一化组合码，避免号码里的逗号、横杠被后面的逻辑拆散
+    line = normalizeComboLine(line);
     // 先记下这行有没有写「澳门」标注（后面判断店铺默认要用），再把标注剥掉
     const _hadMacTag = /^(澳门|澳)/.test(String(line).trim());
     // 行首「澳门/澳」只是标注，澳门本来就是默认池，落库前剥掉，避免同一种单显示成两种写法
