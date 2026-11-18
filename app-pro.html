@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.6-Pro';
+var APP_VER = 'v59.03.7-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -9225,6 +9225,7 @@ function todayReconData(){
     }
   });
   var fly = getThisRoundFly();
+  var _drawCur = curShopDraw();
   var salesMap = getSplitSales();
   var specFull = 0;
   Object.keys(salesMap).forEach(function(k){ specFull += Math.max(0, (salesMap[k] || 0) - splitTakeAll); });
@@ -9257,12 +9258,12 @@ function todayReconData(){
   var payout = null, flyBack = 0, gross = null, localNet = null, upSettle = null;
   var _rcR = rebateCfg();
   var rebate = 0;
-  if(lastDraw && lastDraw.specialNum){
-    payout = list.reduce(function(s, o){ return s + calcOrderWinDetail(o).total; }, 0);
-    var drawZ = new Set([...(lastDraw.regularNums || []), lastDraw.specialNum].map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean));
+  if(_drawCur && _drawCur.specialNum){
+    payout = list.reduce(function(s, o){ return s + calcOrderWinDetail(o, _drawCur).total; }, 0);
+    var drawZ = new Set([...(_drawCur.regularNums || []), _drawCur.specialNum].map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean));
     Object.keys(salesMap).forEach(function(k){
       var extra = Math.max(0, (salesMap[k] || 0) - splitTakeAll);
-      if(extra > 0 && Number(k) === Number(lastDraw.specialNum)) flyBack += extra * payMult;
+      if(extra > 0 && Number(k) === Number(_drawCur.specialNum)) flyBack += extra * payMult;
     });
     Object.keys(pteMap).forEach(function(c){
       var z = c.replace('平特', '');
@@ -9274,7 +9275,7 @@ function todayReconData(){
       if(lz.split('').every(function(z){ return drawZ.has(z); })) flyBack += lxFull * lxOddsOf(lz);
     }
     if(emFull > 0){
-      var allNums = new Set([...(lastDraw.regularNums || []), lastDraw.specialNum]);
+      var allNums = new Set([...(_drawCur.regularNums || []), _drawCur.specialNum]);
       list.forEach(function(o){
         (o.codes || []).forEach(function(c){
           if(typeof c !== 'string' || !(c.indexOf('二中二:') === 0 || c.indexOf('三中三:') === 0 || c.indexOf('三中二:') === 0)) return;
