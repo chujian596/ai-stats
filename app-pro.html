@@ -219,7 +219,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <section id="tab-orders" class="card tab-panel" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">订单对账</div>
-      <button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button>
+      <div style="display:flex;gap:6px"><button onclick="showTodayRecon()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 10px;font-size:12px">今日对账</button><button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button></div>
     </div>
     <div id="ordersList"></div>
   </section>
@@ -617,7 +617,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.238-Pro';
+var APP_VER = 'v59.03-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2333,6 +2333,7 @@ function setFlyTh(v, redraw, exceptId){
     try{ flyThChanged(); }catch(e){}
     try{ refreshFlySummary(); }catch(e){}
     try{ renderSplit(); }catch(e){}
+    try{ calcSplit(); }catch(e){}
     try{ renderRisk(); }catch(e){}
     var st=document.getElementById(exceptId||'cutThInput');
     if(st){ try{ st.focus(); var L=st.value.length; st.setSelectionRange&&st.setSelectionRange(L,L); }catch(e){} }
@@ -2676,11 +2677,14 @@ function sideSplitCopy(){
   const _grand = _pg.showSum + _emSum;
   copyLines.push('合计 ' + _grand.toFixed(0));
   const txt = copyLines.join('\n');
-  if(navigator.clipboard) navigator.clipboard.writeText(txt);
-  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
+  try { const _sr=document.getElementById('splitResult'); if(_sr){ _sr.style.display='block'; _sr.textContent=txt; } } catch(e){}
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt);
+    else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  }catch(e){}
   var _tip = '已复制本轮飞单 ' + _grand.toFixed(0) + ' 元\n共' + copyLines.length + '行，直接粘贴发给上家';
   if(_pg.showSum !== _pg.origSum) _tip += '\n（凑整前 ' + (_pg.origSum + _emSum).toFixed(0) + '，' + (_pg.showSum > _pg.origSum ? '多飞 ' : '省 ') + Math.abs(_pg.showSum - _pg.origSum).toFixed(0) + '）';
-  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
   myAlert(_tip);
 }
 
@@ -3583,11 +3587,14 @@ function getThisRoundFly(){
     Object.keys(flownPerPos || {}).forEach(function(k){
       if(_inLines[k]) return;
       if(!((flownPerPos||{})[k] > 0)) return;
-      extra += flownPaidOf(k);
+      const paid = flownPaidOf(k);
+      already += paid;                       // 已飞是定局，哪怕当前阈值下应飞=0 也要计入
+      // 当前有注但阈值提高后应飞=0 的号，不是“手动额外号”，不能重复计入总飞
+      if(typeof sales[k] !== 'undefined') return;
+      extra += paid;
     });
   } catch(e){}
   totalFly += extra;
-  already += extra;
   return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly, extra: extra };
 }
 
@@ -3677,6 +3684,7 @@ function confirmThisRoundFly(){
   localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal));
   // 确认后：侧栏摘要 + 顶部三数 + 风险面板一起重绘（只刷侧栏会出现「已飞加了、顶部没动」）
   try{ afterFlyFlagChange(); }catch(e){ try{ refreshFlySummary(); }catch(e2){} }
+  try{ calcSplit(); }catch(e){}
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
@@ -3712,6 +3720,7 @@ function resetFlown(){
   } catch(e){}
   // 重绘整个页面：顶部「已飞(实际)/待飞」、风险面板、明细都要跟着归零
   try { renderAll(); } catch(e){}
+  try { if(typeof calcSplit === 'function') calcSplit(); } catch(e){}
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
   myAlert('已重置，飞单统计将从头计算');
   });
@@ -3800,6 +3809,15 @@ function calcSplit(){
       }
     });
   });
+  // 二中二/三中二/三中三当前下单额（只用于总额展示，不影响飞单计算）
+  let emTotal = 0;
+  _list.forEach(o => {
+    (o.codes||[]).forEach(c => {
+      if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中二:')===0 || c.indexOf('三中三:')===0)){
+        emTotal += codeSalesForOrder(o, c);
+      }
+    });
+  });
   // 计算全部飞出去
   let pteFlyAll = 0, lxFlyAll = 0, emFlyAll = 0;
   const pteAggAll = {};
@@ -3821,7 +3839,9 @@ function calcSplit(){
   // 分批飞单：已飞累计 vs 本轮应飞
   const _r = getThisRoundFly();
   let splitHtml = `<div style="line-height:2">` +
-    `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b> = <b>${(total+pteLxTotal).toFixed(2)}</b></div>` +
+    `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b>` +
+    (emTotal > 0 ? ` + 二中二三中三：<b>${emTotal.toFixed(2)}</b>` : '') +
+    ` = <b>${(total+pteLxTotal+emTotal).toFixed(2)}</b></div>` +
     `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
     `<div>应飞总额：<b style="color:#cf1322">${totalFly.toFixed(2)}</b></div>` +
     `<div style="font-size:13px;color:#666">已飞累计：${_r.already.toFixed(2)}　|　本轮应飞：<b style="color:#cf1322">${_r.thisRound.toFixed(2)}</b></div>`;
@@ -3924,6 +3944,7 @@ function calcSplit(){
   } catch(e){}
 }
 function copySplit(){
+  if(typeof sideSplitCopy === 'function') { try { return sideSplitCopy(); } catch(e){} }
   calcSplit();
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
@@ -4612,6 +4633,28 @@ function parseLine(text){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
+  // 尾数/头数：0尾=10/20/30/40；0头=01-09；1头=10-19；4头=40-49
+  // 只写金额时按“总额”返回，交给保存前的“这串怎么算”统一确认；写各号/每号才直接按号。
+  var _th = text.match(/^(?:特)?(?:(\d{1,2})\s*(尾|头)|(尾|头)\s*(\d{1,2}))\s*(?:(各|每)(号|数|码|个|注)?)?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?\s*$/);
+  if(_th){
+    var _deg = parseInt(_th[1] || _th[4], 10);
+    var _kind = _th[2] || _th[3];
+    var _explicit = !!(_th[5] && ((_th[5] === '各' && /^(号|数|码)$/.test(_th[6] || '')) || (_th[5] === '每' && /^(号|个|号|码|注)$/.test(_th[6] || ''))));
+    var _nums = [];
+    if(_kind === '尾'){
+      if(_deg >= 0 && _deg <= 9){
+        for(var _n = 1; _n <= 49; _n++){ if(_n % 10 === _deg) _nums.push(String(_n).padStart(2,'0')); }
+      }
+    } else {
+      if(_deg >= 0 && _deg <= 4){
+        var _start = _deg === 0 ? 1 : _deg * 10;
+        var _end = _deg === 0 ? 9 : _deg * 10 + 9;
+        for(var _n2 = _start; _n2 <= Math.min(_end,49); _n2++){ _nums.push(String(_n2).padStart(2,'0')); }
+      }
+    }
+    if(_nums.length) return { codes: _nums, price: toPriceNum(_th[7]), isPer: _explicit };
+  }
+
   // 数字简写：3中3→三中三，2中2→二中二，3中2→三中二
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
   // 斜杠当价格分隔符
@@ -5862,6 +5905,24 @@ function showAmbigAmountDlg(hit, text){
   ov.querySelector('#mzX').onclick = function(){ ov.remove(); window.__ambigAbort = false; };
 }
 
+function showPreviewDlg(info, onOk, onCancel){
+  const ov = document.createElement('div');
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  const rows = (info.lines || []).map(x => '<div style="text-align:left;font-size:12px;color:#555;padding:3px 0;border-bottom:1px dashed #eee">' + x + '</div>').join('');
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:16px 20px 8px;font-size:16px;font-weight:700;text-align:center;color:#333">保存前预览</div>'
+    + '<div style="padding:0 20px 10px;font-size:12px;color:#666;text-align:center">' + info.customer + ' · ' + info.shop + '</div>'
+    + '<div style="padding:0 20px 12px;max-height:240px;overflow:auto">' + rows + '</div>'
+    + '<div style="padding:10px 20px 14px;text-align:center;font-size:15px;font-weight:700;color:#7c3aed">合计 ' + Number(info.total || 0).toFixed(2) + ' 元</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="pvCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
+    + '<button id="pvOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确认保存</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#pvCancel').onclick = () => { ov.remove(); if(onCancel) onCancel(); };
+  ov.querySelector('#pvOk').onclick = () => { ov.remove(); if(onOk) onOk(); };
+}
+
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
@@ -5880,6 +5941,8 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100（必须在分行前做）
+  text = text.replace(/(头|尾)\s*(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)/g, '$2$1$3');
   // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
   text = text.split('\n').map(normalizeComboLine).join('\n');
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
@@ -6239,6 +6302,8 @@ function doSave(overrideText){
   const mergedLines = [];
   for(let i = 0; i < lines.length; i++){
     let ln = lines[i];
+    // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100，避免中间空格被当成两行
+    ln = ln.replace(/(头|尾)\s*(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)/g, '$2$1$3');
     // 提前转换数字简写产品名：3中3→三中三，2中2→二中二
     ln = ln.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
     // 斜杠当分隔符（不再自动加"各"，没写各的一律弹窗问）
@@ -6362,12 +6427,14 @@ renderAll();
               var inp = document.getElementById('input');
               var outLines = inp.value.split(/\r?\n/).map(function(l){
                 if(l.replace(/[^\d]/g,'') === _digits){
-                  return l.replace(/(\d+)(?!.*\d)/, '各$1');
+                  return l.replace(/(\d+)(?!.*\d)/, '各号$1');
                 }
                 return l;
               });
               inp.value = outLines.join('\n');
+              window.__skipAmbig = true;
               handleSave();
+              window.__skipAmbig = false;
             } else if(pick===1){
               window.__skipAmbig = true;
               handleSave();
@@ -6468,6 +6535,7 @@ renderAll();
     p.codes = expanded;
   });
 
+  function _commitSave(){
   const customer = document.getElementById('customerName').value.trim() || '散客';
   const created = new Date().toLocaleString('zh-CN', { hour12: false });
   const results = [];
@@ -6587,12 +6655,40 @@ renderAll();
   document.getElementById('input').value = '';
   restoreIfNeeded();
 renderAll();
-  switchTab('rank');
+  switchTab('orders');
   // 保存后自动展开平特肖列表
   setTimeout(() => {
     const sl = document.getElementById('singlesList');
     if(sl) sl.style.display = 'block';
   }, 50);
+  }
+
+  // 保存前预览：确认后直接提交已解析结果，不再二次解析，避免重复弹窗/重复落单
+  if(window.__previewEnabled && !window.__previewConfirmed){
+    let _pvTotal = 0;
+    const _pvLines = [];
+    parsed.forEach(function(p){
+      const q = p.codes.length;
+      const unit = p.isPer ? p.price : (p.price / q);
+      const amount = q * unit;
+      _pvTotal += amount;
+      _pvLines.push((p.hk ? '香港单 ' : '') + (p.raw || p.codes.join(' ')) + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
+    });
+    const _pvCustomer = document.getElementById('customerName').value.trim() || '散客';
+    showPreviewDlg({
+      customer: _pvCustomer,
+      shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
+      lines: _pvLines,
+      total: _pvTotal
+    }, function(){
+      window.__previewConfirmed = true;
+      try { _commitSave(); } finally { window.__previewConfirmed = false; }
+    }, function(){
+      window.__previewConfirmed = false;
+    });
+    return;
+  }
+  _commitSave();
   } catch(err){
     myAlert('保存出错：' + err.message + '\n\n' + err.stack);
   }
@@ -8993,6 +9089,157 @@ window.__closeTopOverlay = function(){
     return 'closed';
   } catch(e){ return 'none'; }
 };
+function todayReconData(){
+  var list = activeOrders();
+  var sales = 0, detail = 0, badOrders = [];
+  list.forEach(function(o, idx){
+    var oa = Number(o.amount) || 0;
+    sales += oa;
+    var seen = {}, d = 0;
+    (o.codes || []).forEach(function(c){
+      if(seen[c]) return;
+      seen[c] = true;
+      d += Number(codeSalesForOrder(o, c)) || 0;
+    });
+    detail += d;
+    if(Math.abs(d - oa) > 0.01){
+      badOrders.push({ idx: idx + 1, customer: o.customer || '散客', raw: o.raw || '', amount: oa, detail: d });
+    }
+  });
+  var fly = getThisRoundFly();
+  var salesMap = getSplitSales();
+  var specFull = 0;
+  Object.keys(salesMap).forEach(function(k){ specFull += Math.max(0, (salesMap[k] || 0) - splitTakeAll); });
+  var pteMap = {};
+  list.forEach(function(o){
+    (o.codes || []).forEach(function(c){
+      if(typeof c === 'string' && c.indexOf('平特') === 0){
+        pteMap[c] = (pteMap[c] || 0) + (Number(codeSalesForOrder(o, c)) || 0);
+      }
+    });
+  });
+  var pteFull = 0;
+  Object.keys(pteMap).forEach(function(c){
+    pteFull += pteFlyTakeAll > 0 ? Math.max(0, pteMap[c] - pteFlyTakeAll) : pteMap[c];
+  });
+  var lxFull = lxFlyAmt > 0 ? lxFlyAmt : 0;
+  var emFull = 0;
+  var emOn = true;
+  try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
+  if(emOn){
+    list.forEach(function(o){
+      (o.codes || []).forEach(function(c){
+        if(typeof c === 'string' && (c.indexOf('二中二:') === 0 || c.indexOf('三中三:') === 0 || c.indexOf('三中二:') === 0)){
+          emFull += Number(codeSalesForOrder(o, c)) || 0;
+        }
+      });
+    });
+  }
+  var flyCalc = specFull + pteFull + lxFull + emFull;
+  var payout = null, flyBack = 0, gross = null, localNet = null, upSettle = null;
+  if(lastDraw && lastDraw.specialNum){
+    payout = list.reduce(function(s, o){ return s + calcOrderWinDetail(o).total; }, 0);
+    var drawZ = new Set([...(lastDraw.regularNums || []), lastDraw.specialNum].map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean));
+    Object.keys(salesMap).forEach(function(k){
+      var extra = Math.max(0, (salesMap[k] || 0) - splitTakeAll);
+      if(extra > 0 && Number(k) === Number(lastDraw.specialNum)) flyBack += extra * payMult;
+    });
+    Object.keys(pteMap).forEach(function(c){
+      var z = c.replace('平特', '');
+      var full = pteFlyTakeAll > 0 ? Math.max(0, pteMap[c] - pteFlyTakeAll) : pteMap[c];
+      if(full > 0 && drawZ.has(z)) flyBack += full * (z === '马' ? 1.8 : payMultSingle);
+    });
+    if(lxFull > 0){
+      var lz = String(lxFlyName || '').replace(/[0-9连肖]/g, '');
+      if(lz.split('').every(function(z){ return drawZ.has(z); })) flyBack += lxFull * lxOddsOf(lz);
+    }
+    if(emFull > 0){
+      var allNums = new Set([...(lastDraw.regularNums || []), lastDraw.specialNum]);
+      list.forEach(function(o){
+        (o.codes || []).forEach(function(c){
+          if(typeof c !== 'string' || !(c.indexOf('二中二:') === 0 || c.indexOf('三中三:') === 0 || c.indexOf('三中二:') === 0)) return;
+          var nums = c.split(':')[1].split(',');
+          if(nums.every(function(n){ return allNums.has(Number(n)); })){
+            var amt = Number(codeSalesForOrder(o, c)) || 0;
+            flyBack += amt * (c.indexOf('二中二:') === 0 ? 60 : c.indexOf('三中三:') === 0 ? 600 : 20);
+          }
+        });
+      });
+    }
+    gross = sales - payout;
+    localNet = gross - flyCalc + flyBack;
+    var rebateOn = true, rebateRate = 0.03;
+    try { rebateOn = localStorage.getItem('rebateOn') !== '0'; rebateRate = parseFloat(localStorage.getItem('rebateRate') || '0.03') || 0.03; } catch(e){}
+    upSettle = (rebateOn ? flyCalc * rebateRate : 0) - (flyCalc - flyBack);
+  }
+  return {
+    shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
+    orders: list, sales: sales, detail: detail, badOrders: badOrders,
+    fly: fly, specFull: specFull, pteFull: pteFull, lxFull: lxFull, emFull: emFull, flyCalc: flyCalc,
+    payout: payout, flyBack: flyBack, gross: gross, localNet: localNet, upSettle: upSettle,
+    orderOk: Math.abs(sales - detail) <= 0.01,
+    flyOk: Math.abs(fly.totalFly - flyCalc) <= 0.01
+  };
+}
+
+function showTodayRecon(){
+  var d = todayReconData();
+  var fmt = function(v){ return Number(v || 0).toFixed(2); };
+  var signed = function(v){ if(v === null || v === undefined) return '待开奖'; return (v >= 0 ? '+' : '') + Number(v).toFixed(2); };
+  var orderOk = d.orderOk, flyOk = d.flyOk;
+  var allOk = orderOk && flyOk;
+  var h = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">';
+  h += '<div style="padding:18px 18px 6px;text-align:center">';
+  h += '<div style="font-size:18px;font-weight:700;color:#333">今日对账</div>';
+  h += '<div style="font-size:12px;color:#888;margin-top:4px">' + esc(d.shop) + ' · 当前活动订单 ' + d.orders.length + ' 笔</div>';
+  h += '<div style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (allOk ? '#e8f7ee' : '#fff1f0') + ';color:' + (allOk ? '#166534' : '#cf1322') + '">' + (allOk ? '订单、飞单已对平' : '发现差异，请查看下方') + '</div>';
+  h += '</div>';
+  var row = function(label, value, color, sub){
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed #eee"><span style="font-size:13px;color:#666;flex:0 0 auto">' + label + '</span><span style="text-align:right"><b style="font-size:15px;color:' + (color || '#333') + '">' + value + '</b>' + (sub ? '<div style="font-size:11px;color:#999;margin-top:2px">' + sub + '</div>' : '') + '</span></div>';
+  };
+  h += '<div style="padding:4px 18px 10px">';
+  h += '<div style="font-size:13px;font-weight:700;color:#333;margin:6px 0 2px">订单表</div>';
+  h += row('订单总额', fmt(d.sales) + ' 元', '#333');
+  h += row('明细合计', fmt(d.detail) + ' 元', orderOk ? '#166534' : '#cf1322', orderOk ? '与订单总额一致' : '差异 ' + fmt(d.sales - d.detail) + ' 元');
+  h += '<div style="font-size:13px;font-weight:700;color:#333;margin:10px 0 2px">飞单表</div>';
+  h += row('应飞总额', fmt(d.fly.totalFly) + ' 元', '#333', '已飞 ' + fmt(d.fly.already) + ' / 本轮待飞 ' + fmt(d.fly.thisRound));
+  h += row('分类合计', fmt(d.flyCalc) + ' 元', flyOk ? '#166534' : '#cf1322', '特号 ' + fmt(d.specFull) + ' + 平特 ' + fmt(d.pteFull) + ' + 连肖 ' + fmt(d.lxFull) + ' + 二三中 ' + fmt(d.emFull));
+  h += '<div style="font-size:13px;font-weight:700;color:#333;margin:10px 0 2px">结算 / 盈利</div>';
+  h += row('客户赔付', d.payout === null ? '待开奖' : fmt(d.payout) + ' 元', d.payout === null ? '#999' : '#cf1322');
+  h += row('毛净盈亏', signed(d.gross) + ' 元', d.gross === null ? '#999' : (d.gross >= 0 ? '#166534' : '#cf1322'), '订单总额 - 客户赔付');
+  h += row('飞后净盈亏', signed(d.localNet) + ' 元', d.localNet === null ? '#999' : (d.localNet >= 0 ? '#166534' : '#cf1322'), '毛净 - 飞出 + 上家赔回');
+  h += row('上家结算', signed(d.upSettle) + ' 元', d.upSettle === null ? '#999' : (d.upSettle >= 0 ? '#166534' : '#cf1322'), '返水 - (飞出 - 赔回)');
+  h += '<div style="font-size:11px;color:#999;line-height:1.6;margin:6px 0 10px">上家结算只算飞出去的部分，不含客户投注；本地飞后净含客户投注，两者不是同一个口径。</div>';
+  if(!orderOk){
+    h += '<div style="font-size:13px;font-weight:700;color:#cf1322;margin:6px 0 2px">差异订单</div>';
+    d.badOrders.slice(0, 20).forEach(function(b){
+      h += '<div style="font-size:12px;color:#666;padding:5px 0;border-bottom:1px dashed #eee">#' + b.idx + ' ' + esc(b.customer) + '：单额 ' + fmt(b.amount) + ' / 明细 ' + fmt(b.detail) + ' <span style="color:#cf1322">差 ' + fmt(b.amount - b.detail) + '</span></div>';
+    });
+  }
+  h += '</div>';
+  h += '<div style="padding:0 18px 12px">';
+  h += '<details style="margin:4px 0;border:1px solid #eee;border-radius:8px;padding:8px 10px"><summary style="font-size:13px;font-weight:700;cursor:pointer">订单明细（' + d.orders.length + ' 笔）</summary><div style="max-height:220px;overflow:auto;margin-top:6px">';
+  d.orders.slice(0, 100).forEach(function(o, i){
+    h += '<div style="font-size:12px;color:#666;padding:5px 0;border-bottom:1px dashed #eee"><div style="display:flex;justify-content:space-between;gap:8px"><span>#' + (i + 1) + ' ' + esc(o.customer || '散客') + '</span><b style="color:#333">' + fmt(o.amount) + '</b></div><div style="word-break:break-all">' + esc(o.raw || '') + '</div></div>';
+  });
+  if(d.orders.length > 100) h += '<div style="font-size:11px;color:#999;padding:6px 0">仅显示前 100 笔</div>';
+  h += '</div></details>';
+  h += '<details style="margin:4px 0;border:1px solid #eee;border-radius:8px;padding:8px 10px"><summary style="font-size:13px;font-weight:700;cursor:pointer">飞单明细（' + d.fly.lines.length + ' 项）</summary><div style="max-height:180px;overflow:auto;margin-top:6px">';
+  d.fly.lines.forEach(function(l){
+    h += '<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;padding:5px 0;border-bottom:1px dashed #eee"><span>' + esc(l.code) + '</span><span>应飞 ' + fmt(l.full) + ' / 已飞 ' + fmt(l.done) + ' / 待飞 ' + fmt(l.amt) + '</span></div>';
+  });
+  h += '</div></details>';
+  h += '</div>';
+  h += '<button id="trClose" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:15px;color:#7c3aed;font-weight:700">关闭</button>';
+  h += '</div>';
+  var ov = document.createElement('div');
+  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+  ov.querySelector('#trClose').onclick = function(){ ov.remove(); };
+}
+
+
 function myAlert(msg){
   const ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
