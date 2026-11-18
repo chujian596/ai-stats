@@ -617,7 +617,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.236-Pro';
+var APP_VER = 'v58.237-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4580,6 +4580,8 @@ function normalizeComboLine(line){
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
+  // 「总共/共/合」是总额标记，不是号码：09总共5 / 09共5 / 09合5 都按 09 号 5 元
+  text = text.replace(/(?:总共|共|合)\s*(?=[0-9零〇一二两三四五六七八九十百千万])/g, ' ');
   // 组合单「三中三 04-07-18组100」里的「组100」= 每组100，不是货币单位
   if(/(二中二|三中二|三中三)/.test(text)) text = text.replace(/(^|[^各])组\s*(?=\d)/g, '$1各组');
   if(!text) return null;
@@ -4637,10 +4639,10 @@ function parseLine(text){
   text = text.replace(/^新澳/, '');
   const numRe = '([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万]+)';
   const unitRe = '(?:\\s*(?:元|米|块|钱|块钱|圆|RMB|rmb))?';
-  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖)?|个)\\s*' + numRe + unitRe + '\\s*$'));
+  const mGe = text.match(new RegExp('(?:各(?:数|号|个|件|样|款|肖|组)?|每(?:组|个|号|肖|注|码|只)?|个)\\s*' + numRe + unitRe + '\\s*$'));
   let isPer, price, codeText;
-  // 只有写明「各数/各号/各码/每号」才算用户授权按号码逐个收；光写「各X」仍属歧义
-  const _perExplicit = !!(mGe && /各\s*(数|号|码)|每\s*(号|个号|码)/.test(mGe[0]));
+  // 只有写明「各数/各号/各码/每号/每注/每码/每只」才算用户授权按号码逐个收；光写「各X」仍属歧义
+  const _perExplicit = !!(mGe && /各\s*(数|号|码)|每\s*(号|个号|码|注|只|肖)/.test(mGe[0]));
   if(mGe){
     isPer = true;
     price = toPriceNum(mGe[1]);
@@ -4719,10 +4721,10 @@ function parseLine(text){
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])数/g, (m, z) => {
     return NUM2ZODIAC_REV[z].map(n => String(n).padStart(2,'0')).join(' ') + ' ';
   });
-  // 头数展开：0头→01-09, 1头→10-19, ...
+  // 头数展开：0头→01-09, 1头→10-19, 2头→20-29, 3头→30-39, 4头→40-49
   codeText = codeText.replace(/(\d)头/g, (m, h) => {
     const nums = [];
-    for(let i=1;i<=9;i++){
+    for(let i=0;i<=9;i++){
       const n = parseInt(h)*10 + i;
       if(n >= 1 && n <= 49) nums.push(String(n).padStart(2,'0'));
     }
@@ -5575,6 +5577,22 @@ function _miProducts(){
       && !/平特|连肖|二中二|三中三|三中二/.test(p.code);
   });
 }
+function scanMultiZodPairs(text){
+  var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  if(new RegExp('连肖|平特|平肖|连[' + ZODS + ']|平[' + ZODS + ']').test(text)) return [];
+  var re = new RegExp('([' + ZODS + '])\\s*([0-9]+(?:\\.[0-9]+)?|[零〇一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+)(?:元|块|米|块钱)?', 'g');
+  var out = [], m;
+  while((m = re.exec(text))){
+    var prev = text.slice(Math.max(0, m.index - 2), m.index);
+    if(/平特|平肖|连肖|特|平|连|肖/.test(prev)) continue;
+    var prod = products.filter(function(p){ return p.code === m[1]; })[0];
+    if(!prod || !prod.links || !prod.links.length) continue;
+    var amt = /^[0-9]/.test(m[2]) ? parseFloat(m[2]) : _mxAmount(m[2]);
+    if(!amt) continue;
+    out.push({ kind:'zod', name:m[1], disp:'特' + m[1], amt:amt, count:prod.links.length, idx:m.index, len:m[0].length });
+  }
+  return out;
+}
 function scanMultiItems(text){
   var ZODS = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   var out = [], m, prod;
@@ -5729,6 +5747,8 @@ function scanAmbigAmount(text, from){
     var mm = raw.match(/^(特|平特|平)?\s*([马蛇龙兔虎牛鸡猴狗猪鼠羊]{2,})(.*)$/);
     if(mm){
       var tail = mm[3] || '';
+      // 「马龙兔平特肖100」「马龙兔平特100」已经写了平特，不是裸生肖歧义
+      if(/平特|平肖|^平|[二三四]连|连肖/.test(tail)) continue;
       var amt = _mxAmount(tail);
       if(amt){
         var zods = mm[2], flat = [];
@@ -5866,6 +5886,8 @@ function doSave(overrideText){
   if(!_isOverride) document.getElementById('input').value = text;
   // 一行里出现多个"多号产品+金额" → 一次弹窗全选完，不用弹多次
   try {
+    var _mzItems = scanMultiZodPairs(text);
+    if(_mzItems.length >= 2){ showMultiDlg(_mzItems, text); return; }
     var _miItems = scanMultiItems(text);
     if(_miItems.length >= 2){ showMultiDlg(_miItems, text); return; }
   } catch(e){}
@@ -6129,7 +6151,7 @@ function doSave(overrideText){
       // 行首的"特"是玩法前缀，紧贴的数字是号码不是金额
       else if(_last === '特' && _before.trim() === '特') _isAmt = false;
       else if(_num > 49) _isAmt = true;
-      else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头尾]/.test(_last)) _isAmt = true;
+      else if(/[马蛇龙兔虎牛鼠猪狗鸡猴羊各特平连复头]/.test(_last)) _isAmt = true;
       if(_isAmt) _amts.push({i:_m.index, l:_m[0].length});
     }
     if(_amts.length >= 2){
