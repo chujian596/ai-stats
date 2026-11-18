@@ -201,6 +201,42 @@ for(const c of cases){
   }
 }
 
+/* 订单搜索 / 日期筛选 */
+{
+  reset();
+  const cn = document.getElementById('customerName');
+  const inp = document.getElementById('input');
+  window.__previewConfirmed = true;
+  cn.value = '张三'; inp.value = '特01 100'; doSave(); await WAIT(180);
+  cn.value = '李四'; inp.value = '特02 200'; doSave(); await WAIT(180);
+  switchTab('orders');
+  const search = document.getElementById('orderSearch');
+  const day = document.getElementById('orderDay');
+  search.value = '张三'; day.value = 'all'; renderOrdersList(); await WAIT(100);
+  const searchRows = document.querySelectorAll('#ordersList [data-order-id]').length;
+  const searchHit = searchRows === 1; // 客户名在订单页会脱敏，按命中行数断言
+  day.value = 'today'; search.value = ''; renderOrdersList(); await WAIT(100);
+  const todayRows = document.querySelectorAll('#ordersList [data-order-id]').length;
+  // 造一条旧日期，今天筛选必须把它排掉
+  orders[0].createdAt = '2026/01/01 10:00';
+  day.value = 'today'; search.value = ''; renderOrdersList(); await WAIT(100);
+  const oldRows = document.querySelectorAll('#ordersList [data-order-id]').length;
+  const oldHit = todayRows === 2 && oldRows === 1;
+  // 固定入口应自动清筛选，重新定位最后保存的李四单
+  search.value = '不存在'; day.value = 'today'; renderOrdersList(); await WAIT(80);
+  try{ showLastOrder(); await WAIT(150); }catch(e){}
+  const cleared = (search.value === '' && day.value === 'all');
+  const reentry = !!document.querySelector('[data-order-id="' + window.__lastSavedOrderId + '"]');
+  R.orderSearch = {searchRows, searchHit, todayRows, oldRows, oldHit, cleared, reentry};
+  const rows = [
+    {name:'订单搜索按客户命中', status:searchHit?'PASS':'FAIL', actual:R.orderSearch},
+    {name:'订单今日筛选排除旧单', status:oldHit?'PASS':'FAIL', actual:R.orderSearch},
+    {name:'本次订单入口清筛选可定位', status:(cleared && reentry)?'PASS':'FAIL', actual:R.orderSearch},
+  ];
+  rows.forEach(r=>{ R.cases.push(r); if(r.status==='FAIL') R.failures.push(r); });
+  reset();
+}
+
 /* ---------- 飞单 / 锁单 / 通道 / 对账 ---------- */
 async function appendSave(txt){
   document.getElementById('input').value=txt; window.__previewConfirmed=true;

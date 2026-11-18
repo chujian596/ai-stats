@@ -221,6 +221,14 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-weight:700;font-size:15px">订单对账</div>
       <div style="display:flex;gap:6px"><button onclick="showLastOrder()" style="border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:6px;padding:4px 10px;font-size:12px">本次订单</button><button onclick="showTodayRecon()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 10px;font-size:12px">今日对账</button><button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button></div>
     </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input id="orderSearch" placeholder="搜客户 / 号码 / 金额" oninput="renderOrdersList()" style="flex:1;min-width:0;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#333">
+      <select id="orderDay" onchange="renderOrdersList()" style="width:104px;padding:9px 6px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#333">
+        <option value="all">全部日期</option>
+        <option value="today">今天</option>
+        <option value="hk">只看香港</option>
+      </select>
+    </div>
     <div id="ordersList"></div>
   </section>
 
@@ -363,6 +371,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         3. 一笔一行，可多行一次保存<br>
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
         4.1 保存后自动跳到「订单记录」并高亮本次订单；订单页顶部「本次订单」可随时重新定位<br>
+        4.2 订单页可搜客户/号码/金额，并按「全部日期 / 今天 / 只看香港」筛选<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
       </div>
 
@@ -622,7 +631,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.3-Pro';
+var APP_VER = 'v59.03.4-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -7070,9 +7079,25 @@ function copyProfit(){
   navigator.clipboard.writeText(text).then(()=>myAlert('已复制盈亏明细'));
 }
 
+function orderFilterState(){
+  var q = (document.getElementById('orderSearch')||{}).value || '';
+  var day = (document.getElementById('orderDay')||{}).value || 'all';
+  return {q: String(q).trim().toLowerCase(), day: day};
+}
+function orderMatches(o, isHK, st){
+  if(st.day === 'today'){
+    var today = new Date().toLocaleDateString('zh-CN');
+    if(String(o.createdAt||'').slice(0,10) !== today) return false;
+  }
+  if(st.day === 'hk' && !isHK) return false;
+  if(!st.q) return true;
+  var hay = [o.customer||'', o.raw||'', (o.codes||[]).join(' '), Number(o.amount||0).toFixed(2), isHK?'香港':''].join(' ').toLowerCase();
+  return hay.indexOf(st.q) >= 0;
+}
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
+  const _st = orderFilterState();
   const groups = {};
   const _hkD = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
   const _add = (o, idx, isHK) => {
@@ -7083,8 +7108,8 @@ function renderOrdersList(){
     groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWin(o);
     if(isHK) groups[c].hkCnt++;
   };
-  orders.forEach((o, idx) => _add(o, idx, false));
-  if(typeof hkOrders !== 'undefined') hkOrders.forEach((o, idx) => _add(o, idx, true));
+  orders.forEach((o, idx) => { if(orderMatches(o, false, _st)) _add(o, idx, false); });
+  if(typeof hkOrders !== 'undefined') hkOrders.forEach((o, idx) => { if(orderMatches(o, true, _st)) _add(o, idx, true); });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
   let h = '';
   h += `<div style="border:1px solid #eee;border-radius:8px;padding:8px;margin-bottom:8px;background:#fafafa">`;
@@ -7112,6 +7137,9 @@ function renderOrdersList(){
     }
   }catch(e){}
   h += `</div>`;
+  if(!custNames.length){
+    h += `<div style="padding:18px 8px;text-align:center;font-size:12px;color:#999">没有匹配的订单${(_st.q || _st.day !== 'all') ? '，换关键词或切回「全部日期」试试' : ''}</div>`;
+  }
   custNames.forEach((c, gi) => {
     const g = groups[c];
     const net = g.totalWin - g.totalBet;
@@ -7517,6 +7545,11 @@ function focusOrderById(id){
 
 function showLastOrder(){
   if(!window.__lastSavedOrderId){ myAlert('还没有本次订单，请先保存一单'); return; }
+  // 固定入口优先保证能看见本次订单：清掉搜索/日期筛选
+  try{
+    var q = document.getElementById('orderSearch'); if(q) q.value = '';
+    var d = document.getElementById('orderDay'); if(d) d.value = 'all';
+  }catch(e){}
   switchTab('orders');
   renderOrdersList();
   setTimeout(function(){
