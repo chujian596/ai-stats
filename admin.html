@@ -233,7 +233,7 @@ body{
 <div class="top">
   <div class="top-in">
     <div>
-      <h1>会员管理<span style="font-size:12px;font-weight:600;color:#6b6b6b;margin-left:8px;letter-spacing:.5px;background:#efeef2;border-radius:4px;padding:2px 6px">admin 58.8</span></h1>
+      <h1>会员管理<span style="font-size:12px;font-weight:600;color:#6b6b6b;margin-left:8px;letter-spacing:.5px;background:#efeef2;border-radius:4px;padding:2px 6px">admin 58.9</span></h1>
       <div class="sub" id="topSub">正在读取…</div>
     </div>
     <button class="iconbtn" onclick="openSettings()" aria-label="设置">
@@ -249,6 +249,7 @@ body{
     <span class="dot" id="syncDot"></span>
     <span id="syncTxt" style="flex:1;min-width:0"></span>
     <button id="syncBtn" onclick="syncNow()" style="display:none;flex:none;border:.5px solid #c0392b;color:#c0392b;background:#fff;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600">重试同步</button>
+    <button id="refreshMembersBtn" onclick="refreshMembers()" style="flex:none;border:.5px solid #999;color:#333;background:#fff;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600">刷新名单</button>
   </div>
 
   <div class="stats">
@@ -692,6 +693,43 @@ function loadData(){
   });
 }
 
+function refreshMembers(){
+  var btn = $('refreshMembersBtn');
+  if(dirty && !confirm('本机还有未同步的改动，刷新名单会丢掉这些改动，确定继续？')) return;
+  if(btn){ btn.disabled = true; btn.textContent = '刷新中…'; }
+  $('topSub').textContent = '正在刷新名单…';
+  var url, opts = {};
+  if(PAT){
+    url = 'https://api.github.com/repos/' + REPO + '/contents/' + DATAFILE + '?ref=main&t=' + Date.now();
+    opts = { headers: { Authorization: 'Bearer ' + PAT, Accept: 'application/vnd.github+json' }, cache: 'no-store' };
+  } else {
+    url = DATAFILE + '?t=' + Date.now();
+    opts = { cache: 'no-store' };
+  }
+  fetch(url, opts).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(j){
+    if(PAT){
+      SHA = j.sha;
+      DATA = JSON.parse(b64dec(j.content));
+    } else {
+      DATA = j;
+    }
+    DATA.devices = DATA.devices || {};
+    DATA.plan_days = DATA.plan_days || PLAN_DAYS;
+    dirty = false;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(DATA)); } catch(e){}
+    updateSyncBar();
+    render();
+    toast('名单已刷新：' + Object.keys(DATA.devices).length + ' 个客户');
+  }).catch(function(e){
+    toast('刷新名单失败：' + e.message);
+    $('topSub').textContent = '刷新失败 · 仍显示当前名单';
+  }).then(function(){
+    if(btn){ btn.disabled = false; btn.textContent = '刷新名单'; }
+  });
+}
 function reloadData(){
   if(dirty && !confirm('这会丢掉本机还没同步的改动，确定重新读取云端？')) return;
   closeSheet();
