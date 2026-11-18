@@ -16,6 +16,9 @@ def grab(pat, optional=False):
         i+=1
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
+_s=s.index('const ATTR_SET = {};')
+_e=s.index('\n\nfunction codeSalesForOrder', _s)
+attr=s[_s:_e]
 cnToNum=grab(r'function cnToNum\('); normAmt=grab(r'function normalizeChineseAmountText\(')
 norm=grab(r'function normalizeComboLine\(')
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
@@ -139,7 +142,7 @@ CASES = [
 
 ]
 
-runner = pre + cnToNum + "\n" + normAmt + "\n" + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
+runner = pre + cnToNum + "\n" + normAmt + "\n" + parseLine + "\n" + attr + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){
