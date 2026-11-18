@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.224-Pro';
+var APP_VER = 'v58.225-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -813,20 +813,9 @@ function autoPayout(){
           mult = code === '平特马' ? 1.8 : payMultSingle;
         }
       }
-      else if(code.indexOf('二中二:') === 0){
-        var picks = code.split(':')[1].split(',');
-        var allIn = picks.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; });
-        if(allIn) mult = 60;
-      }
-      else if(code.indexOf('三中三:') === 0){
-        var picks3 = code.split(':')[1].split(',');
-        var allIn3 = picks3.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; });
-        if(allIn3) mult = 600;
-      }
-      else if(code.indexOf('三中二:') === 0){
-        var picks32 = code.split(':')[1].split(',');
-        var hitCount = picks32.filter(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; }).length;
-        if(hitCount >= 2) mult = 20;
+      else if(code.indexOf('二中二:') === 0 || code.indexOf('三中三:') === 0 || code.indexOf('三中二:') === 0){
+        var all7 = new Set(regularNums.concat([specialNum]));
+        if(emHitOf(code, function(n){ return all7.has(n); })) mult = code.indexOf('二中二:') === 0 ? 60 : (code.indexOf('三中三:') === 0 ? 600 : 20);
       }
       else if(/^\d{2}$/.test(code)){
         if(Number(code) === specialNum){
@@ -891,13 +880,13 @@ function autoPayout(){
         flyOutAmt += flown;
         if(flown > 0 && drawZ0.has(z)) flyBackAmt += flown * (z==='马'?1.8:payMultSingle);
       });
-      if(lxFlyAmt > 0){ const _lxFlown = autoFlyOn ? lxFlyAmt : Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')] || 0); flyOutAmt += _lxFlown; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(_lxFlown > 0 && lz.split('').every(z => drawZ2.has(z))) flyBackAmt += _lxFlown * 4; }
+      if(lxFlyAmt > 0){ const _lxFlown = autoFlyOn ? lxFlyAmt : Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')] || 0); flyOutAmt += _lxFlown; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(_lxFlown > 0 && lz.split('').every(z => drawZ2.has(z))) flyBackAmt += _lxFlown * lxOddsOf(lz); }
       let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
       if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allN.has(Number(n)))){
+          if(emHitOf(c, function(n){ return allN.has(Number(n)); })){
             if(c.indexOf('二中二:')===0) flyBackAmt += amt * 60;
             else if(c.indexOf('三中三:')===0) flyBackAmt += amt * 600;
             else flyBackAmt += amt * 20;
@@ -978,7 +967,7 @@ function autoPayout(){
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
             const nums = c.split(':')[1].split(',');
-            if(nums.every(n => allN.has(Number(n)))){
+            if(emHitOf(c, function(n){ return allN.has(Number(n)); })){
               if(c.indexOf('二中二:')===0) flyBack0 += amt * 60;
               else if(c.indexOf('三中三:')===0) flyBack0 += amt * 600;
               else flyBack0 += amt * 20;
@@ -1541,16 +1530,16 @@ function showAutoPay(){
           if(drawZ.has(z)) win = codeSalesForOrder(o, c) * (z==='马'?1.8:payMultSingle);
         } else if(c.startsWith('连肖')){
           const z = c.replace('连肖','');
-          if(z.split('').every(zz => drawZ.has(zz))) win = codeSalesForOrder(o, c) * 4;
+          if(z.split('').every(zz => drawZ.has(zz))) win = codeSalesForOrder(o, c) * lxOddsOf(z);
         } else if(c.indexOf('二中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 60;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 60;
         } else if(c.indexOf('三中三:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 600;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 600;
         } else if(c.indexOf('三中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 20;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 20;
         }
         if(win > 0){ extraPayoutTotal += win; extraLines.push(c + ' ' + win.toFixed(0)); }
       });
@@ -1612,13 +1601,13 @@ function autoPay(){
           if(z.split('').every(zz => drawZ.has(zz))) win = codeSalesForOrder(o, c) * 4;
         } else if(c.indexOf('二中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 60;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 60;
         } else if(c.indexOf('三中三:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 600;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 600;
         } else if(c.indexOf('三中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) win = codeSalesForOrder(o, c) * 20;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) win = codeSalesForOrder(o, c) * 20;
         }
         if(win > 0){ extraPayout += win; extraNote.push(c); }
       });
@@ -1678,13 +1667,13 @@ function renderPays(){
           if(z.split('').every(zz => drawZ.has(zz))) realTotal += codeSalesForOrder(o, c) * 4;
         } else if(c.indexOf('二中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 60;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realTotal += codeSalesForOrder(o, c) * 60;
         } else if(c.indexOf('三中三:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 600;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realTotal += codeSalesForOrder(o, c) * 600;
         } else if(c.indexOf('三中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realTotal += codeSalesForOrder(o, c) * 20;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realTotal += codeSalesForOrder(o, c) * 20;
         }
       });
     });
@@ -1735,13 +1724,13 @@ function renderPaySide(){
           if(z.split('').every(zz => drawZ.has(zz))) realPayout += codeSalesForOrder(o, c) * 4;
         } else if(c.indexOf('二中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 60;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realPayout += codeSalesForOrder(o, c) * 60;
         } else if(c.indexOf('三中三:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 600;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realPayout += codeSalesForOrder(o, c) * 600;
         } else if(c.indexOf('三中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) realPayout += codeSalesForOrder(o, c) * 20;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) realPayout += codeSalesForOrder(o, c) * 20;
         }
       });
     });
@@ -1935,16 +1924,16 @@ function renderSideCustPay(){
           if(drawZ.has(z)) mult = (z==='马'?1.8:payMultSingle);
         } else if(c.startsWith('连肖')){
           const z = c.replace('连肖','');
-          if(z.split('').every(zz => drawZ.has(zz))) mult = 4;
+          if(z.split('').every(zz => drawZ.has(zz))) mult = lxOddsOf(z);
         } else if(c.indexOf('二中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) mult = 60;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) mult = 60;
         } else if(c.indexOf('三中三:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) mult = 600;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) mult = 600;
         } else if(c.indexOf('三中二:')===0){
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allNums.has(Number(n)))) mult = 20;
+          if(emHitOf(c, function(n){ return allNums.has(Number(n)); })) mult = 20;
         }
         if(mult > 0){
           const amt = codeSalesForOrder(o, c);
@@ -2054,8 +2043,8 @@ function renderSideCustPay(){
           if(_sc[c])return; _sc[c]=true;
           if(/^\d{2}$/.test(c) && Number(c)===Number(lastDraw.specialNum)){ paySpec += codeSalesForOrder(o,c)*payMult; }
           else if(c.startsWith('平特')){ const z=c.replace('平特',''); if(drawZ.has(z)) payPte += codeSalesForOrder(o,c)*(z==='马'?1.8:payMultSingle); }
-          else if(c.startsWith('连肖')){ const z=c.replace('连肖',''); if(z.split('').every(zz=>drawZ.has(zz))) payLx += codeSalesForOrder(o,c)*4; }
-          else if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){ const nums=c.split(':')[1].split(','); if(nums.every(n=>allNums.has(Number(n)))){ if(c.indexOf('二中二:')===0) payEm += codeSalesForOrder(o,c)*60; else if(c.indexOf('三中三:')===0) payEm += codeSalesForOrder(o,c)*600; else payEm += codeSalesForOrder(o,c)*20; } }
+          else if(c.startsWith('连肖')){ const z=c.replace('连肖',''); if(z.split('').every(zz=>drawZ.has(zz))) payLx += codeSalesForOrder(o,c)*lxOddsOf(z); }
+          else if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){ const nums=c.split(':')[1].split(','); if(emHitOf(c, function(n){ return allNums.has(Number(n)); })){ if(c.indexOf('二中二:')===0) payEm += codeSalesForOrder(o,c)*60; else if(c.indexOf('三中三:')===0) payEm += codeSalesForOrder(o,c)*600; else payEm += codeSalesForOrder(o,c)*20; } }
         });});
       }catch(e){}
     }
@@ -2088,7 +2077,7 @@ function renderSideCustPay(){
           const flown=autoFlyOn?lxFlyAmt:Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')]||0);
           flyLx+=flown;
           const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');
-          if(flown>0&&lz.split('').every(z=>drawZ2.has(z))) flyLxBack+=flown*4;
+          if(flown>0&&lz.split('').every(z=>drawZ2.has(z))) flyLxBack+=flown*lxOddsOf(lz);
         }
 
         let emOn=true;try{emOn=localStorage.getItem('emFlyOn')!=='0';}catch(e){}
@@ -2109,7 +2098,7 @@ function renderSideCustPay(){
               flyEm+=flown;
               const nums=c.split(':')[1].split(',');
               const mult=c.indexOf('二中二:')===0?60:(c.indexOf('三中三:')===0?600:20);
-              if(flown>0&&nums.every(n=>allN.has(Number(n)))) flyEmBack+=flown*mult;
+              if(flown>0&&emHitOf(c,function(n){return allN.has(Number(n));})) flyEmBack+=flown*mult;
             }
           });});
         }
@@ -3802,7 +3791,7 @@ function calcSplit(){
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); emFly += amt;
           const nums = c.split(':')[1].split(',');
-          if(nums.every(n => allN.has(Number(n)))){
+          if(emHitOf(c, function(n){ return allN.has(Number(n)); })){
             if(c.indexOf('二中二:')===0) emFlyPayout += amt * 60;
             else if(c.indexOf('三中三:')===0) emFlyPayout += amt * 600;
             else emFlyPayout += amt * 20;
@@ -4529,12 +4518,12 @@ function parseLine(text){
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
   // 斜杠当价格分隔符
   text = text.replace(/\//g, ' ');
-  // 只有文本里明确有三中三字样、且不是复式写法时，横杠组合才转三中三
-  if(text.indexOf('三中三') >= 0 && text.indexOf('复') < 0){
-    text = text.replace(/(\d{2})-(\d{2})-(\d{2})/g, '三中三:$1,$2,$3');
-    // 转换后去掉紧跟在冒号代码后面多余的"三中三"字样
-    text = text.replace(/(三中三:\d{2}(?:,\d{2})+)\s*三中三/g, '$1');
-  }
+  // 横杠写法：三种组合各自按号数转，谁的产品名就归谁（三中二/三中三=3个号，二中二=2个号）
+  text = text.replace(/(三中二|三中三)\s*(\d{2})-(\d{2})-(\d{2})/g, '$1:$2,$3,$4');
+  text = text.replace(/二中二\s*(\d{2})-(\d{2})(?!-\d{2})/g, '二中二:$1,$2');
+  // 转换后去掉多余的裸产品名（避免一笔变两笔）
+  text = text.replace(/((?:二中二|三中二|三中三):\d{2}(?:,\d{2})+)\s*(?:二中二|三中二|三中三)/g, '$1');
+  text = text.replace(/(?:二中二|三中二|三中三)(?=(?:二中二|三中二|三中三):)/g, '');
   // 保护冒号格式代码不被价格提取吃掉：用占位符替换
   const protectedCodes = [];
   text = text.replace(/(二中二|三中三|三中二):(\d{2}(?:,\d{2})+)/g, (m) => {
@@ -4614,11 +4603,11 @@ function parseLine(text){
     codeText = em[1].split('').map(c => '平特' + c).join('');
   }
   // 5. 连肖识别：2-4个生肖（顺序：平连 → X连YZ → 连X）
-  codeText = codeText.replace(/平连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
+  codeText = codeText.replace(/平连\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
   // "马连龙兔"→"连肖马龙兔"（生肖+连+生肖串，必须先于下面的"连XX"规则）
-  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,4})/g, (m, a, b) => '连肖' + a + b);
-  codeText = codeText.replace(/连([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
-  codeText = codeText.replace(/([三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])连\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,4})/g, (m, a, b) => '连肖' + a + b);
+  codeText = codeText.replace(/连\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$1');
+  codeText = codeText.replace(/([三四])连肖\s*([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
   codeText = codeText.replace(/平特?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})([二三四])连肖?/g, (m, z, n) => '连肖' + z);
   codeText = codeText.replace(/([二三四])连肖([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,4})/g, '连肖$2');
@@ -6618,6 +6607,19 @@ function _fmtAmt(v){
   v = Number(v) || 0;
   return Math.abs(v - Math.round(v)) < 0.005 ? String(Math.round(v)) : v.toFixed(2);
 }
+// 组合玩法命中：二中二=2个全中；三中三=3个全中；三中二=3个里中2个即中
+function emHitOf(code, hasFn){
+  var nums = code.split(':')[1].split(',').map(Number);
+  var hit = nums.filter(hasFn).length;
+  if(code.indexOf('三中二:') === 0) return hit >= 2;
+  return hit >= nums.length;
+}
+// 连肖赔率：二连4、三连10、四连30；含马各减0.5（与飞单、对账、客单明细共用同一把尺）
+function lxOddsOf(zs){
+  var n = (zs||'').length;
+  var base = n===2 ? 4 : (n===3 ? 10 : (n===4 ? 30 : 4));
+  return zs && zs.indexOf('马') >= 0 ? base - 0.5 : base;
+}
 function calcOrderWinDetail(o, dr){
   // dr 可传香港开奖对象；不传就用澳门当期 lastDraw
   var d = dr || lastDraw;
@@ -6661,7 +6663,7 @@ function calcOrderWinDetail(o, dr){
       // 旧版这里整段漏了，导致客户对账单只算平特/特号，三中三中的钱不显示（实际结算层却是算的，两边对不上）
       var nums = code.split(':')[1].split(',').map(function(x){ return Number(x); });
       var allN = (d.regularNums||[]).concat([d.specialNum]);
-      if(nums.length && nums.every(function(n){ return allN.indexOf(Number(n)) >= 0; })){
+      if(nums.length && emHitOf(code, function(n){ return allN.indexOf(Number(n)) >= 0; })){
         var emMult = code.indexOf('二中二:')===0 ? 60 : (code.indexOf('三中三:')===0 ? 600 : 20);
         var w2 = bet * emMult;
         total += w2;
@@ -6735,7 +6737,7 @@ function actualPnL(){
           const amt = Math.min(codeSalesForOrder(o,c), _emFlownCap);
           flyOut += amt;
           const nums = c.split(':')[1].split(',');
-          if(nums.every(function(n){ return allN.has(Number(n)); })){
+          if(emHitOf(c, function(n){ return allN.has(Number(n)); })){
             flyBack += amt * (c.indexOf('二中二:')===0 ? 60 : (c.indexOf('三中三:')===0 ? 600 : 20));
           }
         }
@@ -6920,7 +6922,7 @@ function renderOrdersList(){
             const amt = codeSalesForOrder(o, c);
             flyOutTotal += amt;
             const nums = c.split(':')[1].split(',');
-            const allHit = nums.every(n => allNums.has(Number(n)));
+            const allHit = emHitOf(c, function(n){ return allNums.has(Number(n)); });
             if(allHit && amt > 0){
               var emMult2 = c.indexOf('二中二:')===0 ? 60 : (c.indexOf('三中三:')===0 ? 600 : 20);
               flyBackTotal += amt * emMult2;
@@ -7110,12 +7112,12 @@ function renderOrdersList(){
           let anyHit = false;
           group.forEach(([c]) => {
             const cn = c.split(':')[1].split(',');
-            if(cn.every(n => allDrawNums.has(Number(n)))) anyHit = true;
+            if(emHitOf(c, function(n){ return allDrawNums.has(Number(n)); })) anyHit = true;
           });
           upR += `<div style="color:${anyHit?'#cf1322':'#333'};${anyHit?'font-weight:700':''}">${sn.join('.')}复${k===2?'二':'三'} ${amt}${anyHit?' ←命中':''}</div>`;
           group.forEach(([c]) => usedD.add(c));
         } else {
-          const hit = nums.every(n => allDrawNums.has(Number(n)));
+          const hit = emHitOf(code, function(n){ return allDrawNums.has(Number(n)); });
           upR += `<div style="color:${hit?'#cf1322':'#333'};${hit?'font-weight:700':''}">${code.replace(':','')} ${amt.toFixed(0)}${hit?' ←命中':''}</div>`;
           usedD.add(code);
         }
@@ -9094,16 +9096,9 @@ function genStatement(){
       } else if(code.startsWith('平特')){
         var z = code.replace('平特','');
         if(hitZodiacSet[z]) mult = code === '平特马' ? 1.8 : payMultSingle;  // 含特码生肖
-      } else if(code.indexOf('二中二:') === 0){
-        var picks = code.split(':')[1].split(',');
-        if(picks.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; })) mult = 60;
-      } else if(code.indexOf('三中三:') === 0){
-        var picks3 = code.split(':')[1].split(',');
-        if(picks3.every(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; })) mult = 600;
-      } else if(code.indexOf('三中二:') === 0){
-        var picks32 = code.split(':')[1].split(',');
-        var hitCount = picks32.filter(function(n){ return regularNums.indexOf(parseInt(n)) >= 0; }).length;
-        if(hitCount >= 2) mult = 20;
+      } else if(code.indexOf('二中二:') === 0 || code.indexOf('三中三:') === 0 || code.indexOf('三中二:') === 0){
+        var all7b = new Set(regularNums.concat([specialNum]));
+        if(emHitOf(code, function(n){ return all7b.has(n); })) mult = code.indexOf('二中二:') === 0 ? 60 : (code.indexOf('三中三:') === 0 ? 600 : 20);
       } else if(/^\d{2}$/.test(code)){
         if(Number(code) === specialNum) mult = payMult;
       }
