@@ -1804,6 +1804,8 @@ function renderPaySide(){
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家赔回</span><b style="color:#16a34a;font-size:16px">+${_ap.flyBack.toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">凑整差累计</span><b style="font-size:16px;color:${_gapP>0?'#cf1322':(_gapP<0?'#166534':'#999')}">${Math.abs(_gapP)<0.01?'0':((_gapP>0?'+':'')+_gapP.toFixed(0))}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">实际盈亏</span><b style="font-size:16px;color:${_ap.net>=0?'#166534':'#cf1322'}">${_ap.net>=0?'+':''}${_ap.net.toFixed(0)}</b></div>`
+     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">返水${_ap.rebateOn?'('+(_ap.rebateRate*100).toFixed(1)+'%)':'未开'}</span><b style="font-size:16px;color:${_ap.rebate>0?'#16a34a':'#999'}">${_ap.rebate>0?'+':''}${_ap.rebate.toFixed(0)}</b></div>`
+     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">含返水到手</span><b style="font-size:16px;color:${_ap.netWithRebate>=0?'#166534':'#cf1322'}">${_ap.netWithRebate>=0?'+':''}${_ap.netWithRebate.toFixed(0)}</b></div>`
      + `</div>`;
   h += `</div>`;
   if(!curShopDraw()){
@@ -3826,7 +3828,8 @@ function calcSplit(){
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
   // 实际飞出（已飞按记录、未飞按凑整后）—— 与飞单明细、风险面板同一个数
   const partnerReal = keys.reduce((s,k) => s + realFlyAmount(k, sales[k]||0), 0);
-  const rebate = partnerReal * 0.03;
+  const _rcRisk = rebateCfg();
+  const rebate = _rcRisk.on ? partnerReal * _rcRisk.rate : 0;
   // 最高自留号赔付
   let maxKept = 0;
   keys.forEach(k => {
@@ -6978,6 +6981,15 @@ function calcOrderWin(o){ return calcOrderWinDetail(o).total; }
 
 // 全盘实际盈亏（与结算弹窗、持仓分析、上家对账同一套口径）：
 // 实际 = 总单 − 客户赔付 − 已飞实付 + 上家赔回
+function rebateCfg(){
+  var on = false, rate = 0.03;
+  try{
+    on = localStorage.getItem('rebateOn') === '1';
+    rate = parseFloat(localStorage.getItem('rebateRate') || '0.03');
+  }catch(e){}
+  if(!isFinite(rate) || rate < 0 || rate > 0.2) rate = 0.03;
+  return {on:on, rate:rate};
+}
 function actualPnL(){
   var _list = activeOrders();
   var _draw = curShopDraw();
@@ -7045,8 +7057,11 @@ function actualPnL(){
     }
   }catch(e){}
   var net = sales - payout - flyOut + flyBack;
+  var _rc = rebateCfg();
+  var rebate = _rc.on ? flyOut * _rc.rate : 0;
   var settled = !!(_draw && _draw.specialNum);
-  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, settled: settled };
+  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, settled: settled,
+           rebate: rebate, rebateRate: _rc.rate, rebateOn: _rc.on, netWithRebate: net + rebate };
 }
 
 function copyProfit(){
@@ -7068,8 +7083,10 @@ function copyProfit(){
     + '客户赔付：' + (ap.settled ? ap.payout.toFixed(0) : '未结算') + '\n'
     + '已飞实付：' + ap.flyOut.toFixed(0) + '\n'
     + '上家赔回：+' + ap.flyBack.toFixed(0) + '\n'
+    + '返水：' + (ap.rebateOn ? '+' + ap.rebate.toFixed(0) + '（' + (ap.rebateRate*100).toFixed(1) + '%）' : '未开') + '\n'
     + '实际盈亏：' + (ap.net>=0?'+':'') + ap.net.toFixed(0) + '\n'
-    + '（口径：总单−客户赔付−已飞实付+上家赔回）\n\n'
+    + '含返水到手：' + (ap.netWithRebate>=0?'+':'') + ap.netWithRebate.toFixed(0) + '\n'
+    + '（口径：总单−客户赔付−已飞实付+上家赔回；返水另加）\n\n'
     + shopNames[shop] + '：收' + storeS.toFixed(0) + ' 赔' + storeP.toFixed(0) + ' 净' + (storeS-storeP).toFixed(0) + '\n\n'
     + '按客户：\n';
   Object.keys(custMap).sort((a,b)=>custMap[b].bet-custMap[a].bet).forEach(c => {
@@ -7353,8 +7370,8 @@ function renderOrdersList(){
     });});
   } catch(e){}
   // 返水：飞走金额按比例返给我
-  let rebateOn = true, rebateRate = 0.03;
-  try { rebateOn = localStorage.getItem('rebateOn') === '1'; rebateRate = parseFloat(localStorage.getItem('rebateRate')||'0.03')||0.03; } catch(e){}
+  const _rc = rebateCfg();
+  const rebateOn = _rc.on, rebateRate = _rc.rate;
   const rebateAmt = rebateOn ? flyOutTotal * rebateRate : 0;
   const owedAmt = _drawO ? (flyOutTotal - flyBackTotal) : 0;
   const netSettle = _drawO ? (rebateAmt - owedAmt) : null;
@@ -9237,6 +9254,8 @@ function todayReconData(){
   }
   var flyCalc = specFull + pteFull + lxFull + emFull;
   var payout = null, flyBack = 0, gross = null, localNet = null, upSettle = null;
+  var _rcR = rebateCfg();
+  var rebate = _rcR.on ? flyCalc * _rcR.rate : 0;
   if(lastDraw && lastDraw.specialNum){
     payout = list.reduce(function(s, o){ return s + calcOrderWinDetail(o).total; }, 0);
     var drawZ = new Set([...(lastDraw.regularNums || []), lastDraw.specialNum].map(function(n){ return NUM2ZODIAC[n]; }).filter(Boolean));
@@ -9268,15 +9287,14 @@ function todayReconData(){
     }
     gross = sales - payout;
     localNet = gross - flyCalc + flyBack;
-    var rebateOn = true, rebateRate = 0.03;
-    try { rebateOn = localStorage.getItem('rebateOn') !== '0'; rebateRate = parseFloat(localStorage.getItem('rebateRate') || '0.03') || 0.03; } catch(e){}
-    upSettle = (rebateOn ? flyCalc * rebateRate : 0) - (flyCalc - flyBack);
+    upSettle = rebate - (flyCalc - flyBack);
   }
   return {
     shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
     orders: list, sales: sales, detail: detail, badOrders: badOrders,
     fly: fly, specFull: specFull, pteFull: pteFull, lxFull: lxFull, emFull: emFull, flyCalc: flyCalc,
     payout: payout, flyBack: flyBack, gross: gross, localNet: localNet, upSettle: upSettle,
+    rebate: rebate, rebateOn: _rcR.on, rebateRate: _rcR.rate,
     orderOk: Math.abs(sales - detail) <= 0.01,
     flyOk: Math.abs(fly.totalFly - flyCalc) <= 0.01
   };
@@ -9308,6 +9326,8 @@ function showTodayRecon(){
   h += row('客户赔付', d.payout === null ? '待开奖' : fmt(d.payout) + ' 元', d.payout === null ? '#999' : '#cf1322');
   h += row('毛净盈亏', signed(d.gross) + ' 元', d.gross === null ? '#999' : (d.gross >= 0 ? '#166534' : '#cf1322'), '订单总额 - 客户赔付');
   h += row('飞后净盈亏', signed(d.localNet) + ' 元', d.localNet === null ? '#999' : (d.localNet >= 0 ? '#166534' : '#cf1322'), '毛净 - 飞出 + 上家赔回');
+  h += row('返水', d.rebateOn ? '+' + fmt(d.rebate) + ' 元' : '未开', d.rebateOn ? '#16a34a' : '#999', d.rebateOn ? '飞单 ' + fmt(d.flyCalc) + ' × ' + (d.rebateRate*100).toFixed(1) + '%' : '设置里打开返水后才有');
+  h += row('含返水到手', signed(d.localNet === null ? null : d.localNet + d.rebate) + ' 元', d.localNet === null ? '#999' : ((d.localNet + d.rebate) >= 0 ? '#166534' : '#cf1322'), '飞后净盈亏 + 返水');
   h += row('上家结算', signed(d.upSettle) + ' 元', d.upSettle === null ? '#999' : (d.upSettle >= 0 ? '#166534' : '#cf1322'), '返水 - (飞出 - 赔回)');
   h += '<div style="font-size:11px;color:#999;line-height:1.6;margin:6px 0 10px">上家结算只算飞出去的部分，不含客户投注；本地飞后净含客户投注，两者不是同一个口径。</div>';
   if(!orderOk){

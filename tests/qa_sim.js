@@ -237,6 +237,34 @@ for(const c of cases){
   reset();
 }
 
+/* ---------- 返水 / 上家结算口径 ---------- */
+{
+  reset();
+  const cn = document.getElementById('customerName');
+  const inp = document.getElementById('input');
+  cn.value = '返水测试'; inp.value = '特01 100'; window.__previewConfirmed = true; doSave(); await WAIT(180);
+  localStorage.setItem('rebateOn','0'); localStorage.setItem('rebateRate','0.03');
+  const offCfg = rebateCfg();
+  const offRecon = todayReconData();
+  localStorage.setItem('rebateOn','1'); localStorage.setItem('rebateRate','0.03');
+  const onCfg = rebateCfg();
+  const onRecon = todayReconData();
+  const expect = onRecon.flyCalc * 0.03;
+  R.rebate = {
+    offOn: offCfg.on, offRebate: offRecon.rebate,
+    onOn: onCfg.on, rate: onCfg.rate, flyCalc: onRecon.flyCalc,
+    rebate: onRecon.rebate, expect: expect,
+    pnlOn: actualPnL().rebateOn
+  };
+  const rr = [
+    {name:'返水关闭时不计返水', status:(!offCfg.on && offRecon.rebate===0)?'PASS':'FAIL', actual:R.rebate},
+    {name:'返水开启按飞单×费率', status:(onCfg.on && Math.abs(onRecon.rebate-expect)<0.01)?'PASS':'FAIL', actual:R.rebate},
+    {name:'今日对账与全盘盈亏返水开关一致', status:(onRecon.rebateOn===actualPnL().rebateOn)?'PASS':'FAIL', actual:R.rebate},
+  ];
+  rr.forEach(r=>{ R.cases.push(r); if(r.status==='FAIL') R.failures.push(r); });
+  localStorage.setItem('rebateOn','0'); reset();
+}
+
 /* ---------- 飞单 / 锁单 / 通道 / 对账 ---------- */
 async function appendSave(txt){
   document.getElementById('input').value=txt; window.__previewConfirmed=true;
