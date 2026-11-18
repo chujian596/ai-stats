@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.10';
+var APP_VER = 'v59.11';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -5756,7 +5756,10 @@ function calcOrderWinDetail(o, drawOverride){
       }
     } else if(code.startsWith('平特')){
       const z = code.replace('平特','');
-      if(_D.regularNums.some(n => NUM2ZODIAC[n] === z)){
+      // 平特肖按 7 个号算：6 个平号 + 特号，任一命中即中
+      const allP = _D.regularNums.concat([_D.specialNum]);
+      const hitP = allP.some(function(n){ var v=NUM2ZODIAC[n]; return Array.isArray(v) ? v.indexOf(z) >= 0 : v === z; });
+      if(hitP){
         const mult = code === '平特马' ? 1.8 : payMultSingle;
         const w = bet * mult;
         total += w;
