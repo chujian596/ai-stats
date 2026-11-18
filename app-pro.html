@@ -617,7 +617,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.237-Pro';
+var APP_VER = 'v58.238-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -5744,17 +5744,22 @@ function scanAmbigAmount(text, from){
     if(!raw) continue;
     if(/^共\s*[0-9一二两三四五六七八九十]/.test(raw)) continue;   // 汇总行
     if(/各\s*(数|号|码)|每\s*(号|个号|码)/.test(raw)) continue;      // 用户已写明单价
-    var mm = raw.match(/^(特|平特|平)?\s*([马蛇龙兔虎牛鸡猴狗猪鼠羊]{2,})(.*)$/);
+    var rawN = raw.replace(/平特肖/g, '平特').replace(/平肖/g, '平特');
+    var mm = rawN.match(/^(特|平特|平)?\s*([马蛇龙兔虎牛鸡猴狗猪鼠羊]{2,})(.*)$/);
     if(mm){
       var tail = mm[3] || '';
-      // 「马龙兔平特肖100」「马龙兔平特100」已经写了平特，不是裸生肖歧义
+      var zods = mm[2], flat = [];
+      zods.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ flat.push(String(n).padStart(2,'0')); }); });
+      // 「马龙兔平特肖100」「马龙兔平特100」是平特多肖，钱要分给多肖，必须问总额/每肖
+      var pSuf = tail.match(/^\s*平特\s*(.*)$/);
+      if(pSuf && flat.length){
+        var pamt = _mxAmount(pSuf[1]);
+        if(pamt) return { idx:i, kind:'zod', prefix:'平特', zods:zods, amt:pamt, codes:flat, label:'平特'+zods };
+      }
+      // 其余已带平特/连肖的写法不是裸生肖歧义
       if(/平特|平肖|^平|[二三四]连|连肖/.test(tail)) continue;
       var amt = _mxAmount(tail);
-      if(amt){
-        var zods = mm[2], flat = [];
-        zods.split('').forEach(function(z){ (NUM2ZODIAC_REV[z]||[]).forEach(function(n){ flat.push(String(n).padStart(2,'0')); }); });
-        if(flat.length) return { idx:i, kind:'zod', prefix:mm[1]||'', zods:zods, amt:amt, codes:flat, label:(mm[1]||'')+zods };
-      }
+      if(amt && flat.length) return { idx:i, kind:'zod', prefix:mm[1]||'', zods:zods, amt:amt, codes:flat, label:(mm[1]||'')+zods };
       continue;
     }
     var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(单数|双数|单|双|大数|小数|大|小)?(.*)$/);
@@ -5806,7 +5811,13 @@ function showAmbigAmountDlg(hit, text){
       if(!isPing) _texiaoChoice = 'total';      // 单个特肖行按「该肖总额」展开，不再问
     } else if(mode === 'total'){
       if(isPing){
-        rep = zs.map(function(z){ return '平' + z + perZodAmt; }).join('\n');
+        // 总额按分均摊，最后一位吃余数，保证各肖金额相加严格等于总额
+        var _cents = Math.round(hit.amt * 100);
+        var _base = Math.floor(_cents / nZod), _rem = _cents - _base * nZod;
+        rep = zs.map(function(z, i){
+          var c = _base + (i < _rem ? 1 : 0);
+          return '平' + z + (c / 100).toFixed(2);
+        }).join('\n');
       } else {
         rep = '特' + hit.zods + hit.amt;
         _texiaoChoice = 'total';
