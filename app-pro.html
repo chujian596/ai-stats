@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.13-Pro';
+var APP_VER = 'v59.03.14-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -3573,11 +3573,13 @@ function getThisRoundFly(){
       already += done;
       lines.push({code: code, amt: 0, full: lxFlyAmt, done: done, auto: true});
     } else {
+      // 连肖同样按原始记账额扣；否则 36 飞成 35 后会把 1 元再凑 5 元重复飞
+      const booked = Number((flownPerPos || {})[code] || 0);
       const done = flownPaidOf(code);
-      const round = Math.max(0, lxFlyAmt - done);
+      const round = Math.max(0, lxFlyAmt - booked);
       totalFly += lxFlyAmt;
       already += done;
-      lines.push({code: code, amt: round, full: lxFlyAmt, done: done, auto: false});
+      lines.push({code: code, amt: round, full: lxFlyAmt, done: done, booked: booked, auto: false});
     }
   }
   // 二中二/三中三/三中二（合并显示总额，记已飞）
