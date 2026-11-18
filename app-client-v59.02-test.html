@@ -497,11 +497,31 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 </main>
 
 <script>
+// 试用页独立存储命名空间：同域测试不读写生产数据
+(function(){
+  try {
+    var raw = window.localStorage;
+    var prefix = 'test5902_';
+    var proxy = new Proxy(raw, {
+      get: function(t, p){
+        if(p === 'getItem') return function(k){ return t.getItem(prefix + k); };
+        if(p === 'setItem') return function(k, v){ return t.setItem(prefix + k, v); };
+        if(p === 'removeItem') return function(k){ return t.removeItem(prefix + k); };
+        if(p === 'key') return function(){ return null; };
+        if(p === 'length') return 0;
+        var v = t[p];
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+      set: function(t, p, v){ t[p] = v; return true; }
+    });
+    Object.defineProperty(window, 'localStorage', {value: proxy, configurable: true});
+  } catch(e){}
+})();
 // === IndexedDB自动备份（比localStorage更持久，清缓存不丢） ===
 let _db = null;
 function openDB(){
   return new Promise((res,rej)=>{
-    const r = indexedDB.open('aiStatsBackup',1);
+    const r = indexedDB.open('aiStatsBackupTest5902',1);
     r.onupgradeneeded = e => { e.target.result.createObjectStore('kv'); };
     r.onsuccess = e => { _db = e.target.result; res(); };
     r.onerror = e => rej(e);
@@ -557,7 +577,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02-Test.1';
+var APP_VER = 'v59.02-Test.2';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
