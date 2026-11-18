@@ -16,9 +16,9 @@ def grab(pat, optional=False):
         i+=1
     return s[a:i+1]
 doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
-_s=s.index('const ATTR_SET = {};')
-_e=s.index('\n\nfunction codeSalesForOrder', _s)
-attr=s[_s:_e]
+_s=s.find('const ATTR_SET = {};')
+_e=s.find('\n\nfunction codeSalesForOrder', _s) if _s >= 0 else -1
+attr=s[_s:_e] if _s >= 0 and _e > _s else ''
 cnToNum=grab(r'function cnToNum\('); normAmt=grab(r'function normalizeChineseAmountText\(')
 norm=grab(r'function normalizeComboLine\(')
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
