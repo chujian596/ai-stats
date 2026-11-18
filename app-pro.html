@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.227-Pro';
+var APP_VER = 'v58.228-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2079,6 +2079,13 @@ function renderSideCustPay(){
       + (typeof hkOrders !== 'undefined' ? hkOrders.reduce((s,o)=>s+calcOrderWinDetail(o, _hkdPay).total,0) : 0);   // 澳门+香港合计，统一口径
     // 飞单各项
     let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
+    // 香港单是整店飞出：确认已飞或开了自动飞，就把香港总收当飞走、香港总赔当上家赔回
+    let flyHK=0, flyHKBack=0, hkFlyOn=false;
+    try{ hkFlyOn = (typeof hkFlyDone === 'function') && (hkFlyDone() || hkAutoFlyOn()); }catch(e){}
+    if(hkFlyOn && typeof hkOrders !== 'undefined' && hkOrders.length){
+      hkOrders.forEach(function(o){ flyHK += Number(o.amount || 0); });
+      if(_hkdPay){ flyHKBack = hkOrders.reduce(function(s2,o){ return s2 + calcOrderWinDetail(o, _hkdPay).total; }, 0); }
+    }
     if(lastDraw && lastDraw.specialNum){
       try{
         // 全部按「已飞清单」算：真付出去多少、上家就按多少赔回
@@ -2132,8 +2139,8 @@ function renderSideCustPay(){
         }
       }catch(e){}
     }
-    const flyOutSum=flySpec+flyPte+flyLx+flyEm;
-    const flyBackSum=flySpecBack+flyPteBack+flyLxBack+flyEmBack;
+    const flyOutSum=flySpec+flyPte+flyLx+flyEm+flyHK;
+    const flyBackSum=flySpecBack+flyPteBack+flyLxBack+flyEmBack+flyHKBack;
     const grossNet = totalBuy - totalPay;
     const realNet = grossNet - flyOutSum + flyBackSum;
     // 渲染流水账
@@ -2146,17 +2153,19 @@ function renderSideCustPay(){
     if(payEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">二中二三中三赔付</span><span style="font-size:13px;color:#666">-' + payEm.toFixed(2) + '</span></div>';
     h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:14px">毛净盈亏</span><span style="font-size:14px;font-weight:700;color:' + (grossNet>=0?'#166534':'#cf1322') + '">' + (grossNet>=0?'+':'') + grossNet.toFixed(2) + '</span></div>';
     // 飞单调整
-    if(lastDraw && lastDraw.specialNum && (flyOutSum>0 || flyBackSum>0)){
+    if(flyOutSum>0 || flyBackSum>0){
       h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:4px">飞单调整：</div>';
       if(flySpec>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去特号(已实付)</span><span style="font-size:13px;color:#666">-' + flySpec.toFixed(2) + '</span></div>';
       if(flyPte>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去平特(已实付)</span><span style="font-size:13px;color:#666">-' + flyPte.toFixed(2) + '</span></div>';
       if(flyLx>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去连肖(已实付)</span><span style="font-size:13px;color:#666">-' + flyLx.toFixed(2) + '</span></div>';
       if(flyEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去二中二三中三(已实付)</span><span style="font-size:13px;color:#666">-' + flyEm.toFixed(2) + '</span></div>';
+      if(flyHK>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">飞出去香港单(已确认)</span><span style="font-size:13px;color:#666">-' + flyHK.toFixed(2) + '</span></div>';
       h += '<div style="display:flex;justify-content:space-between;padding:3px 0 3px 12px;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:13px;color:#666;font-weight:700">实际总飞额</span><span style="font-size:14px;color:#333;font-weight:700">-' + flyOutSum.toFixed(2) + '</span></div>';
       if(flySpecBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回特号</span><span style="font-size:13px;color:#166534">+' + flySpecBack.toFixed(2) + '</span></div>';
       if(flyPteBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回平特</span><span style="font-size:13px;color:#166534">+' + flyPteBack.toFixed(2) + '</span></div>';
       if(flyLxBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回连肖</span><span style="font-size:13px;color:#166534">+' + flyLxBack.toFixed(2) + '</span></div>';
       if(flyEmBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回二中二三中三</span><span style="font-size:13px;color:#166534">+' + flyEmBack.toFixed(2) + '</span></div>';
+      if(flyHKBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回香港单</span><span style="font-size:13px;color:#166534">+' + flyHKBack.toFixed(2) + '</span></div>';
       if(flyBackSum>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回合计</span><span style="font-size:13px;color:#166534">+' + flyBackSum.toFixed(2) + '</span></div>';
       var _settle = flyBackSum - flyOutSum;
       h += '<div style="display:flex;justify-content:space-between;padding:4px 0 2px 12px;border-top:1px dashed #eee;margin-top:3px"><span style="font-size:13px;color:#333;font-weight:700">上家需结算</span><span style="font-size:16px;font-weight:700;color:' + (_settle>=0?'#166534':'#cf1322') + '">' + (_settle>=0?'+':'') + _settle.toFixed(0) + '</span></div>';
@@ -2877,8 +2886,17 @@ function hkPayoutInfo(){
   });
   return { draw: d.draw, sp: sp, sales: sales, pay: pay, net: sales - pay, hits: hits };
 }
-function hkFlyDone(){ try{ return localStorage.getItem(sk('hk_fly_done')) === '1'; }catch(e){ return false; } }
-function setHKFlyDone(v){ try{ localStorage.setItem(sk('hk_fly_done'), v ? '1' : '0'); }catch(e){} }
+function hkFlyDone(){
+  try{
+    var g = localStorage.getItem('hk_fly_done_global');
+    if(g !== null) return g === '1';
+    return localStorage.getItem(sk('hk_fly_done')) === '1';
+  }catch(e){ return false; }
+}
+function setHKFlyDone(v){
+  try{ localStorage.setItem('hk_fly_done_global', v ? '1' : '0'); }catch(e){}
+  try{ localStorage.setItem(sk('hk_fly_done'), v ? '1' : '0'); }catch(e){}
+}
 function hkCopyText(){
   var gs = hkGroups();
   var lines = gs.map(function(g){ return '香港 ' + g.codes.join(' ').replace(/:/g,'') + ' 各' + g.amt.toFixed(0); });
