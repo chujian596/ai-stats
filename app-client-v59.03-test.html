@@ -637,7 +637,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03-Test.4-Pro';
+var APP_VER = 'v59.03-Test.5-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -2359,6 +2359,7 @@ function setFlyTh(v, redraw, exceptId){
     try{ flyThChanged(); }catch(e){}
     try{ refreshFlySummary(); }catch(e){}
     try{ renderSplit(); }catch(e){}
+    try{ calcSplit(); }catch(e){}
     try{ renderRisk(); }catch(e){}
     var st=document.getElementById(exceptId||'cutThInput');
     if(st){ try{ st.focus(); var L=st.value.length; st.setSelectionRange&&st.setSelectionRange(L,L); }catch(e){} }
@@ -2702,11 +2703,14 @@ function sideSplitCopy(){
   const _grand = _pg.showSum + _emSum;
   copyLines.push('合计 ' + _grand.toFixed(0));
   const txt = copyLines.join('\n');
-  if(navigator.clipboard) navigator.clipboard.writeText(txt);
-  else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
+  try { const _sr=document.getElementById('splitResult'); if(_sr){ _sr.style.display='block'; _sr.textContent=txt; } } catch(e){}
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt);
+    else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  }catch(e){}
   var _tip = '已复制本轮飞单 ' + _grand.toFixed(0) + ' 元\n共' + copyLines.length + '行，直接粘贴发给上家';
   if(_pg.showSum !== _pg.origSum) _tip += '\n（凑整前 ' + (_pg.origSum + _emSum).toFixed(0) + '，' + (_pg.showSum > _pg.origSum ? '多飞 ' : '省 ') + Math.abs(_pg.showSum - _pg.origSum).toFixed(0) + '）';
-  _lastFlyCopy = { grand: _grand, orig: _pg.origSum + _emSum };
   myAlert(_tip);
 }
 
@@ -3609,11 +3613,14 @@ function getThisRoundFly(){
     Object.keys(flownPerPos || {}).forEach(function(k){
       if(_inLines[k]) return;
       if(!((flownPerPos||{})[k] > 0)) return;
-      extra += flownPaidOf(k);
+      const paid = flownPaidOf(k);
+      already += paid;                       // 已飞是定局，哪怕当前阈值下应飞=0 也要计入
+      // 当前有注但阈值提高后应飞=0 的号，不是“手动额外号”，不能重复计入总飞
+      if(typeof sales[k] !== 'undefined') return;
+      extra += paid;
     });
   } catch(e){}
   totalFly += extra;
-  already += extra;
   return { lines: lines, thisRound: lines.reduce((s,l)=>s+l.amt,0), already: already, totalFly: totalFly, extra: extra };
 }
 
@@ -3703,6 +3710,7 @@ function confirmThisRoundFly(){
   localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal));
   // 确认后：侧栏摘要 + 顶部三数 + 风险面板一起重绘（只刷侧栏会出现「已飞加了、顶部没动」）
   try{ afterFlyFlagChange(); }catch(e){ try{ refreshFlySummary(); }catch(e2){} }
+  try{ calcSplit(); }catch(e){}
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
@@ -3738,6 +3746,7 @@ function resetFlown(){
   } catch(e){}
   // 重绘整个页面：顶部「已飞(实际)/待飞」、风险面板、明细都要跟着归零
   try { renderAll(); } catch(e){}
+  try { if(typeof calcSplit === 'function') calcSplit(); } catch(e){}
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
   myAlert('已重置，飞单统计将从头计算');
   });
@@ -3950,6 +3959,7 @@ function calcSplit(){
   } catch(e){}
 }
 function copySplit(){
+  if(typeof sideSplitCopy === 'function') { try { return sideSplitCopy(); } catch(e){} }
   calcSplit();
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
