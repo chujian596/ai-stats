@@ -19,7 +19,7 @@ doSave=grab(r'function doSave\('); parseLine=grab(r'function parseLine\(text\)')
 _s=s.find('const ATTR_SET = {};')
 _e=s.find('\n\nfunction codeSalesForOrder', _s) if _s >= 0 else -1
 attr=s[_s:_e] if _s >= 0 and _e > _s else ''
-cnToNum=grab(r'function cnToNum\('); normAmt=grab(r'function normalizeChineseAmountText\(')
+cnToNum=grab(r'function cnToNum\(')
 norm=grab(r'function normalizeComboLine\(')
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
@@ -40,7 +40,7 @@ function _el(id){ if(!els[id]) els[id]={id:id,value:'',innerHTML:'',textContent:
 const document={getElementById:_el,createElement:function(){_popupCount++;return {style:{},innerHTML:'',appendChild:function(){},remove:function(){},querySelector:function(){return {onclick:null,style:{}}}}},body:{appendChild:function(){}},addEventListener:function(){}};
 const localStorage={getItem:function(){return null;},setItem:function(){},removeItem:function(){}};
 function myAlert(m){ console.log('[ALERT] '+m); } function prompt(){ return null; }
-function myConfirm(m,cb){ if(typeof cb==='function') cb(); } function warnBatchNotSaved(){} function handleSave(){} function showMultiDlg(){}
+function myConfirm(m,cb){ if(typeof cb==='function') cb(); } function warnBatchNotSaved(){} function handleSave(){} function showMultiDlg(){} function previewEnabled(){ return false; }
 // 统一选择弹窗桩：测试只关心是否弹窗/是否落单，不渲染真实 UI
 function showCardChoice(cfg){ return document.createElement('div'); }
 var orders=[],hkOrders=[],roster=[],storageOK=true,lastPrice=null,_texiaoChoice=null,mode='normal',pendingProduct=null;
@@ -130,6 +130,16 @@ CASES = [
  ("断言-一行两组组合", "二中二03,10 100 三中三07,24,32 100", 200),
  ("断言-香港组合", "香港 二中二03,10 100", 100),
  ("断言-香港组合两行", "香港 03 100\n香港 二中二03,10 100", 200),
+ # ===== 客户真实写法：每数各 / 头尾各 =====
+ ("断言-每数各两行", "01.13.49.21.33.45.02.38.每数各100。\n06.18.30.22.34.46.每数各40。", 1040),
+ ("断言-每号各两行", "01.13.49.21.33.45.02.38.每号各100。\n06.18.30.22.34.46.每号各40。", 1040),
+ ("断言-尾5各", "尾5各100", 500),
+ ("断言-5尾各", "5尾各100", 500),
+ ("断言-尾数5各", "尾数5各100", 500),
+ ("断言-头4各", "头4各100", 1000),
+ ("断言-头数0各", "头数0各100", 900),
+ ("断言-特尾5各", "特尾5各100", 500),
+ ("断言-特头0各", "特头0各100", 900),
  # ===== 产品名单独一行 + 下一行号码/组金额 =====
  ("断言-组合独行三中三", "三中三\n04-07-18组100", 100),
  ("断言-组合独行二中二", "二中二\n03-10组100", 100),
@@ -142,7 +152,7 @@ CASES = [
 
 ]
 
-runner = pre + cnToNum + "\n" + normAmt + "\n" + parseLine + "\n" + attr + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
+runner = pre + cnToNum + "\n" + parseLine + "\n" + attr + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + doSave + "\n" + """
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){

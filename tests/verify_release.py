@@ -24,7 +24,7 @@ v2 = m2.group(1) if m2 else 'MISSING'
 chk('页面 APP_VER 存在', v1 != 'MISSING', v1)
 chk('备份 APP_VER 存在', v2 != 'MISSING', v2)
 chk('三处版本一致', v1 == v2 == vtxt, f'page={v1} backup={v2} txt={vtxt}')
-chk('版本号格式合法', bool(re.match(r'v58\.\d+-Pro$', v1)), v1)
+chk('版本号格式合法', bool(re.match(r'v\d{2}\.\d+(?:\.\d+)?-Pro$', v1)), v1)
 
 # 2) 关键函数必须在
 for fn in ['renderRisk', 'cutCalc', 'cutBets', 'pickCut', 'switchCutMode',
