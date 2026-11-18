@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.24-Pro';
+var APP_VER = 'v59.03.25-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -848,7 +848,7 @@ function autoPayout(){
         }
       }
       else if(code.indexOf('二中二:') === 0 || code.indexOf('三中三:') === 0 || code.indexOf('三中二:') === 0){
-        var all7 = new Set(regularNums.concat([specialNum]));
+        var all7 = new Set(regularNums);
         if(emHitOf(code, function(n){ return all7.has(n); })) mult = code.indexOf('二中二:') === 0 ? 60 : (code.indexOf('三中三:') === 0 ? 600 : 20);
       }
       else if(/^\d{2}$/.test(code)){
@@ -916,7 +916,7 @@ function autoPayout(){
       });
       if(lxFlyAmt > 0){ const _lxFlown = autoFlyOn ? lxFlyAmt : Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')] || 0); flyOutAmt += _lxFlown; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(_lxFlown > 0 && lz.split('').every(z => drawZ2.has(z))) flyBackAmt += _lxFlown * lxOddsOf(lz); }
       let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-      if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
           const nums = c.split(':')[1].split(',');
@@ -997,7 +997,7 @@ function autoPayout(){
           }
         }
         let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-        if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
             const nums = c.split(':')[1].split(',');
@@ -1566,7 +1566,7 @@ function showAutoPay(){
   let extraLines = [];
   if(_draw && _draw.specialNum){
     const regular = _draw.regularNums || [];
-    const allNums = new Set([...regular, _draw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, _draw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     _list.forEach(o => {
       (o.codes||[]).forEach(c => {
@@ -1636,7 +1636,7 @@ function autoPay(){
   let extraNote = [];
   if(_draw && _draw.specialNum){
     const regular = _draw.regularNums || [];
-    const allNums = new Set([...regular, _draw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, _draw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     _list.forEach(o => {
       (o.codes||[]).forEach(c => {
@@ -1702,7 +1702,7 @@ function renderPays(){
   // 开奖后实时计算总赔付（含所有中奖产品），不只看赔付记录
   if(_draw && _draw.specialNum){
     const regular = _draw.regularNums || [];
-    const allNums = new Set([...regular, _draw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, _draw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     let realTotal = 0;
     _list.forEach(o => {
@@ -1761,7 +1761,7 @@ function renderPaySide(){
   // 开奖后实时计算赔付，不读赔付记录
   if(_draw && _draw.specialNum){
     const regular = _draw.regularNums || [];
-    const allNums = new Set([...regular, _draw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, _draw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     let realPayout = 0;
     _list.forEach(o => {
@@ -1968,7 +1968,7 @@ function renderSideCustPay(){
   // 开奖后：自动显示所有中奖产品的客户赔付
   if((_drawS && _drawS.specialNum) || (typeof hkDrawObj === 'function' && hkDrawObj())){
     const regular = (_drawS && _drawS.regularNums) || [];
-    const allNums = new Set(_drawS ? [...regular, _drawS.specialNum] : []);
+    const allNums = new Set(_drawS ? regular : []);
     const drawZ = new Set((_drawS ? [...regular, _drawS.specialNum] : []).map(n => NUM2ZODIAC[n]).filter(Boolean));
     // 收集所有中奖code及其倍数和客户（澳门号没录入时，只算香港那部分）
     const winCodes = []; // {code, mult, custMap}
@@ -2100,7 +2100,7 @@ function renderSideCustPay(){
     const _accPay = (list, d) => {
       if(!d || !d.regularNums) return;
       try{
-        const allNums=new Set([...(d.regularNums||[]),d.specialNum]);
+        const allNums=new Set(d.regularNums||[]);
         const drawZ=new Set([...(d.regularNums||[]),d.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
         list.forEach(o=>{const _sc={};(o.codes||[]).forEach(c=>{
           if(typeof c!=='string')return;
@@ -2147,7 +2147,7 @@ function renderSideCustPay(){
 
         let emOn=true;try{emOn=localStorage.getItem(sk('emFlyOn'))!=='0';}catch(e){}
         if(emOn){
-          const allN=new Set([...(_drawS.regularNums||[]),_drawS.specialNum]);
+          const allN=new Set(_drawS.regularNums||[]);
           // 即飞开关打开时，二中二/三中三默认全部飞出（不落到 flownPerPos），这里要按订单额算
           let emTotalAll=0;
           _listS.forEach(o=>{(o.codes||[]).forEach(c=>{
@@ -3928,7 +3928,7 @@ function calcSplit(){
     let emFly = 0, emFlyPayout = 0;
     let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOn){
-      const allN = new Set([...(_draw.regularNums||[]), _draw.specialNum]);
+      const allN = new Set(_draw.regularNums||[]);
       _list.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); emFly += amt;
@@ -7131,7 +7131,7 @@ function calcOrderWinDetail(o, dr){
       // 组合玩法：开奖 7 个号里包含这一组的全部号码就算中
       // 旧版这里整段漏了，导致客户对账单只算平特/特号，三中三中的钱不显示（实际结算层却是算的，两边对不上）
       var nums = code.split(':')[1].split(',').map(function(x){ return Number(x); });
-      var allN = (d.regularNums||[]).concat([d.specialNum]);
+      var allN = (d.regularNums||[]);
       if(nums.length && emHitOf(code, function(n){ return allN.indexOf(Number(n)) >= 0; })){
         var emMult = code.indexOf('二中二:')===0 ? 60 : (code.indexOf('三中三:')===0 ? 600 : 20);
         var w2 = bet * emMult;
@@ -7209,7 +7209,7 @@ function actualPnL(){
         }
       }
       // 二中二/三中二/三中三：按总额飞，命中按倍数赔回
-      var allN = new Set([...(_draw.regularNums||[]), _draw.specialNum]);
+      var allN = new Set(_draw.regularNums||[]);
       var emTotalAll = 0;
       _list.forEach(function(o){ (o.codes||[]).forEach(function(c){
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
@@ -7480,7 +7480,7 @@ function renderOrdersList(){
     let emFlyOn2 = true;
     try { emFlyOn2 = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emFlyOn2 && _drawO){
-      const allNums = new Set([..._drawO.regularNums, _drawO.specialNum]);
+      const allNums = new Set(_drawO.regularNums);
       _listO.forEach(o => {
         (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
@@ -7620,7 +7620,7 @@ function renderOrdersList(){
   try {
     const salesD = getSplitSales();
     const drawZodsD = _drawO ? new Set([..._drawO.regularNums, _drawO.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)) : new Set();
-    const allDrawNums = _drawO ? new Set([..._drawO.regularNums, _drawO.specialNum]) : new Set();
+    const allDrawNums = _drawO ? new Set(_drawO.regularNums) : new Set();
     Object.keys(salesD).sort().forEach(k => {
       const due = Math.max(0, salesD[k] - splitTakeAll);
       const paidK = flownRealOf(k);
@@ -9476,7 +9476,7 @@ function todayReconData(){
       if(lz.split('').every(function(z){ return drawZ.has(z); })) flyBack += lxFull * lxOddsOf(lz);
     }
     if(emFull > 0){
-      var allNums = new Set([...(_drawCur.regularNums || []), _drawCur.specialNum]);
+      var allNums = new Set(_drawCur.regularNums || []);
       list.forEach(function(o){
         (o.codes || []).forEach(function(c){
           if(typeof c !== 'string' || !(c.indexOf('二中二:') === 0 || c.indexOf('三中三:') === 0 || c.indexOf('三中二:') === 0)) return;
@@ -9947,7 +9947,7 @@ function genStatement(){
         var z = code.replace('平特','');
         if(hitZodiacSet[z]) mult = code === '平特马' ? 1.8 : payMultSingle;  // 含特码生肖
       } else if(code.indexOf('二中二:') === 0 || code.indexOf('三中三:') === 0 || code.indexOf('三中二:') === 0){
-        var all7b = new Set(regularNums.concat([specialNum]));
+        var all7b = new Set(regularNums);
         if(emHitOf(code, function(n){ return all7b.has(n); })) mult = code.indexOf('二中二:') === 0 ? 60 : (code.indexOf('三中三:') === 0 ? 600 : 20);
       } else if(/^\d{2}$/.test(code)){
         if(Number(code) === specialNum) mult = payMult;

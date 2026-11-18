@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.09';
+var APP_VER = 'v59.10';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -731,19 +731,19 @@ function autoPayout(){
         }
       }
       else if(code.indexOf('二中二:') === 0){
-        var all7 = new Set(regularNums.concat([specialNum]));
+        var all7 = new Set(regularNums);
         var picks = code.split(':')[1].split(',');
         var allIn = picks.every(function(n){ return all7.has(parseInt(n)); });
         if(allIn) mult = 60;
       }
       else if(code.indexOf('三中三:') === 0){
-        var all7b = new Set(regularNums.concat([specialNum]));
+        var all7b = new Set(regularNums);
         var picks3 = code.split(':')[1].split(',');
         var allIn3 = picks3.every(function(n){ return all7b.has(parseInt(n)); });
         if(allIn3) mult = 600;
       }
       else if(code.indexOf('三中二:') === 0){
-        var all7c = new Set(regularNums.concat([specialNum]));
+        var all7c = new Set(regularNums);
         var picks32 = code.split(':')[1].split(',');
         var hitCount = picks32.filter(function(n){ return all7c.has(parseInt(n)); }).length;
         if(hitCount >= 2) mult = 20;
@@ -809,7 +809,7 @@ function autoPayout(){
       });
       if(lxFlyAmt > 0){ flyOutAmt += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBackAmt += lxFlyAmt * 4; }
       let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-      if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
           const nums = c.split(':')[1].split(',');
@@ -866,7 +866,7 @@ function autoPayout(){
         });
         if(lxFlyAmt > 0){ flyOut0 += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBack0 += lxFlyAmt * 4; }
         let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-        if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
             const nums = c.split(':')[1].split(',');
@@ -1427,7 +1427,7 @@ function showAutoPay(){
   let extraLines = [];
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     orders.forEach(o => {
       (o.codes||[]).forEach(c => {
@@ -1495,7 +1495,7 @@ function autoPay(){
   let extraNote = [];
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     orders.forEach(o => {
       (o.codes||[]).forEach(c => {
@@ -1557,7 +1557,7 @@ function renderPays(){
   // 开奖后实时计算总赔付（含所有中奖产品），不只看赔付记录
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     let realTotal = 0;
     activeFlyOrders().forEach(o => { realTotal += calcOrderWinDetail(o).total; });
@@ -1592,7 +1592,7 @@ function renderPaySide(){
   // 开奖后实时计算赔付，不读赔付记录
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     let realPayout = 0;
     activeFlyOrders().forEach(o => { realPayout += calcOrderWinDetail(o).total; });
@@ -1655,7 +1655,7 @@ function renderPaySide(){
         const emFlownTotal = emTotalAll;
         flyEm += emFlownTotal;
         const flownRatio = emTotalAll > 0 ? emFlownTotal / emTotalAll : 0;
-        const allN = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum]);
+        const allN = new Set(lastDraw.regularNums||[]);
         emOrderList.forEach(item => {
           const nums = item.code.split(':')[1].split(',');
           if(nums.every(n => allN.has(Number(n)))){
@@ -1841,7 +1841,7 @@ function renderSideCustPay(){
   // 开奖后：自动显示所有中奖产品的客户赔付
   if(lastDraw && lastDraw.specialNum){
     const regular = lastDraw.regularNums || [];
-    const allNums = new Set([...regular, lastDraw.specialNum]);
+    const allNums = new Set(regular);
     const drawZ = new Set([...regular, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
     // 收集所有中奖code及其倍数和客户
     const winCodes = []; // {code, mult, custMap}
@@ -1968,7 +1968,7 @@ function renderSideCustPay(){
     let paySpec=0,payPte=0,payLx=0,payEm=0;
     if(lastDraw && lastDraw.specialNum){
       try{
-        const allNums=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);
+        const allNums=new Set(lastDraw.regularNums||[]);
         const drawZ=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
         orders.forEach(o=>{(o.codes||[]).forEach(c=>{
           if(typeof c!=='string')return;
@@ -1993,7 +1993,7 @@ function renderSideCustPay(){
         Object.entries(pteAgg).forEach(([z,amt])=>{const extra=pteFlyTakeAll>0?Math.max(0,amt-pteFlyTakeAll):0;flyPte+=extra;if(extra>0&&drawZ2.has(z))flyPteBack+=extra*(z==='马'?1.8:payMultSingle);});
         if(lxFlyAmt>0){flyLx+=lxFlyAmt;const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');if(lz.split('').every(z=>drawZ2.has(z)))flyLxBack+=lxFlyAmt*4;}
         let emOn=true;try{emOn=localStorage.getItem(sk('emFlyOn'))!=='0';}catch(e){}
-        if(emOn){const allN=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);orders.forEach(o=>{(o.codes||[]).forEach(c=>{if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){const amt=codeSalesForOrder(o,c);flyEm+=amt;const nums=c.split(':')[1].split(',');if(nums.every(n=>allN.has(Number(n)))){if(c.indexOf('二中二:')===0)flyEmBack+=amt*60;else if(c.indexOf('三中三:')===0)flyEmBack+=amt*600;else flyEmBack+=amt*20;}}});});}
+        if(emOn){const allN=new Set(lastDraw.regularNums||[]);orders.forEach(o=>{(o.codes||[]).forEach(c=>{if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){const amt=codeSalesForOrder(o,c);flyEm+=amt;const nums=c.split(':')[1].split(',');if(nums.every(n=>allN.has(Number(n)))){if(c.indexOf('二中二:')===0)flyEmBack+=amt*60;else if(c.indexOf('三中三:')===0)flyEmBack+=amt*600;else flyEmBack+=amt*20;}}});});}
       }catch(e){}
     }
     const flyOutSum=flySpec+flyPte+flyLx+flyEm;
@@ -3021,7 +3021,7 @@ function calcSplit(){
     let emFly = 0, emFlyPayout = 0;
     let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOn){
-      const allN = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum]);
+      const allN = new Set(lastDraw.regularNums||[]);
       activeFlyOrders().forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); emFly += amt;
@@ -5764,7 +5764,7 @@ function calcOrderWinDetail(o, drawOverride){
       }
     } else if(code.indexOf('二中二:')===0 || code.indexOf('三中三:')===0 || code.indexOf('三中二:')===0){
       const nums = code.split(':')[1].split(',');
-      const allNums = new Set([..._D.regularNums, _D.specialNum]);
+      const allNums = new Set(_D.regularNums);
       if(nums.every(n => allNums.has(Number(n)))){
         const mult = code.indexOf('二中二:')===0 ? 60 : code.indexOf('三中三:')===0 ? 600 : 20;
         const w = bet * mult;
@@ -5937,7 +5937,7 @@ function renderOrdersList(){
     let emFlyOn2 = true;
     try { emFlyOn2 = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emFlyOn2 && lastDraw){
-      const allNums = new Set([...lastDraw.regularNums, lastDraw.specialNum]);
+      const allNums = new Set(lastDraw.regularNums);
       orders.forEach(o => {
         (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
@@ -6063,7 +6063,7 @@ function renderOrdersList(){
   try {
     const salesD = getSplitSales();
     const drawZodsD = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)) : new Set();
-    const allDrawNums = lastDraw ? new Set([...lastDraw.regularNums, lastDraw.specialNum]) : new Set();
+    const allDrawNums = lastDraw ? new Set(lastDraw.regularNums) : new Set();
     Object.keys(salesD).sort().forEach(k => {
       const extra = Math.max(0, salesD[k] - splitTakeAll);
       if(extra > 0){
