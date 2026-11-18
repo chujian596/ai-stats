@@ -333,6 +333,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:17px;font-weight:600;margin-bottom:20px;text-align:center">设置</div>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">外观</div>
       <div id="bgStyles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
+      <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">录入</div>
+      <button id="previewToggleBtn" onclick="togglePreview()" aria-pressed="true" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;margin-bottom:6px">保存前预览：开</button>
+      <div style="font-size:12px;color:var(--modalLabel,#8E8E93);margin:0 4px 20px;line-height:1.6">默认开启。关闭后点保存会直接入账，不再弹预览；建议保留开启。</div>
       <button onclick="openHelp()" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;margin-bottom:10px">使用说明</button>
       <button onclick="closeSettings()" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin:24px 0 10px 4px">数据</div>
@@ -356,6 +359,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 顶部先选客户：<b style="color:var(--modalText,#fff)">"客户:散客"</b> 下拉切换，选谁就记到谁名下<br>
         2. 在输入框写订单，点 <b style="color:var(--modalText,#fff)">保存</b> 入账（<b style="color:var(--modalText,#fff)">回车=换行</b>，不是保存）<br>
+        2.1 设置 → 录入 → <b style="color:var(--modalText,#fff)">保存前预览</b> 可开关；默认开，关掉后保存直接入账<br>
         3. 一笔一行，可多行一次保存<br>
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
@@ -617,8 +621,28 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.1-Pro';
-window.__previewEnabled = true; // 专业版保留保存前预览（不要把试用横幅一起删掉）
+var APP_VER = 'v59.03.2-Pro';
+/* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
+   这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
+   避免清理脚本误删这个全局后预览页再次消失。 */
+var PREVIEW_KEY = 'ai_preview_enabled';
+function previewEnabled(){
+  try{ var v = localStorage.getItem(PREVIEW_KEY); return v === '0' ? false : true; }catch(e){ return true; }
+}
+function renderPreviewToggle(){
+  var b = document.getElementById('previewToggleBtn');
+  if(!b) return;
+  var on = previewEnabled();
+  b.textContent = '保存前预览：' + (on ? '开' : '关');
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+function togglePreview(){
+  try{ localStorage.setItem(PREVIEW_KEY, previewEnabled() ? '0' : '1'); }catch(e){}
+  window.__previewEnabled = previewEnabled();
+  renderPreviewToggle();
+  try{ myAlert('保存前预览已' + (previewEnabled() ? '开启' : '关闭')); }catch(e){}
+}
+window.__previewEnabled = previewEnabled();
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -6665,7 +6689,7 @@ renderAll();
   }
 
   // 保存前预览：确认后直接提交已解析结果，不再二次解析，避免重复弹窗/重复落单
-  if(window.__previewEnabled && !window.__previewConfirmed){
+  if(previewEnabled() && !window.__previewConfirmed){
     let _pvTotal = 0;
     const _pvLines = [];
     parsed.forEach(function(p){
@@ -9483,6 +9507,7 @@ function openSettings(){
     };
     bs.appendChild(btn);
   });
+  renderPreviewToggle();
   const fs = cur.fontSize || 17;
   [['fs-small',15],['fs-mid',17],['fs-big',19]].forEach(([id,val])=>{
     const el = document.getElementById(id);

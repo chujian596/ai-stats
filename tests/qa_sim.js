@@ -137,6 +137,40 @@ for(const c of cases){
   check('重复单两次','特01 100 ×2',got,{n:2,amt:200});
 }
 
+/* 预览开关回归门：开关存在、默认为开、可关可恢复、关闭后直接落单 */
+{
+  try{ localStorage.removeItem('ai_preview_enabled'); }catch(e){}
+  window.__previewEnabled = previewEnabled();
+  renderPreviewToggle();
+  const btn = document.getElementById('previewToggleBtn');
+  const defState = {enabled:previewEnabled(),global:window.__previewEnabled,btn:btn&&btn.textContent};
+  const defaultOn = defState.enabled === true && defState.global === true && /开$/.test(defState.btn || '');
+  togglePreview();
+  const offState = {enabled:previewEnabled(),global:window.__previewEnabled,btn:btn&&btn.textContent};
+  const canOff = offState.enabled === false && offState.global === false && /关$/.test(offState.btn || '');
+  reset();
+  document.getElementById('input').value = '特01 100';
+  window.__previewConfirmed = false;
+  let offErr = '';
+  try{ doSave(); }catch(e){ offErr = e.message || String(e); }
+  await WAIT(150);
+  const offSave = {n: orders.length, amt: sum(orders), popups: document.querySelectorAll('.ai-ov').length, err: offErr};
+  const offDirect = offSave.n === 1 && offSave.amt === 100 && offSave.popups === 0 && !offErr;
+  clear();
+  togglePreview();
+  const onState = {enabled:previewEnabled(),global:window.__previewEnabled,btn:btn&&btn.textContent};
+  const canOn = onState.enabled === true && onState.global === true && /开$/.test(onState.btn || '');
+  const rows = [
+    {name:'预览开关默认开', status:defaultOn?'PASS':'FAIL', actual:defState},
+    {name:'预览开关可关闭', status:canOff?'PASS':'FAIL', actual:offState},
+    {name:'预览关闭后直接落单', status:offDirect?'PASS':'FAIL', actual:offSave},
+    {name:'预览开关可恢复', status:canOn?'PASS':'FAIL', actual:onState},
+  ];
+  rows.forEach(r=>{ R.cases.push(r); if(r.status==='FAIL') R.failures.push(r); });
+  R.previewGate={defaultOn,canOff,offDirect,canOn};
+  reset();
+}
+
 /* 预览取消 / 确认 */
 {
   const got=await saveCase('特01 100',{preview:'cancel'});
