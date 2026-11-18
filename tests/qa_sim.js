@@ -243,13 +243,16 @@ for(const c of cases){
   const cn = document.getElementById('customerName');
   const inp = document.getElementById('input');
   cn.value = '返水测试'; inp.value = '特01 100'; window.__previewConfirmed = true; doSave(); await WAIT(180);
+  flownPerPos = {}; flownReal = {};
+  flownPerPos['01'] = 100; flownReal['01'] = 100;
+  try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){}
   localStorage.setItem('rebateOn','0'); localStorage.setItem('rebateRate','0.03');
   const offCfg = rebateCfg();
   const offRecon = todayReconData();
   localStorage.setItem('rebateOn','1'); localStorage.setItem('rebateRate','0.03');
   const onCfg = rebateCfg();
   const onRecon = todayReconData();
-  const expect = onRecon.flyCalc * 0.03;
+  const expect = actualPnL().flyOut * 0.03;
   R.rebate = {
     offOn: offCfg.on, offRebate: offRecon.rebate,
     onOn: onCfg.on, rate: onCfg.rate, flyCalc: onRecon.flyCalc,
@@ -344,6 +347,40 @@ gate('削峰21有输出', cut21Text.indexOf('削到 21')>-1 && cut21Text.indexOf
 gate('采用21档生效', appliedTh===21 && R.cut.afterTop===21, {appliedTh,afterTop:R.cut.afterTop});
 // 档位不产生 NaN
 gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cut21Text).slice(0,200));
+
+/* 真实开奖 321 期结算回放：特41 100 + 二中二15,45 100，全飞，返水3% */
+{
+  reset();
+  lastDraw = {period:'321', specialNum:41, regularNums:[15,45,23,8,47,49]};
+  if(typeof saveLastDraw==='function') saveLastDraw();
+  autoFlyOn = true;
+  splitTakeAll = 0; if(typeof saveSplitAll==='function') saveSplitAll();
+  flownPerPos = {}; flownReal = {};
+  flownPerPos['41'] = 100; flownReal['41'] = 100;
+  try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){}
+  localStorage.setItem('rebateOn','1'); localStorage.setItem('rebateRate','0.03');
+  document.getElementById('customerName').value='回放';
+  await appendSave('特41 100');
+  await appendSave('二中二15,45 100');
+  const ap = actualPnL();
+  const d = todayReconData();
+  const exp = {sales:200, payout:10700, flyOut:200, flyBack:10700, net:0, rebate:6, localNet:0, upSettle:10506};
+  R.replay = {
+    sales:ap.sales, payout:ap.payout, flyOut:ap.flyOut, flyBack:ap.flyBack, net:ap.net, rebate:ap.rebate,
+    localNet:d.localNet, upSettle:d.upSettle, expect:exp
+  };
+  gate('回放总单/客户赔付', ap.sales===exp.sales && ap.payout===exp.payout, R.replay);
+  gate('回放飞出/上家赔回', ap.flyOut===exp.flyOut && ap.flyBack===exp.flyBack, R.replay);
+  gate('回放实际盈亏/返水', Math.abs(ap.net-exp.net)<0.01 && Math.abs(ap.rebate-exp.rebate)<0.01, R.replay);
+  gate('回放飞后净/上家结算', Math.abs(d.localNet-exp.localNet)<0.01 && Math.abs(d.upSettle-exp.upSettle)<0.01, R.replay);
+  // 部分飞：阈值100，只真飞特41 100；今日对账必须和全盘盈亏同一个“已飞”口径
+  splitTakeAll = 100; if(typeof saveSplitAll==='function') saveSplitAll();
+  const apPartial = actualPnL();
+  const dPartial = todayReconData();
+  R.replay.partial = {flyOut:apPartial.flyOut, net:apPartial.net, rebate:apPartial.rebate, localNet:dPartial.localNet, upSettle:dPartial.upSettle, flyCalc:dPartial.flyCalc};
+  gate('部分飞今日对账与全盘口径一致', Math.abs(dPartial.localNet-apPartial.net)<0.01 && Math.abs(dPartial.rebate-apPartial.rebate)<0.01 && Math.abs(dPartial.localNet-(dPartial.gross-apPartial.flyOut+apPartial.flyBack))<0.01, R.replay);
+  localStorage.setItem('rebateOn','0'); reset(); lastDraw=null;
+}
 
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
