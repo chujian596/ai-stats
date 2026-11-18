@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.02';
+var APP_VER = 'v59.03';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -3732,6 +3732,35 @@ function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
   // 每数各100 / 每号各100 / 每组各100 → 各100；口语「每数100」也按每号处理
   text = text.replace(/每\s*(?:数|号|个|码|注|组|只)\s*各?/g, '各');
+  // 多尾/多头写法：尾1.2.3.4.5.6.7.8.9 / 头1.2.3.4（可带各100 / 每数各100）
+  var _htm = text.match(/^(?:特)?\s*(尾数?|头数?)\s*((?:[0-9]\s*[.、,，/·]\s*)+[0-9])\s*[.、,，/·]?\s*(.*)$/);
+  if(_htm){
+    var _hk = _htm[1].indexOf('尾') === 0 ? '尾' : '头';
+    var _hlist = (_htm[2].match(/[0-9]/g) || []).map(function(x){ return parseInt(x,10); });
+    if(_hlist.length >= 2){
+      var _hmax = _hk === '尾' ? 9 : 4;
+      if(_hlist.some(function(x){ return x > _hmax; })){
+        throw new Error(_hk === '尾' ? '尾数只能 0-9' : '头数只能 0-4');
+      }
+      var _hrest = _htm[3].trim();
+      var _ham = _hrest.match(/^(?:(各|每)(?:号|数|码|个|注|组|只|数各)?)?\s*([0-9零〇一二两三四五六七八九十百千万]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?$/);
+      if(!_ham) throw new Error('没找到价格');
+      var _hprice = toPriceNum(_ham[2]);
+      if(!(_hprice > 0)) throw new Error('金额必须大于 0');
+      var _hnums = [], _hseen = {};
+      _hlist.forEach(function(d){
+        if(_hk === '尾'){
+          for(var n=1; n<=49; n++){ if(n % 10 === d) _hseen[String(n).padStart(2,'0')] = 1; }
+        }else{
+          var st = d === 0 ? 1 : d * 10;
+          var en = d === 0 ? 9 : d * 10 + 9;
+          for(var n2=st; n2<=Math.min(en,49); n2++){ _hseen[String(n2).padStart(2,'0')] = 1; }
+        }
+      });
+      _hnums = Object.keys(_hseen).sort(function(a,b){ return parseInt(a,10)-parseInt(b,10); });
+      return { codes: _hnums, price: _hprice, isPer: !!_ham[1] };
+    }
+  }
   // 尾数/头数自然写法归一：尾数5→尾5、5尾数→尾5、头数0→0头、0头数→0头、头0→0头、0尾→尾0
   text = text.replace(/(^|[^0-9])(?:特)?\s*(?:尾数|尾)\s*(\d{1,2})/g, '$1尾$2');
   text = text.replace(/(\d{1,2})\s*(?:尾数|尾)/g, '尾$1 ');
