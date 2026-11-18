@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.07';
+var APP_VER = 'v59.08';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -4838,6 +4838,9 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 混搭/多类：分号先拆行；同一行不同玩法前缀前也拆行，避免组合词互相吞并
+  text = text.replace(/[；;]/g, '\n');
+  text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))/g, '\n');
   // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
   var _zchars0 = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   text = text.replace(new RegExp('(['+_zchars0+'])\\s+(?=['+_zchars0+'])', 'g'), '$1');
