@@ -619,7 +619,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.228-Pro';
+var APP_VER = 'v58.229-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -1758,21 +1758,27 @@ function renderPaySide(){
     h += '<div style="padding:6px;background:#fffbe6;border:1px solid #f0c36d;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:6px">还没结算本期开奖，赔付按 0 算；点「自动获取开奖」结算后这里才是实际账。</div>';
   }
   h += `<button onclick="copyProfit()" style="width:100%;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:6px;font-size:12px;margin-bottom:6px">复制盈亏明细</button>`;
-  // Per-customer breakdown
-  if(lastDraw){
+  // Per-customer breakdown（澳门、香港分开记，合计显示）
+  if(lastDraw || (typeof hkDrawObj === 'function' && hkDrawObj())){
     h += '<div style="font-size:10px;font-weight:700;margin:4px 0 2px;color:#666">按客户</div>';
     const custMap = {};
-    orders.forEach(o => {
+    const _hdC = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+    const _addC = (o, win, hk) => {
       const c = o.customer||'散客';
-      if(!custMap[c]) custMap[c] = {bet:0, win:0};
-      custMap[c].bet += Number(o.amount)||0;
-      custMap[c].win += calcOrderWin(o);
-    });
+      if(!custMap[c]) custMap[c] = {bet:0, win:0, mBet:0, mWin:0, hBet:0, hWin:0};
+      const amt = Number(o.amount)||0;
+      custMap[c].bet += amt;
+      custMap[c].win += win;
+      if(hk){ custMap[c].hBet += amt; custMap[c].hWin += win; }
+      else { custMap[c].mBet += amt; custMap[c].mWin += win; }
+    };
+    orders.forEach(o => _addC(o, calcOrderWin(o), false));
+    if(typeof hkOrders !== 'undefined') hkOrders.forEach(o => _addC(o, calcOrderWinDetail(o,_hdC).total, true));
     Object.keys(custMap).sort((a,b)=>custMap[b].bet-custMap[a].bet).forEach(c => {
       const g = custMap[c];
       const net = g.win - g.bet;
       h += `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f0f0f0">`;
-      h += `<span>${maskName(c)}</span>`;
+      h += `<span>${maskName(c)}${(g.hBet>0 && g.mBet>0) ? '<span style="font-size:10px;color:#999"> 澳' + g.mBet.toFixed(0) + '/港' + g.hBet.toFixed(0) + '</span>' : (g.hBet>0 ? '<span style="font-size:10px;color:#b45309"> 港</span>' : '')}</span>`;
       h += `<span>下注${g.bet.toFixed(0)} 赔${g.win.toFixed(0)} <b style="color:${net>=0?'#16a34a':'#cf1322'}">${net>=0?'+':''}${net.toFixed(0)}</b></span>`;
       h += `</div>`;
     });
@@ -2075,8 +2081,10 @@ function renderSideCustPay(){
     };
     _accPay(orders, lastDraw);
     _accPay(typeof hkOrders !== 'undefined' ? hkOrders : [], _hkdPay);
-    const totalPay = orders.reduce((s,o)=>s+calcOrderWin(o),0)
-      + (typeof hkOrders !== 'undefined' ? hkOrders.reduce((s,o)=>s+calcOrderWinDetail(o, _hkdPay).total,0) : 0);   // 澳门+香港合计，统一口径
+    const macPay = orders.reduce((s,o)=>s+calcOrderWin(o),0);
+    const hkSales = (typeof hkOrders !== 'undefined') ? hkOrders.reduce((s,o)=>s+(Number(o.amount)||0),0) : 0;
+    const hkPay = (typeof hkOrders !== 'undefined') ? hkOrders.reduce((s,o)=>s+calcOrderWinDetail(o, _hkdPay).total,0) : 0;
+    const totalPay = macPay + hkPay;   // 澳门+香港合计，统一口径
     // 飞单各项
     let flySpec=0,flySpecBack=0,flyPte=0,flyPteBack=0,flyLx=0,flyLxBack=0,flyEm=0,flyEmBack=0;
     // 香港单是整店飞出：确认已飞或开了自动飞，就把香港总收当飞走、香港总赔当上家赔回
@@ -2146,6 +2154,11 @@ function renderSideCustPay(){
     // 渲染流水账
     h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">结算明细</div>';
     h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">总收入（总单）</span><span style="font-size:14px;font-weight:600">+' + totalBuy.toFixed(2) + '</span></div>';
+    if(typeof hkOrders !== 'undefined' && hkOrders.length){
+      const _macSales = totalBuy - hkSales;
+      h += '<div style="display:flex;justify-content:space-between;padding:1px 0 1px 12px"><span style="font-size:12px;color:#999">澳门单 收 ' + _macSales.toFixed(2) + '　赔 ' + macPay.toFixed(2) + '</span><span style="font-size:12px;color:#999">净 ' + (_macSales-macPay).toFixed(2) + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;padding:1px 0 1px 12px"><span style="font-size:12px;color:#b45309">香港单 收 ' + hkSales.toFixed(2) + '　赔 ' + hkPay.toFixed(2) + '</span><span style="font-size:12px;color:#b45309">净 ' + (hkSales-hkPay).toFixed(2) + '</span></div>';
+    }
     h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:2px">赔付明细：</div>';
     h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">特号赔付</span><span style="font-size:13px;color:#666">-' + paySpec.toFixed(2) + '</span></div>';
     h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">平特赔付</span><span style="font-size:13px;color:#666">-' + payPte.toFixed(2) + '</span></div>';
@@ -6744,10 +6757,26 @@ function calcOrderWin(o){ return calcOrderWinDetail(o).total; }
 // 全盘实际盈亏（与结算弹窗、持仓分析、上家对账同一套口径）：
 // 实际 = 总单 − 客户赔付 − 已飞实付 + 上家赔回
 function actualPnL(){
-  const sales = orders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
+  let sales = orders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
   let payout = 0;
   orders.forEach(function(o){ payout += calcOrderWin(o); });
   let flyOut = 0, flyBack = 0;
+  // 香港单也进总账：未飞自己承担，已飞就把飞走和赔回单独算
+  let hkSettled = false;
+  try{
+    if(typeof hkOrders !== 'undefined' && hkOrders.length){
+      const hd = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+      let hs = 0, hp = 0;
+      hkOrders.forEach(function(o){ hs += Number(o.amount)||0; });
+      if(hd) hp = hkOrders.reduce(function(s2,o){ return s2 + calcOrderWinDetail(o,hd).total; }, 0);
+      sales += hs;
+      payout += hp;
+      if(typeof hkFlyDone === 'function' && (hkFlyDone() || hkAutoFlyOn())){
+        flyOut += hs; flyBack += hp;
+      }
+      if(hd) hkSettled = true;
+    }
+  }catch(e){}
   try{
     const ss = getSplitSales();
     const _fk2 = new Set(Object.keys(flownPerPos));
@@ -6804,18 +6833,30 @@ function actualPnL(){
     }
   }catch(e){}
   const net = sales - payout - flyOut + flyBack;
-  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, settled: !!(lastDraw && lastDraw.specialNum) };
+  const _settled = !!(lastDraw && lastDraw.specialNum) || hkSettled;
+  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, settled: _settled };
 }
 
 function copyProfit(){
   const ap = actualPnL();
   const custMap = {};
-  orders.forEach(o => {
+  const _hdCp = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+  const _addCp = (o, win, hk) => {
     const c = o.customer||'散客';
-    if(!custMap[c]) custMap[c] = {bet:0, win:0};
-    custMap[c].bet += Number(o.amount)||0;
-    custMap[c].win += calcOrderWin(o);
-  });
+    if(!custMap[c]) custMap[c] = {bet:0, win:0, mBet:0, hBet:0};
+    const amt = Number(o.amount)||0;
+    custMap[c].bet += amt;
+    custMap[c].win += win;
+    if(hk) custMap[c].hBet += amt; else custMap[c].mBet += amt;
+  };
+  orders.forEach(o => _addCp(o, calcOrderWin(o), false));
+  if(typeof hkOrders !== 'undefined') hkOrders.forEach(o => _addCp(o, calcOrderWinDetail(o,_hdCp).total, true));
+  let macS=0, macP=0, hkS=0, hkP=0;
+  orders.forEach(o => { macS += Number(o.amount)||0; macP += calcOrderWin(o); });
+  if(typeof hkOrders !== 'undefined'){
+    hkOrders.forEach(o => { hkS += Number(o.amount)||0; });
+    if(_hdCp) hkP = hkOrders.reduce((s2,o)=>s2+calcOrderWinDetail(o,_hdCp).total,0);
+  }
   let text = '【实际账单】\n'
     + '总单：' + ap.sales.toFixed(0) + '\n'
     + '客户赔付：' + (ap.settled ? ap.payout.toFixed(0) : '未结算') + '\n'
@@ -6823,10 +6864,13 @@ function copyProfit(){
     + '上家赔回：+' + ap.flyBack.toFixed(0) + '\n'
     + '实际盈亏：' + (ap.net>=0?'+':'') + ap.net.toFixed(0) + '\n'
     + '（口径：总单−客户赔付−已飞实付+上家赔回）\n\n'
+    + '澳门：收' + macS.toFixed(0) + ' 赔' + macP.toFixed(0) + ' 净' + (macS-macP).toFixed(0) + '\n'
+    + '香港：收' + hkS.toFixed(0) + ' 赔' + hkP.toFixed(0) + ' 净' + (hkS-hkP).toFixed(0) + '\n\n'
     + '按客户：\n';
   Object.keys(custMap).sort((a,b)=>custMap[b].bet-custMap[a].bet).forEach(c => {
     const g = custMap[c];
-    text += c + ':下注' + g.bet.toFixed(0) + ' 赔' + g.win.toFixed(0) + ' 净' + (g.win-g.bet).toFixed(0) + '\n';
+    text += c + ':下注' + g.bet.toFixed(0) + ' 赔' + g.win.toFixed(0) + ' 净' + (g.win-g.bet).toFixed(0)
+      + (g.hBet>0 ? '（澳' + g.mBet.toFixed(0) + '/港' + g.hBet.toFixed(0) + '）' : '') + '\n';
   });
   navigator.clipboard.writeText(text).then(()=>myAlert('已复制盈亏明细'));
 }
@@ -6857,10 +6901,21 @@ function renderOrdersList(){
   h += `</div>`;
   if(lastDraw){
     const sp = String(lastDraw.specialNum).padStart(2,'0');
-    h += `<div style="font-size:13px;margin-top:5px;color:#333">${lastDraw.period ? '期' + lastDraw.period + '　' : ''}特${sp}(${NUM2ZODIAC[lastDraw.specialNum]||''})　平特 ${(lastDraw.regularNums||[]).map(n=>String(n).padStart(2,'0')).join(' ')}</div>`;
+    h += `<div style="font-size:13px;margin-top:5px;color:#333">${(typeof hkOrders !== 'undefined' && hkOrders.length) ? '<b style="color:#666">澳门</b> ' : ''}${lastDraw.period ? '期' + lastDraw.period + '　' : ''}特${sp}(${NUM2ZODIAC[lastDraw.specialNum]||''})　平特 ${(lastDraw.regularNums||[]).map(n=>String(n).padStart(2,'0')).join(' ')}</div>`;
   } else {
-    h += `<div style="font-size:12px;margin-top:5px;color:#999">暂无开奖记录</div>`;
+    h += `<div style="font-size:12px;margin-top:5px;color:#999">暂无澳门开奖记录</div>`;
   }
+  try{
+    const _hkdR = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+    if(typeof hkOrders !== 'undefined' && hkOrders.length){
+      if(_hkdR){
+        const hsp = String(_hkdR.specialNum).padStart(2,'0');
+        h += `<div style="font-size:13px;margin-top:3px;color:#333"><b style="color:#b45309">香港</b>${_hkdR.draw ? ' 期' + _hkdR.draw + '　' : ' '}特${hsp}(${NUM2ZODIAC[_hkdR.specialNum]||''})　平特 ${(_hkdR.regularNums||[]).map(n=>String(n).padStart(2,'0')).join(' ')}</div>`;
+      } else {
+        h += `<div style="font-size:12px;margin-top:3px;color:#999">香港开奖未录入</div>`;
+      }
+    }
+  }catch(e){}
   h += `</div>`;
   custNames.forEach((c, gi) => {
     const g = groups[c];
@@ -6879,10 +6934,17 @@ function renderOrdersList(){
     h += `</div>`;
     h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
     h += `<div id="od_${gi}" style="display:none;padding:6px 8px">`;
-    g.orders.forEach(({o, idx, hk}) => {
+    const _ordSorted = g.orders.slice().sort((a,b) => (a.hk?1:0) - (b.hk?1:0));
+    let _ordLastHk = null;
+    _ordSorted.forEach(({o, idx, hk}) => {
+      if(g.hkCnt > 0 && g.orders.length > g.hkCnt && _ordLastHk !== hk){
+        const _cntDir = hk ? g.hkCnt : (g.orders.length - g.hkCnt);
+        h += `<div style="font-size:11px;font-weight:700;color:${hk?'#b45309':'#666'};margin:6px 0 2px;padding-top:3px;border-top:1px dashed #eee">${hk?'香港单目录':'澳门单目录'}（${_cntDir}）</div>`;
+        _ordLastHk = hk;
+      }
       const wd = calcOrderWinDetail(o, hk ? _hkD : undefined);
       h += `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5${hk ? ';background:#fffbe6' : ''}">`;
-      if(hk){
+      if(hk && !(g.hkCnt > 0 && g.orders.length > g.hkCnt)){
         h += `<div style="font-size:10px;color:#b45309;font-weight:700;margin-bottom:2px">香港单</div>`;
       }
       // Show original lines
@@ -7234,6 +7296,25 @@ function renderOrdersList(){
   var _need = flyBackTotal - flyOutTotal;
   h += `<div>上家需结算:${flyBackTotal.toFixed(0)}-${flyOutTotal.toFixed(0)}=${_need>=0?'+':'-'}${Math.abs(_need).toFixed(0)}</div>`;
   h += `<div style="color:${lastDraw?'#16a34a':'#999'}">${lastDraw?'结算:'+(_need>=0?'+':'-')+Math.abs(_need).toFixed(0):'未开奖，结算待定'}</div>`;
+  // 香港单目录：整店飞，单独一块给上家对账
+  try{
+    if(typeof hkOrders !== 'undefined' && hkOrders.length){
+      const hdU = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+      let hsU = 0, hpU = 0;
+      hkOrders.forEach(o => { hsU += Number(o.amount)||0; });
+      if(hdU) hpU = hkOrders.reduce((s2,o)=>s2+calcOrderWinDetail(o,hdU).total,0);
+      const flownU = !!(typeof hkFlyDone === 'function' && (hkFlyDone() || hkAutoFlyOn()));
+      const settleU = hpU - hsU;
+      h += `<div style="border-top:2px solid #f0c36d;margin-top:10px;padding-top:8px">`;
+      h += `<div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:4px">香港单目录（整店飞）</div>`;
+      h += `<div style="display:flex;justify-content:space-between;font-size:12px"><span>香港收 <b>${hsU.toFixed(0)}</b></span><span>香港赔 <b>${hpU.toFixed(0)}</b></span><span>净 <b style="color:${(hsU-hpU)>=0?'#16a34a':'#cf1322'}">${(hsU-hpU).toFixed(0)}</b></span></div>`;
+      h += `<div style="font-size:11px;margin-top:3px;color:${flownU?'#16a34a':'#999'}">${flownU?'已确认飞出':'未确认已飞，这部分自己承担'}</div>`;
+      if(flownU){
+        h += `<div style="font-size:12px;margin-top:2px;color:${hdU?(settleU>=0?'#16a34a':'#cf1322'):'#999'}">${hdU?'上家结算 '+(settleU>=0?'+':'-')+Math.abs(settleU).toFixed(0):'港奖未到，结算待定'}</div>`;
+      }
+      h += `</div>`;
+    }
+  }catch(e){}
   h += `</div></div></div>`;
   box.innerHTML = h;
 }
