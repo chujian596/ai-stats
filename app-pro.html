@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.15-Pro';
+var APP_VER = 'v59.03.16-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -2549,6 +2549,27 @@ function pickCut(m){
   cutMode = 'cut';
   try{ localStorage.setItem(sk('cut_mode_v1'),'cut'); }catch(e){}
   applyTh(m);
+}
+// 录完新单后手动重算一次：按当前盘面落一次阈值，不改变自动稳健开关
+function recalcAutoStableOnce(){
+  try{
+    var _autoOn = false;
+    try{ _autoOn = localStorage.getItem(sk('autoStable')) === '1'; }catch(e){}
+    var _target = Number(window.__optM) || 0;
+    if(_target <= 0){
+      myAlert('当前盘面没有可自动削的档位；请先看本盘建议，或手动定档。');
+      return;
+    }
+    try{
+      if(_autoOn && localStorage.getItem(sk('prev_th_before_auto')) === null){
+        localStorage.setItem(sk('prev_th_before_auto'), String(splitTakeAll));
+      }
+    }catch(e){}
+    applyTh(_target, true);
+    if(_autoOn){ try{ localStorage.setItem(sk('autoStable'),'1'); }catch(e){} }
+    try{ renderSplit(); renderRisk(); }catch(e){}
+    myAlert('已按当前盘面重算：阈值 ' + _target + ' 元/号。');
+  }catch(e){ myAlert('重算失败：' + e.message); }
 }
 // 阈值只有一个入口：改阈值 = 改削峰档，号码表/飞单统计/档位卡跟着一起变
 function applyTh(v){
@@ -8408,11 +8429,9 @@ function renderRisk(){
   try{ window.__othPay = _othPay; window.__othNet = _othNet; }catch(e){}
   var _dShape = (_dShare>=30||_dVals.length<20)?'畸形':(_dShare>=20||_dVals.length<30)?'偏态':(_dShare>=10||_dVals.length<40)?'中等':'均衡';
   var _curLine = _diagTop>0 ? cutCalc(_diagTop, true).line : 0;
-  // 基准不能取 0：0 = 全飞时 kept=0，和任何档位比效率都是 0，会误判成「不削」；
-  // 自动稳健从 0 起勾时就会先落 100，下一帧又变 55，重复勾选来回跳。这里最低按 5 元基准算。
-  var _refTh = (typeof splitTakeAll === 'number' ? splitTakeAll : 0);
-  if(_refTh < 5) _refTh = 5;
-  var _dTopR = cutCalc(_refTh, true);   // 当前实际生效的那一档（0 按 5 元基准评估）
+  // 最优落点必须和「当前阈值」解耦：否则算出来的建议会随当前值变，
+  // 勾选/重算一次都会自己跳（如 207→100→207）。固定按 5 元基准评估，同一盘面永远同一个落点。
+  var _dTopR = cutCalc(5, true);   // 固定基准：每号最低按 5 元评估，不受当前阈值影响
   var _optM = 0, _optR = null, _noCut = false;
   if(_specSalesBase > 0 && _dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; _noCut = true; }
   var _maxBet0 = 0;                     // 盘里最大单号注额，阈值高于它＝一个号都削不动，这一档不能当断点
@@ -8530,6 +8549,7 @@ function renderRisk(){
      + `<span style="color:#16a34a">纯赚 ${_noBet}<span style="color:#999;font-size:10px">号</span></span><span style="color:#16a34a">小赚 ${_winArr.length}<span style="color:#999;font-size:10px">号</span></span><span style="color:#e67e22">小亏 ${_sl}<span style="color:#999;font-size:10px">号</span></span><span style="color:#cf1322">大亏 ${_bl}<span style="color:#999;font-size:10px">号</span></span>`
      + `<span style="flex:1"></span>`
      + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){var _o=window.__optM||0;if(_o>0){try{if(localStorage.getItem(sk('prev_th_before_auto'))===null)localStorage.setItem(sk('prev_th_before_auto'),String(splitTakeAll))}catch(e){};applyTh(_o);}else{this.checked=false;try{localStorage.setItem(sk('autoStable'),'0')}catch(e){};myAlert('这盘削到每号 5 元也压不到 20% 亏损线，没有可自动削的档位；建议拒单或手动定档。');}}else{try{var p=localStorage.getItem(sk('prev_th_before_auto'));if(p!==null){var _pp=parseFloat(p);applyTh((isFinite(_pp)&&(_pp===0||_pp>=5))?_pp:0);localStorage.removeItem(sk('prev_th_before_auto'))}}catch(e){}}try{localStorage.setItem(sk('autoStable'),v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
+     + `<div style="padding:0 0 4px;font-size:11px;color:#999;line-height:1.5">录完新单后可点 <a href="javascript:;" onclick="recalcAutoStableOnce()" style="color:#1677ff;font-weight:600;text-decoration:none">「重算一次」</a>：只按当前盘面落一次阈值，不改变自动稳健开关，也不会反复追值。</div>`
      + `</div>`;
   h += `</div>`;
   h += `</div>`;
