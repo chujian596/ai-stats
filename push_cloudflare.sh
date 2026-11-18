@@ -26,6 +26,15 @@ if [ -n "$VER_PAGE" ] && [ "$VER_PAGE" != "$VER_TXT" ]; then
   exit 2
 fi
 
+# 客户版同样过闸门，避免页面版本低于 version-client.txt 造成回退提示
+VER_CLIENT_PAGE=$(grep -oE "var APP_VER = 'v[0-9]+\.[0-9]+'" app.html 2>/dev/null | grep -oE "v[0-9]+\.[0-9]+" | head -1)
+VER_CLIENT_TXT=$(cat version-client.txt 2>/dev/null | tr -d '\n\r ')
+if [ -n "$VER_CLIENT_PAGE" ] && [ "$VER_CLIENT_PAGE" != "$VER_CLIENT_TXT" ]; then
+  echo "客户版版本不一致：app.html=$VER_CLIENT_PAGE  version-client.txt=$VER_CLIENT_TXT  已中止部署" >&2
+  echo "修正：printf '%s' '$VER_CLIENT_PAGE' > version-client.txt" >&2
+  exit 2
+fi
+
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
