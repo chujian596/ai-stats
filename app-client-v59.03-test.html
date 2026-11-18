@@ -637,7 +637,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03-Test.2-Pro';
+var APP_VER = 'v59.03-Test.3-Pro';
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
@@ -4638,6 +4638,28 @@ function parseLine(text){
   text = text.replace(/一十/g,'10').replace(/二十/g,'20').replace(/三十/g,'30').replace(/四十/g,'40').replace(/五十/g,'50');
   text = text.replace(/六十/g,'60').replace(/七十/g,'70').replace(/八十/g,'80').replace(/九十/g,'90');
   text = text.replace(/壹佰/g,'100').replace(/贰佰/g,'200');
+  // 尾数/头数：0尾=10/20/30/40；0头=01-09；1头=10-19；4头=40-49
+  // 只写金额时按“总额”返回，交给保存前的“这串怎么算”统一确认；写各号/每号才直接按号。
+  var _th = text.match(/^(?:特)?(?:(\d{1,2})\s*(尾|头)|(尾|头)\s*(\d{1,2}))\s*(?:(各|每)(号|数|码|个|注)?)?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?\s*$/);
+  if(_th){
+    var _deg = parseInt(_th[1] || _th[4], 10);
+    var _kind = _th[2] || _th[3];
+    var _explicit = !!(_th[5] && ((_th[5] === '各' && /^(号|数|码)$/.test(_th[6] || '')) || (_th[5] === '每' && /^(号|个|号|码|注)$/.test(_th[6] || ''))));
+    var _nums = [];
+    if(_kind === '尾'){
+      if(_deg >= 0 && _deg <= 9){
+        for(var _n = 1; _n <= 49; _n++){ if(_n % 10 === _deg) _nums.push(String(_n).padStart(2,'0')); }
+      }
+    } else {
+      if(_deg >= 0 && _deg <= 4){
+        var _start = _deg === 0 ? 1 : _deg * 10;
+        var _end = _deg === 0 ? 9 : _deg * 10 + 9;
+        for(var _n2 = _start; _n2 <= Math.min(_end,49); _n2++){ _nums.push(String(_n2).padStart(2,'0')); }
+      }
+    }
+    if(_nums.length) return { codes: _nums, price: toPriceNum(_th[7]), isPer: _explicit };
+  }
+
   // 数字简写：3中3→三中三，2中2→二中二，3中2→三中二
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
   // 斜杠当价格分隔符
@@ -5924,6 +5946,8 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100（必须在分行前做）
+  text = text.replace(/(头|尾)\s*(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)/g, '$2$1$3');
   // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
   text = text.split('\n').map(normalizeComboLine).join('\n');
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
@@ -6283,6 +6307,8 @@ function doSave(overrideText){
   const mergedLines = [];
   for(let i = 0; i < lines.length; i++){
     let ln = lines[i];
+    // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100，避免中间空格被当成两行
+    ln = ln.replace(/(头|尾)\s*(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)/g, '$2$1$3');
     // 提前转换数字简写产品名：3中3→三中三，2中2→二中二
     ln = ln.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
     // 斜杠当分隔符（不再自动加"各"，没写各的一律弹窗问）
@@ -6406,12 +6432,14 @@ renderAll();
               var inp = document.getElementById('input');
               var outLines = inp.value.split(/\r?\n/).map(function(l){
                 if(l.replace(/[^\d]/g,'') === _digits){
-                  return l.replace(/(\d+)(?!.*\d)/, '各$1');
+                  return l.replace(/(\d+)(?!.*\d)/, '各号$1');
                 }
                 return l;
               });
               inp.value = outLines.join('\n');
+              window.__skipAmbig = true;
               handleSave();
+              window.__skipAmbig = false;
             } else if(pick===1){
               window.__skipAmbig = true;
               handleSave();
