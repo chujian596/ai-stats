@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v58.99';
+var APP_VER = 'v59.00';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -805,7 +805,7 @@ function autoPayout(){
         if(extra > 0 && drawZ0.has(z)) flyBackAmt += extra * (z==='马'?1.8:payMultSingle);
       });
       if(lxFlyAmt > 0){ flyOutAmt += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBackAmt += lxFlyAmt * 4; }
-      let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+      let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
       if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
@@ -862,7 +862,7 @@ function autoPayout(){
           if(extra > 0 && drawZ0.has(z)) flyBack0 += extra * 1.8;
         });
         if(lxFlyAmt > 0){ flyOut0 += lxFlyAmt; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(lz.split('').every(z => drawZ2.has(z))) flyBack0 += lxFlyAmt * 4; }
-        let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+        let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
         if(emOn){ const allN = new Set([...regularNums, specialNum]); orders.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
@@ -1210,6 +1210,15 @@ setInterval(function(){
 var shop = localStorage.getItem('current_shop') || 'A';
 var shopNames = { A: '澳门🇲🇴', B: '香港🇭🇰' };
 function sk(base){ return base + '_shop' + shop; }
+function dedupeOrders(arr){
+  var seen = {};
+  return (arr || []).filter(function(o){
+    if(!o || !o.id) return !!o;
+    if(seen[o.id]) return false;
+    seen[o.id] = 1;
+    return true;
+  });
+}
 // 兼容旧版：开奖记录原来是全局键，第一次按店铺分键时把旧数据搬到 A 店（澳门），避免升级后开奖记录丢
 try {
   if(localStorage.getItem('lastDrawPeriod_shopA') === null) {
@@ -1254,14 +1263,19 @@ function updateOrderSummary(){
 function loadOrders(){
   try {
     const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder);
+    const mapped = arr.map(normalizeOrder);
+    // 香港店：本店存储里的单全部标成港单；generic 汇总仍可用 orders，飞单走 activeFlyOrders
+    if(shop === 'B') mapped.forEach(function(o){ o.hk = true; });
+    return dedupeOrders(mapped);
   }
   catch(e){ storageOK = false; return []; }
 }
 function loadHKOrders(){
   try {
     const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder).filter(o => o && o.hk);
+    const mapped = arr.map(normalizeOrder);
+    if(shop === 'B') mapped.forEach(function(o){ o.hk = true; });
+    return dedupeOrders(mapped.filter(o => o && o.hk));
   } catch(e){ return []; }
 }
 function normalizeOrder(o){
@@ -1288,8 +1302,8 @@ function resolveCode(token){
 function saveOrders(){
   try {
     // 港单与澳门单共用同一个 KEY，靠 hk 标记区分；只写 orders 会把港单冲掉
-    const all = (typeof orders !== 'undefined' && Array.isArray(orders) ? orders : [])
-      .concat(typeof hkOrders !== 'undefined' && Array.isArray(hkOrders) ? hkOrders : []);
+    const all = dedupeOrders((typeof orders !== 'undefined' && Array.isArray(orders) ? orders : [])
+      .concat(typeof hkOrders !== 'undefined' && Array.isArray(hkOrders) ? hkOrders : []));
     localStorage.setItem(KEY, JSON.stringify(all));
   }
   catch(e){ storageOK = false; }
@@ -1669,7 +1683,7 @@ function renderPaySide(){
         const lz = (lxFlyName||'').replace(/[0-9连]+$/,'');
         if(lxFlown > 0 && lz.split('').every(z => drawZ.has(z))) flyLxBack += lxFlown * 4;
       }
-      let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+      let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
       if(emOn){
         // 先算二中二三中三总额，再从_flownPerPos['_em_total']读已飞比例
         let emTotalAll = 0;
@@ -1822,8 +1836,8 @@ function renderSplitSide(){
   let h = '<div id="splitBody" style="display:none">';
   h += '<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">';
   h += `<span style="font-size:13px;color:#666;white-space:nowrap">特号</span><input id="sideSplitTh" type="number" placeholder="如100" value="${splitTakeAll||''}" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};var s2=document.getElementById('splitTakeAll');if(s2&&s2!==this)s2.value=splitTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" oninput="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem('pteFlyTakeAll',pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
-  h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" oninput="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem('lxFlyAmt',lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">平特</span><input id="sidePteTh" type="number" value="${pteFlyTakeAll||0}" oninput="pteFlyTakeAll=parseFloat(this.value)||0;try{localStorage.setItem(sk('pteFlyTakeAll'),pteFlyTakeAll)}catch(e){};var s2=document.getElementById('pteFlyInput');if(s2)s2.value=pteFlyTakeAll;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
+  h += `<span style="font-size:13px;color:#666;white-space:nowrap">连肖</span><input id="sideLxTh" type="number" value="${lxFlyAmt||0}" oninput="lxFlyAmt=parseFloat(this.value)||0;try{localStorage.setItem(sk('lxFlyAmt'),lxFlyAmt)}catch(e){};var s2=document.getElementById('lxFlyInput');if(s2)s2.value=lxFlyAmt;flyThChanged();" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:14px;min-width:0">`;
   h += '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">';
   h += '<button onclick="showAllFlyDir()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px;font-weight:600">飞单目录</button>';
@@ -1849,9 +1863,7 @@ function renderSplitSide(){
   h += '<button onclick="resetFlown()" style="flex:1;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:7px;font-size:13px">重置已飞</button>';
   h += '<button onclick="confirmThisRoundFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:7px;font-size:13px;font-weight:600">确认飞单</button>';
   h += '</div>';
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem('autoFlyOn',autoFlyOn?'1':'0');localStorage.setItem('emFlyOn',autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
-  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="hkAutoFlyChk" ${hkAutoFlyOn()?'checked':''} onchange="try{localStorage.setItem(sk('hk_auto_fly'),this.checked?'1':'0')}catch(e){};renderHKFlyBox();" style="width:16px;height:16px;margin-top:1px">香港单自动飞<br><span style="color:#999;font-size:11px">勾选后香港单直接默认已飞，不跟澳门单混；没香港单时这块不显示</span></label>`;
-  h += '<div id="hkFlyBox"></div>';
+  h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem(sk('autoFlyOn'),autoFlyOn?'1':'0');localStorage.setItem(sk('emFlyOn'),autoFlyOn?'1':'0');refreshFlySummary();" style="width:16px;height:16px;margin-top:1px">即飞产品自动复制（连肖/二中二/三中三）<br><span style="color:#999;font-size:11px">勾选后这些产品自动默认已飞，仅用于统计客单赔付</span></label>`;
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
@@ -2023,7 +2035,7 @@ function renderSideCustPay(){
         const drawZ2=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
         Object.entries(pteAgg).forEach(([z,amt])=>{const extra=pteFlyTakeAll>0?Math.max(0,amt-pteFlyTakeAll):0;flyPte+=extra;if(extra>0&&drawZ2.has(z))flyPteBack+=extra*(z==='马'?1.8:payMultSingle);});
         if(lxFlyAmt>0){flyLx+=lxFlyAmt;const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');if(lz.split('').every(z=>drawZ2.has(z)))flyLxBack+=lxFlyAmt*4;}
-        let emOn=true;try{emOn=localStorage.getItem('emFlyOn')!=='0';}catch(e){}
+        let emOn=true;try{emOn=localStorage.getItem(sk('emFlyOn'))!=='0';}catch(e){}
         if(emOn){const allN=new Set([...(lastDraw.regularNums||[]),lastDraw.specialNum]);orders.forEach(o=>{(o.codes||[]).forEach(c=>{if(typeof c==='string'&&(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)){const amt=codeSalesForOrder(o,c);flyEm+=amt;const nums=c.split(':')[1].split(',');if(nums.every(n=>allN.has(Number(n)))){if(c.indexOf('二中二:')===0)flyEmBack+=amt*60;else if(c.indexOf('三中三:')===0)flyEmBack+=amt*600;else flyEmBack+=amt*20;}}});});}
       }catch(e){}
     }
@@ -2105,22 +2117,38 @@ function updateTitles(){
 const SPLIT_KEY = sk('product_stats_split_v1');
 let splitTakeAll = 100;
 try { splitTakeAll = parseFloat(localStorage.getItem(SPLIT_KEY) || '100') || 100; } catch(e){ splitTakeAll = 100; }
-// 已飞累计（分批飞单）：key=位置代码，value=已飞金额
+// 旧版全局飞单配置迁到澳门店，避免升级后已飞记录/阈值丢失；香港旧自动飞开关直接撤销
+try {
+  var _legacyFlyKeys = ['flownPerPos','autoFlyOn','emFlyOn','pteFlyTakeAll','lxFlyAmt','lxFlyName','flyRoundOn','flyRoundSel'];
+  _legacyFlyKeys.forEach(function(k){
+    var v = localStorage.getItem(k);
+    if(v !== null && localStorage.getItem(k + '_shopA') === null) localStorage.setItem(k + '_shopA', v);
+  });
+  localStorage.removeItem('hk_auto_fly');
+  localStorage.removeItem('hk_auto_fly_shopA');
+  localStorage.removeItem('hk_auto_fly_shopB');
+} catch(e){}
+// 已飞累计（分批飞单）：按店铺隔离，key=位置代码，value=已飞金额
 let flownPerPos = {};
-try { flownPerPos = JSON.parse(localStorage.getItem('flownPerPos') || '{}'); } catch(e){ flownPerPos = {}; }
+try { flownPerPos = JSON.parse(localStorage.getItem(sk('flownPerPos')) || '{}'); } catch(e){ flownPerPos = {}; }
 // 即飞产品开关：连肖/二中二/三中三是否每次自动复制
 let autoFlyOn = false;
-try { autoFlyOn = localStorage.getItem('autoFlyOn') === '1'; } catch(e){ autoFlyOn = false; }
+try { autoFlyOn = localStorage.getItem(sk('autoFlyOn')) === '1'; } catch(e){ autoFlyOn = false; }
 let pteFlyTakeAll = 0;
-try { pteFlyTakeAll = parseFloat(localStorage.getItem('pteFlyTakeAll') || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
+try { pteFlyTakeAll = parseFloat(localStorage.getItem(sk('pteFlyTakeAll')) || '0') || 0; } catch(e){ pteFlyTakeAll = 0; }
 let lxFlyAmt = 0;
-try { lxFlyAmt = parseFloat(localStorage.getItem('lxFlyAmt') || '0') || 0; } catch(e){ lxFlyAmt = 0; }
+try { lxFlyAmt = parseFloat(localStorage.getItem(sk('lxFlyAmt')) || '0') || 0; } catch(e){ lxFlyAmt = 0; }
 let lxFlyName = '';
-try { lxFlyName = localStorage.getItem('lxFlyName') || ''; } catch(e){ lxFlyName = ''; }
+try { lxFlyName = localStorage.getItem(sk('lxFlyName')) || ''; } catch(e){ lxFlyName = ''; }
 function saveSplitAll(){ try { localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); } catch(e){} }
+// 飞单取数：澳门店只看澳门单，香港店只看香港单，绝不串店
+function activeFlyOrders(){
+  if(typeof shop !== 'undefined' && shop === 'B') return (typeof hkOrders !== 'undefined' ? hkOrders : []);
+  return (typeof orders !== 'undefined' ? orders : []).filter(function(o){ return !o.hk; });
+}
 function getSplitSales(){
   const sales = {};
-  orders.forEach(o => {
+  activeFlyOrders().forEach(o => {
     const seen = {};
     (o.codes||[]).forEach(c => {
       if(/^\d{2}$/.test(c) && !seen[c]){ seen[c] = true; sales[c] = (sales[c]||0) + codeSalesForOrder(o, c); }
@@ -2293,17 +2321,18 @@ function sideSplitCopyAuto(){
 }
 
 var currentFlyGroup = null; // 当前查看的飞单分组
+var _lastFlyCopy = null;   // 最近一次复制的实际金额，确认飞单提示与它保持一致
 function grandOrderTotal(){
   // 全产品总单 = 特码 + 平特 + 二中二三中三（与底部三卡片口径一致）
   let g = 0;
   const sales = getSplitSales();
   g += Object.keys(sales).reduce((s,k)=>s+sales[k],0);
   const pteMap = {};
-  orders.forEach(o => { (o.codes||[]).forEach(c => {
+  activeFlyOrders().forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c==='string' && c.startsWith('平特')) pteMap[c]=(pteMap[c]||0)+codeSalesForOrder(o,c);
   });});
   g += Object.values(pteMap).reduce((s,a)=>s+a,0);
-  orders.forEach(o => { (o.codes||[]).forEach(c => {
+  activeFlyOrders().forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c==='string' && (c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0)) g += codeSalesForOrder(o,c);
   });});
   return g;
@@ -2473,7 +2502,7 @@ function confirmGroupCurrent(){
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
   });
-  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos));
   // 只刷新数字摘要，不重建整个面板（避免退出飞单页）
   try {
     const sales = getSplitSales();
@@ -2628,7 +2657,7 @@ function cycleHKRound(){
   }catch(e){}
   renderHKFlyBox();
 }
-function hkAutoFlyOn(){ try{ return localStorage.getItem(sk('hk_auto_fly')) === '1'; }catch(e){ return false; } }
+function hkAutoFlyOn(){ return false; } // 香港单不再自动飞，统一按逐号/逐生肖/逐组合飞
 function hkDrawObj(){
   var c = hkDrawCache();
   if(!c || !c.nums || c.nums.length < 7) return null;
@@ -2686,10 +2715,10 @@ function renderHKFlyBox(){
   if(!hkOrders.length){ box.innerHTML = ''; return; }
   var gs = hkGroups();
   var total = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
-  var done = hkFlyDone() || hkAutoFlyOn();
+  var done = hkFlyDone();
   var h = '<div style="border:1px solid #f0c36d;border-radius:6px;overflow:hidden;margin-top:4px">';
   h += '<div style="background:#fffbe6;padding:3px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;border-bottom:1px solid #f7e3b5">'
-     + '<span>香港单 · ' + hkOrders.length + ' 单' + (hkAutoFlyOn() ? '（自动飞）' : '')
+     + '<span>香港单 · ' + hkOrders.length + ' 单'
      + ' <a href="javascript:cycleHKRound()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:4px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
      + '<span>' + (done ? '已飞' : '待飞') + ' ' + total.toFixed(0) + '</span></div>';
   h += '<div style="max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">';
@@ -2719,8 +2748,8 @@ function renderHKFlyBox(){
 }
 
 // 金额凑整：飞单金额向上凑到 5/10 元档，多飞的自付（默认关）
-function flyRoundOn(){ try{ return localStorage.getItem('flyRoundOn') === '1'; }catch(e){ return false; } }
-function flyRoundSel(){ try{ return localStorage.getItem('flyRoundSel') || '5'; }catch(e){ return '5'; } }
+function flyRoundOn(){ try{ return localStorage.getItem(sk('flyRoundOn')) === '1'; }catch(e){ return false; } }
+function flyRoundSel(){ try{ return localStorage.getItem(sk('flyRoundSel')) || '5'; }catch(e){ return '5'; } }
 function flySnap(v){
   if(!(v > 0)) return v;
   const st = parseFloat(flyRoundSel()) || 5;
@@ -2734,18 +2763,18 @@ function flyShowAmt(amt, modeOverride){
   return Math.min(Math.ceil((amt - 1e-9) / 5) * 5, m);
 }
 function setFlyRoundOn(on){
-  try{ localStorage.setItem('flyRoundOn', on ? '1' : '0'); }catch(e){}
+  try{ localStorage.setItem(sk('flyRoundOn'), on ? '1' : '0'); }catch(e){}
   if(typeof sideSplitCalc === 'function') sideSplitCalc();
 }
 function setFlyRoundSel(v){
-  try{ localStorage.setItem('flyRoundSel', v); localStorage.setItem('flyRoundOn', '1'); }catch(e){}
+  try{ localStorage.setItem(sk('flyRoundSel'), v); localStorage.setItem(sk('flyRoundOn'), '1'); }catch(e){}
   if(typeof sideSplitCalc === 'function') sideSplitCalc();
 }
 function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
 function getThisRoundFly(){
   // 返回 {lines: [], total: X, already: Y, totalFly: Z}
-  // 特号/平特：用flownPerPos跟踪分批飞
-  // 连肖/二中二/三中三：即飞产品，每次都显示在复制列表里，不记已飞
+  // 当前店活动单池：澳门只算澳门单，香港只算香港单
+  const _flyList = activeFlyOrders();
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
   const lines = [];
@@ -2762,7 +2791,7 @@ function getThisRoundFly(){
   });
   // 平特（手动分批飞）
   const pteMap = {};
-  orders.forEach(o => { (o.codes||[]).forEach(c => {
+  _flyList.forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c === 'string' && c.startsWith('平特')){
       pteMap[c] = (pteMap[c]||0) + codeSalesForOrder(o, c);
     }
@@ -2794,10 +2823,10 @@ function getThisRoundFly(){
     }
   }
   // 二中二/三中三/三中二（合并显示总额，记已飞）
-  let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+  let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
   if(emOn){
     let emTotal = 0;
-    orders.forEach(o => { (o.codes||[]).forEach(c => {
+    _flyList.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
         emTotal += codeSalesForOrder(o, c);
       }
@@ -2839,7 +2868,7 @@ function confirmGroupFly(group){
   if(groupTotal < 0.01){ myAlert(groupName + '没有需要确认的飞单'); return; }
   if(!confirm('确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元？')) return;
   groupLines.forEach(l => { flownPerPos[l.code] = (flownPerPos[l.code]||0) + l.amt; });
-  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos));
   myAlert('已确认' + groupName + '飞单 ' + groupTotal.toFixed(0) + ' 元');
   calcSplit();
 }
@@ -2847,20 +2876,25 @@ function confirmGroupFly(group){
 function confirmThisRoundFly(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
-  myConfirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。', function(){
+  myConfirm('确认本轮飞单 ' + r.thisRound.toFixed(0) + ' 元？\n确认后这些金额标记为已飞，下次只算新增部分。\n同时会自动把待飞内容复制到剪贴板。', function(){
+  // 先复制全部待飞，再标记已飞
+  var _a = window.myAlert;
+  window.myAlert = function(){};
+  try{ sideSplitCopy(); }catch(e){}
+  window.myAlert = _a;
   r.lines.forEach(l => {
     var key = l.code;
     if(l.code === '二中二/三中三合计') key = '_em_total';
     flownPerPos[key] = (flownPerPos[key]||0) + l.amt;
   });
-  localStorage.setItem('flownPerPos', JSON.stringify(flownPerPos));
+  localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos));
   refreshFlySummary();
   // 刷新目录显示
   if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
   else { showAllFlyDir(); }
   var _lc = _lastFlyCopy;
   var _show = _lc ? _lc.grand : r.thisRound;
-  var _t2 = '已确认本轮飞单 ' + _show.toFixed(0) + ' 元';
+  var _t2 = '已确认本轮飞单 ' + _show.toFixed(0) + ' 元\n待飞内容已复制到剪贴板，可直接发给上家';
   if(_lc && Math.abs(_lc.grand - _lc.orig) > 0.01){
     _t2 += '\n（凑整前 ' + _lc.orig.toFixed(0) + '，' + (_lc.grand > _lc.orig ? '多飞 ' : '省 ') + Math.abs(_lc.grand - _lc.orig).toFixed(0) + '）';
   }
@@ -2871,7 +2905,7 @@ function confirmThisRoundFly(){
 function resetFlown(){
   myConfirm('重置已飞记录？\n（新一期开始时用，清空后重新从全部订单算飞单）', function(){
   flownPerPos = {};
-  localStorage.removeItem('flownPerPos');
+  localStorage.removeItem(sk('flownPerPos'));
   currentFlyGroup = null;
   // 刷新摘要
   try {
@@ -2980,7 +3014,7 @@ function calcSplit(){
   });});
   Object.values(pteAggAll).forEach(amt => { pteFlyAll += pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt; });
   if(lxFlyAmt > 0) lxFlyAll = lxFlyAmt;
-  let emOnChk = true; try { emOnChk = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+  let emOnChk = true; try { emOnChk = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
   if(emOnChk){ orders.forEach(o => { (o.codes||[]).forEach(c => {
     if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
       emFlyAll += codeSalesForOrder(o, c);
@@ -3025,7 +3059,7 @@ function calcSplit(){
     }
     // 二中二三中三自动飞走
     let emFly = 0, emFlyPayout = 0;
-    let emOn = true; try { emOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOn){
       const allN = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum]);
       orders.forEach(o => { (o.codes||[]).forEach(c => {
@@ -3080,7 +3114,7 @@ function calcSplit(){
       if(extra > 0){ lines.push(`平特${z} ${extra.toFixed(2)}`); partner += extra; }
     });
     if(lxFlyAmt > 0){ lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`); partner += lxFlyAmt; }
-    let emOnChk = true; try { emOnChk = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    let emOnChk = true; try { emOnChk = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnChk){ orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
         const amt = codeSalesForOrder(o, c);
@@ -3129,7 +3163,7 @@ function copySplit(){
   }
   // 二中二/三中三飞单（开关打开时全部飞走）
   let emFlyOn = true;
-  try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){ emFlyOn = true; }
+  try { emFlyOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){ emFlyOn = true; }
   if(emFlyOn){
     const emMap = {};
     orders.forEach(o => {
@@ -3213,7 +3247,7 @@ function copyFlyType(type){
     if(lxFlyAmt > 0) lines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(2)}`);
   } else if(type === 'em'){
     let emFlyOn = true;
-    try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    try { emFlyOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emFlyOn){
       const emMap = {};
       orders.forEach(o => {
@@ -5115,15 +5149,19 @@ function doSave(overrideText){
       var m = line.match(/^(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)$/);
       var code = m[1].padStart(2,'0');
       var price = parseFloat(m[2]);
-      orders.push({
+      var _splitOrder = {
+        id: String(Date.now()) + '-' + Math.random().toString(36).slice(2,7),
         codes: [code],
         price: price,
         amount: price,
         qty: 1,
         customer: custName,
         ts: new Date().toISOString(),
-        mode: 'single'
-      });
+        mode: 'single',
+        hk: shop === 'B'
+      };
+      orders.push(_splitOrder);
+      if(shop === 'B') hkOrders.push(_splitOrder);
       splitDetail.push(code);
     });
     saveOrders();
@@ -5298,8 +5336,10 @@ renderAll();
   const codeAmts = {}; // per-code amount map
   let totalAmount = 0;
   // 先分好澳门行/香港行，后面显示与落库都用这两个数组
-  const _macRows = parsed.filter(p => !p.hk);
-  const _hkRows = parsed.filter(p => p.hk);
+  let _macRows = parsed.filter(p => !p.hk);
+  let _hkRows = parsed.filter(p => p.hk);
+  // 香港店内输入的单全部归香港池，不需要用户每行手写“香港”
+  if(shop === 'B'){ _hkRows = parsed.slice(); _macRows = []; }
   _macRows.forEach(p => {
     const qty = p.codes.length;
     const unit = p.isPer ? p.price : (p.price / qty);
@@ -5634,6 +5674,7 @@ function renderOrdersList(){
   if(!box) return;
   const groups = {};
   orders.forEach((o, idx) => {
+    if(o.hk) return; // 港单独走下面的 hkOrders，避免同单显示两次
     const c = o.customer || '散客';
     if(!groups[c]) groups[c] = { orders: [], totalBet: 0, totalWin: 0, mac: 0, hk: 0 };
     groups[c].orders.push({ o, idx, hkIdx: null });
@@ -5653,6 +5694,7 @@ function renderOrdersList(){
       groups[c].totalWin += wd.net > 0 ? wd.net : 0;
     } catch(e){}
     groups[c].hk++;
+    groups[c].mac++;
   });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
   let h = '';
@@ -5759,7 +5801,7 @@ function renderOrdersList(){
     }
     // 二中二/三中三飞单
     let emFlyOn2 = true;
-    try { emFlyOn2 = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    try { emFlyOn2 = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emFlyOn2 && lastDraw){
       const allNums = new Set([...lastDraw.regularNums, lastDraw.specialNum]);
       orders.forEach(o => {
@@ -5801,7 +5843,7 @@ function renderOrdersList(){
     });
     if(lxFlyAmt > 0) upCopyLines.push(`连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}`);
     let emFlyOn3 = true;
-    try { emFlyOn3 = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    try { emFlyOn3 = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emFlyOn3){
       const emMap2 = {};
       orders.forEach(o => { (o.codes||[]).forEach(c => {
@@ -5843,7 +5885,7 @@ function renderOrdersList(){
     });});
     Object.values(pD).forEach(a => cpZd += Math.max(0, a - pteFlyTakeAll));
     cpZd += lxFlyAmt;
-    let eOn = true; try { eOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    let eOn = true; try { eOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(eOn) orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)) cpEm += codeSalesForOrder(o, c);
     });});
@@ -5916,7 +5958,7 @@ function renderOrdersList(){
       upM += `<div style="${lxHit?'color:#cf1322;font-weight:700':''}">连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}${lxHit?' ←命中':''}</div>`;
     }
     if(!upM) upM = '<div style="color:#bbb">—</div>';
-    let emOnD = true; try { emOnD = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    let emOnD = true; try { emOnD = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnD){
       const emD = {};
       orders.forEach(o => { (o.codes||[]).forEach(c => {
@@ -5972,7 +6014,7 @@ function renderOrdersList(){
     });});
     Object.values(pD).forEach(a => zdOut += Math.max(0, a - pteFlyTakeAll));
     zdOut += lxFlyAmt;
-    let emOnX = true; try { emOnX = localStorage.getItem('emFlyOn') !== '0'; } catch(e){}
+    let emOnX = true; try { emOnX = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnX) orders.forEach(o => { (o.codes||[]).forEach(c => {
       if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
         emOut2 += codeSalesForOrder(o, c);
@@ -6067,7 +6109,7 @@ function renderRisk(){
   let fullTotalSales = 0;
   let emFlySales = 0; // 二中二/三中三总金额（飞单开关开时不计入自留）
   let emFlyOn = true;
-  try { emFlyOn = localStorage.getItem('emFlyOn') !== '0'; } catch(e){ emFlyOn = true; }
+  try { emFlyOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){ emFlyOn = true; }
   orders.forEach(o => {
     const oAmt = Number(o.amount)||0;
     // 计算本单中二中二/三中三/三中二的金额
@@ -6408,7 +6450,7 @@ function renderRisk(){
       const hitProb = nZodiac===2 ? '~20%' : nZodiac===3 ? '~10%' : '~4%';
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
       // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
-      if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem('lxFlyName', lxFlyName)}catch(e){} }
+      if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem(sk('lxFlyName'), lxFlyName)}catch(e){} }
       h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖持仓 ▶</div>`;
       h += `<div id="riskHedgeBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
