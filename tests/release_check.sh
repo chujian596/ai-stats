@@ -12,7 +12,7 @@ print('已抽取脚本 ->', '/tmp/_chk.js')
 PY
 /opt/nodejs/22/bin/node --check /tmp/_chk.js && echo "语法 OK"
 
-echo "=== 2/4 回归：专业版 + 客户版 101 项金额矩阵 ==="
+echo "=== 2/4 回归：专业版 + 客户版 105 项金额矩阵 ==="
 for f in app-pro.html app.html; do
   python3 tests/coverage_check.py "$f" > /dev/null
   OUT=$(/opt/nodejs/22/bin/node /tmp/_cov.js)

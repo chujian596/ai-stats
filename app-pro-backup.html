@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.22-Pro';
+var APP_VER = 'v59.03.23-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -6113,6 +6113,15 @@ function doSave(overrideText){
   var _isOverride = (overrideText !== undefined && overrideText !== null);
   var _rawIn = (document.getElementById('input') || {}).value || '';
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
+  // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
+  var _zchars0 = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
+  text = text.replace(new RegExp('(['+_zchars0+'])\\s+(?=['+_zchars0+'])', 'g'), '$1');
+  text = text.replace(new RegExp('特\\s*肖\\s*(?=['+_zchars0+'])', 'g'), '特肖');
+  text = text.replace(new RegExp('特\\s+(?=['+_zchars0+'])', 'g'), '特');
+  // 「每肖」明确是每生肖；「每」单写等同于「各」，走歧义确认
+  text = text.replace(/每肖/g, '各肖').replace(/每位/g, '每个').replace(/每(?=\s*[0-9])/g, '各');
+  // 中文金额先转，避免「各一百」在歧义检测前漏掉
+  text = text.replace(/一百/g,'100').replace(/两百/g,'200').replace(/三百/g,'300').replace(/壹佰/g,'100').replace(/贰佰/g,'200');
   // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100（必须在分行前做）
   text = text.replace(/^(?:特)?\s*(头|尾)\s*(\d)\s+([0-9]+(?:\.[0-9]+)?)\s*$/gm, function(m, k, d, amt){
     var max = k === '尾' ? 9 : 4;
@@ -6201,9 +6210,14 @@ function doSave(overrideText){
   }
   // 检测特肖多肖：弹窗选择各肖还是各数
   if(!_texiaoChoice){
-    const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个)*)\s*([0-9]+(?:\.[0-9]+)?)/);
+    const txMatch = text.match(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*((?:各|数|号|个|肖|位)*)\s*([0-9]+(?:\.[0-9]+)?)/);
     // 只有写了"各数/各号"才明确按号算；光写"各100"仍是「各肖」还是「各数」的歧义，必须问
     if(txMatch && /[数号]/.test(txMatch[2])){
+      _texiaoChoice = 'perNum';
+    } else if(txMatch && /肖/.test(txMatch[2])){
+      // 「各肖/每肖」明确是每生肖，不按每号
+      _texiaoChoice = 'perZod';
+    } else if(txMatch && /[个位]/.test(txMatch[2])){
       _texiaoChoice = 'perNum';
     } else if(txMatch && /各/.test(txMatch[2]) && txMatch[1].length === 1){
       // 单肖「特马各5」按每号 5，不弹；多肖「龙虎兔各100」才问各肖还是各数
@@ -6371,7 +6385,7 @@ function doSave(overrideText){
   if(_texiaoChoice){
     const choice = _texiaoChoice;
     _texiaoChoice = null;
-    text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
+    text = text.replace(/(?<!平)特肖?([马蛇龙兔虎牛鼠猪狗鸡猴羊]{1,})\s*(?:各|数|号|个|肖|位)*\s*([0-9]+(?:\.[0-9]+)?)/g, (m, zods, price) => {
       const p = parseFloat(price);
       const allNums = [];
       zods.split('').forEach(z => {
