@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.7-Pro';
+var APP_VER = 'v59.03.8-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -9255,6 +9255,7 @@ function todayReconData(){
     });
   }
   var flyCalc = specFull + pteFull + lxFull + emFull;
+  var flyOut = 0;
   var payout = null, flyBack = 0, gross = null, localNet = null, upSettle = null;
   var _rcR = rebateCfg();
   var rebate = 0;
@@ -9292,6 +9293,7 @@ function todayReconData(){
     upSettle = rebate - (flyCalc - flyBack);
     // 对账按「已飞实付」算，不能拿「应飞」代替：两者在部分飞/调档时不是一个数
     var _apA = actualPnL();
+    flyOut = _apA.flyOut;
     flyBack = _apA.flyBack;
     localNet = gross - _apA.flyOut + flyBack;
     rebate = _rcR.on ? _apA.flyOut * _rcR.rate : 0;
@@ -9300,7 +9302,7 @@ function todayReconData(){
   return {
     shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
     orders: list, sales: sales, detail: detail, badOrders: badOrders,
-    fly: fly, specFull: specFull, pteFull: pteFull, lxFull: lxFull, emFull: emFull, flyCalc: flyCalc,
+    fly: fly, specFull: specFull, pteFull: pteFull, lxFull: lxFull, emFull: emFull, flyCalc: flyCalc, flyOut: flyOut,
     payout: payout, flyBack: flyBack, gross: gross, localNet: localNet, upSettle: upSettle,
     rebate: rebate, rebateOn: _rcR.on, rebateRate: _rcR.rate,
     orderOk: Math.abs(sales - detail) <= 0.01,
@@ -9334,7 +9336,7 @@ function showTodayRecon(){
   h += row('客户赔付', d.payout === null ? '待开奖' : fmt(d.payout) + ' 元', d.payout === null ? '#999' : '#cf1322');
   h += row('毛净盈亏', signed(d.gross) + ' 元', d.gross === null ? '#999' : (d.gross >= 0 ? '#166534' : '#cf1322'), '订单总额 - 客户赔付');
   h += row('飞后净盈亏', signed(d.localNet) + ' 元', d.localNet === null ? '#999' : (d.localNet >= 0 ? '#166534' : '#cf1322'), '毛净 - 飞出 + 上家赔回');
-  h += row('返水', d.rebateOn ? '+' + fmt(d.rebate) + ' 元' : '未开', d.rebateOn ? '#16a34a' : '#999', d.rebateOn ? '飞单 ' + fmt(d.flyCalc) + ' × ' + (d.rebateRate*100).toFixed(1) + '%' : '设置里打开返水后才有');
+  h += row('返水', d.rebateOn ? '+' + fmt(d.rebate) + ' 元' : '未开', d.rebateOn ? '#16a34a' : '#999', d.rebateOn ? '已飞 ' + fmt(d.flyOut) + ' × ' + (d.rebateRate*100).toFixed(1) + '%' : '设置里打开返水后才有');
   h += row('含返水到手', signed(d.localNet === null ? null : d.localNet + d.rebate) + ' 元', d.localNet === null ? '#999' : ((d.localNet + d.rebate) >= 0 ? '#166534' : '#cf1322'), '飞后净盈亏 + 返水');
   h += row('上家结算', signed(d.upSettle) + ' 元', d.upSettle === null ? '#999' : (d.upSettle >= 0 ? '#166534' : '#cf1322'), '返水 - (飞出 - 赔回)');
   h += '<div style="font-size:11px;color:#999;line-height:1.6;margin:6px 0 10px">上家结算只算飞出去的部分，不含客户投注；本地飞后净含客户投注，两者不是同一个口径。</div>';
