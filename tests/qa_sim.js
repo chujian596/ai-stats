@@ -183,6 +183,22 @@ for(const c of cases){
   switchTab('orders'); await WAIT(100);
   R.orderPage={tab:(document.querySelector('.tab.active')||{}).innerText||'',text:(document.getElementById('tab-orders')||{}).innerText.replace(/\s+/g,' ').slice(0,180)};
   if(R.orderPage.tab.indexOf('订单')<0) R.failures.push({name:'订单展示页',status:'FAIL',actual:R.orderPage});
+  // 本次订单定位：保存后必须能按 ID 找到，且所在分组自动展开
+  {
+    const id = window.__lastSavedOrderId;
+    const row = id ? document.querySelector('[data-order-id="' + id + '"]') : null;
+    const grp = row ? row.parentElement : null;
+    const opened = !!grp && grp.style.display !== 'none';
+    R.lastOrder = {id, found:!!row, opened, tab:R.orderPage.tab};
+    const rows = [
+      {name:'本次订单ID已记录', status:id?'PASS':'FAIL', actual:R.lastOrder},
+      {name:'本次订单可定位且分组展开', status:(row && opened)?'PASS':'FAIL', actual:R.lastOrder},
+    ];
+    rows.forEach(r=>{ R.cases.push(r); if(r.status==='FAIL') R.failures.push(r); });
+    // 固定入口必须能重新定位
+    try{ showLastOrder(); await WAIT(120); R.lastOrder.reentry = !!document.querySelector('[data-order-id="' + id + '"]'); }catch(e){ R.lastOrder.reentry=false; }
+    if(!R.lastOrder.reentry) R.failures.push({name:'本次订单固定入口',status:'FAIL',actual:R.lastOrder});
+  }
 }
 
 /* ---------- 飞单 / 锁单 / 通道 / 对账 ---------- */
