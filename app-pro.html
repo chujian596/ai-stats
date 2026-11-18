@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.9-Pro';
+var APP_VER = 'v59.03.10-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -5341,6 +5341,44 @@ window.onload = function(){
   }, {passive: true});
 };
 
+function _dupNorm(s){
+  return String(s || '')
+    .replace(/[０-９]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 65248); })
+    .replace(/特号|特碼|特码/g, '特')
+    .replace(/平特肖/g, '平特')
+    .replace(/連肖/g, '连肖')
+    .replace(/[\s,，、;；:：\-—_.。+·\/\\|]/g, '')
+    .replace(/[元米块圆]/g, '')
+    .toLowerCase();
+}
+
+function _orderTs(o){
+  if(o && o.ts){ var t = Date.parse(o.ts); if(!isNaN(t)) return t; }
+  var s = String((o && o.createdAt) || '').replace(/\//g, '-');
+  var t2 = Date.parse(s);
+  return isNaN(t2) ? 0 : t2;
+}
+
+function findRecentDupOrder(customer, raw){
+  var c = String(customer || '散客').trim() || '散客';
+  var n = _dupNorm(raw);
+  if(!n) return null;
+  var now = Date.now();
+  var pools = [orders || [], hkOrders || []];
+  for(var pi = 0; pi < pools.length; pi++){
+    var list = pools[pi] || [];
+    for(var i = list.length - 1; i >= 0; i--){
+      var o = list[i];
+      var t = _orderTs(o);
+      if(!t || now - t > 30 * 60 * 1000) continue;
+      if(new Date(t).toDateString() !== new Date(now).toDateString()) continue;
+      if(String(o.customer || '散客').trim() !== c) continue;
+      if(_dupNorm(o.raw) === n) return o;
+    }
+  }
+  return null;
+}
+
 function handleSave(){
   var raw0 = document.getElementById('input').value.trim();
   if(raw0){
@@ -5352,9 +5390,14 @@ function handleSave(){
     var _csm = (document.getElementById('customerName') || {}).value || '散客';
     var _fp = _csm + '|' + raw0.replace(/\s+/g, '');
     var _dup = window.__lastInputFp === _fp && (Date.now() - (window.__lastInputAt || 0) < 180000);
+    var _sem = findRecentDupOrder(_csm, raw0);
     // 没有确认框时宁可直接存（重复好过丢单），绝不因为弹不出框而卡住
-    if(_dup && !window.__dupConfirmed && typeof myConfirm === 'function'){
-      myConfirm('这行内容刚存过（3 分钟内）。\n\n如果客户是改单重发，按「取消」不要存；\n确实是另一笔，按「确认」再存一次。', function(){
+    if((_dup || _sem) && !window.__dupConfirmed && typeof myConfirm === 'function'){
+      var _who = String(_csm || '散客').trim() || '散客';
+      var _msg = _sem
+        ? '客户「' + _who + '」今天已有一笔同样内容：\n' + String(_sem.raw || '').slice(0, 80) + '\n时间：' + (_sem.createdAt || '') + '\n\n如果是另一笔，按「确认」继续保存；如果重复点按，按「取消」。'
+        : '这行内容刚存过（3 分钟内）。\n\n如果客户是改单重发，按「取消」不要存；\n确实是另一笔，按「确认」再存一次。';
+      myConfirm(_msg, function(){
         // 递归期间必须保持 true，否则会再次命中重复判定 → 无限弹窗
         window.__dupConfirmed = true;
         try { handleSave(); } finally { window.__dupConfirmed = false; }
