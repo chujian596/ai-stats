@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.8-Pro';
+var APP_VER = 'v59.03.9-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -9310,17 +9310,52 @@ function todayReconData(){
   };
 }
 
+function fourBookCheck(){
+  var ap = actualPnL();
+  var d = todayReconData();
+  var pending = (d.payout === null || d.payout === undefined || d.localNet === null || d.localNet === undefined);
+  var rows = [
+    { label: '客户赔付', a: ap.payout, b: d.payout },
+    { label: '返水', a: ap.rebate, b: d.rebate },
+    { label: '上家赔回', a: ap.flyBack, b: d.flyBack },
+    { label: '上家结算', a: ap.rebate - (ap.flyOut - ap.flyBack), b: d.upSettle },
+    { label: '飞后净盈亏', a: ap.net, b: d.localNet }
+  ];
+  var ok = rows.every(function(r){
+    if(pending) return true;
+    return Math.abs(Number(r.a || 0) - Number(r.b || 0)) <= 0.01;
+  });
+  return { pending: pending, ok: ok, rows: rows, ap: ap, today: d };
+}
+
 function showTodayRecon(){
   var d = todayReconData();
   var fmt = function(v){ return Number(v || 0).toFixed(2); };
   var signed = function(v){ if(v === null || v === undefined) return '待开奖'; return (v >= 0 ? '+' : '') + Number(v).toFixed(2); };
   var orderOk = d.orderOk, flyOk = d.flyOk;
-  var allOk = orderOk && flyOk;
+  var book = fourBookCheck();
+  var allOk = orderOk && flyOk && book.ok;
   var h = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">';
   h += '<div style="padding:18px 18px 6px;text-align:center">';
   h += '<div style="font-size:18px;font-weight:700;color:#333">今日对账</div>';
   h += '<div style="font-size:12px;color:#888;margin-top:4px">' + esc(d.shop) + ' · 当前活动订单 ' + d.orders.length + ' 笔</div>';
-  h += '<div style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (allOk ? '#e8f7ee' : '#fff1f0') + ';color:' + (allOk ? '#166534' : '#cf1322') + '">' + (allOk ? '订单、飞单已对平' : '发现差异，请查看下方') + '</div>';
+  var _badgeTxt = allOk ? (book.pending ? '订单、飞单已对平' : '订单、飞单、四本账已对平') : '发现差异，请查看下方';
+  h += '<div style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (allOk ? '#e8f7ee' : '#fff1f0') + ';color:' + (allOk ? '#166534' : '#cf1322') + '">' + _badgeTxt + '</div>';
+  h += '</div>';
+  h += '<div style="margin:0 18px 8px;padding:10px 12px;background:#f8f7ff;border:1px solid #e9e3ff;border-radius:12px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:#333">四本账自检</span><span style="font-size:11px;color:#7c3aed">只读</span></div>';
+  if(book.pending){
+    h += '<div style="font-size:12px;color:#888;line-height:1.6">开奖后自动核对：客户赔付、返水、上家赔回、上家结算、飞后净盈亏。</div>';
+  } else {
+    book.rows.forEach(function(r){
+      var av = Number(r.a || 0), bv = Number(r.b || 0), diff = av - bv, ok = Math.abs(diff) <= 0.01;
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px dashed #ece8ff">'
+        + '<span style="font-size:12px;color:#666;flex:0 0 auto">' + r.label + '</span>'
+        + '<span style="text-align:right"><b style="font-size:12px;color:' + (ok ? '#166534' : '#cf1322') + '">' + (ok ? '一致' : (diff >= 0 ? '差 +' : '差 -') + Math.abs(diff).toFixed(2)) + '</b>'
+        + '<div style="font-size:10px;color:#999;margin-top:1px">全盘 ' + fmt(r.a) + ' / 今日 ' + fmt(r.b) + '</div></span></div>';
+    });
+    h += '<div style="font-size:10px;color:' + (book.ok ? '#999' : '#cf1322') + ';line-height:1.5;margin-top:5px">' + (book.ok ? '五组数与全盘、今日一致，未发现口径差。' : '有差异，先看下方明细；本卡只读，不改账。') + '</div>';
+  }
   h += '</div>';
   var row = function(label, value, color, sub){
     return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed #eee"><span style="font-size:13px;color:#666;flex:0 0 auto">' + label + '</span><span style="text-align:right"><b style="font-size:15px;color:' + (color || '#333') + '">' + value + '</b>' + (sub ? '<div style="font-size:11px;color:#999;margin-top:2px">' + sub + '</div>' : '') + '</span></div>';
