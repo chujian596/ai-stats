@@ -135,6 +135,8 @@ runner = pre + parseLine + "\n" + hkLine + "\n" + hkStrip + "\n" + fix + "\n" + 
 const CASES = """ + json.dumps(CASES, ensure_ascii=False) + """;
 let ok=0, needConfirm=0, fail=0;
 for(const [name, text, expAmt] of CASES){
+  // 分店制：带香港标记的用例走香港店，其余走澳门店
+  shop = isHKLine(text) ? 'B' : 'A';
   orders=[]; hkOrders=[]; _popupCount=0; _texiaoChoice=null; window._waveChoice=null; window._failedLines=[];
   let alertMsg='';
   const _origAlert = myAlert; myAlert = function(m){ alertMsg=m; };
