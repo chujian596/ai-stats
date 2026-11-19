@@ -88,7 +88,7 @@ var ZOD=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'
 var NUM2Z={};
 [['马',[1,13,25,37,49]],['蛇',[2,14,26,38]],['龙',[3,15,27,39]],['兔',[4,16,28,40]],['虎',[5,17,29,41]],['牛',[6,18,30,42]],['鼠',[7,19,31,43]],['猪',[8,20,32,44]],['狗',[9,21,33,45]],['鸡',[10,22,34,46]],['猴',[11,23,35,47]],['羊',[12,24,36,48]]].forEach(function(z){ z[1].forEach(function(n){ NUM2Z[n]=z[0]; }); });
 
-var state={ cross:null, track:null, img:null, authors:[], official:{}, currentPeriod:0, fetchedAt:'', tw:{ source:{}, columns:[] }, forum:{ source:{}, columns:[] } };
+var state={ cross:null, track:null, img:null, authors:[], official:{}, currentPeriod:0, fetchedAt:'', latestAt:'', tw:{ source:{}, columns:[] }, forum:{ source:{}, columns:[] } };
 var LS_KEY='stats_snapshot_v1';
 
 function $(id){ return document.getElementById(id); }
@@ -168,7 +168,33 @@ function loadOfficial(){
       map[x.draw]={ specialNum:sp, specialZod:NUM2Z[sp], all:nums };
     });
     state.official=map;
+    // 本地开奖库镜像兜底：API 未刷新时以镜像为准补全已开奖期
+    return fetchJson('official-history.json',8000).then(function(off){
+      Object.keys(off||{}).forEach(function(k){
+        var v=off[k];
+        if(v && v.specialZod && !state.official[k]) state.official[k]=v;
+      });
+    }).catch(function(){});
   }).catch(function(){ state.official={}; });
+}
+// 某期是否已开奖：兼容数字/字符串期号
+function openInfo(per){
+  var o=state.official[per] || state.official[String(per)] || state.official[Number(per)];
+  if(o && o.specialZod) return {opened:true, num:o.specialNum, zod:o.specialZod};
+  return {opened:false};
+}
+// 顶部/卡片口径横幅：期号 + 资料更新时间 + 开奖状态
+function periodBanner(per){
+  var info=openInfo(per);
+  var st=info.opened
+    ? '<span style="color:#2e7d32;font-weight:600">已开奖 · 特码 '+info.num+' '+info.zod+'</span>'
+    : '<span style="color:#c0392b;font-weight:600">待开奖 · 当前为开奖前预测口径</span>';
+  var t=state.latestAt?('资料更新 '+state.latestAt):'';
+  return '<div style="background:#f6f8ff;border:1px solid #dbe4ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px">'
+    +'<b style="font-size:14px">第 '+per+' 期</b>'+st
+    +(t?'<span style="color:#888;font-size:12px">'+t+'</span>':'')
+    +(VIEW_PER?'<span style="color:#999;font-size:11px">（回看往期）</span>':'')
+    +'</div>';
 }
 
 // 图库识图快照：严格按当前所选期号取文件，找不到就空着，绝不拿别期顶替
@@ -459,6 +485,7 @@ function renderPeriodBar(list){
 function fetchLatestPeriod(){
   return fetchJson('data/latest-period.json',6000).then(function(d){
     if(d&&d.period){ LATEST_PER=d.period; }
+    state.latestAt=(d&&d.updatedAt)||'';
     return LATEST_PER;
   }).catch(function(){ return LATEST_PER; });
 }
@@ -504,7 +531,7 @@ function renderImgFromForum(){
               .sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
     var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
     var tot=0; zs.forEach(function(x){tot+=x.rec;});
-    var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
+    var h=periodBanner(per)+'<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
     h+='<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+per+' 期 · 仅论坛口径</div>';
     h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">'+per+' 期图库图纸没留档（换期即被替换），这里改用当期论坛 '+det.length+' 帖统计：共 '+tot+' 票推荐。杀肖与推荐分开算，净值＝推－杀。</div>';
     zs.forEach(function(x){
@@ -525,7 +552,7 @@ function ratioTplHtml(){
   var rt=state.ratio;
   if(rt && rt.rows && rt.rows.length){
     h+='<div style="margin-top:16px;padding-top:14px;border-top:2px solid #eee">';
-    h+='<div style="font-weight:700;font-size:15px;margin-bottom:3px">相对强度 · 解决推杀不成正比</div>';
+    h+='<div style="font-weight:700;font-size:15px;margin-bottom:3px">相对强度 · 第 '+curPer()+' 期 · 解决推杀不成正比</div>';
     h+='<div style="color:#888;font-size:12px;line-height:1.7;margin-bottom:10px">推票总 '+rt.sumRec+'、杀票总 '+rt.sumKill+'：推均 98/肖、杀均 4.5/肖，量级差 22 倍，绝对票数相减等于没算。改算提及率×12，<b>1.00 = 平均水平</b>。<br>'
       +'<b style="color:#333">怎么读：</b>推 ≥1.00 说明很多人推它（推多），＜1.00 说明推的人少（推少）；杀 ≥1.00 说明被杀得多（杀狠），＜1.00 说明没人杀（杀少）。下面四组就按这两个条件交叉分。<br>'
       +'<b style="color:#333">每张卡最下面一行是“站方口径”：</b>站方口径来自 '+((state.core&&state.core.sites)||'51')+' 个站点栏目，算的是“有多少站把该肖写进核心杀（分母 '+((state.core&&state.core.coreDen)||26)+' 站）”，数值是一致度、不是概率；上面推/杀来自论坛帖子，两者含义不同，不能相加。</div>';
@@ -590,7 +617,7 @@ function renderImg(){
   var p=$('panelImg'), d=state.img;
   if(!d){
     if(state.ratio||state.tpl){
-      var ph='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
+      var ph=periodBanner(curPer())+'<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
       ph+='<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+curPer()+' 期 · 图库缺档</div>';
       ph+='<div style="color:#888;font-size:13px;line-height:1.7">这一期没有逐张图库快照，但论坛的推杀数据还在；下面照常显示相对强度与模板指纹，不与图库口径混算。</div></div>';
       ph+=ratioTplHtml();
@@ -600,9 +627,10 @@ function renderImg(){
   }
   var zs=(d.zodiacs||[]).slice().sort(function(a,b){ return (b.net-a.net)||(b.rec-a.rec); });
   var mx=1; zs.forEach(function(x){ if(x.rec>mx) mx=x.rec; });
-  var h='<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
+  var h=periodBanner(d.period)+'<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px">';
   h+='<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+d.period+' 期 · 118图库 '+d.colsTotal+' 个栏目</div>';
-  var totRec=0,cov=0,totKill=0; zs.forEach(function(x){ totRec+=x.rec; if(x.rec>0)cov++; totKill+=x.kill; }); var covTxt = cov>=12 ? '<b style="color:#c0392b">12 个生肖全部被覆盖</b>，等于洒水，怎么开都能说“推过”' : '覆盖 <b>'+cov+'/12</b> 个生肖'; h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">'+d.colsTotal+' 张图纸里读出 '+d.colsParsed+' 栏有明确生肖指向，共投 <b>'+totRec+'</b> 票、杀肖 <b>'+totKill+'</b> 票；'+covTxt+'。'+(d.period>=321?'本期还没开奖，数字是开奖前的预测口径，开奖后再结算命中。':'')+'</div>';
+  var _oi=openInfo(d.period);
+  var totRec=0,cov=0,totKill=0; zs.forEach(function(x){ totRec+=x.rec; if(x.rec>0)cov++; totKill+=x.kill; }); var covTxt = cov>=12 ? '<b style="color:#c0392b">12 个生肖全部被覆盖</b>，等于洒水，怎么开都能说“推过”' : '覆盖 <b>'+cov+'/12</b> 个生肖'; h+='<div style="color:#888;font-size:13px;line-height:1.7;margin-bottom:12px">'+d.colsTotal+' 张图纸里读出 '+d.colsParsed+' 栏有明确生肖指向，共投 <b>'+totRec+'</b> 票、杀肖 <b>'+totKill+'</b> 票；'+covTxt+'。'+(_oi.opened?'本期已开奖（特码 '+_oi.num+' '+_oi.zod+'），以上为开奖前预测，命中以后续台账结算。':'本期还没开奖，数字是开奖前的预测口径，开奖后再结算命中。')+'</div>';
   zs.forEach(function(x){
     var w=Math.round(x.rec/mx*100), neg=x.net<=3;
     h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px">'
@@ -677,7 +705,15 @@ function renderImg(){
 renderAll=
 function renderAll(){
   loadKillHist().then(function(m){ if(m) renderKill(); });
-  $('fetchedAt').textContent = state.fetchedAt?('上次更新：'+state.fetchedAt):'';
+  var _fb=$('fetchedAt');
+  if(_fb){
+    var _oi=openInfo(curPer());
+    var _st=_oi.opened?('已开奖 特码 '+_oi.num+' '+_oi.zod):'待开奖';
+    var _parts=['当前口径 第 '+curPer()+' 期 · '+_st];
+    if(state.latestAt) _parts.push('资料更新 '+state.latestAt);
+    if(state.fetchedAt) _parts.push('页面抓取 '+state.fetchedAt);
+    _fb.innerHTML=_parts.join('　｜　');
+  }
   renderOverview(); renderKill(); renderRec(); renderRank(); renderTw(); renderForum(); renderHot(); renderImg(); renderDoc();
 }
 
@@ -1512,8 +1548,8 @@ switchTab(TAB_MAP[initTab]?initTab:'img');
 loadImg().then(function(){ renderImg(); }).catch(function(){});
 fetchLatestPeriod().then(function(){ return loadTextwall(); }).then(function(){ renderTw(); });
 loadForum().then(function(){ renderRank(); renderForum(); renderOverview(); }).catch(function(){});
-loadOfficial().then(function(){
-  renderAll();
+fetchLatestPeriod().then(function(){ return loadOfficial(); }).then(function(){
+  renderAll(); renderImg();
 }).catch(function(){ renderAll(); });
 </script>
 </body>
