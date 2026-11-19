@@ -493,6 +493,20 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   reset(); shop='A';
 }
 
+/* 可观测性：错误日志写入 + 诊断 JSON 导出 */
+{
+  clearErrLog();
+  logErr('qa_test', '诊断用例', {n:1});
+  let cap=null;
+  const origDownload=window.download;
+  window.download=function(f,c,t){ cap={f:f,c:c,t:t}; };
+  exportDiagnostics();
+  window.download=origDownload;
+  let d=null; try{ d=JSON.parse(cap?cap.c:''); }catch(e){}
+  gate('错误日志与诊断导出', !!d && d.schema==='ai-stats-diagnostics-v1' && d.appVersion===APP_VER && Array.isArray(d.errors) && d.errors.length>=1 && !!d.counts && !!d.storage && !!cap.f && cap.f.slice(-5)==='.json', {file:cap?cap.f:'', errors:d?d.errors.length:null, keys:d?Object.keys(d).length:null});
+  clearErrLog();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

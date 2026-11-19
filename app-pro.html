@@ -329,6 +329,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
+      <button class="btn" onclick="showErrLog()">错误日志</button>
+      <button class="btn" onclick="exportDiagnostics()">诊断导出</button>
       <button class="btn" onclick="openPasteImport()">粘贴导入</button>
       <button class="btn" style="color:#16a34a" onclick="restoreLastBackup()">一键恢复上次备份</button>
       <button class="btn" style="color:#cf1322" onclick="clearAll()">清空全部数据</button>
@@ -633,7 +635,124 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.32-Pro';
+var APP_VER = 'v59.03.33-Pro';
+/* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
+var ERR_KEY = 'ai_err_log_v1';
+var _errMem = null;
+function _errLoad(){
+  if(_errMem) return _errMem;
+  _errMem = [];
+  try{
+    var s = JSON.parse(localStorage.getItem(ERR_KEY) || '[]');
+    if(Array.isArray(s)) _errMem = s.slice(-200);
+  }catch(e){ _errMem = []; }
+  return _errMem;
+}
+function logErr(type, msg, meta){
+  try{
+    var m = _errLoad();
+    var rec = {
+      ts: new Date().toISOString(),
+      at: Date.now(),
+      ver: (typeof APP_VER !== 'undefined' ? APP_VER : ''),
+      shop: (typeof shop !== 'undefined' ? shop : ''),
+      type: String(type || 'error'),
+      msg: String(msg || '').slice(0, 300)
+    };
+    if(meta){
+      try{ rec.meta = JSON.parse(JSON.stringify(meta)); }catch(e){ rec.meta = String(meta).slice(0,300); }
+    }
+    m.push(rec);
+    if(m.length > 200) m.splice(0, m.length - 200);
+    try{ localStorage.setItem(ERR_KEY, JSON.stringify(m)); }catch(e){}
+  }catch(e){}
+}
+function readErrLog(){ try{ return _errLoad().slice(); }catch(e){ return []; } }
+function clearErrLog(){ _errMem = []; try{ localStorage.removeItem(ERR_KEY); }catch(e){} }
+function _storageStats(){
+  var keys = [], bytes = 0;
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      var v = localStorage.getItem(k) || '';
+      var b = (k.length + v.length) * 2;
+      bytes += b;
+      keys.push({ key: k, bytes: b });
+    }
+  }catch(e){}
+  return { keys: keys.length, bytes: bytes, items: keys };
+}
+function _diagStamp(){
+  var d = new Date();
+  function p(n){ return String(n).padStart(2,'0'); }
+  return String(d.getFullYear()) + p(d.getMonth()+1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+function buildDiagnostics(){
+  var active = 0, pending = 0;
+  try{ active = activeOrders().length; }catch(e){}
+  try{ pending = _readPendingOrders().length; }catch(e){}
+  return {
+    schema: 'ai-stats-diagnostics-v1',
+    generatedAt: new Date().toISOString(),
+    appVersion: (typeof APP_VER !== 'undefined' ? APP_VER : ''),
+    shop: (typeof shop !== 'undefined' ? shop : ''),
+    shopName: (typeof shopNames !== 'undefined' && shopNames[shop]) ? shopNames[shop] : '',
+    storageOK: (typeof storageOK !== 'undefined' ? storageOK : null),
+    device: {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform || '',
+      online: navigator.onLine,
+      language: navigator.language || ''
+    },
+    counts: {
+      orders: (typeof orders !== 'undefined' ? orders.length : null),
+      hkOrders: (typeof hkOrders !== 'undefined' ? hkOrders.length : null),
+      activeOrders: active,
+      pending: pending,
+      products: (typeof products !== 'undefined' ? products.length : null),
+      customers: (typeof roster !== 'undefined' ? roster.length : null)
+    },
+    flags: {
+      preview: (typeof previewEnabled === 'function' ? previewEnabled() : null),
+      autoFlyOn: (typeof autoFlyOn !== 'undefined' ? autoFlyOn : null),
+      pteFlyTakeAll: (typeof pteFlyTakeAll !== 'undefined' ? pteFlyTakeAll : null),
+      flyRoundOn: (typeof flyRoundOn !== 'undefined' ? flyRoundOn : null)
+    },
+    storage: _storageStats(),
+    errors: readErrLog().slice(-100)
+  };
+}
+function exportDiagnostics(){
+  try{
+    var d = buildDiagnostics();
+    download('诊断信息_' + (d.shop === 'B' ? '香港店' : '澳门店') + '_' + d.appVersion + '_' + _diagStamp() + '.json', JSON.stringify(d, null, 2), 'application/json;charset=utf-8');
+    logErr('diagnostic', '导出诊断信息');
+  }catch(e){ try{ myAlert('诊断导出失败：' + (e.message || e)); }catch(_e){} }
+}
+function showErrLog(){
+  var logs = readErrLog();
+  var ov = document.createElement('div');
+  ov.className = 'ai-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var rows = logs.slice(-60).reverse().map(function(r){
+    return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + '</div></div>';
+  }).join('');
+  if(!rows) rows = '<div style="padding:24px 0;text-align:center;font-size:13px;color:#999">暂无错误记录</div>';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;flex-direction:column">'
+    + '<div style="padding:14px 16px;font-size:16px;font-weight:700;color:#333;border-bottom:1px solid #eee">错误日志（' + logs.length + ' 条，最多保留 200 条）</div>'
+    + '<div style="padding:2px 16px 8px;overflow-y:auto;flex:1">' + rows + '</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="elClear" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#cf1322;border-right:1px solid #eee">清空</button>'
+    + '<button id="elExport" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#16a34a;border-right:1px solid #eee">导出诊断</button>'
+    + '<button id="elClose" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#666">关闭</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#elClose').onclick = function(){ ov.remove(); };
+  ov.querySelector('#elClear').onclick = function(){ clearErrLog(); ov.remove(); showErrLog(); };
+  ov.querySelector('#elExport').onclick = function(){ ov.remove(); exportDiagnostics(); };
+}
+
+
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -660,6 +779,7 @@ function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
 // 版本锁定机制已移除：以前选过「保持当前版本」会把人锁死在旧快照里，看着就像版本回退
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 window.onerror = function(msg, url, line){
+  try{ logErr('js', String(msg) + ' @' + String(url||'') + ':' + line); }catch(e){}
   var d = document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:10px;z-index:99999;font-size:12px;word-break:break-all';
   d.textContent = 'JS错误: ' + msg + ' 行:' + line;
@@ -1452,7 +1572,7 @@ function saveOrders(){
     localStorage.setItem(KEY, JSON.stringify(_macKeep.concat(_hkKeep)));
     return true;
   }
-  catch(e){ storageOK = false; return false; }
+  catch(e){ storageOK = false; logErr('save_orders', e && e.message ? e.message : String(e)); return false; }
 }
 // ===== 离线/弱网：订单待补记队列（本地存储，按店隔离） =====
 function _pendingKey(){ return sk('order_pending_v1'); }
@@ -1467,7 +1587,7 @@ function _writePendingOrders(list){
     if(!list || !list.length) localStorage.removeItem(_pendingKey());
     else localStorage.setItem(_pendingKey(), JSON.stringify(list));
     return true;
-  } catch(e){ return false; }
+  } catch(e){ logErr('pending_write', e && e.message ? e.message : String(e)); return false; }
 }
 function queuePendingOrders(list){
   if(!list || !list.length) return true;
@@ -1502,6 +1622,7 @@ function flushPendingOrders(){
     clearPendingOrders(q.map(function(o){ return o && o.id; }));
     return added;
   }
+  logErr('pending_flush', '待补记写入失败，队列保留', {count: q.length});
   return 0;
 }
 window.addEventListener('online', function(){ try{ if(flushPendingOrders()) renderAll(); }catch(e){} });
@@ -5405,6 +5526,7 @@ function refreshPage(){
       if(!/^v?\d/.test(remote) || remote.length > 20) throw new Error('not a version file');
       if(remote && _verCmp(remote, APP_VER) > 0 && normVer(remote) !== normVer(localStorage.getItem('aiNoRemindVer') || '')){
         if(btn) btn.textContent = '刷新';
+        logErr('version', '线上 ' + remote + ' / 本地 ' + APP_VER);
         myChoice('有新版本',
           '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
           ['现在更新到最新', '保持当前版本，以后不提醒', '这次先不动'],
@@ -6809,6 +6931,8 @@ renderAll();
     if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
     var _fail = (window.__failedLines || [])[0];
     window.__failedLines = [];
+    if(_fail) logErr('parse', _fail.msg || '未知解析错误', {line: _fail.idx || 0, rawLen: String(_fail.raw || '').length});
+    else logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length});
     if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
     myAlert('无法识别：' + errors[0]);
     return;
