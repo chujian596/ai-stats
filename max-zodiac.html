@@ -12,7 +12,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
-  .wrap{max-width:640px;margin:0 auto}
+  .wrap{max-width:680px;margin:0 auto}
   header{margin-bottom:16px}
   h1{margin:0 0 6px;font-size:22px;font-weight:700}
   .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
@@ -26,8 +26,9 @@
   th{color:var(--sub);font-weight:600;font-size:11.5px;white-space:nowrap}
   tr:last-child td{border-bottom:none}
   .site{font-weight:700;white-space:nowrap}
+  .alias{color:var(--blue);font-weight:700}
   .sys{color:var(--sub);font-size:11px}
-  .col{color:var(--sub);font-size:11px;max-width:120px}
+  .col{color:var(--sub);font-size:11px;max-width:110px}
   .zs{display:flex;flex-wrap:wrap;gap:4px}
   .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;
     border-radius:7px;background:#f0f2f5;font-size:12px}
@@ -36,19 +37,29 @@
   .na{color:var(--sub);white-space:nowrap}
   .streak{white-space:nowrap;font-variant-numeric:tabular-nums}
   .streak.w{color:var(--green)} .streak.l{color:var(--red)}
+  .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
   .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
   .trail{display:flex;gap:3px;flex-wrap:wrap}
   .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
   .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
   .empty{color:var(--sub);font-style:italic}
   .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
+  .rowlink{cursor:pointer}
+  .rowlink:hover{background:#fafafa}
+  .detail td{background:#fafbfc;padding:12px 14px}
+  .det-title{font-size:12px;color:var(--sub);margin-bottom:8px}
+  .det-table{width:100%;border-collapse:collapse;font-size:12px}
+  .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
+  .det-table tr:last-child td{border-bottom:none}
+  .arrow{color:var(--sub);font-size:11px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>每站九肖台账</h1>
-    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。</div>
+    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。点任意一行可展开该站逐期明细复盘。</div>
   </header>
 
   <div class="bar-row">
@@ -60,7 +71,7 @@
     <table>
       <thead>
         <tr>
-          <th>站号</th><th>九肖栏目</th><th>九肖（原序）</th><th>结果</th><th>连对/错</th><th>近7期轨迹</th>
+          <th>站名</th><th>本期九肖（原序）</th><th>结果</th><th>目前连对/错</th><th>总中</th><th>总错</th><th>轨迹</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -71,19 +82,49 @@
 </div>
 
 <script>
-var LG=null;
+var LG=null, ALIAS={};
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
+function nameOf(r,key){
+  return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
+}
+
+function historyOf(key){
+  return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}).map(function(i){
+    return {issue:i, per:LG.periods[i], rec:LG.periods[i].stations[key]};
+  }).filter(function(x){return x.rec;});
+}
+
 function streakOf(key){
-  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var win=0,lose=0,streak=0,type='';
-  issues.forEach(function(i){
-    var r=LG.periods[i].stations[key];
-    if(!r||r.hit===null||r.hit===undefined) return;
+  historyOf(key).forEach(function(h){
+    var r=h.rec;
+    if(r.hit===null||r.hit===undefined) return;
     if(r.hit){win++; if(type==='对')streak++; else {streak=1;type='对';}}
     else {lose++; if(type==='错')streak++; else {streak=1;type='错';}}
   });
   return {win:win,lose:lose,streak:streak,type:type};
+}
+
+function zsHtml(zs){
+  return '<div class="zs">'+zs.map(function(z){return '<span class="z">'+z+'</span>';}).join('')+'</div>';
+}
+
+function detailHtml(key,r){
+  var hist=historyOf(key).reverse();
+  var rows=hist.map(function(h){
+    var rr=h.rec, actual=h.per.actual;
+    var hitTx,hitCls,chg='';
+    if(rr.status==='无九肖栏目'){hitTx='—';hitCls='na';}
+    else if(rr.hit){hitTx='中';hitCls='hit';}
+    else {hitTx='错';hitCls='miss';}
+    if(rr.changed) chg='<span class="chg">改料</span>';
+    var zcell=rr.status==='无九肖栏目'?'<span class="empty">无九肖栏目</span>':zsHtml(rr.zodiacs);
+    return '<tr><td>'+h.issue+'期</td><td>开'+actual+'</td><td>'+zcell+'</td>'+
+      '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td></tr>';
+  }).join('');
+  return '<div class="det-title">'+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
+    '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐九肖（原序）</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function render(){
@@ -114,6 +155,7 @@ function render(){
   keys.forEach(function(k){
     var r=per.stations[k];
     var tr=document.createElement('tr');
+    tr.className='rowlink';
     var trail=recent.map(function(i){
       var rr=LG.periods[i].stations[k];
       var cls,tx;
@@ -123,32 +165,47 @@ function render(){
     }).join('');
 
     if(r.status==='无九肖栏目'){
-      tr.innerHTML='<td><div class="site">'+r.siteKey+'</div><div class="sys">'+r.system+'</div></td>'+
-        '<td class="col empty">—</td><td class="empty">（无九肖栏目）</td><td class="na">—</td><td class="streak na">—</td><td><div class="trail">'+trail+'</div></td>';
+      tr.innerHTML='<td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
+        '<td class="empty">（无九肖栏目）</td><td class="na">—</td><td class="streak na">—</td>'+
+        '<td class="tot na">—</td><td class="tot na">—</td><td><div class="trail">'+trail+'</div></td>';
     } else {
       var st=streakOf(k);
       var hitCls=r.hit?'hit':'miss';
       var hitTx=r.hit?'中':'错';
-      var chg=r.changed?'<span class="chg">改料</span>':'';
-      var zs=r.zodiacs.map(function(z){return '<span class="z">'+z+'</span>';}).join('');
+      var chgBadge=r.changed?'<span class="chg">改料</span>':'';
       var sk=st.streak?('<span class="streak '+(st.type==='对'?'w':'l')+'">'+st.type+st.streak+'</span>'):'<span class="streak na">—</span>';
-      tr.innerHTML='<td><div class="site">'+r.siteKey+'</div><div class="sys">'+r.system+'</div></td>'+
-        '<td class="col">'+(r.column||'')+'</td>'+
-        '<td><div class="zs">'+zs+'</div></td>'+
-        '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td>'+
-        '<td>'+sk+'</td><td><div class="trail">'+trail+'</div></td>';
+      var nm=nameOf(r,k);
+      var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
+      tr.innerHTML='<td>'+nmHtml+'</td>'+
+        '<td>'+zsHtml(r.zodiacs)+'</td>'+
+        '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chgBadge+'</td>'+
+        '<td>'+sk+'</td>'+
+        '<td class="tot">'+st.win+'</td><td class="tot">'+st.lose+'</td>'+
+        '<td><div class="trail">'+trail+'</div></td>';
     }
+
+    var det=document.createElement('tr');
+    det.className='detail';
+    det.style.display='none';
+    det.innerHTML='<td colspan="7">'+detailHtml(k,r)+'</td>';
+    tr.addEventListener('click',function(){
+      det.style.display=det.style.display==='none'?'':'none';
+    });
+
     tb.appendChild(tr);
+    tb.appendChild(det);
   });
   document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
 }
 
 fetchJson('data/max-zodiac-ledger.json').then(function(d){
   LG=d;
+  return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
+}).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
   render();
 }).catch(function(e){
-  document.getElementById('rows').innerHTML='<tr><td colspan="6" class="empty">台账数据加载失败：'+e+'</td></tr>';
+  document.getElementById('rows').innerHTML='<tr><td colspan="7" class="empty">台账数据加载失败：'+e+'</td></tr>';
 });
 </script>
 </body>
