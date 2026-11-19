@@ -67,7 +67,7 @@ async function handleDlg(cfg){
     // 通用 myChoice 弹窗（裸金额/这串怎么算）：按按钮文字自动选
     const btns=[...ov.querySelectorAll('button')];
     if(btns.length && !ov.querySelector('#miOk') && !ov.querySelector('#pvOk')){
-      const want=(cfg && cfg.choice==='total') ? /共.*(个号分|平分)/ : /各.*(每个号|每号)|每号各|各.*元（每个号）/;
+      const want=(cfg && cfg.choice==='total') ? /共.*(个号分|平分)/ : (cfg && cfg.choice==='perZod') ? /每肖|各肖/ : /各.*(每个号|每号)|每号各|各.*元（每个号）/;
       let target=btns.find(b=>want.test(b.textContent));
       if(!target && (cfg && cfg.choice!=='total')) target=btns.find(b=>/各.*元|每号各/.test(b.textContent));
       if(target){ target.click(); continue; }
@@ -81,6 +81,7 @@ async function handleDlg(cfg){
 async function saveCase(txt, cfg){
   reset();
   if(cfg && cfg.shop) shop=cfg.shop;
+  if(cfg && cfg.mode) mode=cfg.mode;
   document.getElementById('input').value=txt;
   window.__previewConfirmed = !!(cfg && cfg.bypassPreview);
   let err='';
@@ -136,7 +137,7 @@ const cases=[
   ['平特多肖每肖', '平马龙兔各100', {n:1,amt:300}, {choice:'perZod'}],
   ['特多肖每肖', '特马龙兔各5', {n:1,amt:15}, {choice:'perZod'}],
   ['特多肖每肖100', '特马龙兔各100', {n:1,amt:300}, {choice:'perZod'}],
-  ['波色单各', '红波单各100', {n:1,amt:800}],
+  ['波色单各', '红波单各100', {n:1,amt:800}, {mode:'bundle'}],
   ['混行', '特01 100\n平特马 100', {n:1,amt:200}],
   ['香港店', '香港 01 100', {n:0,hk:1,amt:100}, {shop:'B'}],
   ['重复单', '特01 100', {n:1,amt:100}],
@@ -263,6 +264,7 @@ for(const c of cases){
   const cn = document.getElementById('customerName');
   const inp = document.getElementById('input');
   cn.value = '返水测试'; inp.value = '特01 100'; window.__previewConfirmed = true; doSave(); await WAIT(180);
+  splitTakeAll = 0;
   flownPerPos = {}; flownReal = {};
   flownPerPos['01'] = 100; flownReal['01'] = 100;
   try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){}
@@ -303,7 +305,7 @@ await appendSave('二中二03,10 100');
 setFlyTh(100,1); pteFlyTakeAll=0; lxFlyAmt=50; lxFlyName='龙虎'; autoFlyOn=false;
 let r=getThisRoundFly();
 R.fly.before={n:orders.length,amt:sum(orders),thisRound:r.thisRound,totalFly:r.totalFly,already:r.already,lines:r.lines};
-copySplit();
+sideSplitCopy();
 R.fly.copy={last:_lastFlyCopy?{grand:_lastFlyCopy.grand,orig:_lastFlyCopy.orig}:null,text:(document.getElementById('splitResult')||{}).innerText||''};
 confirmThisRoundFly(); await WAIT(250);
 r=getThisRoundFly();
@@ -338,7 +340,8 @@ gate('锁单后新单应飞100', R.lock.already===600 && R.lock.thisRound===100,
 gate('改阈值已飞不回撤', R.fly.afterTh.already===600 && R.fly.afterTh.thisRound===0, R.fly.afterTh);
 gate('重置后本轮450', R.fly.reset.already===0 && R.fly.reset.thisRound===450, R.fly.reset);
 
-/* ---------- 削峰 / 档位 / 大额 ---------- */
+/* ---------- 削峰 / 档位 / 大额（仅专业版有削峰模块时执行） ---------- */
+if(typeof applyTh==="function" && typeof cutBets==="function" && typeof cutCalc==="function" && typeof cutRender==="function" && typeof cutApply==="function"){
 reset();
 await appendSave('特01 8930');
 await appendSave('特02 3000');
@@ -367,6 +370,8 @@ gate('削峰21有输出', cut21Text.indexOf('削到 21')>-1 && cut21Text.indexOf
 gate('采用21档生效', appliedTh===21 && R.cut.afterTop===21, {appliedTh,afterTop:R.cut.afterTop});
 // 档位不产生 NaN
 gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cut21Text).slice(0,200));
+
+}
 
 /* 真实开奖 321 期结算回放：特41 100 + 二中二15,45 100，全飞，返水3% */
 {
