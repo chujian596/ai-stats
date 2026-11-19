@@ -507,6 +507,20 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   clearErrLog();
 }
 
+/* 存储容量预警：70% 黄色、90% 红色、低占用隐藏 */
+{
+  const W=3.6*1024*1024, C=4.6*1024*1024, L=1*1024*1024;
+  const el=document.getElementById('storageQuotaWarn');
+  storageOK=true;
+  renderStorageQuotaWarning(W);
+  const wOk=!!el && el.style.display==='block' && /3\.60 MB/.test(el.textContent);
+  renderStorageQuotaWarning(C);
+  const cOk=!!el && el.style.display==='block' && el.style.color.indexOf('207')>=0;
+  renderStorageQuotaWarning(L);
+  const lOk=!!el && el.style.display==='none';
+  gate('存储容量预警三档', storageQuotaState(W).level==='warn' && storageQuotaState(C).level==='critical' && storageQuotaState(L).level==='ok' && wOk && cOk && lOk, {w:wOk,c:cOk,l:lOk});
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
