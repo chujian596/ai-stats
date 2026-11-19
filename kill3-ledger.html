@@ -73,6 +73,7 @@
   <div class="bar-row">
     <label for="periodSel" class="stat">期号</label>
     <select id="periodSel"></select>
+    <button id="btnMiss2" style="padding:8px 14px;border:1px solid #b8860b;color:#8a6500;border-radius:10px;background:#fff;font-size:13px;font-weight:600">只看连错≥2</button>
     <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
     <div class="stat" id="summary"></div>
   </div>
@@ -97,7 +98,7 @@
 </div>
 
 <script>
-var LG=null, ALIAS={};
+var LG=null, ALIAS={}, MISS2=false;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function nameOf(r,key){
@@ -177,10 +178,24 @@ function render(){
     ('第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有三肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b> 错 <b>'+(elig.length-wins)+'</b>（命中率 '+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 无三肖栏目 <b>'+(keys.length-elig.length)+'</b>');
 
   var recent=issues.slice(-7);
+  var disp=keys;
+  if(MISS2){
+    disp=keys.filter(function(k){ return curStreak(k).l>=2; });
+  }
   var tb=document.getElementById('rows');
   tb.innerHTML='';
+  if(MISS2){
+    var tip=document.createElement('tr');
+    tip.innerHTML='<td colspan="9" style="background:#fffaf0;color:#8a6500;font-size:12.5px;padding:8px 10px">已筛选：仅显示当前连错≥2 的站（共 '+disp.length+' 站）· 再按一次按钮恢复全部</td>';
+    tb.appendChild(tip);
+  }
+  if(!disp.length){
+    var em=document.createElement('tr');
+    em.innerHTML='<td colspan="9" class="empty" style="padding:14px 10px">本期没有连错≥2 的站</td>';
+    tb.appendChild(em);
+  }
   var miss2=[], miss3=[];
-  keys.forEach(function(k){
+  disp.forEach(function(k){
     var r=per.stations[k];
     var tr=document.createElement('tr');
     tr.className='rowlink';
@@ -254,6 +269,13 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
 }).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
+  var mb=document.getElementById('btnMiss2');
+  if(mb) mb.addEventListener('click',function(){
+    MISS2=!MISS2;
+    mb.textContent=MISS2?'显示全部':'只看连错≥2';
+    mb.style.background=MISS2?'#fffaf0':'#fff';
+    render();
+  });
   var rb=document.getElementById('btnRefresh');
   if(rb) rb.addEventListener('click',function(){
     rb.textContent='刷新中…';
