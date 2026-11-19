@@ -770,6 +770,43 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   renderHKFlyBox();
 }
 
+/* 香港飞单：凑整后飞额、已飞、实际净额必须同一本账；已飞明细可滚动且全部可见 */
+{
+  const oldH=hkOrders, oldAuto=autoFlyOn;
+  const oldMode=localStorage.getItem('product_stats_hk_fly_mode_global_v1');
+  const oldState=localStorage.getItem('product_stats_hk_fly_global_v1');
+  const oldRoundOn=localStorage.getItem('hk_round_on'), oldRoundSel=localStorage.getItem('hk_round_sel');
+  window.myAlert=function(){};
+  localStorage.setItem('product_stats_hk_fly_mode_global_v1','all');
+  localStorage.removeItem('product_stats_hk_fly_global_v1');
+  localStorage.setItem('hk_round_on','1'); localStorage.setItem('hk_round_sel','5');
+  autoFlyOn=true;
+  function _ho(id,codes,amts){ var ca={}; codes.forEach((c,i)=>{ca[c]=amts[i];}); var s=amts.reduce((a,b)=>a+b,0); return {id:id,customer:'叶',raw:codes.join(' '),codes:codes,codeAmts:ca,price:s,amount:s,qty:codes.length,hk:true,originShop:'A',createdAt:new Date().toLocaleString('zh-CN')}; }
+  hkOrders=[
+    _ho('R1',['16','19','28','40'],[68,68,68,68]),
+    _ho('R2',['03','15','39'],[60,60,60]),
+    _ho('R3',['43'],[25]), _ho('R4',['47'],[5]),
+    _ho('R5',['三中三:13,19,17'],[5]), _ho('R6',['三中三:25,29,27'],[5]),
+    _ho('R7',['三中三:31,35,37'],[5]), _ho('R8',['三中三:43,41,49'],[10])
+  ];
+  renderHKFlyBox();
+  const a=hkFlyInfo();
+  gate('香港飞单·凑整原额与飞额分列', a.full===507 && a.fullFly===515 && a.pending===490 && a.auto===25,
+       {full:a.full,fullFly:a.fullFly,pending:a.pending,auto:a.auto});
+  confirmHKFly(); renderHKFlyBox();
+  const b=hkFlyInfo(), actual=hkActualNet(b);
+  gate('香港飞单·已飞含凑整且实际净额含收单', b.flyOut===515 && b.roundGap===8 && b.pending===0 && actual===-8,
+       {flyOut:b.flyOut,roundGap:b.roundGap,pending:b.pending,actual:actual});
+  const html=document.getElementById('hkFlyBox').innerHTML;
+  gate('香港飞单·已飞明细全部可滚动', /已飞明细（13项）/.test(html) && /overflow-y:auto/.test(html) && /grid-template-columns:repeat\(auto-fit,minmax\(150px,1fr\)\)/.test(html) && !/还有 5 项/.test(html));
+  hkOrders=oldH; autoFlyOn=oldAuto;
+  if(oldMode===null) localStorage.removeItem('product_stats_hk_fly_mode_global_v1'); else localStorage.setItem('product_stats_hk_fly_mode_global_v1',oldMode);
+  if(oldState===null) localStorage.removeItem('product_stats_hk_fly_global_v1'); else localStorage.setItem('product_stats_hk_fly_global_v1',oldState);
+  if(oldRoundOn===null) localStorage.removeItem('hk_round_on'); else localStorage.setItem('hk_round_on',oldRoundOn);
+  if(oldRoundSel===null) localStorage.removeItem('hk_round_sel'); else localStorage.setItem('hk_round_sel',oldRoundSel);
+  renderHKFlyBox();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

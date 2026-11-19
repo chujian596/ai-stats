@@ -647,7 +647,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.44-Pro';
+var APP_VER = 'v59.45-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3385,8 +3385,10 @@ function hkFlyPlan(){
 }
 function hkAutoFlyTotal(){
   if(!autoFlyOn) return 0;
-  var all = hkPlanAll(), manual = hkFlyPlan(), tot = 0;
-  Object.keys(all).forEach(function(c){ if(hkIsAutoCode(c)) tot += Number(all[c] || 0); });
+  var all = hkPlanAll(), tot = 0;
+  Object.keys(all).forEach(function(c){
+    if(hkIsAutoCode(c)) tot += Number(hkFlyAmt(all[c]) || 0);   // 自动飞也按凑整后的实付算
+  });
   return tot;
 }
 // 已飞逐号：确认过的 + 自动飞项（两者不重复计）
@@ -3396,7 +3398,7 @@ function hkFlownPlan(){
   if(autoFlyOn){
     var all = hkPlanAll();
     Object.keys(all).forEach(function(c){
-      if(hkIsAutoCode(c) && !(c in out)) out[c] = Number(all[c] || 0);
+      if(hkIsAutoCode(c) && !(c in out)) out[c] = Number(hkFlyAmt(all[c]) || 0);
     });
   }
   return out;
@@ -3507,14 +3509,23 @@ function hkFlyInfo(){
   var st = hkFlyState();
   var plan = hkFlyPlan();          // 手动待确认
   var all = hkPlanAll();           // 全部应飞（含自动飞）
-  var full = 0, pending = 0, flyOut = 0, flyBack = 0, lines = [];
-  Object.keys(all).forEach(function(k){ full += Number(all[k] || 0); });
+  var full = 0, fullFly = 0, auto = 0, pending = 0, flyOut = 0, flyBack = 0, lines = [];
+  Object.keys(all).forEach(function(k){
+    var raw = Number(all[k] || 0), act = Number(hkFlyAmt(raw) || 0);
+    full += raw; fullFly += act;
+    if(autoFlyOn && hkIsAutoCode(k)) auto += act;
+  });
   Object.keys(plan).forEach(function(k){
-    var left = Number(plan[k] || 0) - Number((st.real || {})[k] || 0);
+    var target = Number(hkFlyAmt(plan[k]) || 0);   // 已飞按实际凑整额扣，避免尾差反复飞
+    var left = target - Number((st.real || {})[k] || 0);
     if(left > 0.01) pending += left;
   });
-  var flown = hkFlownPlan();
-  Object.keys(flown).forEach(function(k){ flyOut += Number(flown[k] || 0); });
+  var flown = hkFlownPlan(), rawFlown = 0;
+  Object.keys(flown).forEach(function(k){
+    flyOut += Number(flown[k] || 0);
+    rawFlown += Number(all[k] || flown[k] || 0);   // 对照原始应飞，算凑整差
+  });
+  var roundGap = flyOut - rawFlown;                // 正=多飞自己多付，负=少飞自己留
   var d = hkDrawObj();
   if(d){
     Object.keys(flown).forEach(function(k){
@@ -3528,7 +3539,14 @@ function hkFlyInfo(){
       }
     });
   }
-  return { done: !!st.done, planned: pending, full: full, pending: pending, flyOut: flyOut, flyBack: flyBack, net: flyBack - flyOut, lines: lines, at: st.at || '', flown: flown };
+  return { done: !!st.done, planned: pending, full: full, fullFly: fullFly, pending: pending, flyOut: flyOut, auto: auto, roundGap: roundGap, flyBack: flyBack, net: flyBack - flyOut, lines: lines, at: st.at || '', flown: flown };
+}
+// 香港实际净额 = 收单 − 赔付 − 实际已飞 + 上家赔回；不能只拿「赔回−飞走」冒充实际
+function hkActualNet(fi){
+  var hp = hkPayoutInfo();
+  var sales = hp ? hp.sales : hkTotalAmount();
+  var pay = hp ? hp.pay : 0;
+  return sales - pay - Number((fi||{}).flyOut || 0) + Number((fi||{}).flyBack || 0);
 }
 function hkCopyText(){
   var am = hkCodeAmounts();
@@ -3684,23 +3702,35 @@ function renderHKFlyBox(){
     h += '<div style="padding:3px 4px;background:#fff;border-top:1px solid #f7e3b5;font-size:10px;color:#bbb">香港开奖未到，拉了开奖结果后自动算赔付</div>';
   }
   // 香港飞单独立账：只显示香港口径，不碰澳门上家/削峰
+  var _hkSales = _hp ? _hp.sales : hkTotalAmount();
+  var _hkPay = _hp ? _hp.pay : 0;
+  var _hkActual = hkActualNet(fi);
   h += '<div style="padding:3px 6px;background:#fff;border-top:1px solid #f7e3b5;font-size:11px;color:#666;line-height:1.6">'
-     + '应飞 <b>' + fi.full.toFixed(0) + '</b>　'
-     + '待确认 <b style="color:#cf1322">' + fi.pending.toFixed(0) + '</b>　'
-     + '已飞 <b style="color:#b45309">' + fi.flyOut.toFixed(0) + '</b>　'
-     + '上家赔回 <b style="color:#16a34a">' + fi.flyBack.toFixed(0) + '</b>　'
-     + '香港实际 <b style="color:' + (fi.net>=0?'#16a34a':'#cf1322') + '">' + (fi.net>=0?'+':'') + fi.net.toFixed(0) + '</b>'
+     + '应飞 <b>' + fi.full.toFixed(0) + '</b>'
+     + (Math.abs(fi.fullFly - fi.full) > 0.01 ? '（凑整后 <b style="color:#b45309">' + fi.fullFly.toFixed(0) + '</b>）' : '')
+     + '　待确认 <b style="color:#cf1322">' + fi.pending.toFixed(0) + '</b>　'
+     + '已飞 <b style="color:#b45309">' + fi.flyOut.toFixed(0) + '</b>'
+     + (fi.auto > 0.01 ? '<span style="color:#999;font-weight:400">（含自动飞' + fi.auto.toFixed(0) + '）</span>' : '')
+     + '　上家赔回 <b style="color:#16a34a">' + fi.flyBack.toFixed(0) + '</b>'
+     + '<br>香港实际 <b style="color:' + (_hkActual>=0?'#16a34a':'#cf1322') + '">' + (_hkActual>=0?'+':'') + _hkActual.toFixed(0) + '</b>'
+     + '<span style="color:#999;font-weight:400">（收' + _hkSales.toFixed(0) + ' − 赔' + _hkPay.toFixed(0) + ' − 已飞' + fi.flyOut.toFixed(0) + ' + 赔回' + fi.flyBack.toFixed(0) + '）</span>'
+     + (Math.abs(fi.roundGap) > 0.01 ? '<br><span style="color:#b45309">凑整差 ' + (fi.roundGap>0?'+':'') + fi.roundGap.toFixed(0) + '（' + (fi.roundGap>0?'多飞自己多付，已计入已飞':'少飞自己留，已计入香港实际') + '）</span>' : '')
+     + (hkRoundOn() ? '<br><span style="color:#999">订单行显示凑整后飞额；「收」按客户原单额。</span>' : '')
      + (st.at ? '<br><span style="color:#999">确认时间 ' + st.at + ' · 只记香港飞单账</span>' : '<br><span style="color:#999">点“确认已飞”按号记账，不写澳门飞单</span>')
      + '</div>';
   var _flKeys = Object.keys(fi.flown || {}).filter(function(k){ return Number(fi.flown[k]) > 0.01; });
   if(_flKeys.length){
-    _flKeys.sort();
-    var _shown = _flKeys.slice(0, 8);
-    h += '<div style="padding:3px 6px 5px;background:#fffbe6;border-top:1px dashed #f0d9a8;font-size:10px;color:#8a6d3b;line-height:1.7">'
-       + '<b>已飞明细（' + _flKeys.length + '项）</b>'
-       + _shown.map(function(k){ return '<br>香港 ' + esc(k.replace(/:/g,' ')) + ' 各' + Number(fi.flown[k]).toFixed(0); }).join('')
-       + (_flKeys.length > _shown.length ? '<br>…还有 ' + (_flKeys.length - _shown.length) + ' 项' : '')
-       + '</div>';
+    _flKeys.sort(function(a,b){ return a.localeCompare(b, 'zh-Hans-CN', {numeric:true}); });
+    h += '<div style="padding:4px 6px;background:#fffbe6;border-top:1px dashed #f0d9a8;font-size:10px;color:#8a6d3b">'
+       + '<div style="display:flex;justify-content:space-between;gap:6px;line-height:1.6"><b>已飞明细（' + _flKeys.length + '项）</b><span style="color:#a58b5e">合计 ' + fi.flyOut.toFixed(0) + ' ｜ 上下滑动</span></div>'
+       + '<div style="max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;margin-top:3px;padding-right:2px">'
+       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 10px">'
+       + _flKeys.map(function(k){
+            return '<div style="display:flex;justify-content:space-between;gap:5px;min-width:0;padding:2px 0;border-bottom:1px dotted #f0e0bd;line-height:1.5">'
+                 + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">香港 ' + esc(k.replace(/:/g,' ')) + '</span>'
+                 + '<b style="white-space:nowrap;color:#7a5a1e">各' + Number(fi.flown[k]).toFixed(0) + '</b></div>';
+          }).join('')
+       + '</div></div></div>';
   }
   h += '<div style="display:flex;gap:3px;padding:4px 5px;background:#fff;flex-wrap:wrap">'
      + '<button onclick="copyHKFly()" style="flex:1;min-width:80px;border:1px solid #ccc;background:#fff;color:#333;border-radius:5px;padding:5px;font-size:12px">复制香港单</button>'
