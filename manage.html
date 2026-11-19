@@ -99,8 +99,8 @@
 var BASE = location.protocol === 'file:' ? 'https://chujian596.github.io/ai-stats/' : './';
 
 var SYS = [
-  { key:'stats',   name:'资料统计（主站）',   url:'stats.html',    ver:'v58.33' },
-  { key:'lab',     name:'资料中心',           url:'lab.html',      ver:'v58.20' },
+  { key:'stats',   name:'资料统计（主站）',   url:'stats.html',    ver:'v58.53' },
+  { key:'lab',     name:'资料中心',           url:'lab.html',      ver:'v58.21' },
   { key:'portal',  name:'导航页',             url:'portal.html',   ver:'—' },
   { key:'issues',  name:'问题本',             url:'issues.html',   ver:'—' },
   { key:'apps',    name:'应用登记',           url:'apps.html',     ver:'—' },
@@ -138,9 +138,11 @@ function checkPage(key, url, name, verLabel){
     var dot = 'bad', tag = '打不开';
     if(res.ok){
       dot = 'ok'; tag = 'HTTP ' + res.status;
-      // 页面里若写了版本号，取出来核对
-      if(/v58\.\d+[\w.-]*/.test(res.body)){
-        var m = res.body.match(/v58\.\d+[\w.-]*/);
+      // 优先读 APP_VER；其余页面取第一个 v58/v59 版本号
+      var av = res.body.match(/APP_VER\s*=\s*['"](v[^'"]+)/);
+      if(av){ verLabel = av[1]; }
+      else {
+        var m = res.body.match(/v5[89](?:\.\d+)+(?:-Pro)?/);
         if(m) verLabel = m[0];
       }
     }

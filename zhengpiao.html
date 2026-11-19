@@ -232,7 +232,8 @@ const prev = DATA['上一期'];
 document.getElementById('meta').innerHTML =
   `<span class="tag"><span class="dot ${prev['波色']}"></span>上期 ${prev['期']} 特码 ${prev['特码']} ${prev['生肖']}</span>`
   + `<span class="tag">兵 ${DATA['统计']['兵']}</span>`
-  + `<span class="tag">触发 ${DATA['统计']['触发']}</span>`;
+  + `<span class="tag">触发 ${DATA['统计']['触发']}</span>`
+  + `<span class="tag">静态快照 · ${DATA['期']}期 · 开奖后需重灌</span>`;
 
 /* 四档：方形色块 */
 const TIERS=[12,14,16,18];
