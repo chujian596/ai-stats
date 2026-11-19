@@ -557,7 +557,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.11';
+var APP_VER = 'v59.12';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -5575,6 +5575,7 @@ renderAll();
   restoreIfNeeded();
 renderAll();
   switchTab('rank');
+  setTimeout(function(){ try{ applyAutoStableTarget(true); }catch(e){} }, 350);
   // 保存后自动展开平特肖列表
   setTimeout(() => {
     const sl = document.getElementById('singlesList');
@@ -6236,6 +6237,41 @@ function toggleRiskBox(){
   var e = document.getElementById('riskAnalysisBox');
   if(e) e.style.display = riskBoxOpen ? '' : 'none';
 }
+function applyAutoStableTarget(silent){
+  try{
+    if(localStorage.getItem('autoStable') !== '1') return;
+    var target = Number(window.__autoStableTarget) || 0;
+    if(target <= 0) return;
+    splitTakeAll = target;
+    saveSplitAll();
+    renderSplit();
+    renderRisk();
+  }catch(e){ if(!silent) myAlert('自动稳健重算失败：' + e.message); }
+}
+function recalcAutoStableOnce(){ applyAutoStableTarget(false); }
+function toggleAutoStable(v){
+  try{
+    if(v){
+      var target = Number(window.__autoStableTarget) || 0;
+      if(target <= 0){
+        try{ localStorage.setItem('autoStable','0'); }catch(e){}
+        myAlert('这盘没有可自动削的档位；请先看本盘建议，或手动定档。');
+        renderRisk();
+        return;
+      }
+      try{ if(localStorage.getItem(sk('prev_th_before_auto'))===null) localStorage.setItem(sk('prev_th_before_auto'), String(splitTakeAll)); }catch(e){}
+      localStorage.setItem('autoStable','1');
+      applyAutoStableTarget(true);
+    } else {
+      try{ localStorage.setItem('autoStable','0'); }catch(e){}
+      try{
+        var p=localStorage.getItem(sk('prev_th_before_auto'));
+        if(p!==null){ var pp=parseFloat(p); splitTakeAll=(isFinite(pp)&&(pp===0||pp>=5))?pp:0; localStorage.removeItem(sk('prev_th_before_auto')); }
+      }catch(e){}
+      saveSplitAll(); renderSplit(); renderRisk();
+    }
+  }catch(e){ myAlert('自动稳健切换失败：' + e.message); }
+}
 function renderRisk(){
   const box = document.getElementById('riskBody');
   if(!box) return;
@@ -6454,15 +6490,13 @@ function renderRisk(){
   const rec0 = findT(0);
   const rec20 = findT(-totalSales*0.2);
   const rec40 = findT(-totalSales*0.4);
-  // 自动稳健：开了就把阈值自动设为稳健值（最坏亏≤当天20%）
-  let autoStable = true;
-  try { autoStable = localStorage.getItem('autoStable') !== '0'; } catch(e){}
-  if(autoStable && Math.round(splitTakeAll) !== rec20){
-    splitTakeAll = rec20; saveSplitAll();
-    renderSplit(); return renderRisk();
-  }
+  // 自动稳健：只在勾选那一刻 / 保存新单后落一次，不在每次渲染追值
+  let autoStable = false;
+  try { autoStable = localStorage.getItem('autoStable') === '1'; } catch(e){}
+  window.__autoStableTarget = rec20;
+  window.__autoStableTotal = totalSales;
   h += `<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:#333;cursor:pointer">`
-    + `<input type="checkbox" id="autoStableChk" ${autoStable?'checked':''} onchange="var v=this.checked;try{localStorage.setItem('autoStable',v?'1':'0')}catch(e){};if(v){splitTakeAll=${rec20};saveSplitAll();renderSplit();}renderRisk()" style="width:16px;height:16px">`
+    + `<input type="checkbox" id="autoStableChk" ${autoStable?'checked':''} onchange="toggleAutoStable(this.checked)" style="width:16px;height:16px">`
     + `自动设为稳健阈值（最坏亏≤当天20%）</label>`;
   h += `<div style="display:flex;gap:6px;margin-top:6px">`;
   [{label:'稳健',val:rec20,loss:'亏≤20%'},{label:'宽松',val:rec40,loss:'亏≤40%'}].forEach(p => {
