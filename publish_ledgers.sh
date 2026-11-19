@@ -5,7 +5,8 @@ python3 build_sites_current.py || exit 1
 python3 build_kill3_ledger.py || exit 1
 python3 build_site_registry.py || exit 1
 python3 build_current_recommend.py || exit 1
-git add data/sites-current.json data/kill3-ledger.json data/site-registry.json data/current-recommend.json 2>/dev/null
+python3 build_position_stats.py || exit 1
+git add data/sites-current.json data/kill3-ledger.json data/site-registry.json data/current-recommend.json data/zodiac-position-stats.json 2>/dev/null
 if ! git diff --cached --quiet; then
   git -c user.name=bot -c user.email=bot@local commit -q -m "台账自动重建：$(date '+%Y-%m-%d %H:%M')"
   git push -q origin main && echo "PUSHED $(date '+%F %T')"
