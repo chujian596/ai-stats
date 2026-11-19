@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.45-Pro';
+var APP_VER = 'v59.34-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -837,36 +837,45 @@ function _verCmp(a, b){
   for(var i=0;i<3;i++){ if(x[i] !== y[i]) return x[i] > y[i] ? 1 : -1; }
   return 0;
 }
-// 三个来源同时问，取最新的那个（GitHub raw 不吃 CDN 缓存）
+// Pro 只作为显示后缀；版本比较只看数字核心，避免 v59.33 与 v59.03.45-Pro 互判
+function _verLabel(v){
+  var s = String(v||'').trim();
+  return /Pro/i.test(APP_VER) ? s : s.replace(/-Pro$/i,'');
+}
+// 唯一版本源：GitHub raw 的 version.txt；raw 不通时退回当前站点同源文件。
+// 不再把备用站/测试页的版本号一起取最大值，避免某个脏版本导致无限提示更新。
 function fetchRemoteVer(){
-  var isPro = /Pro/.test(APP_VER);
-  var verFile = isPro ? 'version.txt' : 'version-client.txt';
+  var verFile = 'version.txt';
   var urls = [
     'https://raw.githubusercontent.com/chujian596/ai-stats/main/' + verFile + '?t=' + Date.now(),
-    'https://aistats-9uo.pages.dev/' + verFile + '?t=' + Date.now(),
-    verFile + '?t=' + Date.now()
+    _siteBase().replace(/\/$/,'') + '/' + verFile + '?t=' + Date.now()
   ];
-  return Promise.all(urls.map(function(u){
-    return fetch(u, {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).catch(function(){ return ''; });
-  })).then(function(list){
-    var best = '';
-    list.forEach(function(v){
-      v = String(v||'').trim();
-      if(!/^v?\d+(\.\d+)+/.test(v)) return;
-      // 渠道校验：客户版只认不带 -Pro 的版本，专业版只认带 -Pro 的版本，防止两套版本号互相当成新版
-      if(isPro && !/Pro/i.test(v)) return;
-      if(!isPro && /Pro/i.test(v)) return;
-      if(_verCmp(v, best) > 0) best = v;
-    });
-    if(best) return best;
-    throw new Error('no version source');
-  });
+  function valid(v){
+    v = String(v||'').trim();
+    if(!/^v\d{2}\.\d+(?:\.\d+)?(?:-Pro)?$/.test(v)) return '';
+    if(/Test/i.test(v)) return '';
+    return v;
+  }
+  function next(i){
+    if(i >= urls.length) return Promise.reject(new Error('no version source'));
+    return fetch(urls[i], {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.text() : ''; })
+      .then(function(t){
+        var v = valid(t);
+        if(v) return v;
+        throw new Error('bad version');
+      })
+      .catch(function(){ return next(i+1); });
+  }
+  return next(0);
 }
-function _onlineURL(){
-  // 更新只跳权威主站：旧备份站(aistats-9uo.pages.dev)可能是旧部署，跳回去会形成「新版→旧版→再提示」的死循环
+function _onlineURL(target){
+  // 更新只跳权威主站：旧备份站可能是旧部署，跳回去会形成「新版→旧版→再提示」的死循环
   var isPro = /Pro/.test(APP_VER);
   var base = 'https://chujian596.github.io/ai-stats';
-  return base + (isPro ? '/app-pro.html' : '/app.html') + '?v=' + Date.now();
+  var url = base + (isPro ? '/app-pro.html' : '/app.html') + '?v=' + Date.now();
+  if(target) url += '&target=' + encodeURIComponent(normVer(target));
+  return url;
 }
 // 手机里装的壳(file://)：先本地起，能连通就自动切到线上最新版，网页改动以后不用重装包
 (function(){
@@ -883,7 +892,11 @@ function _onlineURL(){
 // 发现新版时：跳到带版本号的网址，硬绕开浏览器缓存（普通reload会拿旧缓存）
 function hardUpdateTo(v){
   var done = false;
-  function go(){ if(done) return; done = true; location.replace(_onlineURL()); }
+  function go(){
+    if(done) return; done = true;
+    try{ localStorage.setItem('aiUpdateTarget', normVer(v)); }catch(e){}
+    location.replace(_onlineURL(v));
+  }
   // 先清 PWA / 缓存，清完再跳，最多等 1.2 秒
   var jobs = [];
   if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
@@ -906,16 +919,29 @@ document.addEventListener('DOMContentLoaded', function(){
   if(s) s.textContent = APP_VER;
 });
 // 版本检查：只提示，绝不自动跳转
-fetchRemoteVer()
-  .then(function(v){
-    if(_verCmp(v, APP_VER) > 0){
-      var bar=document.createElement('div');
-      bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
-      bar.textContent='发现新版本 '+v+'，点这里更新';
-      bar.onclick=function(){ hardUpdateTo(v); };
-      document.body.appendChild(bar);
-    }
-  }).catch(function(){});
+(function(){
+  var pending = '';
+  try{ pending = normVer(localStorage.getItem('aiUpdateTarget') || ''); }catch(e){}
+  if(pending && _verCmp(APP_VER, pending) < 0){
+    var bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b45309;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
+    bar.textContent = '更新未生效：目标 ' + pending + '，当前 ' + APP_VER + '。点这里重试';
+    bar.onclick = function(){ hardUpdateTo(pending); };
+    document.body.appendChild(bar);
+    return;
+  }
+  if(pending){ try{ localStorage.removeItem('aiUpdateTarget'); }catch(e){} }
+  fetchRemoteVer()
+    .then(function(v){
+      if(_verCmp(v, APP_VER) > 0){
+        var bar=document.createElement('div');
+        bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
+        bar.textContent='发现新版本 '+_verLabel(v)+'，点这里更新';
+        bar.onclick=function(){ hardUpdateTo(v); };
+        document.body.appendChild(bar);
+      }
+    }).catch(function(){});
+})();
 // 生肖映射：号码→生肖
 var NUM2ZODIAC = {};
 [['马',[1,13,25,37,49]],['蛇',[2,14,26,38]],['龙',[3,15,27,39]],['兔',[4,16,28,40]],['虎',[5,17,29,41]],['牛',[6,18,30,42]],['鼠',[7,19,31,43]],['猪',[8,20,32,44]],['狗',[9,21,33,45]],['鸡',[10,22,34,46]],['猴',[11,23,35,47]],['羊',[12,24,36,48]]].forEach(function(z){ z[1].forEach(function(n){ NUM2ZODIAC[n] = z[0]; }); });
@@ -5572,6 +5598,13 @@ function refreshPage(){
   try { if(typeof renderSplitSide === 'function') renderSplitSide(); } catch(e){}
   var btn = document.getElementById('refreshBtn');
   if(btn) btn.textContent = '检查中…';
+  var pending = '';
+  try{ pending = normVer(localStorage.getItem('aiUpdateTarget') || ''); }catch(e){}
+  if(pending && _verCmp(APP_VER, pending) < 0){
+    if(btn) btn.textContent = '刷新';
+    myAlert('上次更新未完成：目标 ' + pending + '，当前 ' + APP_VER + '。请点顶部提示重试，或强制刷新页面。');
+    return;
+  }
   fetchRemoteVer()
     .then(function(v){
       var remote = String(v || '').trim();
@@ -5580,15 +5613,15 @@ function refreshPage(){
         if(btn) btn.textContent = '刷新';
         logErr('version', '线上 ' + remote + ' / 本地 ' + APP_VER);
         myChoice('有新版本',
-          '线上已更新到 <b>' + remote + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
+          '线上已更新到 <b>' + _verLabel(remote) + '</b><br>你现在用的是 <b>' + APP_VER + '</b>',
           ['现在更新到最新', '保持当前版本，以后不提醒', '这次先不动'],
           function(i){
             if(i === 0){
               localStorage.removeItem('aiProPinVer');
-              location.replace(_onlineURL());
+              hardUpdateTo(remote);
             } else if(i === 1){
-              localStorage.setItem('aiNoRemindVer', normVer(APP_VER));
-              myAlert('已设为不再提醒。\n新版照样会自动生效，只是不再弹窗问你要不要更新。');
+              localStorage.setItem('aiNoRemindVer', normVer(remote));
+              myAlert('已设为不再提醒这个版本。\n以后有更新的版本仍会提示一次。');
             }
           });
       } else if(btn){
