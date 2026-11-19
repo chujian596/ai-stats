@@ -29,6 +29,7 @@ def main():
 
     periods = {}
     tot_votes = Counter()
+    open_count = Counter()
     special_killed_times = 0
     n_periods = 0
 
@@ -53,6 +54,8 @@ def main():
             "rank": [{"z": z, "kill": n} for z, n in rank_of(votes)],
         }
         tot_votes.update(votes)
+        if actual:
+            open_count[actual] += 1
         special_killed_times += special_killed
         n_periods += 1
 
@@ -63,6 +66,7 @@ def main():
         "total": {
             "periods": n_periods,
             "killVotes": {z: tot_votes.get(z, 0) for z in ZOD},
+            "openCount": {z: open_count.get(z, 0) for z in ZOD},
             "specialKilledTimes": special_killed_times,
         },
     }
