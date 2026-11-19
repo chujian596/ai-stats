@@ -37,6 +37,13 @@
   .na{color:var(--sub);white-space:nowrap}
   .streak{white-space:nowrap;font-variant-numeric:tabular-nums}
   .streak.w{color:var(--green)} .streak.l{color:var(--red)}
+  .alert2{color:#b8860b;font-weight:700}
+  .alert3{color:var(--red);font-weight:800}
+  tr.rowalert{background:#fff7f6}
+  .alertbox{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#fff7f6;border:1px solid #f3c9c6;font-size:12.5px;line-height:1.9}
+  .alertbox b{color:var(--red)}
+  .alertbox.a2{background:#fffaf0;border-color:#ecd9a8}
+  .alert-chip{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:8px;background:#fff;border:1px solid var(--line)}
   .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
   .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
   .trail{display:flex;gap:3px;flex-wrap:wrap}
@@ -59,13 +66,15 @@
 <div class="wrap">
   <header>
     <h1>每站九肖台账</h1>
-    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。点任意一行可展开该站逐期明细复盘。</div>
+    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。点任意一行可展开该站逐期明细复盘。</div>
   </header>
 
   <div class="bar-row">
     <select id="periodSel"></select>
     <div class="stat" id="summary"></div>
   </div>
+
+  <div class="alertbox a2" id="missAlert" style="display:none"></div>
 
   <div class="card">
     <table>
@@ -161,6 +170,7 @@ function render(){
   var recent=issues.slice(-7);
   var tb=document.getElementById('rows');
   tb.innerHTML='';
+  var miss2=[], miss3=[];
   keys.forEach(function(k){
     var r=per.stations[k];
     var tr=document.createElement('tr');
@@ -184,9 +194,17 @@ function render(){
       var hitTx=r.hit?'中':'错';
       var chgBadge=r.changed?'<span class="chg">改料</span>':'';
       var wCell=cs.w?('<span class="streak w">'+cs.w+'</span>'):'<span class="streak na">0</span>';
-      var lCell=cs.l?('<span class="streak l">'+cs.l+'</span>'):'<span class="streak na">0</span>';
+      var lCell;
+      if(cs.l>=3){ lCell='<span class="streak l alert3">'+cs.l+' ⚠</span>'; }
+      else if(cs.l===2){ lCell='<span class="streak l alert2">'+cs.l+'</span>'; }
+      else { lCell='<span class="streak na">0</span>'; }
       var nm=nameOf(r,k);
       var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
+      if(cs.l>=2){
+        tr.classList.add('rowalert');
+        var chip='<span class="alert-chip">'+nm+'（连错'+cs.l+'）</span>';
+        if(cs.l>=3) miss3.push(chip); else miss2.push(chip);
+      }
       tr.innerHTML='<td>'+nmHtml+'</td>'+
         '<td>'+zsHtml(r.zodiacs)+'</td>'+
         '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chgBadge+'</td>'+
@@ -207,6 +225,18 @@ function render(){
     tb.appendChild(tr);
     tb.appendChild(det);
   });
+  var alertBox=document.getElementById('missAlert');
+  if(miss3.length||miss2.length){
+    var parts=[];
+    if(miss3.length) parts.push('<b>连错≥3期（重点提醒）：</b>'+miss3.join(''));
+    if(miss2.length) parts.push('连错2期：'+miss2.join(''));
+    alertBox.innerHTML=parts.join('<br>');
+    alertBox.style.display='block';
+    alertBox.classList.toggle('a2',miss3.length===0);
+  } else {
+    alertBox.style.display='none';
+  }
+
   document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
 }
 
