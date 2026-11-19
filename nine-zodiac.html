@@ -80,6 +80,7 @@
   .rank-detail{padding:10px 14px 12px;background:#fafbfc;border-bottom:1px solid var(--line)}
   .rank-detail table{min-width:0}
   .rank-chip{display:inline-block;margin:2px 5px 2px 0;padding:2px 8px;border-radius:8px;background:#f0f2f5;font-size:12px}
+  .cum-toggle{padding:11px 14px;font-size:12.5px;color:var(--blue);font-weight:600;cursor:pointer;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -116,10 +117,14 @@
     </div>
 
     <div class="card" id="rankCard">
-      <div class="rc-title">首肖累计排行</div>
-      <div class="rc-sub">每站九肖栏「第一个肖」按站次累计；点任意一行展开该肖各期各站明细。</div>
-      <div class="rc-sub" id="rankCur"></div>
-      <div id="rankList"></div>
+      <div class="rc-title" id="rankTitle">本期首肖排行</div>
+      <div class="rc-sub">本期各站把哪个肖放在第一位，按站次排名；点一行看是哪些站推的它。</div>
+      <div id="curRankList"></div>
+      <div class="cum-toggle" id="cumToggle" onclick="toggleCum()">历史累计参考 ▾</div>
+      <div id="cumWrap" style="display:none">
+        <div class="rc-sub" style="margin-top:6px">跨全部已记录期数累计，仅供参考。</div>
+        <div id="rankList"></div>
+      </div>
     </div>
   </div>
 
@@ -195,23 +200,18 @@ function firstPicks(){
   return out;
 }
 
-function renderRank(cur){
-  var picks=firstPicks();
-  var agg={};
-  picks.forEach(function(p){ (agg[p.z]=agg[p.z]||[]).push(p); });
-  var rows=Object.keys(agg).map(function(z){return {z:z, list:agg[z]};})
+function pickRows(agg){
+  return Object.keys(agg).map(function(z){return {z:z, list:agg[z]};})
     .sort(function(a,b){return b.list.length-a.list.length || a.z.localeCompare(b.z,'zh');});
-  var total=picks.length, max=rows.length?rows[0].list.length:1;
+}
 
-  var curAgg={};
-  picks.forEach(function(p){ if(p.issue===cur) curAgg[p.z]=(curAgg[p.z]||0)+1; });
-  var curKeys=Object.keys(curAgg).sort(function(a,b){return curAgg[b]-curAgg[a];});
-  document.getElementById('rankCur').innerHTML=curKeys.length?
-    ('本期首肖：'+curKeys.map(function(z){return '<span class="rank-chip">'+z+' '+curAgg[z]+'</span>';}).join('')):
-    '本期暂无首肖记录';
-
-  var list=document.getElementById('rankList');
-  list.innerHTML='';
+function renderRankList(container, rows, total, titleFn){
+  container.innerHTML='';
+  if(!rows.length){
+    container.innerHTML='<div class="rc-sub" style="padding:0 14px 12px">本期暂无首肖记录</div>';
+    return;
+  }
+  var max=rows[0].list.length;
   rows.forEach(function(row,idx){
     var no=idx+1, cls=no<=3?'t'+no:'';
     var pct=total?Math.round(row.list.length/total*100):0;
@@ -221,17 +221,36 @@ function renderRank(cur){
     entry.innerHTML='<div class="rank-no '+cls+'">'+no+'</div>'+
       '<div class="rank-z">'+row.z+'</div>'+
       '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
-      '<div class="rank-c">'+row.list.length+' 次 · '+pct+'%</div>';
+      '<div class="rank-c">'+row.list.length+' 站 · '+pct+'%</div>';
     var det=document.createElement('div');
     det.className='rank-detail'; det.style.display='none';
     var detRows=row.list.slice().reverse().map(function(p){
-      return '<tr><td>'+p.issue+'期</td><td>'+p.name+'<div class="sys">'+p.siteKey+' · '+p.system+'</div></td><td>'+p.z+'</td></tr>';
+      return '<tr><td>'+p.issue+'期</td><td>'+p.name+'<div class="sys">'+p.siteKey+' · '+p.system+'</div></td></tr>';
     }).join('');
-    det.innerHTML='<div class="det-title">'+row.z+' 共 '+row.list.length+' 站次（按期倒序）</div>'+
-      '<table class="det-table"><thead><tr><th>期号</th><th>站名</th><th>首肖</th></tr></thead><tbody>'+detRows+'</tbody></table>';
+    det.innerHTML='<div class="det-title">'+titleFn(row)+'</div>'+
+      '<table class="det-table"><thead><tr><th>期号</th><th>站名（站号 · 系统）</th></tr></thead><tbody>'+detRows+'</tbody></table>';
     entry.addEventListener('click',function(){ det.style.display=det.style.display==='none'?'':'none'; });
-    list.appendChild(entry); list.appendChild(det);
+    container.appendChild(entry); container.appendChild(det);
   });
+}
+
+function toggleCum(){
+  var w=document.getElementById('cumWrap'), t=document.getElementById('cumToggle');
+  var open=w.style.display==='none';
+  w.style.display=open?'block':'none';
+  t.textContent=open?'历史累计参考 ▴':'历史累计参考 ▾';
+}
+
+function renderRank(cur){
+  var picks=firstPicks();
+  var curPicks=picks.filter(function(p){return p.issue===cur;});
+  var curAgg={}; curPicks.forEach(function(p){ (curAgg[p.z]=curAgg[p.z]||[]).push(p); });
+  var histAgg={}; picks.forEach(function(p){ (histAgg[p.z]=histAgg[p.z]||[]).push(p); });
+  document.getElementById('rankTitle').textContent='本期首肖排行 · 第'+cur+'期';
+  renderRankList(document.getElementById('curRankList'), pickRows(curAgg), curPicks.length,
+    function(row){ return row.z+' 本期被 '+row.list.length+' 站放在第一位'; });
+  renderRankList(document.getElementById('rankList'), pickRows(histAgg), picks.length,
+    function(row){ return row.z+' 累计 '+row.list.length+' 站次（按期倒序）'; });
 }
 
 function render(){
