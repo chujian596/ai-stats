@@ -316,6 +316,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:17px;font-weight:600;margin-bottom:20px;text-align:center">设置</div>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin-bottom:10px;margin-left:4px">外观</div>
       <div id="bgStyles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px"></div>
+      <button id="previewToggleBtn" onclick="togglePreview()" aria-pressed="true" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;margin-bottom:6px">保存前预览：开</button>
+      <div style="font-size:12px;color:var(--modalLabel,#8E8E93);margin:0 4px 16px;line-height:1.6">默认开启。关闭后点保存直接入账，不再弹预览；建议保留开启。</div>
       <button onclick="openHelp()" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;margin-bottom:10px">使用说明</button>
       <button onclick="closeSettings()" style="width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;background:#fff;color:#333;font-size:16px;font-weight:600;margin-bottom:10px">完成</button>
       <div style="font-size:13px;color:var(--modalLabel,#8E8E93);margin:24px 0 10px 4px">数据</div>
@@ -338,7 +340,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">一、录入订单（基础操作）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 顶部先选客户：<b style="color:var(--modalText,#fff)">"客户:散客"</b> 下拉切换，选谁就记到谁名下<br>
-        2. 在输入框写订单，点 <b style="color:var(--modalText,#fff)">保存</b> 入账（<b style="color:var(--modalText,#fff)">回车=换行</b>，不是保存）<br>
+        2. 在输入框写订单，点 <b style="color:var(--modalText,#fff)">保存</b> 先弹预览，核对后点 <b style="color:var(--modalText,#fff)">确认保存</b> 才入账（<b style="color:var(--modalText,#fff)">回车=换行</b>，不是保存）<br>
+        2.1 设置里可关「保存前预览」；关掉后点保存直接入账<br>
         3. 一笔一行，可多行一次保存<br>
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
@@ -557,7 +560,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.12';
+var APP_VER = 'v59.13';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -4823,6 +4826,46 @@ function warnBatchNotSaved(){
   } catch(e){}
 }
 
+
+/* ===== 保存前预览（客户版 v59.13）：默认开，可在设置里关 ===== */
+var PREVIEW_KEY = 'ai_preview_enabled';
+function previewEnabled(){
+  try{ var v = localStorage.getItem(PREVIEW_KEY); return v === '0' ? false : true; }catch(e){ return true; }
+}
+function renderPreviewToggle(){
+  var b = document.getElementById('previewToggleBtn');
+  if(!b) return;
+  var on = previewEnabled();
+  b.textContent = '保存前预览：' + (on ? '开' : '关');
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+function togglePreview(){
+  try{ localStorage.setItem(PREVIEW_KEY, previewEnabled() ? '0' : '1'); }catch(e){}
+  window.__previewEnabled = previewEnabled();
+  renderPreviewToggle();
+  try{ myAlert('保存前预览已' + (previewEnabled() ? '开启' : '关闭')); }catch(e){}
+}
+window.__previewEnabled = previewEnabled();
+
+function showPreviewDlg(info, onOk, onCancel){
+  const ov = document.createElement('div');
+  ov.className = 'ai-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  const rows = (info.lines || []).map(x => '<div style="text-align:left;font-size:12px;color:#555;padding:3px 0;border-bottom:1px dashed #eee">' + x + '</div>').join('');
+  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:16px 20px 8px;font-size:16px;font-weight:700;text-align:center;color:#333">保存前预览</div>'
+    + '<div style="padding:0 20px 10px;font-size:12px;color:#666;text-align:center">' + info.customer + ' · ' + info.shop + '</div>'
+    + '<div style="padding:0 20px 12px;max-height:240px;overflow:auto">' + rows + '</div>'
+    + '<div style="padding:10px 20px 14px;text-align:center;font-size:15px;font-weight:700;color:#7c3aed">合计 ' + Number(info.total || 0).toFixed(2) + ' 元</div>'
+    + '<div style="display:flex;border-top:1px solid #eee">'
+    + '<button id="pvCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
+    + '<button id="pvOk" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确认保存</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#pvCancel').onclick = function(){ ov.remove(); if(onCancel) onCancel(); };
+  ov.querySelector('#pvOk').onclick = function(){ ov.remove(); if(onOk) onOk(); };
+}
+
 function doSave(overrideText){
   /* ===== 解析默认值，只改这三行就能改行为；设成 null 则恢复逐次询问 =====
      waveAmount : 红波10 / 单20 / 大15  → 'perNum' 每号10（红波=17号共170）
@@ -5441,6 +5484,7 @@ renderAll();
     });
   }
 
+  const _commitSave = function(){
   const customer = document.getElementById('customerName').value.trim() || '散客';
   const created = new Date().toLocaleString('zh-CN', { hour12: false });
   const results = [];
@@ -5581,6 +5625,34 @@ renderAll();
     const sl = document.getElementById('singlesList');
     if(sl) sl.style.display = 'block';
   }, 50);
+  }; // _commitSave end
+
+  // 保存前预览：确认后才真正入账；取消不写任何订单
+  if(previewEnabled() && !window.__previewConfirmed){
+    var _pvTotal = 0, _pvLines = [];
+    parsed.forEach(function(p){
+      var q = p.codes.length;
+      var unit = p.isPer ? p.price : (p.price / q);
+      var amount = q * unit;
+      _pvTotal += amount;
+      var hkLine = !!(p.hk || shop === 'B');
+      _pvLines.push((hkLine ? '香港单 ' : '') + (p.raw || p.codes.join(' ')) + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
+    });
+    var _pvCustomer = document.getElementById('customerName').value.trim() || '散客';
+    showPreviewDlg({
+      customer: _pvCustomer,
+      shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
+      lines: _pvLines,
+      total: _pvTotal
+    }, function(){
+      window.__previewConfirmed = true;
+      try { _commitSave(); } finally { window.__previewConfirmed = false; }
+    }, function(){
+      window.__previewConfirmed = false;
+    });
+    return;
+  }
+  _commitSave();
   } catch(err){
     myAlert('保存出错：' + err.message + '\n\n' + err.stack);
   }
@@ -7347,6 +7419,7 @@ function applyTheme(){
 
 function openSettings(){
   document.getElementById('settingsModal').style.display='flex';
+  try{ renderPreviewToggle(); }catch(e){}
   let drawInfo = '当前没有开奖记录';
   try {
     const d = JSON.parse(localStorage.getItem(sk('lastDraw'))||'null');
