@@ -410,6 +410,16 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   localStorage.setItem('rebateOn','0'); reset(); lastDraw=null;
 }
 
+/* 香港店：orders 与 hkOrders 是同一批港单，活动订单必须去重 */
+{
+  reset(); shop='B';
+  const o={id:'hk-dedupe-test',customer:'测试',amount:100,codes:['01'],price:100,qty:1,hk:true,raw:'特01 100'};
+  orders=[o]; hkOrders=[o];
+  const dr=todayReconData();
+  gate('香港店同单不双计', activeOrders().length===1 && dr.sales===100 && dr.detail===100, {active:activeOrders().length,sales:dr.sales,detail:dr.detail});
+  reset(); shop='A';
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

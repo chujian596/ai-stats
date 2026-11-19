@@ -572,7 +572,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.16';
+var APP_VER = 'v59.17';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -6303,7 +6303,23 @@ function showTodayRecon(){
   ov.querySelector('#trClose').onclick = function(){ ov.remove(); };
 }
 
-function activeOrders(){ return orders.concat(hkOrders); }
+function activeOrders(){
+  // 香港店 orders 与 hkOrders 指向同一批港单，合并时必须去重，避免对账/盈亏双计
+  var seenIds = {}, seenSigs = {}, out = [];
+  orders.concat(hkOrders).forEach(function(o){
+    if(!o) return;
+    if(o.id){
+      if(seenIds[o.id]) return;
+      seenIds[o.id] = 1;
+    } else {
+      var sig = [o.createdAt || o.ts || '', o.customer || '', Number(o.amount) || 0, (o.codes || []).join(',')].join('|');
+      if(seenSigs[sig]) return;
+      seenSigs[sig] = 1;
+    }
+    out.push(o);
+  });
+  return out;
+}
 
 function _orderTs(o){
   if(o && o.ts){ var t = Date.parse(o.ts); if(!isNaN(t)) return t; }
