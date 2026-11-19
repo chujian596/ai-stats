@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.36-Pro';
+var APP_VER = 'v59.03.37-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -713,6 +713,7 @@ function buildDiagnostics(){
       products: (typeof products !== 'undefined' ? products.length : null),
       customers: (typeof roster !== 'undefined' ? roster.length : null)
     },
+    poolAudit: auditOrderPools(),
     flags: {
       preview: (typeof previewEnabled === 'function' ? previewEnabled() : null),
       autoFlyOn: (typeof autoFlyOn !== 'undefined' ? autoFlyOn : null),
@@ -5702,6 +5703,21 @@ function _dupNorm(s){
     .replace(/[\s,，、;；:：\-—_.。+·\/\\|]/g, '')
     .replace(/[元米块圆]/g, '')
     .toLowerCase();
+}
+
+function auditOrderPools(){
+  var raw = [];
+  try { raw = (orders || []).concat(typeof hkOrders !== 'undefined' ? (hkOrders || []) : []); } catch(e){}
+  var ids = {}, dups = {}, noId = 0, emptyCodes = 0, hkInMain = 0, nonHkInHK = 0;
+  raw.forEach(function(o){
+    if(!o) return;
+    if(o.id){ if(ids[o.id]) dups[o.id] = (dups[o.id] || 1) + 1; else ids[o.id] = 1; } else noId++;
+    if(!Array.isArray(o.codes) || !o.codes.length) emptyCodes++;
+    if(o.hk) hkInMain++;
+  });
+  try { (hkOrders || []).forEach(function(o){ if(o && !o.hk) nonHkInHK++; }); } catch(e){}
+  var dupIds = Object.keys(dups);
+  return { raw: raw.length, active: activeOrders().length, duplicateIds: dupIds.slice(0, 20), duplicateCount: dupIds.length, noId: noId, emptyCodes: emptyCodes, hkInMain: hkInMain, nonHkInHK: nonHkInHK };
 }
 
 function _orderTs(o){

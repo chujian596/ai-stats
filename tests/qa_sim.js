@@ -559,6 +559,21 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('备份携带港单', _ok, {hk:_hk});
 }
 
+/* 订单池自检：重复 id、无 id、空明细可被诊断发现 */
+{
+  const _o=orders, _h=hkOrders;
+  let _ok=false, _a=null;
+  try{
+    orders=[{id:'AUD1',codes:['01'],amount:100},{id:'AUD1',codes:['01'],amount:100},{id:'AUD2',codes:[],amount:200}];
+    hkOrders=[{id:'AUDH',hk:true,codes:['02'],amount:300}];
+    _a=auditOrderPools();
+    const _diag=buildDiagnostics();
+    _ok=(_a.duplicateCount===1 && _a.active===3 && _a.emptyCodes===1 && _a.nonHkInHK===0 && !!_diag.poolAudit && _diag.poolAudit.duplicateCount===1);
+  }catch(e){ _ok=false; }
+  finally{ orders=_o; hkOrders=_h; saveOrders(); renderAll(); }
+  gate('订单池自检', _ok, _a);
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
