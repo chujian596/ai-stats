@@ -7749,8 +7749,10 @@ function macDrawGlobal(){
   try{
     var d = JSON.parse(localStorage.getItem(MAC_DRAW_GLOBAL_KEY) || 'null');
     if(d && d.regularNums) return d;
-    // 首次升级：把 A 店旧澳门开奖搬到全局，B 店看澳门单时才有开奖可算
-    var old = JSON.parse(localStorage.getItem('lastDraw_shopA') || localStorage.getItem('lastDraw') || 'null');
+    // 首次升级：只认 A 店旧澳门开奖，绝不拿 B 店香港开奖冒充澳奖
+    var _oldA = localStorage.getItem('lastDraw_shopA');
+    if(!_oldA && typeof shop !== 'undefined' && shop === 'A') _oldA = localStorage.getItem('lastDraw');
+    var old = JSON.parse(_oldA || 'null');
     if(old && old.regularNums){
       try{ localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(old)); }catch(e){}
       return old;
