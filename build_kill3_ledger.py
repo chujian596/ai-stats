@@ -53,6 +53,7 @@ for s in sc['sites']:
 # ---- 当前未开奖期（最新 snapshot）
 snaps = sorted((PARENT / 'snapshots').glob('snapshot-*.json'))
 cur_issue = None
+snap_time = None
 for sp in snaps:
     d = load(sp)
     iss = d.get('issue')
@@ -60,16 +61,18 @@ for sp in snaps:
         continue
     cur = {}
     for key, rec in (d.get('sites') or {}).items():
-        if not key.startswith('wanpz-h'):
+        if key.startswith('bdmijg-'):
             continue
-        v = ((rec.get('columns') or {}).get('杀特3肖') or {}).get('value')
+        cols = rec.get('columns') or {}
+        v = (cols.get('杀特3肖') or cols.get('绝杀三肖') or cols.get('📛绝杀三肖') or {}).get('value')
         sk = str(rec.get('siteKey'))
         if v:
             if sk not in sites_meta:   # 快照里有、历史库没有的站（新站/无历史）
-                sites_meta[sk] = {'siteKey': sk, 'system': key.split('-')[1] if '-' in key else 'wanpz'}
+                sites_meta[sk] = {'siteKey': sk, 'system': key.split('-')[0] if '-' in key else 'wanpz'}
             cur[sk] = zchars(v)
     if cur:
         cur_issue = int(iss)
+        snap_time = d.get('generated_at') or None
         periods.setdefault(cur_issue, {}).update(cur)
 
 # ---- 组台账
@@ -94,7 +97,7 @@ for iss in sorted(periods):
     }
 
 out = {
-    'updated_at': __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M'),
+    'updated_at': snap_time or sc.get('updatedAt', ''),
     'rule': '杀特3肖：当期特肖不在所杀3肖内记为「中」；连对/连错按逐期尾段推导；只收本站固定杀三肖栏，跳转外站的链接不计',
     'periods': out_periods,
 }
