@@ -25,6 +25,8 @@ function reset(){
     localStorage.setItem(sk('flyRoundOn'),'0');
     localStorage.removeItem(sk('flownPerPos'));
     localStorage.removeItem(sk('flownReal'));
+    // v59.40 新增的港澳共享层：每个用例必须从空镜像开始，否则上一个用例的客户单会残留
+    ['product_stats_macau_orders_global_v1','product_stats_hk_orders_global_v1','product_stats_hk_pays_global_v1','product_stats_hk_fly_global_v1','product_stats_customers_global_v1','mac_draw_cache_global'].forEach(function(k){ localStorage.removeItem(k); });
   }catch(e){}
   clear();
   const sr=document.getElementById('splitResult'); if(sr){ sr.style.display='none'; sr.textContent=''; }

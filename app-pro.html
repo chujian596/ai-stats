@@ -232,6 +232,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </select>
     </div>
     <div id="ordersList"></div>
+    <div id="hkFlyBox" style="margin-top:8px"></div>
   </section>
 
   <section id="tab-pay" class="card tab-panel" style="display:none">
@@ -638,7 +639,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.39-Pro';
+var APP_VER = 'v59.40-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1008,6 +1009,10 @@ function autoPayout(){
   allZodiacs.forEach(function(z){ hitZodiacSet[z] = true; });
   lastDraw = { specialNum, regularNums: [...regularNums], period };
   saveLastDraw();
+  // 香港店手动录入开奖时，同步写香港开奖缓存，香港飞单/独立结算才有开奖可用
+  if(typeof shop !== 'undefined' && shop === 'B'){
+    try{ hkSetDrawCache({ draw: period || (hkDrawObj() && hkDrawObj().draw) || '', nums: [...regularNums, specialNum].map(Number) }); }catch(e){}
+  }
 
   var allOrders = ledger.slice();
   var results = [];
@@ -1083,7 +1088,12 @@ function autoPayout(){
     msg += (net >= 0 ? '毛盈利：' : '毛亏损：') + Math.abs(net).toFixed(2);
     // 计算飞单后实际盈亏
     let flyOutAmt = 0, flyBackAmt = 0;
-    try {
+    if(typeof shop !== 'undefined' && shop === 'B'){
+      // 香港店只认香港自己的逐号飞单账，不读澳门 flownPerPos
+      var _hfi = hkFlyInfo();
+      flyOutAmt = _hfi.flyOut;
+      flyBackAmt = _hfi.flyBack;
+    } else try {
       const sales0 = getSplitSales();
       // 特号走「实际已飞」口径（含早前确认过的），和飞单明细、自留现金同一个数
       let specFlyReal0 = 0;
@@ -1135,6 +1145,8 @@ function autoPayout(){
     ov.querySelector('#mcCancel').onclick = () => ov.remove();
     ov.querySelector('#mcOk').onclick = () => {
       ov.remove();
+      // 香港店结算只进香港独立账，不能写入澳门 pays / upCum 口径
+      if(typeof shop !== 'undefined' && shop === 'B'){ hkSettleCurrent(); return; }
       pays.unshift({ product: '自动结算', amount: totalPayout, note: period ? '期' + period + ' ' : '' + '特' + specialNum, time: new Date().toLocaleString('zh-CN'), _upBefore: parseFloat(localStorage.getItem('upCum') || '0') });
       savePays();
       if(period) localStorage.setItem(sk('lastDrawPeriod'), String(period));
@@ -1540,6 +1552,54 @@ try {
   }
 } catch(e){}
 const KEY = sk('product_stats_orders_v1');
+// 港澳共享层：只给客户名单、客户订单镜像、香港单和香港飞单/结算用。
+// 澳门 orders 和香港 hkOrders 各自的风控账本仍按当前店铺读取，不能把共享层塞进 activeOrders。
+const HK_GLOBAL_KEY = 'product_stats_hk_orders_global_v1';
+const HK_GLOBAL_PAY_KEY = 'product_stats_hk_pays_global_v1';
+const HK_GLOBAL_FLY_KEY = 'product_stats_hk_fly_global_v1';
+const MAC_GLOBAL_KEY = 'product_stats_macau_orders_global_v1';
+const ROSTER_GLOBAL_KEY = 'product_stats_customers_global_v1';
+const MAC_DRAW_GLOBAL_KEY = 'mac_draw_cache_global';
+function _readJSONArr(key){
+  try{ var a = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function _writeJSONArr(key, arr){
+  try{ localStorage.setItem(key, JSON.stringify(arr || [])); return true; }
+  catch(e){ return false; }
+}
+function _mergeOrderList(base, add, originShop){
+  var out = base.slice(), seen = {}, seenSig = {};
+  out.forEach(function(o){
+    if(!o) return;
+    if(o.id) seen[o.id] = 1;
+    else seenSig[[o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|')] = 1;
+  });
+  (add || []).forEach(function(raw){
+    var o = normalizeOrder(raw);
+    if(!o) return;
+    if(originShop && !o.originShop) o.originShop = originShop;
+    if(o.id && seen[o.id]) return;
+    if(!o.id){
+      var sig = [o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|');
+      if(seenSig[sig]) return;
+      seenSig[sig] = 1;
+    }
+    if(o.id) seen[o.id] = 1;
+    out.push(o);
+  });
+  return out;
+}
+function saveHKGlobalOrders(){
+  if(typeof hkOrders === 'undefined') return false;
+  hkOrders.forEach(function(o){ if(o && !o.originShop) o.originShop = shop; });
+  return _writeJSONArr(HK_GLOBAL_KEY, hkOrders);
+}
+function saveMacauGlobalOrders(){
+  var list = _readJSONArr(MAC_GLOBAL_KEY);
+  list = _mergeOrderList(list, orders, shop);
+  return _writeJSONArr(MAC_GLOBAL_KEY, list);
+}
 let storageOK = true;
 let orders = loadOrders();  // 两店都加载各自账本；港单再单独进 hkOrders
 let hkOrders = loadHKOrders();  // 两店都加载港单：澳门店也能录港单，客户明细要合在一起看
@@ -1549,23 +1609,15 @@ function activeOrders(){
   // 否则赔付/飞单/统计会拿澳门开奖去算香港单。
   return (typeof shop !== 'undefined' && shop === 'B') ? hkOrders.slice() : orders.slice();
 }
-function allActiveOrders(){
-  // 只给「客户汇总 / 订单列表」这类需要港澳合并看的场景用
-  var seenIds = {}, seenSigs = {}, out = [];
-  orders.concat(hkOrders).forEach(function(o){
-    if(!o) return;
-    if(o.id){
-      if(seenIds[o.id]) return;
-      seenIds[o.id] = 1;
-    } else {
-      var sig = [o.createdAt || o.ts || '', o.customer || '', Number(o.amount) || 0, (o.codes || []).join(',')].join('|');
-      if(seenSigs[sig]) return;
-      seenSigs[sig] = 1;
-    }
-    out.push(o);
-  });
-  return out;
-}  // 全量活动单：港澳两本账合并去重
+function allActiveOrders(){ return customerOrders(); }  // 全量活动单：港澳两本账合并去重，只用于客户汇总/订单列表
+function customerOrders(){
+  // 客户名单和订单记录要跨店看：澳门单有全局镜像，香港单本身就是全局池。
+  // 这个函数只做展示/客户合计，绝不参与 activeOrders()、cutBets()、getSplitSales() 等风控口径。
+  var list = orders.slice();
+  list = _mergeOrderList(list, _readJSONArr(MAC_GLOBAL_KEY), 'A');
+  list = _mergeOrderList(list, hkOrders || [], shop);
+  return list;
+}
 
 function updateOrderSummary(){
   var el = document.getElementById('orderSummary');
@@ -1590,19 +1642,40 @@ function updateOrderSummary(){
     lx += lxAmt;
     spec += amt - emAmt - pteAmt - lxAmt;
   });
-  el.innerHTML = '订单累计：<b>特'+spec+'</b>　平/连:'+pte+'/'+lx+'　二/三:'+em;
+  var _shopLabel = (typeof shop !== 'undefined' && shop === 'B') ? '香港' : '澳门';
+  el.innerHTML = _shopLabel + '订单累计：<b>特'+spec+'</b>　平/连:'+pte+'/'+lx+'　二/三:'+em;
 }
 function loadOrders(){
   try {
     const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder).filter(o => o && !o.hk);
+    var local = arr.map(normalizeOrder).filter(o => o && !o.hk);
+    // 首次升级：A/B 澳门单合并成全局客户镜像；只给客户列表看，不进风控
+    var global = _readJSONArr(MAC_GLOBAL_KEY);
+    if(!global.length){
+      ['A','B'].forEach(function(s){
+        var old = _readJSONArr('product_stats_orders_v1_shop' + s).filter(function(o){ return o && !o.hk; });
+        global = _mergeOrderList(global, old, s);
+      });
+    }
+    global = _mergeOrderList(global, local, shop);
+    try{ localStorage.setItem(MAC_GLOBAL_KEY, JSON.stringify(global)); }catch(e){}
+    return local;
   }
   catch(e){ storageOK = false; return []; }
 }
 function loadHKOrders(){
   try {
-    const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder).filter(o => o && o.hk);
+    // 首次升级：把 A/B 两店旧的港单合并进全局池，避免切店后老港单消失。
+    // 全局池一旦存在就以它为准，不再回读各店旧键，否则 A 店删掉的港单会被 B 店旧键复活。
+    var global = _readJSONArr(HK_GLOBAL_KEY);
+    if(!global.length){
+      ['A','B'].forEach(function(s){
+        var old = _readJSONArr('product_stats_orders_v1_shop' + s).filter(function(o){ return o && o.hk; });
+        global = _mergeOrderList(global, old, s);
+      });
+      try{ localStorage.setItem(HK_GLOBAL_KEY, JSON.stringify(global)); }catch(e){}
+    }
+    return global.map(normalizeOrder).filter(o => o && o.hk);
   }
   catch(e){ return []; }
 }
@@ -1630,10 +1703,13 @@ function resolveCode(token){
 function saveOrders(){
   invalidateStats();
   try {
-    // 两本账都从内存写：澳门单 orders、香港单 hkOrders，互不覆盖
-    var _hkKeep = hkOrders;
-    var _macKeep = orders;
-    localStorage.setItem(KEY, JSON.stringify(_macKeep.concat(_hkKeep)));
+    // 本店键只写本店账：澳门 orders + 本店录的港单；港单全局池单独写一份。
+    // 这样 A 店删港单不会在 B 店旧键里复活，B 店也不会把澳门单写进自己的账。
+    var _hkLocal = (hkOrders || []).filter(function(o){ return o && (!o.originShop || o.originShop === shop); });
+    hkOrders.forEach(function(o){ if(o && !o.originShop) o.originShop = shop; });
+    localStorage.setItem(KEY, JSON.stringify((orders || []).concat(_hkLocal)));
+    saveHKGlobalOrders();
+    saveMacauGlobalOrders();
     return true;
   }
   catch(e){ storageOK = false; logErr('save_orders', e && e.message ? e.message : String(e)); return false; }
@@ -1677,8 +1753,8 @@ function flushPendingOrders(){
     var o = normalizeOrder(raw);
     if(!o || !o.id || seen[o.id]) return;
     if(o.hk){
+      o.originShop = o.originShop || shop;
       hkOrders.push(o);
-      if(typeof shop !== 'undefined' && shop === 'B') orders.push(o);
     } else orders.push(o);
     seen[o.id] = 1; added++;
   });
@@ -1709,18 +1785,43 @@ function renderPendingOrdersBar(){
 }
 
 
+function _removeOrderFromGlobals(id){
+  if(!id) return;
+  try{
+    var gm = _readJSONArr(MAC_GLOBAL_KEY).filter(function(o){ return !(o && o.id === id); });
+    _writeJSONArr(MAC_GLOBAL_KEY, gm);
+  }catch(e){}
+}
+function delOrderById(id){
+  if(!id){ myAlert('这笔订单没有编号，无法跨店删除'); return; }
+  var o = (orders || []).filter(function(x){ return x && x.id === id; })[0]
+       || (hkOrders || []).filter(function(x){ return x && x.id === id; })[0];
+  if(!o){ myAlert('订单已不存在，请刷新后重试'); return; }
+  myConfirm('删除这笔订单？金额会同步扣减\n' + (o.raw || '') + ' 金额:' + (o.amount || ''), function(){
+    orders = (orders || []).filter(function(x){ return !(x && x.id === id); });
+    hkOrders = (hkOrders || []).filter(function(x){ return !(x && x.id === id); });
+    _removeOrderFromGlobals(id);
+    saveOrders();
+    renderAll();
+    try { renderHKFlyBox(); } catch(e){}
+  });
+}
 function delOrder(idx){
+  var o = orders[idx];
+  if(!o){ myAlert('订单已不存在，请刷新后重试'); return; }
+  if(o.id){ delOrderById(o.id); return; }
   myConfirm('删除这笔订单？金额会同步扣减', function(){
-  orders.splice(idx, 1);
-  saveOrders();
-  restoreIfNeeded();
-renderAll();
+    orders.splice(idx, 1);
+    saveOrders();
+    restoreIfNeeded();
+    renderAll();
   });
 }
 // 香港单删除/撤销：客户撤单时用
 function delHKOrder(idx){
   var o = hkOrders[idx];
   if(!o) return;
+  if(o.id){ delOrderById(o.id); return; }
   myConfirm('删除这笔香港单？\n' + (o.raw || '') + ' 金额:' + (o.amount || ''), function(){
     hkOrders.splice(idx, 1);
     saveOrders();
@@ -2668,7 +2769,7 @@ function getSplitSales(){
 // 香港单的号码销量（港澳分开算，港澳赔率相同，赔付公式通用）
 function getHKSales(){
   const sales = {};
-  orders.forEach(o => {
+  hkOrders.forEach(o => {
     if(!o.hk) return;
     const seen = {};
     (o.codes||[]).forEach(c => {
@@ -3195,7 +3296,7 @@ function hkGroups(){
   });
   var by = {};      // 号码金额 -> [code]
   Object.keys(nums).forEach(function(c){
-    var a = hkRoundOn() ? flyShowAmt(nums[c], parseFloat(hkRoundSel()) || 5) : Math.round(nums[c]);
+    var a = hkRoundOn() ? hkFlyAmt(nums[c]) : Math.round(nums[c]);
     (by[a] = by[a] || []).push(c);
   });
   var out = Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).map(function(a){
@@ -3209,6 +3310,12 @@ function hkGroups(){
 
 function hkRoundOn(){ try{ return localStorage.getItem('hk_round_on') === '1'; }catch(e){ return false; } }
 function hkRoundSel(){ try{ return localStorage.getItem('hk_round_sel') || '5'; }catch(e){ return '5'; } }
+function hkFlyAmt(amt){
+  if(!hkRoundOn()) return Number(amt) || 0;
+  var m = parseFloat(hkRoundSel()) || 5;
+  if(m <= 0) return Number(amt) || 0;
+  return Math.max(m, Math.round((Number(amt) || 0) / m) * m);
+}
 function setHKRoundOn(v){ try{ localStorage.setItem('hk_round_on', v ? '1' : '0'); }catch(e){} renderHKFlyBox(); }
 function setHKRoundSel(v){ try{ localStorage.setItem('hk_round_sel', String(v)); }catch(e){} renderHKFlyBox(); }
 // 香港凑整三态循环：关 → 5档 → 10档 → 关
@@ -3247,21 +3354,72 @@ function hkPayoutInfo(){
   });
   return { draw: d.draw, sp: sp, sales: sales, pay: pay, net: sales - pay, hits: hits };
 }
-function hkFlyDone(){
-  try{
-    var g = localStorage.getItem('hk_fly_done_global');
-    if(g !== null) return g === '1';
-    return localStorage.getItem(sk('hk_fly_done')) === '1';
-  }catch(e){ return false; }
+function hkFlyState(){
+  var s = {};
+  try{ s = JSON.parse(localStorage.getItem(HK_GLOBAL_FLY_KEY) || '{}') || {}; }catch(e){ s = {}; }
+  if(!s.perPos || typeof s.perPos !== 'object') s.perPos = {};
+  if(!s.real || typeof s.real !== 'object') s.real = {};
+  if(typeof s.done === 'undefined'){
+    try{ s.done = localStorage.getItem('hk_fly_done_global') === '1'; }catch(e){ s.done = false; }
+  }
+  return s;
 }
+function saveHKFlyState(s){
+  try{ localStorage.setItem(HK_GLOBAL_FLY_KEY, JSON.stringify(s || {})); return true; }catch(e){ return false; }
+}
+function hkFlyDone(){ return !!hkFlyState().done; }
 function setHKFlyDone(v){
+  var s = hkFlyState();
+  s.done = !!v;
+  if(!v){ s.perPos = {}; s.real = {}; }
+  saveHKFlyState(s);
   try{ localStorage.setItem('hk_fly_done_global', v ? '1' : '0'); }catch(e){}
-  try{ localStorage.setItem(sk('hk_fly_done'), v ? '1' : '0'); }catch(e){}
+}
+// 香港单逐号金额：按订单 codeAmts 汇总，供确认已飞/结算/复制共用
+function hkCodeAmounts(){
+  var m = {};
+  (hkOrders || []).forEach(function(o){
+    var seen = {};
+    (o.codes||[]).forEach(function(c){
+      if(seen[c]) return; seen[c] = true;
+      var amt = Number(codeSalesForOrder(o, c) || 0);
+      if(amt > 0.01) m[c] = (m[c]||0) + amt;
+    });
+  });
+  return m;
+}
+function hkFlyInfo(){
+  var st = hkFlyState();
+  var planned = 0, flyOut = 0, flyBack = 0, lines = [];
+  Object.keys(st.perPos || {}).forEach(function(k){ planned += Number(st.perPos[k] || 0); });
+  Object.keys(st.real || {}).forEach(function(k){ flyOut += Number(st.real[k] || 0); });
+  var d = hkDrawObj();
+  if(d){
+    Object.keys(st.real || {}).forEach(function(k){
+      var sent = Number(st.real[k] || 0);
+      if(sent <= 0) return;
+      var mult = codeWinMult(k, d);
+      if(mult > 0){
+        var w = sent * mult;
+        flyBack += w;
+        lines.push(_hitLabel(k) + '  ' + _fmtAmt(sent) + ' ×' + mult + ' = ' + _fmtAmt(w));
+      }
+    });
+  }
+  return { done: !!st.done, planned: planned, flyOut: flyOut, flyBack: flyBack, net: flyBack - flyOut, lines: lines, at: st.at || '' };
 }
 function hkCopyText(){
-  var gs = hkGroups();
-  var lines = gs.map(function(g){ return '香港 ' + g.codes.join(' ').replace(/:/g,'') + ' 各' + g.amt.toFixed(0); });
-  var tot = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
+  var am = hkCodeAmounts();
+  var by = {};
+  Object.keys(am).forEach(function(c){
+    var a = hkRoundOn() ? hkFlyAmt(am[c]) : Math.round(am[c]);
+    if(a > 0) (by[a] = by[a] || []).push(c);
+  });
+  var lines = [];
+  Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).forEach(function(a){
+    lines.push('香港 ' + by[a].sort().join(' ').replace(/:/g,'') + ' 各' + a.toFixed(0));
+  });
+  var tot = lines.length ? Object.keys(by).reduce(function(s,a){ return s + Number(a) * by[a].length; }, 0) : 0;
   lines.push('合计 ' + tot.toFixed(0));
   return lines.join('\n');
 }
@@ -3271,21 +3429,96 @@ function copyHKFly(){
   else { var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
   myAlert('已复制香港单\n' + txt);
 }
-function confirmHKFly(){ setHKFlyDone(true); renderHKFlyBox(); myAlert('香港单已标记已飞'); }
-function resetHKFly(){ setHKFlyDone(false); renderHKFlyBox(); myAlert('香港单已重置为待飞'); }
+function confirmHKFly(){
+  var am = hkCodeAmounts();
+  var keys = Object.keys(am);
+  if(!keys.length){ myAlert('没有可飞的香港单'); return; }
+  var st = hkFlyState(), per = {}, real = {};
+  keys.forEach(function(c){
+    per[c] = am[c];
+    real[c] = hkRoundOn() ? hkFlyAmt(am[c]) : am[c];
+  });
+  st.perPos = per; st.real = real; st.done = true; st.at = new Date().toLocaleString('zh-CN');
+  saveHKFlyState(st);
+  renderHKFlyBox();
+  var out = 0; Object.keys(real).forEach(function(k){ out += real[k]; });
+  myAlert('香港单已按 ' + keys.length + ' 个号记账\n实际飞出 ' + out.toFixed(0) + ' 元\n只进香港飞单账，不影响澳门削峰');
+}
+function resetHKFly(){
+  var st = hkFlyState(); st.done = false; st.perPos = {}; st.real = {}; st.at = '';
+  saveHKFlyState(st);
+  renderHKFlyBox(); myAlert('香港单已重置为待飞');
+}
+// 香港结算：独立全局台账，不写澳门 pays / 不占澳门结算账单
+function hkSettleRecords(){
+  var a = _readJSONArr(HK_GLOBAL_PAY_KEY);
+  return Array.isArray(a) ? a : [];
+}
+function hkSettleCurrent(){
+  var hp = hkPayoutInfo();
+  if(!hp){ myAlert('香港开奖未录入，不能结算香港单'); return; }
+  if(!hkOrders.length){ myAlert('没有香港单'); return; }
+  var ids = hkOrders.map(function(o){ return o.id; }).filter(Boolean).sort();
+  var key = String(hp.draw) + '|' + ids.join(',');
+  var recs = hkSettleRecords();
+  if(recs.some(function(r){ return r && r.key === key; })){
+    myAlert('香港 ' + hp.draw + ' 期已经结算过了，不重复记账'); return;
+  }
+  var fi = hkFlyInfo();
+  var net = hp.sales - hp.pay - fi.flyOut + fi.flyBack;
+  var rec = {
+    key: key, draw: hp.draw, period: hp.draw,
+    sales: hp.sales, pay: hp.pay, flyOut: fi.flyOut, flyBack: fi.flyBack,
+    net: net, customerNet: hp.sales - hp.pay,
+    at: new Date().toLocaleString('zh-CN'), byShop: shop
+  };
+  recs.unshift(rec);
+  _writeJSONArr(HK_GLOBAL_PAY_KEY, recs);
+  renderHKFlyBox();
+  myAlert('香港 ' + hp.draw + ' 期已结算\n收 ' + hp.sales.toFixed(0) + '　赔 ' + hp.pay.toFixed(0)
+    + '\n飞走 ' + fi.flyOut.toFixed(0) + '　上家赔回 ' + fi.flyBack.toFixed(0)
+    + '\n香港实际 ' + (net>=0?'+':'') + net.toFixed(0)
+    + '\n只进香港账，不进澳门结算');
+}
+// 港澳合计核对：只显示，不写账。正式结算仍由澳门 autoPayout / 香港 hkSettleCurrent 分开记。
+function hkCombinedPreview(){
+  var macSales = (orders || []).reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
+  var macPay = 0;
+  if(lastDraw){ (orders || []).forEach(function(o){ macPay += calcOrderWinDetail(o, lastDraw).total; }); }
+  var hp = hkPayoutInfo();
+  var hkSales = hp ? hp.sales : hkOrders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
+  var hkPay = hp ? hp.pay : 0;
+  var hkNet = hp ? hp.net : 0;
+  var fi = hkFlyInfo();
+  var macNet = macSales - macPay;
+  var allBet = macSales + hkSales;
+  var allPay = macPay + hkPay;
+  var allNet = allBet - allPay;
+  myAlert('港澳合计（只核对，不合并记账）\n\n'
+    + '澳门本店：收 ' + macSales.toFixed(0) + '　赔 ' + macPay.toFixed(0) + '　净 ' + (macNet>=0?'+':'') + macNet.toFixed(0)
+    + (lastDraw ? '（澳 ' + (lastDraw.period||'') + ' 期）' : '（澳门未开奖）')
+    + '\n香港本店：收 ' + hkSales.toFixed(0) + '　赔 ' + hkPay.toFixed(0) + '　净 ' + (hkNet>=0?'+':'') + hkNet.toFixed(0)
+    + (hp ? '（港 ' + hp.draw + ' 期）' : '（香港未开奖）')
+    + '\n香港飞单：飞走 ' + fi.flyOut.toFixed(0) + '　上家赔回 ' + fi.flyBack.toFixed(0)
+    + '\n\n客户合计：下注 ' + allBet.toFixed(0) + '　中奖 ' + allPay.toFixed(0)
+    + '　客户盈亏 ' + (allNet>=0?'+':'') + allNet.toFixed(0)
+    + '\n\n正式结算仍是澳门、香港两本账分开记。');
+}
 function renderHKFlyBox(){
   var box = document.getElementById('hkFlyBox');
   if(!box) return;
   try { renderHKDraw(); } catch(e){}
   if(!hkOrders.length){ box.innerHTML = ''; return; }   // 没香港单就整块不显示
   var gs = hkGroups();
-  var total = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
+  var total = hkOrders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
   var done = hkFlyDone();
+  var fi = hkFlyInfo();
+  var st = hkFlyState();
   var h = '<div style="border:1px solid #f0c36d;border-radius:6px;overflow:hidden">';
   h += '<div style="background:#fffbe6;padding:3px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;border-bottom:1px solid #f7e3b5">'
-     + '<span>香港单 · ' + hkOrders.length + ' 单'
+     + '<span>香港单 · ' + hkOrders.length + ' 单 <span style="color:#999;font-weight:400">（港澳共享）</span>'
      + ' <a href="javascript:cycleHKRound()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:4px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
-     + '<span>' + (done ? '已飞' : '待飞') + ' ' + total.toFixed(0) + '</span></div>';
+     + '<span>' + (done ? '已飞' : '待飞') + ' ' + (done ? fi.flyOut.toFixed(0) : total.toFixed(0)) + '</span></div>';
   h += '<div style="max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">';
   gs.forEach(function(g){
     h += '<div style="padding:2px 6px;border-bottom:1px solid #f8f8f8;display:flex;justify-content:space-between;gap:4px">'
@@ -3293,23 +3526,32 @@ function renderHKFlyBox(){
        + '<span style="font-size:12px;color:#b45309;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
   });
   h += '</div>';
-  // 香港赔付速算：香港开奖结果到了才算，没到提示去拉
   var _hp = hkPayoutInfo();
   if(_hp){
     h += '<div style="padding:3px 6px;background:#fff;border-top:1px solid #f7e3b5;font-size:11px;color:#666;line-height:1.6">'
        + '期<b>' + (_hp.draw||'') + '</b> 开 <b>' + _hp.sp + '</b>（特）　'
-       + '收 <b>' + _hp.sales.toFixed(0) + '</b>　赔 <b style="color:#cf1322">' + _hp.pay.toFixed(0) + '</b>　净 '
+       + '收 <b>' + _hp.sales.toFixed(0) + '</b>　赔 <b style="color:#cf1322">' + _hp.pay.toFixed(0) + '</b>　客户净 '
        + '<b style="color:' + (_hp.net>=0?'#16a34a':'#cf1322') + '">' + _hp.net.toFixed(0) + '</b>'
        + (_hp.hits.length ? '<br>中奖：' + _hp.hits.join('、') : '<br><span style="color:#999">本期无中奖项</span>')
        + '</div>';
   } else {
     h += '<div style="padding:3px 4px;background:#fff;border-top:1px solid #f7e3b5;font-size:10px;color:#bbb">香港开奖未到，拉了开奖结果后自动算赔付</div>';
   }
-  h += '<div style="display:flex;gap:3px;padding:4px 5px;background:#fff">'
-     + '<button onclick="copyHKFly()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:5px;padding:5px;font-size:12px">复制香港单</button>'
+  // 香港飞单独立账：只显示香港口径，不碰澳门上家/削峰
+  h += '<div style="padding:3px 6px;background:#fff;border-top:1px solid #f7e3b5;font-size:11px;color:#666;line-height:1.6">'
+     + '应飞 <b>' + (fi.done ? fi.flyOut.toFixed(0) : total.toFixed(0)) + '</b>　'
+     + '已飞 <b style="color:#b45309">' + fi.flyOut.toFixed(0) + '</b>　'
+     + '上家赔回 <b style="color:#16a34a">' + fi.flyBack.toFixed(0) + '</b>　'
+     + '香港实际 <b style="color:' + (fi.net>=0?'#16a34a':'#cf1322') + '">' + (fi.net>=0?'+':'') + fi.net.toFixed(0) + '</b>'
+     + (st.at ? '<br><span style="color:#999">确认时间 ' + st.at + ' · 只记香港飞单账</span>' : '<br><span style="color:#999">点“确认已飞”按号记账，不写澳门飞单</span>')
+     + '</div>';
+  h += '<div style="display:flex;gap:3px;padding:4px 5px;background:#fff;flex-wrap:wrap">'
+     + '<button onclick="copyHKFly()" style="flex:1;min-width:80px;border:1px solid #ccc;background:#fff;color:#333;border-radius:5px;padding:5px;font-size:12px">复制香港单</button>'
      + (done
-        ? '<button onclick="resetHKFly()" style="flex:1;border:1px solid #ccc;background:#fff;color:#999;border-radius:5px;padding:5px;font-size:12px">重置</button>'
-        : '<button onclick="confirmHKFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;padding:5px;font-size:12px;font-weight:600">确认已飞</button>')
+        ? '<button onclick="resetHKFly()" style="flex:1;min-width:64px;border:1px solid #ccc;background:#fff;color:#999;border-radius:5px;padding:5px;font-size:12px">重置</button>'
+        : '<button onclick="confirmHKFly()" style="flex:1;min-width:80px;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;padding:5px;font-size:12px;font-weight:600">确认已飞</button>')
+     + '<button onclick="hkSettleCurrent()" style="flex:1;min-width:88px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:5px;padding:5px;font-size:12px;font-weight:600">结算香港本批</button>'
+     + '<button onclick="hkCombinedPreview()" style="flex:1;min-width:72px;border:1px solid #ccc;background:#fff;color:#666;border-radius:5px;padding:5px;font-size:12px">港澳合计</button>'
      + '</div></div>';
   box.innerHTML = h;
 }
@@ -4457,13 +4699,26 @@ const RKEY = sk('product_stats_customers_v1');
 let roster = loadRoster();
 function loadRoster(){
   try {
-    const a = JSON.parse(localStorage.getItem(RKEY) || '[]');
-    return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.trim()) : [];
+    var names = _readJSONArr(ROSTER_GLOBAL_KEY).map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+    // 首次升级：A/B 两店旧名单合并，之后以全局名单为准
+    if(!names.length){
+      ['A','B'].forEach(function(s){
+        _readJSONArr('product_stats_customers_v1_shop' + s).forEach(function(x){
+          var n = String(x || '').trim();
+          if(n && names.indexOf(n) < 0) names.push(n);
+        });
+      });
+      try{ localStorage.setItem(ROSTER_GLOBAL_KEY, JSON.stringify(names)); }catch(e){}
+    }
+    try{ localStorage.setItem(RKEY, JSON.stringify(names)); }catch(e){}
+    return names;
   } catch(e){ return []; }
 }
 function saveRoster(){
-  try { localStorage.setItem(RKEY, JSON.stringify(roster)); }
-  catch(e){}
+  try{
+    localStorage.setItem(ROSTER_GLOBAL_KEY, JSON.stringify(roster || []));
+    localStorage.setItem(RKEY, JSON.stringify(roster || []));
+  }catch(e){}
 }
 
 const PKEY = sk('product_stats_products_v1');
@@ -7254,7 +7509,8 @@ renderAll();
         codes: hkCodes,
         codeAmts: hkAmts,
         createdAt: created,
-        hk: true
+        hk: true,
+        originShop: shop
       });
     }
   }
@@ -7488,7 +7744,20 @@ function hideSub(code){
   renderAll();
   });
 }
-function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
+function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); if(lastDraw && typeof shop !== 'undefined' && shop === 'A') localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(lastDraw)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
+function macDrawGlobal(){
+  try{
+    var d = JSON.parse(localStorage.getItem(MAC_DRAW_GLOBAL_KEY) || 'null');
+    if(d && d.regularNums) return d;
+    // 首次升级：把 A 店旧澳门开奖搬到全局，B 店看澳门单时才有开奖可算
+    var old = JSON.parse(localStorage.getItem('lastDraw_shopA') || localStorage.getItem('lastDraw') || 'null');
+    if(old && old.regularNums){
+      try{ localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(old)); }catch(e){}
+      return old;
+    }
+    return null;
+  }catch(e){ return null; }
+}
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
 // 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
@@ -7746,26 +8015,26 @@ function renderOrdersList(){
   if(!box) return;
   const _st = orderFilterState();
   const groups = {};
-  const _dupA = duplicateOrderIds(orders);
-  const _dupHK = (typeof hkOrders !== 'undefined') ? duplicateOrderIds(hkOrders) : {};
-  const _dupMap = Object.assign({}, _dupA, _dupHK);
+  const _custOrders = customerOrders();   // 港澳客户订单镜像，只用于列表/合计
+  const _dupA = duplicateOrderIds(_custOrders);
+  const _dupMap = _dupA;
   const _hkD = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+  const _macD = (typeof macDrawGlobal === 'function') ? macDrawGlobal() : null;
   const _add = (o, idx, isHK) => {
     const c = o.customer || '散客';
     if(!groups[c]) groups[c] = { orders: [], totalBet: 0, totalWin: 0, hkCnt: 0 };
     groups[c].orders.push({ o, idx, hk: isHK });
     groups[c].totalBet += Number(o.amount) || 0;
-    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWin(o);
+    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWinDetail(o, _macD || lastDraw).total;
     if(isHK) groups[c].hkCnt++;
   };
-  orders.forEach((o, idx) => { if(orderMatches(o, false, _st)) _add(o, idx, false); });
-  if(typeof hkOrders !== 'undefined') hkOrders.forEach((o, idx) => { if(orderMatches(o, true, _st)) _add(o, idx, true); });
+  _custOrders.forEach((o, idx) => { if(orderMatches(o, !!o.hk, _st)) _add(o, idx, !!o.hk); });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
   const shownNames = custNames.slice(0, _ordersGroupLimit);
   // 本次保存的客户即使不在当前分页内，也要提上来，保证保存后能定位
   var _focusCust = null;
   if(window.__lastSavedOrderId){
-    var _allForFocus = orders.concat(hkOrders || []);
+    var _allForFocus = customerOrders();
     for(var _fi = 0; _fi < _allForFocus.length; _fi++){
       var _fo = _allForFocus[_fi];
       if(_fo && _fo.id === window.__lastSavedOrderId){ _focusCust = _fo.customer || '散客'; break; }
@@ -7859,7 +8128,7 @@ function renderOrdersList(){
           h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
         });
       }
-      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="${hk ? 'delHKOrder' : 'delOrder'}(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="${o.id ? "delOrderById('"+esc(o.id)+"')" : (hk ? 'delHKOrder' : 'delOrder')+'('+idx+')'}" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
       h += `</div>`;
     });
     if(_hiddenOrders > 0){
@@ -8296,14 +8565,15 @@ function custDetailBlock(list, dr, title){
 }
 
 function buildCustOrdersText(cust){
-  var macList = orders.filter(function(o){ return (o.customer || '散客') === cust; });
+  var macList = customerOrders().filter(function(o){ return !o.hk && (o.customer || '散客') === cust; });
   var hkList = hkOrders.filter(function(o){ return (o.customer || '散客') === cust; });
   if(!macList.length && !hkList.length) return '';
   var text = (cust || '散客') + '\n';
   var b1 = 0, w1 = 0, b2 = 0, w2 = 0;
   if(macList.length){
-    var _mNums = lastDraw ? (lastDraw.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(lastDraw.specialNum).padStart(2,'0')) : '';
-    var m = custDetailBlock(macList, lastDraw, lastDraw ? ('澳 ' + (lastDraw.period || '') + ' 期　' + _mNums) : '澳 未开奖');
+    var _md = (typeof macDrawGlobal === 'function' ? macDrawGlobal() : null) || lastDraw;
+    var _mNums = _md ? (_md.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(_md.specialNum).padStart(2,'0')) : '';
+    var m = custDetailBlock(macList, _md, _md ? ('澳 ' + (_md.period || '') + ' 期　' + _mNums) : '澳 未开奖');
     text += m.text;
     b1 = m.bet; w1 = m.win;
   }
@@ -8332,14 +8602,19 @@ function copyCustOrders(cust){
 }
 
 function deleteCustOrders(cust){
-  const cntMac = orders.filter(o => (o.customer||'散客') === cust).length;
-  const cntHK = hkOrders.filter(o => (o.customer||'散客') === cust).length;
+  const _allC = customerOrders().filter(function(o){ return (o.customer||'散客') === cust; });
+  const cntMac = _allC.filter(function(o){ return !o.hk; }).length;
+  const cntHK = _allC.filter(function(o){ return !!o.hk; }).length;
   if(!cntMac && !cntHK){ myAlert('该客户无订单'); return; }
   var msg = '确定删除「' + cust + '」的全部' + (cntMac + cntHK) + '笔订单？'
     + (cntHK ? '\n其中香港单 ' + cntHK + ' 笔' : '') + '\n此操作不可撤销！';
   myConfirm(msg, function(){
   orders = orders.filter(o => (o.customer||'散客') !== cust);
   hkOrders = hkOrders.filter(o => (o.customer||'散客') !== cust);
+  try{
+    _writeJSONArr(MAC_GLOBAL_KEY, _readJSONArr(MAC_GLOBAL_KEY).filter(function(o){ return (o.customer||'散客') !== cust; }));
+    _writeJSONArr(HK_GLOBAL_KEY, _readJSONArr(HK_GLOBAL_KEY).filter(function(o){ return (o.customer||'散客') !== cust; }));
+  }catch(e){}
   saveOrders(); renderAll();
   try { renderHKFlyBox(); } catch(e){}
   myAlert('已删除' + (cntMac + cntHK) + '笔订单');
@@ -9669,6 +9944,7 @@ function renderAll(){
   }
 
   renderOrdersList();
+  try { renderHKFlyBox(); } catch(e){}
   renderPays();
   renderSplit();
   updateOrderSummary();
@@ -10622,9 +10898,11 @@ function clearAll(){
   // 保留会员锁和客户名单
   var lockBackup = localStorage.getItem(LOCK_KEY);
   var rosterBackup = localStorage.getItem(RKEY);
+  var rosterGlobalBackup = localStorage.getItem(ROSTER_GLOBAL_KEY);
   localStorage.clear();
   if(lockBackup) localStorage.setItem(LOCK_KEY, lockBackup);
   if(rosterBackup) localStorage.setItem(RKEY, rosterBackup);
+  if(rosterGlobalBackup) localStorage.setItem(ROSTER_GLOBAL_KEY, rosterGlobalBackup);
   location.reload();
   });
 }
