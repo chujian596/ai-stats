@@ -629,7 +629,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.29';
+var APP_VER = 'v59.30';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3462,6 +3462,13 @@ function flownRealOf(key){
   if(r === undefined || r === null) return Number(flownPerPos[key] || 0) || 0;
   return Number(r) || 0;
 }
+function realFlyAmount(k, bet){
+  if(!(bet > 0)) return 0;   // 这个号今天没人下注，旧飞单记录不能算进来
+  const should = Math.max(0, (bet || 0) - (typeof splitTakeAll !== 'undefined' ? splitTakeAll : 0));
+  const done = flownPerPos[k] || 0;
+  const pending = Math.max(0, should - done);
+  return flownRealOf(k) + (pending > 0 ? flyShowAmt(pending) : 0);
+}
 function _flyAddDone(key, orig, snapped){
   const o = Number(orig) || 0, s = Number(snapped) || 0;
   if(o > 0) flownPerPos[key] = (flownPerPos[key] || 0) + o;
@@ -3710,7 +3717,9 @@ function calcSplit(){
   const keys = Object.keys(sales);
   const total = keys.reduce((s,k) => s + sales[k], 0);
   const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
-  const rebate = partner * 0.03;
+  const partnerReal = keys.reduce((s,k) => s + realFlyAmount(k, sales[k]||0), 0);
+  const _rcRisk = rebateCfg();
+  const rebate = _rcRisk.on ? partnerReal * _rcRisk.rate : 0;
   // 最高自留号赔付
   let maxKept = 0;
   keys.forEach(k => {
@@ -3718,7 +3727,7 @@ function calcSplit(){
     if(kept > maxKept) maxKept = kept;
   });
   const worstPayout = maxKept * payMult;
-  const worstNet = (total - partner) - worstPayout + rebate;
+  const worstNet = (total - partnerReal) - worstPayout + rebate;
   // 计算平特+连肖金额
   let pteLxTotal = 0;
   activeFlyOrders().forEach(o => {
@@ -3757,9 +3766,9 @@ function calcSplit(){
   if(lastDraw && lastDraw.specialNum){
     // 开奖后显示实际
     const _spKey = String(lastDraw.specialNum).padStart(2,'0');
-    const keptAmt = Math.min(sales[_spKey]||0, splitTakeAll);
+    const flyAmt = realFlyAmount(_spKey, sales[_spKey]||0);
+    const keptAmt = Math.max(0, (sales[_spKey]||0) - flyAmt);
     const keptPayout = keptAmt * payMult;
-    const flyAmt = Math.max(0, (sales[_spKey]||0) - splitTakeAll);
     const flyPayout = flyAmt * payMult;
     // 平特飞单和实际赔付
     const drawZ = new Set([...(lastDraw.regularNums||[]), lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
@@ -3797,7 +3806,7 @@ function calcSplit(){
         }
       });});
     }
-    const keptCash = total + pteLxTotal + emSell - totalFly;
+    const keptCash = total + pteLxTotal - partnerReal - pteFly - lxFlyOut;
     const totalKeptPayout = keptPayout + pteKeptPayout;
     const realNet = keptCash - totalKeptPayout;
     splitHtml += `<div style="border-top:1px dashed #ccc;margin:6px 0"></div>`;
