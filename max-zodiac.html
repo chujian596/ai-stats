@@ -66,10 +66,11 @@
 <div class="wrap">
   <header>
     <h1>每站九肖台账</h1>
-    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。点任意一行可展开该站逐期明细复盘。</div>
+    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
 
   <div class="bar-row">
+    <label for="periodSel" class="stat">期号</label>
     <select id="periodSel"></select>
     <div class="stat" id="summary"></div>
   </div>
@@ -80,7 +81,7 @@
     <table>
       <thead>
         <tr>
-          <th>站名</th><th>本期九肖（原序）</th><th>结果</th><th>连对</th><th>连错</th><th>总中</th><th>总错</th><th>轨迹</th>
+          <th>期号</th><th>站名</th><th>本期九肖（原序）</th><th>结果</th><th>连对</th><th>连错</th><th>总中</th><th>总错</th><th>轨迹</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -165,7 +166,7 @@ function render(){
   var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
   var chg=elig.filter(function(k){return per.stations[k].changed;}).length;
   document.getElementById('summary').innerHTML=
-    '特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
+    '第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
 
   var recent=issues.slice(-7);
   var tb=document.getElementById('rows');
@@ -184,7 +185,7 @@ function render(){
     }).join('');
 
     if(r.status==='无九肖栏目'){
-      tr.innerHTML='<td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
+      tr.innerHTML='<td class="tot na">'+cur+'期</td><td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
         '<td class="empty">（无九肖栏目）</td><td class="na">—</td><td class="streak na">—</td><td class="streak na">—</td>'+
         '<td class="tot na">—</td><td class="tot na">—</td><td><div class="trail">'+trail+'</div></td>';
     } else {
@@ -205,7 +206,7 @@ function render(){
         var chip='<span class="alert-chip">'+nm+'（连错'+cs.l+'）</span>';
         if(cs.l>=3) miss3.push(chip); else miss2.push(chip);
       }
-      tr.innerHTML='<td>'+nmHtml+'</td>'+
+      tr.innerHTML='<td class="tot na">'+cur+'期</td><td>'+nmHtml+'</td>'+
         '<td>'+zsHtml(r.zodiacs)+'</td>'+
         '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chgBadge+'</td>'+
         '<td>'+wCell+'</td>'+
@@ -217,7 +218,7 @@ function render(){
     var det=document.createElement('tr');
     det.className='detail';
     det.style.display='none';
-    det.innerHTML='<td colspan="8">'+detailHtml(k,r)+'</td>';
+    det.innerHTML='<td colspan="9">'+detailHtml(k,r)+'</td>';
     tr.addEventListener('click',function(){
       det.style.display=det.style.display==='none'?'':'none';
     });
@@ -247,7 +248,7 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   document.getElementById('periodSel').addEventListener('change',render);
   render();
 }).catch(function(e){
-  document.getElementById('rows').innerHTML='<tr><td colspan="8" class="empty">台账数据加载失败：'+e+'</td></tr>';
+  document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
 });
 </script>
 </body>
