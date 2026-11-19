@@ -25,13 +25,14 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站台账</h1>
-    <div class="meta">九肖＝每站推荐的恰好 9 肖，逐站逐期记中/错、连对/连错与改料；三肖共识＝各资料源本期杀肖票数、推荐三肖与谁准谁差。顶部标签切换两类台账。</div>
+    <h1>每站台账 · 九肖 / 三肖共识 / 杀三肖</h1>
+    <div class="meta">九肖＝每站推荐的恰好 9 肖，逐站逐期记中/错、连对/连错与改料；三肖共识＝各资料源本期杀肖票数、推荐三肖与谁准谁差；杀三肖台账＝每站本站固定杀三肖栏的逐期明细与连对连错。顶部标签切换三类台账，同一链接内切换。</div>
   </header>
 
   <div class="top-tabs">
     <div class="ttab on" id="tabNine" onclick="switchTop('nine')">九肖台账</div>
     <div class="ttab" id="tabThree" onclick="switchTop('three')">三肖共识</div>
+    <div class="ttab" id="tabKill3" onclick="switchTop('kill3')">杀三肖台账</div>
   </div>
 
   <div class="sub-tabs" id="subTabs" style="display:none">
@@ -43,6 +44,7 @@
   <div class="frame-box">
     <iframe id="frameNine" src="nine-zodiac.html"></iframe>
     <iframe id="frameThree" src="stats.html#kill" class="hidden"></iframe>
+    <iframe id="frameKill3" src="kill3-ledger.html" class="hidden"></iframe>
   </div>
 </div>
 
@@ -50,11 +52,14 @@
 var top='nine', threeK='kill';
 function switchTop(t){
   top=t;
-  document.getElementById('tabNine').className='ttab'+(t==='nine'?' on':'');
-  document.getElementById('tabThree').className='ttab'+(t==='three'?' on':'');
+  var on={'nine':'tabNine','three':'tabThree','kill3':'tabKill3'};
+  Object.keys(on).forEach(function(k){
+    document.getElementById(on[k]).className='ttab'+(k===t?' on':'');
+  });
   document.getElementById('subTabs').style.display=t==='three'?'flex':'none';
   document.getElementById('frameNine').classList.toggle('hidden',t!=='nine');
   document.getElementById('frameThree').classList.toggle('hidden',t!=='three');
+  document.getElementById('frameKill3').classList.toggle('hidden',t!=='kill3');
   if(t==='three') switchThree(threeK,true);
 }
 function switchThree(k,keepLoad){

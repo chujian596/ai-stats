@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>每站杀三肖台账</title>
+<style>
+  :root{
+    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
+    --line:#e3e3e3; --bg:#f6f6f6; --yellow:#b8860b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
+  .wrap{max-width:680px;margin:0 auto}
+  header{margin-bottom:16px}
+  h1{margin:0 0 6px;font-size:22px;font-weight:700}
+  .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
+  .bar-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
+  .stat{font-size:13px;color:var(--ink)}
+  .stat b{font-variant-numeric:tabular-nums}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+  th{color:var(--sub);font-weight:600;font-size:11.5px;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .site{font-weight:700;white-space:nowrap}
+  .alias{color:var(--blue);font-weight:700}
+  .sys{color:var(--sub);font-size:11px}
+  .col{color:var(--sub);font-size:11px;max-width:110px}
+  .zs{display:flex;flex-wrap:wrap;gap:4px}
+  .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;
+    border-radius:7px;background:#f0f2f5;font-size:12px}
+  .hit{color:var(--green);font-weight:700;white-space:nowrap}
+  .miss{color:var(--red);font-weight:700;white-space:nowrap}
+  .na{color:var(--sub);white-space:nowrap}
+  .streak{white-space:nowrap;font-variant-numeric:tabular-nums}
+  .streak.w{color:var(--green)} .streak.l{color:var(--red)}
+  .alert2{color:#b8860b;font-weight:700}
+  .alert3{color:var(--red);font-weight:800}
+  tr.rowalert{background:#fff7f6}
+  .alertbox{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#fff7f6;border:1px solid #f3c9c6;font-size:12.5px;line-height:1.9}
+  .alertbox b{color:var(--red)}
+  .alertbox.a2{background:#fffaf0;border-color:#ecd9a8}
+  .alert-chip{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:8px;background:#fff;border:1px solid var(--line)}
+  .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
+  .trail{display:flex;gap:3px;flex-wrap:wrap}
+  .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
+  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
+  .empty{color:var(--sub);font-style:italic}
+  .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
+  .rowlink{cursor:pointer}
+  .rowlink:hover{background:#fafafa}
+  .detail td{background:#fafbfc;padding:12px 14px}
+  .det-title{font-size:12px;color:var(--sub);margin-bottom:8px}
+  .det-table{width:100%;border-collapse:collapse;font-size:12px}
+  .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
+  .det-table tr:last-child td{border-bottom:none}
+  .arrow{color:var(--sub);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>每站杀三肖台账</h1>
+    <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。</div>
+  </header>
+
+  <div class="bar-row">
+    <label for="periodSel" class="stat">期号</label>
+    <select id="periodSel"></select>
+    <div class="stat" id="summary"></div>
+  </div>
+
+  <div class="alertbox a2" id="missAlert" style="display:none"></div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>期号</th><th>站名</th><th>本期杀三肖（原序）</th><th>结果</th><th>连对</th><th>连错</th><th>总中</th><th>总错</th><th>轨迹</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="note" id="ruleNote"></div>
+</div>
+
+<script>
+var LG=null, ALIAS={};
+function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+
+function nameOf(r,key){
+  return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
+}
+
+function historyOf(key){
+  return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}).map(function(i){
+    return {issue:i, per:LG.periods[i], rec:LG.periods[i].stations[key]};
+  }).filter(function(x){return x.rec;});
+}
+
+function streakOf(key){
+  var win=0,lose=0,streak=0,type='';
+  historyOf(key).forEach(function(h){
+    var r=h.rec;
+    if(r.hit===null||r.hit===undefined) return;
+    if(r.hit){win++; if(type==='对')streak++; else {streak=1;type='对';}}
+    else {lose++; if(type==='错')streak++; else {streak=1;type='错';}}
+  });
+  return {win:win,lose:lose,streak:streak,type:type};
+}
+
+// 当前尾段连续中 / 连续错（两列分开，最新一期是中则连错为0，反之亦然）
+function curStreak(key){
+  var h=historyOf(key).filter(function(x){return x.rec.hit===true||x.rec.hit===false;});
+  var w=0,l=0,i;
+  for(i=h.length-1;i>=0;i--){ if(h[i].rec.hit) w++; else break; }
+  for(i=h.length-1;i>=0;i--){ if(!h[i].rec.hit) l++; else break; }
+  return {w:w,l:l};
+}
+
+function zsHtml(zs){
+  return '<div class="zs">'+zs.map(function(z){return '<span class="z">'+z+'</span>';}).join('')+'</div>';
+}
+
+function detailHtml(key,r){
+  var hist=historyOf(key).reverse();
+  var rows=hist.map(function(h){
+    var rr=h.rec, actual=h.per.actual;
+    var hitTx,hitCls,chg='';
+    if(rr.status==='无三肖栏目'){hitTx='—';hitCls='na';}
+    else if(rr.hit===null||rr.hit===undefined){hitTx='待开';hitCls='na';}
+    else if(rr.hit){hitTx='中';hitCls='hit';}
+    else {hitTx='错';hitCls='miss';}
+    if(rr.changed) chg='<span class="chg">改料</span>';
+    var zcell=rr.status==='无三肖栏目'?'<span class="empty">无三肖栏目</span>':zsHtml(rr.zodiacs);
+    return '<tr><td>'+h.issue+'期</td><td>开'+actual+'</td><td>'+zcell+'</td>'+
+      '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td></tr>';
+  }).join('');
+  return '<div class="det-title">'+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
+    '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐杀三肖（原序）</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function render(){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var sel=document.getElementById('periodSel');
+  if(!sel.options.length){
+    issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+    sel.value=issues[issues.length-1];
+  }
+  var cur=sel.value||issues[issues.length-1];
+  var per=LG.periods[cur];
+  var keys=Object.keys(per.stations);
+  keys.sort(function(a,b){
+    var ra=per.stations[a],rb=per.stations[b];
+    if(ra.status!==rb.status) return ra.status==='有三肖'?-1:1;
+    return ra.siteKey<rb.siteKey?-1:1;
+  });
+
+  var elig=keys.filter(function(k){return per.stations[k].status==='有三肖';});
+  var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
+  var chg=elig.filter(function(k){return per.stations[k].changed;}).length;
+  var pend=elig.filter(function(k){return per.stations[k].hit===null||per.stations[k].hit===undefined;}).length;
+  document.getElementById('summary').innerHTML= pend?
+    ('第 <b>'+cur+'</b> 期　<b>未开奖</b>　有三肖 <b>'+elig.length+'</b> 站 · 已封存待判定 <b>'+pend+'</b> 站'):
+    ('第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有三肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b> 错 <b>'+(elig.length-wins)+'</b>（命中率 '+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 无三肖栏目 <b>'+(keys.length-elig.length)+'</b>');
+
+  var recent=issues.slice(-7);
+  var tb=document.getElementById('rows');
+  tb.innerHTML='';
+  var miss2=[], miss3=[];
+  keys.forEach(function(k){
+    var r=per.stations[k];
+    var tr=document.createElement('tr');
+    tr.className='rowlink';
+    var trail=recent.map(function(i){
+      var rr=LG.periods[i].stations[k];
+      var cls,tx;
+      if(!rr||rr.hit===null||rr.hit===undefined){cls='n';tx='·';}
+      else if(rr.hit){cls='w';tx='中';} else {cls='l';tx='错';}
+      return '<span class="t '+cls+'">'+tx+'</span>';
+    }).join('');
+
+    if(r.status==='无三肖栏目'){
+      tr.innerHTML='<td class="tot na">'+cur+'期</td><td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
+        '<td class="empty">（无三肖栏目）</td><td class="na">—</td><td class="streak na">—</td><td class="streak na">—</td>'+
+        '<td class="tot na">—</td><td class="tot na">—</td><td><div class="trail">'+trail+'</div></td>';
+    } else {
+      var st=streakOf(k);
+      var cs=curStreak(k);
+      var hitCls,hitTx;
+      if(r.hit===null||r.hit===undefined){hitCls='na';hitTx='待开';}else{hitCls=r.hit?'hit':'miss';hitTx=r.hit?'中':'错';}
+      var chgBadge=r.changed?'<span class="chg">改料</span>':'';
+      var wCell=cs.w?('<span class="streak w">'+cs.w+'</span>'):'<span class="streak na">0</span>';
+      var lCell;
+      if(cs.l>=3){ lCell='<span class="streak l alert3">'+cs.l+' ⚠</span>'; }
+      else if(cs.l===2){ lCell='<span class="streak l alert2">'+cs.l+'</span>'; }
+      else { lCell='<span class="streak na">0</span>'; }
+      var nm=nameOf(r,k);
+      var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
+      if(cs.l>=2){
+        tr.classList.add('rowalert');
+        var chip='<span class="alert-chip">'+nm+'（连错'+cs.l+'）</span>';
+        if(cs.l>=3) miss3.push(chip); else miss2.push(chip);
+      }
+      tr.innerHTML='<td class="tot na">'+cur+'期</td><td>'+nmHtml+'</td>'+
+        '<td>'+zsHtml(r.zodiacs)+'</td>'+
+        '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chgBadge+'</td>'+
+        '<td>'+wCell+'</td>'+
+        '<td>'+lCell+'</td>'+
+        '<td class="tot">'+st.win+'</td><td class="tot">'+st.lose+'</td>'+
+        '<td><div class="trail">'+trail+'</div></td>';
+    }
+
+    var det=document.createElement('tr');
+    det.className='detail';
+    det.style.display='none';
+    det.innerHTML='<td colspan="9">'+detailHtml(k,r)+'</td>';
+    tr.addEventListener('click',function(){
+      det.style.display=det.style.display==='none'?'':'none';
+    });
+
+    tb.appendChild(tr);
+    tb.appendChild(det);
+  });
+  var alertBox=document.getElementById('missAlert');
+  if(miss3.length||miss2.length){
+    var parts=[];
+    if(miss3.length) parts.push('<b>连错≥3期（重点提醒）：</b>'+miss3.join(''));
+    if(miss2.length) parts.push('连错2期：'+miss2.join(''));
+    alertBox.innerHTML=parts.join('<br>');
+    alertBox.style.display='block';
+    alertBox.classList.toggle('a2',miss3.length===0);
+  } else {
+    alertBox.style.display='none';
+  }
+
+  document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
+}
+
+fetchJson('data/kill3-ledger.json').then(function(d){
+  LG=d;
+  return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
+}).then(function(){
+  document.getElementById('periodSel').addEventListener('change',render);
+  render();
+}).catch(function(e){
+  document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
+});
+</script>
+</body>
+</html>
