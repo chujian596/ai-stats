@@ -49,8 +49,8 @@
 
   <div class="frame-box">
     <iframe id="frameNine" src="nine-zodiac.html?v=8"></iframe>
-    <iframe id="frameThree" src="stats.html#kill" class="hidden"></iframe>
-    <iframe id="frameKill3" src="kill3-ledger.html?v=4" class="hidden"></iframe>
+    <iframe id="frameThree" src="stats.html?v=2#kill" class="hidden"></iframe>
+    <iframe id="frameKill3" src="kill3-ledger.html?v=5" class="hidden"></iframe>
   <iframe id="frameReg" src="site-registry.html?v=1" class="hidden"></iframe>
   </div>
 </div>
@@ -88,8 +88,8 @@ function switchThree(k,keepLoad){
   try{
     var w=frame.contentWindow;
     if(w && w.switchTab){ w.switchTab(k); }
-    else { frame.src='stats.html#'+k; }
-  }catch(e){ frame.src='stats.html#'+k; }
+    else { frame.src='stats.html?v=2#'+k; }
+  }catch(e){ frame.src='stats.html?v=2#'+k; }
 }
 document.getElementById('frameThree').addEventListener('load',function(){
   try{ this.contentWindow.switchTab(threeK); }catch(e){}

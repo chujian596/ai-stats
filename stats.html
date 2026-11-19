@@ -89,7 +89,6 @@ var NUM2Z={};
 [['马',[1,13,25,37,49]],['蛇',[2,14,26,38]],['龙',[3,15,27,39]],['兔',[4,16,28,40]],['虎',[5,17,29,41]],['牛',[6,18,30,42]],['鼠',[7,19,31,43]],['猪',[8,20,32,44]],['狗',[9,21,33,45]],['鸡',[10,22,34,46]],['猴',[11,23,35,47]],['羊',[12,24,36,48]]].forEach(function(z){ z[1].forEach(function(n){ NUM2Z[n]=z[0]; }); });
 
 var state={ cross:null, track:null, img:null, authors:[], official:{}, currentPeriod:0, fetchedAt:'', latestAt:'', tw:{ source:{}, columns:[] }, forum:{ source:{}, columns:[] } };
-var KILLRANK=null;
 var LS_KEY='stats_snapshot_v1';
 
 function $(id){ return document.getElementById(id); }
@@ -710,7 +709,6 @@ function renderImg(){
 
 renderAll=
 function renderAll(){
-  fetchJson('data/kill-rank-stats.json',8000).then(function(d){ KILLRANK=d; renderKill(); }).catch(function(){});
   loadKillHist().then(function(m){ if(m) renderKill(); });
   var _fb=$('fetchedAt');
   if(_fb){
@@ -896,39 +894,7 @@ function renderKill(){
     html+='</div></div>';
   });
   html+='</div>';
-  html+=buildKillRankHtml();
   $('panelKill').innerHTML=html;
-}
-
-// 台账杀肖票数排行（按期累积，数据源 data/kill-rank-stats.json）
-function buildKillRankHtml(){
-  if(!KILLRANK) return '';
-  var cur=KILLRANK.periods[String(curPer())] || KILLRANK.periods[curPer()];
-  var tot=KILLRANK.total||{};
-  var html='';
-  // 本期排行
-  if(cur && cur.rank && cur.rank.length){
-    html+='<div class="card"><h2>本期台账杀肖排行（站点杀三肖）</h2>'
-      +'<div class="muted">第 '+curPer()+' 期 · '+cur.sites+' 站有杀三肖；特肖 '+cur.actual+' 被 '+cur.specialKilled+' 站杀掉（杀错）</div><div style="margin-top:10px">';
-    cur.rank.forEach(function(r){
-      var color=r.kill>=10?'#c62828':(r.kill>=6?'#e65100':'#666');
-      html+='<div class="row"><span class="zod kill">'+r.z+'</span><span style="color:'+color+';font-weight:700">'+r.kill+' 票</span></div>';
-    });
-    html+='</div></div>';
-  }
-  // 累计被杀榜 vs 开出
-  var votes=tot.killVotes||{}, opens=tot.openCount||{};
-  var rows=ZOD.map(function(z){ return {z:z, kill:votes[z]||0, open:opens[z]||0}; })
-    .sort(function(a,b){ return b.kill-a.kill; });
-  html+='<div class="card"><h2>累计被杀票次 vs 历史开出（'+(tot.periods||0)+' 期）</h2>'
-    +'<div class="muted">被杀票次＝累计把该肖列入杀三肖的站次；开出＝作为特肖开出次数；比值越高＝被杀得多、开得少。样本不足，仅记录不定论。</div><div style="margin-top:10px">';
-  rows.forEach(function(r){
-    var ratio=r.open>0?(r.kill/r.open).toFixed(1):'—';
-    html+='<div class="row"><span class="zod kill">'+r.z+'</span>'
-      +'<span style="font-size:13px">被杀 <b>'+r.kill+'</b> · 开出 '+r.open+' · 比值 '+ratio+'</span></div>';
-  });
-  html+='</div></div>';
-  return html;
 }
 
 // 栏目命中率排行：所有栏目按命中率从高到低排
