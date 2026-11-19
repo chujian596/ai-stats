@@ -576,7 +576,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.23';
+var APP_VER = 'v59.24';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7899,7 +7899,7 @@ function renderAll(){
   const { map, custMap, totalQty, totalAmount } = getStats();
   const payTotal = pays.reduce((s,p) => s + Number(p.amount||0), 0);
   document.getElementById('bigAmount').textContent = totalAmount.toFixed(2);
-  document.getElementById('bigSub').textContent = orders.length + '单';
+  document.getElementById('bigSub').textContent = activeFlyOrders().length + '单';
 
   if(isStatsTab(_activeTab)){
     try { renderStatsSections({ map: map, custMap: custMap, totalQty: totalQty, totalAmount: totalAmount }); }
@@ -7993,7 +7993,7 @@ function exportCSV(){
       csv += `${p.code},${map[p.code].qty},${map[p.code].amount.toFixed(2)}\n`;
     }
   });
-  csv += `\n总汇总\n总订单数,总销量,总金额\n${orders.length},${totalQty},${totalAmount.toFixed(2)}\n`;
+  csv += `\n总汇总\n总订单数,总销量,总金额\n${activeFlyOrders().length},${totalQty},${totalAmount.toFixed(2)}\n`;
   csv += '\n排行榜\n排名,产品,销量,累计金额\n';
   const rows = effectiveRows()
     .map(r => ({ key: r.key, qty: map[r.key].qty, amount: map[r.key].amount }))
@@ -8014,20 +8014,20 @@ function exportCSV(){
 }
 
 function exportBackup(){
-  const data = JSON.stringify({ version: 3, orders, roster, products });
+  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products });
   // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
   try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
     download('订单备份_' + dateStr() + '.json',
-      JSON.stringify({ version: 3, orders, roster, products }, null, 2),
+      JSON.stringify({ version: 3, orders, hkOrders, roster, products }, null, 2),
       'application/json');
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
   const ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">'
-    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+orders.length+'单）</div>'
+    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+activeOrders().length+'单）</div>'
     + '<div style="margin:12px 12px 0;padding:10px;background:#e8f7ee;color:#16a34a;border-radius:8px;font-size:14px;font-weight:700;text-align:center;line-height:1.5">✓ 已自动存到 app 内部<br><span style="font-weight:400;font-size:12px">以后点绿色「一键恢复上次备份」即可找回，不用找文件</span></div>'
     + '<div style="padding:12px;flex:1;overflow:auto;background:#f9f9f9;margin:10px;border-radius:6px"><textarea id="backupTxt" style="width:100%;height:160px;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;font-family:monospace;color:#333;resize:none">'+data.replace(/</g,'&lt;')+'</textarea></div>'
     + '<div style="display:flex;gap:8px;padding:0 14px 14px">'
@@ -8038,18 +8038,21 @@ function exportBackup(){
 }
 
 function applyBackup(data){
-  let newOrders, newRoster = null, newProducts = null;
+  let newOrders, newHKOrders = null, newRoster = null, newProducts = null;
   if(Array.isArray(data)){
     newOrders = data;
   } else if(data && Array.isArray(data.orders)){
     newOrders = data.orders;
+    if(Array.isArray(data.hkOrders)) newHKOrders = data.hkOrders;
     if(Array.isArray(data.roster)) newRoster = data.roster.filter(x => typeof x === 'string' && x.trim());
     if(Array.isArray(data.products)) newProducts = data.products;
   } else {
     throw new Error('备份格式不正确');
   }
-  myConfirm(`将用备份中的 ${newOrders.length} 条订单替换当前 ${orders.length} 条订单，确定？`, function(){
+  const _total = newOrders.length + (newHKOrders ? newHKOrders.length : 0);
+  myConfirm(`将用备份中的 ${_total} 条订单（澳门${newOrders.length} / 香港${newHKOrders ? newHKOrders.length : 0}）替换当前 ${activeOrders().length} 条活动订单，确定？`, function(){
   orders = newOrders.map(normalizeOrder);
+  if(newHKOrders) hkOrders = newHKOrders.map(normalizeOrder);
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
   saveOrders();

@@ -537,6 +537,28 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('统计页按需计算', cached && refreshed && c2===c1 && c3>c2 && isStatsTab('all') && !isStatsTab('orders'), {cached,refreshed,before:c2,after:c3});
 }
 
+/* 备份完整性：澳门单与港单都随备份导出并可恢复 */
+{
+  const _o=orders, _h=hkOrders, _dl=download, _cf=myConfirm;
+  let _ok=false, _hk=0;
+  try{
+    orders=[{id:'QB-M1',ts:'2026-11-19T09:00:00',customer:'备份甲',codes:['01'],amount:100}];
+    hkOrders=[{id:'QB-H1',hk:true,ts:'2026-11-19T09:01:00',customer:'备份乙',codes:['02'],amount:200}];
+    saveOrders();
+    download=(f,c)=>{};
+    exportBackup();
+    const data=JSON.parse(localStorage.getItem('_lastBackup')||'{}');
+    document.querySelectorAll('.ai-ov').forEach(x=>x.remove());
+    _hk=Array.isArray(data.hkOrders)?data.hkOrders.length:0;
+    orders=[]; hkOrders=[]; saveOrders();
+    myConfirm=(m,cb)=>cb();
+    applyBackup(data);
+    _ok=(_hk===1 && orders.length===1 && hkOrders.length===1 && activeOrders().length===2);
+  }catch(e){ _ok=false; }
+  finally{ orders=_o; hkOrders=_h; download=_dl; myConfirm=_cf; saveOrders(); renderAll(); }
+  gate('备份携带港单', _ok, {hk:_hk});
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
