@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.42-Pro';
+var APP_VER = 'v59.03.43-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -839,10 +839,12 @@ function _verCmp(a, b){
 }
 // 三个来源同时问，取最新的那个（GitHub raw 不吃 CDN 缓存）
 function fetchRemoteVer(){
+  var isPro = /Pro/.test(APP_VER);
+  var verFile = isPro ? 'version.txt' : 'version-client.txt';
   var urls = [
-    'https://raw.githubusercontent.com/chujian596/ai-stats/main/version.txt?t=' + Date.now(),
-    'https://aistats-9uo.pages.dev/version.txt?t=' + Date.now(),
-    'version.txt?t=' + Date.now()
+    'https://raw.githubusercontent.com/chujian596/ai-stats/main/' + verFile + '?t=' + Date.now(),
+    'https://aistats-9uo.pages.dev/' + verFile + '?t=' + Date.now(),
+    verFile + '?t=' + Date.now()
   ];
   return Promise.all(urls.map(function(u){
     return fetch(u, {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).catch(function(){ return ''; });
