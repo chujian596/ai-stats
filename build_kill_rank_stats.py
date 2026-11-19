@@ -51,7 +51,8 @@ def main():
             "actual": actual,
             "sites": sites,
             "specialKilled": special_killed,
-            "rank": [{"z": z, "kill": n} for z, n in rank_of(votes)],
+            "hasSnapshot": bool(per.get("hasSnapshot", False)),
+            "rank": [{"z": z, "kill": n} for z, n in rank_of({z: votes.get(z, 0) for z in ZOD})],
         }
         tot_votes.update(votes)
         if actual:
