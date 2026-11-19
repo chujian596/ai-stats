@@ -630,6 +630,9 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   ck('三中二空格', '三中二 03,10,22 100', one('三中二','03,10,22',100));
   ck('三中二无空格', '三中二03,10,22 100', one('三中二','03,10,22',100));
   ck('三中二后置', '03,10,22三中二100', one('三中二','03,10,22',100));
+  ck('三中三空格后置', '42 40 44三中三 5', one('三中三','42,40,44',5));
+  ck('三中三空格前置', '三中三 42 40 44 5', one('三中三','42,40,44',5));
+  ck('三中三逗号后置无空格', '42,40,44三中三5', one('三中三','42,40,44',5));
   ck('三中二冒号', '三中二:03,10,22 100', one('三中二','03,10,22',100));
   ck('二中二', '二中二 03,10 100', one('二中二','03,10',100));
   ck('三中三', '三中三 07,24,32 100', one('三中三','07,24,32',100));
@@ -693,6 +696,36 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   if(oldFR !== null) flownReal = oldFR;
   if(oldFP !== null) flownPerPos = oldFP;
   window.__rkSnapshot = oldSnap; splitTakeAll = oldCap;
+}
+
+/* 香港飞单：一个总开关管所有客户，客户卡只做单客覆盖 */
+{
+  localStorage.removeItem(HK_GLOBAL_MODE_KEY);
+  localStorage.removeItem(HK_MODE_KEY);
+  gate('香港飞单·未设置默认全飞', hkGlobalMode()==='all' && hkModeOf('叶')==='all', {g:hkGlobalMode(), y:hkModeOf('叶')});
+  setHKGlobalMode('none');
+  gate('香港飞单·总开关改只记录即全客户生效', hkGlobalMode()==='none' && hkModeOf('叶')==='none' && hkModeOf('散客')==='none' && !localStorage.getItem(HK_MODE_KEY), {g:hkGlobalMode(), y:hkModeOf('叶'), m:localStorage.getItem(HK_MODE_KEY)});
+  setCustHKMode('散客','all');
+  gate('香港飞单·单客设置不再覆盖总开关', hkModeOf('散客')==='none' && hkModeOf('叶')==='none', {s:hkModeOf('散客'), y:hkModeOf('叶')});
+  setHKGlobalMode('rule');
+  gate('香港飞单·再动总开关清掉单客覆盖', hkGlobalMode()==='rule' && hkModeOf('散客')==='rule' && hkModeOf('叶')==='rule' && JSON.stringify(hkModeMap())==='{}', {g:hkGlobalMode(), s:hkModeOf('散客'), y:hkModeOf('叶'), m:hkModeMap()});
+  localStorage.removeItem(HK_GLOBAL_MODE_KEY); localStorage.removeItem(HK_MODE_KEY);
+}
+
+/* 用户实操清单：号码在前 + 三中三在后，必须整组一笔，不能拆成单号 */
+{
+  const mac=[
+    '42 40 44三中三 5','31 35 39三中三 5','24 22 26三中三 5','17 15 13三中三 5',
+    '22 34 46 各10','23 47 各5','25 37 各5'
+  ];
+  const hk=[
+    '25 29 27三中三 5','13 19 17三中三 5','43 41 49三中三 5','31 35 37三中三 5',
+    '40 28 16 各5','03 39 15 各10','43 19 各5'
+  ];
+  const calc=(list)=>{let amt=0,codes=0,bad=[];list.forEach(t=>{try{const r=parseLine(t);if(!r){bad.push(t);return;}amt+=(r.isPer?r.price*r.codes.length:r.price);codes+=r.codes.length;}catch(e){bad.push(t+':'+e.message);}});return {amt,only:Math.round(amt*100)/100,codes,bad};};
+  const m=calc(mac), h=calc(hk);
+  gate('实操清单·澳门整组70元', m.only===70 && m.codes===11 && m.bad.length===0, m);
+  gate('实操清单·香港整组75元', h.only===75 && h.codes===12 && h.bad.length===0, h);
 }
 
 R.pass=R.cases.filter(c=>c.status==='PASS').length;

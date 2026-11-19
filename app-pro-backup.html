@@ -231,6 +231,14 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <option value="hk">只看香港</option>
       </select>
     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:0 0 8px;padding:6px 8px;border:1px solid #f0c36d;background:#fffbe6;border-radius:8px;font-size:12px;color:#b45309">
+      <span style="white-space:nowrap">香港飞单默认（所有客户）</span>
+      <select id="hkGlobalMode" onchange="setHKGlobalMode(this.value)" style="flex:1;max-width:190px;padding:4px 6px;border:1px solid #e8c574;border-radius:5px;background:#fff;color:#b45309;font-size:12px">
+        <option value="all">全飞</option>
+        <option value="rule">只飞连肖/二中二/三中三</option>
+        <option value="none">只记录，不飞</option>
+      </select>
+    </div>
     <div id="ordersList"></div>
     <div id="hkFlyBox" style="margin-top:8px"></div>
   </section>
@@ -639,7 +647,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.41-Pro';
+var APP_VER = 'v59.42-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3309,7 +3317,15 @@ function hkGroups(){
 }
 
 // 客户级香港飞单默认：all=全飞，none=只记录不飞，rule=只飞连肖/二中二/三中二/三中三
+// 全局默认一个框管所有客户；客户卡上的下拉只做单客覆盖（选“跟随全部”即删除覆盖）
 const HK_MODE_KEY = 'product_stats_hk_fly_modes_v1';
+const HK_GLOBAL_MODE_KEY = 'product_stats_hk_fly_mode_global_v1';
+function hkGlobalMode(){
+  try{
+    var v = localStorage.getItem(HK_GLOBAL_MODE_KEY);
+    return (v === 'none' || v === 'rule' || v === 'all') ? v : 'all';
+  }catch(e){ return 'all'; }
+}
 function hkModeMap(){
   try{
     var m = JSON.parse(localStorage.getItem(HK_MODE_KEY) || '{}');
@@ -3317,9 +3333,21 @@ function hkModeMap(){
   }catch(e){ return {}; }
 }
 function hkModeOf(name){
-  var m = hkModeMap();
-  var v = m[String(name || '散客')];
-  return (v === 'none' || v === 'rule' || v === 'all') ? v : 'all';
+  // 只认顶部一个总开关，不再按客户分别设置
+  return hkGlobalMode();
+}
+function setHKGlobalMode(mode){
+  var m = (mode === 'none' || mode === 'rule') ? mode : 'all';
+  try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, m); }catch(e){}
+  // 全局框就是“所有客户”：清掉旧的单客覆盖，避免看起来改了全部、实际被老设置挡住
+  try{ localStorage.removeItem(HK_MODE_KEY); }catch(e){}
+  var gs = document.getElementById('hkGlobalMode');
+  if(gs) gs.value = m;
+  var st = hkFlyState();
+  st.perPos = {}; st.real = {}; st.done = false; st.at = '';
+  saveHKFlyState(st);
+  renderHKFlyBox();
+  myAlert('所有客户香港飞单默认已设为：' + hkModeLabel(m) + '\n本批回到待确认。');
 }
 function hkModeLabel(v){
   return v === 'none' ? '只记录' : (v === 'rule' ? '只飞组合' : '全飞');
@@ -3344,16 +3372,25 @@ function hkFlyPlan(){
   return plan;
 }
 function setCustHKMode(name, mode){
+  var _n = String(name || '散客');
+  var _label = '';
   try{
     var m = hkModeMap();
-    m[String(name || '散客')] = (mode === 'none' || mode === 'rule') ? mode : 'all';
+    if(mode === 'follow'){
+      delete m[_n];
+      _label = '跟随全部（' + hkModeLabel(hkGlobalMode()) + '）';
+    } else {
+      var _m = (mode === 'none' || mode === 'rule') ? mode : 'all';
+      m[_n] = _m;
+      _label = hkModeLabel(_m);
+    }
     localStorage.setItem(HK_MODE_KEY, JSON.stringify(m));
   }catch(e){}
   var st = hkFlyState();
   st.perPos = {}; st.real = {}; st.done = false; st.at = '';
   saveHKFlyState(st);
   renderHKFlyBox();
-  myAlert('「' + (name || '散客') + '」香港飞单默认已设为：' + hkModeLabel(mode === 'none' || mode === 'rule' ? mode : 'all') + '\n本批如已确认过，会回到待确认，重新点一次即可。');
+  myAlert('「' + _n + '」香港飞单默认已设为：' + (_label || hkModeLabel(hkModeOf(_n))) + '\n本批如已确认过，会回到待确认，重新点一次即可。');
 }
 
 function hkRoundOn(){ try{ return localStorage.getItem('hk_round_on') === '1'; }catch(e){ return false; } }
@@ -5405,6 +5442,20 @@ function parseLine(text){
 
   // 数字简写：3中3→三中三，2中2→二中二，3中2→三中二
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
+  // 组合「号码在前」写法：42 40 44三中三 5 / 42,40,44三中三5（空格和逗号都认）
+  text = text.replace(/^(\d{2}(?:[\s,，、]*\d{2}){1,2})\s*(二中二|三中二|三中三)\s*(?=\S)/, function(m, nums, prod){
+    const arr = nums.split(/[^0-9]+/).filter(Boolean);
+    const want = prod === '二中二' ? 2 : 3;
+    if(arr.length !== want) return m;
+    return prod + ':' + arr.join(',') + ' ';
+  });
+  // 组合「产品在前、号码用空格」写法：三中三 42 40 44 5
+  text = text.replace(/^(二中二|三中二|三中三)\s*(\d{2}(?:[\s,，、]*\d{2}){1,2})\s*(?=\S)/, function(m, prod, nums){
+    const arr = nums.split(/[^0-9]+/).filter(Boolean);
+    const want = prod === '二中二' ? 2 : 3;
+    if(arr.length !== want) return m;
+    return prod + ':' + arr.join(',') + ' ';
+  });
   // 斜杠当价格分隔符
   text = text.replace(/\//g, ' ');
   // 横杠写法：三种组合各自按号数转，谁的产品名就归谁（三中二/三中三=3个号，二中二=2个号）
@@ -8086,6 +8137,8 @@ function loadMoreCustOrdersByIndex(gi){
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
+  const _gs = document.getElementById('hkGlobalMode');
+  if(_gs) _gs.value = hkGlobalMode();
   const _st = orderFilterState();
   const groups = {};
   const _custOrders = customerOrders();   // 港澳客户订单镜像，只用于列表/合计
@@ -8164,16 +8217,6 @@ function renderOrdersList(){
     h += `<span>中奖 <b style="color:#cf1322">${g.totalWin.toFixed(2)}</b></span>`;
     h += `<span>${net>=0?'盈利':'亏损'} <b style="color:${net>=0?'#16a34a':'#cf1322'}">${Math.abs(net).toFixed(2)}</b></span>`;
     h += `</div>`;
-    if(g.hkCnt){
-      const _hm = hkModeOf(c);
-      h += `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:5px;padding-top:4px;border-top:1px dashed #eee;font-size:11px;color:#999">`
-         + `<span>香港飞单默认</span>`
-         + `<select onclick="event.stopPropagation()" onchange="event.stopPropagation();setCustHKMode('${esc(c)}',this.value)" style="font-size:11px;padding:3px 5px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#b45309">`
-         + `<option value="all"${_hm==='all'?' selected':''}>全飞</option>`
-         + `<option value="rule"${_hm==='rule'?' selected':''}>只飞连肖/二中三中三</option>`
-         + `<option value="none"${_hm==='none'?' selected':''}>只记录，不飞</option>`
-         + `</select></div>`;
-    }
     h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
     h += `<div id="od_${gi}" style="${focusGroup ? '' : 'display:none;'}padding:6px 8px">`;
     const _ordSorted = _visibleOrders.slice().sort((a,b) => (a.hk?1:0) - (b.hk?1:0));
@@ -10114,13 +10157,13 @@ function exportCSV(){
 }
 
 function exportBackup(){
-  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap() });
+  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() });
   // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
   try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
     download('订单备份_' + dateStr() + '.json',
-      JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap() }, null, 2),
+      JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() }, null, 2),
       'application/json');
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
@@ -10138,7 +10181,7 @@ function exportBackup(){
 }
 
 function applyBackup(data){
-  let newOrders, newHKOrders = null, newRoster = null, newProducts = null, newHKModes = null;
+  let newOrders, newHKOrders = null, newRoster = null, newProducts = null, newHKModes = null, newHKGlobalMode = null;
   if(Array.isArray(data)){
     newOrders = data;
   } else if(data && Array.isArray(data.orders)){
@@ -10147,6 +10190,7 @@ function applyBackup(data){
     if(Array.isArray(data.roster)) newRoster = data.roster.filter(x => typeof x === 'string' && x.trim());
     if(Array.isArray(data.products)) newProducts = data.products;
     if(data.hkModes && typeof data.hkModes === 'object') newHKModes = data.hkModes;
+    if(data.hkGlobalMode === 'all' || data.hkGlobalMode === 'rule' || data.hkGlobalMode === 'none') newHKGlobalMode = data.hkGlobalMode;
   } else {
     throw new Error('备份格式不正确');
   }
@@ -10157,6 +10201,7 @@ function applyBackup(data){
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
   if(newHKModes){ try{ localStorage.setItem(HK_MODE_KEY, JSON.stringify(newHKModes)); }catch(e){} }
+  if(newHKGlobalMode){ try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, newHKGlobalMode); }catch(e){} }
   saveOrders();
   restoreIfNeeded();
   renderAll();
