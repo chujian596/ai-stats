@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>每站最多肖台账</title>
+<title>每站九肖台账</title>
 <style>
   :root{
     --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
@@ -47,8 +47,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站最多肖台账</h1>
-    <div class="meta">每站只记本站推荐里生肖最多的一栏（3–9肖），排除杀栏 / 平特栏 / 图片栏 / 11–12肖全包栏；生肖按站点原排序保留。<br>命中＝当期特肖落在推荐肖内；连对/连错由历史期推导；改料＝18点快照与当晚晚些快照推荐肖不一致。</div>
+    <h1>每站九肖台账</h1>
+    <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。</div>
   </header>
 
   <div class="bar-row">
@@ -60,7 +60,7 @@
     <table>
       <thead>
         <tr>
-          <th>站号</th><th>栏目</th><th>推荐肖（原序）</th><th>结果</th><th>连对/错</th><th>近7期轨迹</th>
+          <th>站号</th><th>九肖栏目</th><th>九肖（原序）</th><th>结果</th><th>连对/错</th><th>近7期轨迹</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -98,15 +98,15 @@ function render(){
   var keys=Object.keys(per.stations);
   keys.sort(function(a,b){
     var ra=per.stations[a],rb=per.stations[b];
-    if(ra.status!==rb.status) return ra.status==='有推荐'?-1:1;
+    if(ra.status!==rb.status) return ra.status==='有九肖'?-1:1;
     return ra.siteKey<rb.siteKey?-1:1;
   });
 
-  var elig=keys.filter(function(k){return per.stations[k].status==='有推荐';});
+  var elig=keys.filter(function(k){return per.stations[k].status==='有九肖';});
   var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
   var chg=elig.filter(function(k){return per.stations[k].changed;}).length;
   document.getElementById('summary').innerHTML=
-    '特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有推荐 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无推荐栏 <b>'+(keys.length-elig.length)+'</b>';
+    '特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
 
   var recent=issues.slice(-7);
   var tb=document.getElementById('rows');
@@ -122,9 +122,9 @@ function render(){
       return '<span class="t '+cls+'">'+tx+'</span>';
     }).join('');
 
-    if(r.status==='无推荐栏'){
+    if(r.status==='无九肖栏目'){
       tr.innerHTML='<td><div class="site">'+r.siteKey+'</div><div class="sys">'+r.system+'</div></td>'+
-        '<td class="col empty">—</td><td class="empty">（无合格推荐栏）</td><td class="na">—</td><td class="streak na">—</td><td><div class="trail">'+trail+'</div></td>';
+        '<td class="col empty">—</td><td class="empty">（无九肖栏目）</td><td class="na">—</td><td class="streak na">—</td><td><div class="trail">'+trail+'</div></td>';
     } else {
       var st=streakOf(k);
       var hitCls=r.hit?'hit':'miss';
