@@ -186,9 +186,14 @@ function openInfo(per){
 // 顶部/卡片口径横幅：期号 + 资料更新时间 + 开奖状态
 function periodBanner(per){
   var info=openInfo(per);
-  var st=info.opened
-    ? '<span style="color:#2e7d32;font-weight:600">已开奖 · 特码 '+info.num+' '+info.zod+'</span>'
-    : '<span style="color:#c0392b;font-weight:600">待开奖 · 当前为开奖前预测口径</span>';
+  var st;
+  if(!Object.keys(state.official||{}).length){
+    st='<span style="color:#888;font-weight:600">开奖状态核对中…</span>';
+  } else if(info.opened){
+    st='<span style="color:#2e7d32;font-weight:600">已开奖 · 特码 '+info.num+' '+info.zod+'</span>';
+  } else {
+    st='<span style="color:#c0392b;font-weight:600">待开奖 · 当前为开奖前预测口径</span>';
+  }
   var t=state.latestAt?('资料更新 '+state.latestAt):'';
   return '<div style="background:#f6f8ff;border:1px solid #dbe4ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px">'
     +'<b style="font-size:14px">第 '+per+' 期</b>'+st
@@ -708,7 +713,7 @@ function renderAll(){
   var _fb=$('fetchedAt');
   if(_fb){
     var _oi=openInfo(curPer());
-    var _st=_oi.opened?('已开奖 特码 '+_oi.num+' '+_oi.zod):'待开奖';
+    var _st=!Object.keys(state.official||{}).length?'开奖状态核对中':(_oi.opened?('已开奖 特码 '+_oi.num+' '+_oi.zod):'待开奖');
     var _parts=['当前口径 第 '+curPer()+' 期 · '+_st];
     if(state.latestAt) _parts.push('资料更新 '+state.latestAt);
     if(state.fetchedAt) _parts.push('页面抓取 '+state.fetchedAt);
