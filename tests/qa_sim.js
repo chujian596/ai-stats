@@ -590,6 +590,33 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('撤销港单', _ok, {orders:orders.length,hk:hkOrders.length});
 }
 
+/* 派彩统一：连肖 4/10/30、含马减 0.5；三中二任意 2 个赔 20；二中二 60、三中三 600 */
+{
+  const _o=orders, _h=hkOrders, _ld=lastDraw;
+  let _ok=false, _detail=null, _vals=null, _reconOk=false, _reconPay=null;
+  try{
+    const D={regularNums:[1,2,3,4,5,6],specialNum:7};
+    const z1=NUM2ZODIAC[1], z2=NUM2ZODIAC[2], z3=NUM2ZODIAC[3], z4=NUM2ZODIAC[4];
+    const lx2=codeWinMult('连肖'+z1+z2,D), lx3=codeWinMult('连肖'+z1+z2+z3,D), lx4=codeWinMult('连肖'+z1+z2+z3+z4,D);
+    _vals={
+      two:codeWinMult('二中二:01,02',D), three:codeWinMult('三中三:01,02,03',D),
+      mid2:codeWinMult('三中二:01,02,49',D), mid1:codeWinMult('三中二:01,49,48',D),
+      lx2, lx3, lx4, lx2e:lxOddsOf(z1+z2), lx3e:lxOddsOf(z1+z2+z3), lx4e:lxOddsOf(z1+z2+z3+z4),
+      pte:codeWinMult('平特'+z1,D), num:codeWinMult('07',D)
+    };
+    const o={id:'QA-PAY',ts:'2026-11-19T10:00:00',customer:'派彩',codes:['三中二:01,02,49','连肖'+z1+z2+z3],amount:20,codeAmts:{}};
+    o.codes.forEach(c=>o.codeAmts[c]=10);
+    _detail=calcOrderWinDetail(o,D);
+    _ok=(_vals.two===60 && _vals.three===600 && _vals.mid2===20 && _vals.mid1===0 && Math.abs(_vals.lx2-_vals.lx2e)<0.01 && Math.abs(_vals.lx3-_vals.lx3e)<0.01 && Math.abs(_vals.lx4-_vals.lx4e)<0.01 && Math.abs(_detail.total-(200+10*_vals.lx3e))<0.01 && _vals.pte===1.8 && _vals.num===47);
+    orders=[o]; lastDraw=D; saveOrders();
+    const r=todayReconData(); _reconPay=r.payout;
+    _reconOk=Math.abs(r.payout-_detail.total)<0.01;
+  }catch(e){ _ok=false; _reconOk=false; }
+  finally{ orders=_o; hkOrders=_h; lastDraw=_ld; saveOrders(); renderAll(); }
+  gate('派彩统一·订单卡片', _ok, {vals:_vals,detail:_detail});
+  gate('派彩统一·今日对账一致', _reconOk, {payout:_reconPay,detail:_detail&&_detail.total});
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
