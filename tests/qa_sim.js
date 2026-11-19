@@ -436,6 +436,40 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   reset(); shop='A';
 }
 
+/* 千单下列表分页：客户分组 40 位一页，单客户最多先渲染最近 30 笔 */
+{
+  reset(); shop='A'; lastDraw=null;
+  const arr=[];
+  for(let i=0;i<100;i++){
+    for(let j=0;j<10;j++){
+      arr.push({id:'pg'+i+'-'+j,customer:'客户'+String(i).padStart(3,'0'),amount:10,codes:['01'],price:10,qty:1,createdAt:'2026-11-19 10:'+String(j).padStart(2,'0')+':00',raw:'01 10'});
+    }
+  }
+  orders=arr; hkOrders=[]; resetOrdersPage();
+  const box=document.getElementById('ordersList');
+  const first={rows:box.querySelectorAll('[data-order-id]').length,cards:box.querySelectorAll('.order-cust-card').length};
+  gate('千单列表首屏只渲染40客户', first.cards===40 && first.rows===400, first);
+  loadMoreOrderGroups();
+  const after={rows:box.querySelectorAll('[data-order-id]').length,cards:box.querySelectorAll('.order-cust-card').length};
+  gate('加载更多客户', after.cards===80 && after.rows===800, after);
+  const one=[];
+  for(let k=0;k<1000;k++) one.push({id:'one'+k,customer:'大客户',amount:10,codes:['01'],price:10,qty:1,createdAt:'2026-11-19 11:00:00',raw:'01 10'});
+  orders=one; hkOrders=[]; resetOrdersPage();
+  const oneFirst=box.querySelectorAll('[data-order-id]').length;
+  gate('单客户千单只渲染30笔', oneFirst===30, {rows:oneFirst});
+  loadMoreCustOrdersByIndex(0);
+  const oneAfter=box.querySelectorAll('[data-order-id]').length;
+  gate('单客户加载更早订单', oneAfter===60, {rows:oneAfter});
+  // 本次保存客户不在前40位时，也要提到当前页并可定位
+  const focusArr=[];
+  for(let i=0;i<100;i++) for(let j=0;j<10;j++) focusArr.push({id:'fs'+i+'-'+j,customer:'客户'+String(i).padStart(3,'0'),amount:10,codes:['01'],price:10,qty:1,createdAt:'2026-11-19 12:'+String(j).padStart(2,'0')+':00',raw:'01 10'});
+  orders=focusArr; hkOrders=[]; window.__lastSavedOrderId='fs99-9'; resetOrdersPage();
+  const focusCell=box.querySelector('[data-order-id="fs99-9"]');
+  gate('本次订单跨分页可见', !!focusCell && box.querySelectorAll('.order-cust-card').length===41, {cards:box.querySelectorAll('.order-cust-card').length,focus:!!focusCell});
+  window.__lastSavedOrderId=null;
+  reset(); shop='A';
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

@@ -225,8 +225,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
-      <input id="orderSearch" placeholder="搜客户 / 号码 / 金额" oninput="renderOrdersList()" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:7px 9px;font-size:13px;box-sizing:border-box">
-      <select id="orderDay" onchange="renderOrdersList()" style="width:104px;border:1px solid #ddd;border-radius:6px;padding:7px 6px;font-size:12px;background:#fff;box-sizing:border-box">
+      <input id="orderSearch" placeholder="搜客户 / 号码 / 金额" oninput="resetOrdersPage()" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:7px 9px;font-size:13px;box-sizing:border-box">
+      <select id="orderDay" onchange="resetOrdersPage()" style="width:104px;border:1px solid #ddd;border-radius:6px;padding:7px 6px;font-size:12px;background:#fff;box-sizing:border-box">
         <option value="all">全部日期</option>
         <option value="today">今天</option>
         <option value="hk">只看香港</option>
@@ -572,7 +572,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.18';
+var APP_VER = 'v59.19';
 try{ localStorage.removeItem('aiProPinVer'); }catch(e){}
 /* 版本归一化：比较时忽略 -Pro 等后缀，避免客户版与管理版互相误报更新 */
 function normVer(v){ return String(v||'').trim().replace(/-.*$/,'').trim(); }
@@ -6486,7 +6486,7 @@ function showLastOrder(){
   var q = document.getElementById('orderSearch'); if(q) q.value = '';
   var day = document.getElementById('orderDay'); if(day) day.value = 'all';
   switchTab('orders');
-  renderOrdersList();
+  resetOrdersPage();
   setTimeout(function(){
     var el = document.querySelector('[data-order-id="' + String(id).replace(/"/g,'') + '"]');
     if(!el){
@@ -6498,6 +6498,25 @@ function showLastOrder(){
   }, 120);
 }
 
+
+var _ordersGroupLimit = 40;
+var _ordersCustLimit = {};
+var ORDERS_CUST_LIMIT = 30;
+function resetOrdersPage(){
+  _ordersGroupLimit = 40;
+  _ordersCustLimit = {};
+  renderOrdersList();
+}
+function loadMoreOrderGroups(){
+  _ordersGroupLimit += 40;
+  renderOrdersList();
+}
+function loadMoreCustOrdersByIndex(gi){
+  var name = (window.__orderGroupNames || [])[gi];
+  if(!name) return;
+  _ordersCustLimit[name] = (_ordersCustLimit[name] || ORDERS_CUST_LIMIT) + ORDERS_CUST_LIMIT;
+  renderOrdersList();
+}
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
@@ -6530,6 +6549,18 @@ function renderOrdersList(){
     groups[c].mac++;
   });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
+  const shownNames = custNames.slice(0, _ordersGroupLimit);
+  // 本次保存的客户即使不在当前分页内，也要提上来，保证保存后能定位
+  var _focusCust = null;
+  if(window.__lastSavedOrderId){
+    var _allForFocus = orders.concat(hkOrders || []);
+    for(var _fi = 0; _fi < _allForFocus.length; _fi++){
+      var _fo = _allForFocus[_fi];
+      if(_fo && _fo.id === window.__lastSavedOrderId){ _focusCust = _fo.customer || '散客'; break; }
+    }
+  }
+  if(_focusCust && groups[_focusCust] && shownNames.indexOf(_focusCust) < 0) shownNames.push(_focusCust);
+  window.__orderGroupNames = shownNames;
   let h = '';
   h += `<div style="border:1px solid #eee;border-radius:8px;padding:8px;margin-bottom:8px;background:#fafafa">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
@@ -6548,12 +6579,15 @@ function renderOrdersList(){
   if(!custNames.length){
     h += `<div style="padding:18px 8px;text-align:center;font-size:12px;color:#999">没有匹配的订单${(_st.q || _st.day !== 'all') ? '，换关键词或切回「全部日期」试试' : ''}</div>`;
   }
-  custNames.forEach((c, gi) => {
+  shownNames.forEach((c, gi) => {
     const g = groups[c];
+    const _custLimit = _ordersCustLimit[c] || ORDERS_CUST_LIMIT;
+    const _visibleOrders = g.orders.slice(-_custLimit);
+    const _hiddenOrders = Math.max(0, g.orders.length - _visibleOrders.length);
     const net = g.totalWin - g.totalBet;
     const focusGroup = g.orders.some(function(x){ return x.o && x.o.id && x.o.id === window.__lastSavedOrderId; });
     const _dupCnt = g.orders.filter(function(x){ return !!(x.o && x.o.id && _dupMap[x.o.id]); }).length;
-    h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden">`;
+    h += `<div class="order-cust-card" style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden">`;
     h += `<div onclick="toggleOd('od_${gi}',this)" style="padding:8px;background:#f8f9fa;cursor:pointer">`;
     h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
     h += `<span style="font-weight:700;font-size:14px">${maskName(c)} <span style="font-size:11px;color:#999;font-weight:400">(${g.mac}单${g.hk ? '·港' + g.hk : ''})</span>${_dupCnt ? `<span style="font-size:10px;color:#b45309;background:#fffbe6;border:1px solid #f5d27a;border-radius:4px;padding:1px 5px;margin-left:6px">疑似重复${_dupCnt}</span>` : ''}${focusGroup ? '<span style="font-size:10px;color:#d46b08;background:#fff7e6;border:1px solid #ffd591;border-radius:4px;padding:1px 5px;margin-left:6px">本次订单</span>' : ''}</span>`;
@@ -6567,7 +6601,7 @@ function renderOrdersList(){
     h += `</div>`;
     h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
     h += `<div id="od_${gi}" style="${focusGroup ? '' : 'display:none;'}padding:6px 8px">`;
-    g.orders.forEach(({o, idx, hkIdx}) => {
+    _visibleOrders.forEach(({o, idx, hkIdx}) => {
       const isHK = (hkIdx !== null && hkIdx !== undefined);
       const wd = calcOrderWinDetail(o, isHK ? (_hkDraw || lastDraw) : lastDraw);
       const isFocus = !!(o.id && o.id === window.__lastSavedOrderId);
@@ -6593,8 +6627,14 @@ function renderOrdersList(){
       h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span>${isHK ? '<button onclick="delHKOrder(' + hkIdx + ')" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button>' : '<button onclick="delOrder(' + idx + ')" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button>'}</div>`;
       h += `</div>`;
     });
+    if(_hiddenOrders > 0){
+      h += `<div style="text-align:center;padding:6px 0"><button onclick="event.stopPropagation();loadMoreCustOrdersByIndex(${gi})" style="border:1px solid #ddd;background:#fff;color:#666;border-radius:6px;padding:5px 12px;font-size:12px">显示更早 ${Math.min(ORDERS_CUST_LIMIT, _hiddenOrders)} 笔（还有 ${_hiddenOrders} 笔）</button></div>`;
+    }
     h += `</div></div>`;
   });
+  if(custNames.length > shownNames.length){
+    h += `<div style="text-align:center;padding:8px 0"><button onclick="loadMoreOrderGroups()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">加载更多客户（还有 ${custNames.length - shownNames.length} 位）</button></div>`;
+  }
   // 上家对账行
   let flyOutTotal = 0, flyBackTotal = 0;
   try {
