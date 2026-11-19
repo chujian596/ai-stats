@@ -420,6 +420,22 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   reset(); shop='A';
 }
 
+/* 今日对账 CSV：香港店同批订单只出现一次，含 BOM 与汇总 */
+{
+  reset(); shop='B';
+  const o1={id:'csv-B1',customer:'陈生',amount:100,codes:['01'],price:100,qty:1,hk:true,createdAt:'2026-11-19 14:20:00',raw:'特01 100'};
+  const o2={id:'csv-B2',customer:'李太',amount:200,codes:['02'],price:200,qty:1,hk:true,createdAt:'2026-11-19 14:21:00',raw:'特02 200'};
+  orders=[o1,o2]; hkOrders=[o1,o2];
+  const orig=download; let cap=null;
+  download=function(f,c,t){ cap={f:f,c:c}; };
+  exportTodayReconCSV();
+  download=orig;
+  const c=cap?cap.c:'';
+  const rows=c.split('\r\n').filter(x=>x.indexOf('"陈生"')>-1||x.indexOf('"李太"')>-1);
+  gate('今日对账CSV导出', !!cap && c.charCodeAt(0)===65279 && c.indexOf('\"活动订单数\",2')>-1 && rows.length===2 && c.indexOf('"订单总额",300')>-1, {name:cap?cap.f:'',rows:rows.length});
+  reset(); shop='A';
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

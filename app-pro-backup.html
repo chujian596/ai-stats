@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.29-Pro';
+var APP_VER = 'v59.03.30-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -9608,6 +9608,92 @@ function nextPeriodAfterSettle(){
   });
 }
 
+
+function _reconCsvCell(v){
+  if(v === null || v === undefined) return '';
+  if(typeof v === 'number' && isFinite(v)) return String(Math.round(v * 100) / 100);
+  var s = String(v);
+  if(/^[=+\-@]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+function _reconCsvRow(arr){ return (arr || []).map(_reconCsvCell).join(','); }
+function _reconOrderDetail(o){
+  var seen = {}, sum = 0;
+  (o.codes || []).forEach(function(c){
+    if(seen[c]) return;
+    seen[c] = 1;
+    sum += Number(codeSalesForOrder(o, c)) || 0;
+  });
+  return sum;
+}
+function exportTodayReconCSV(){
+  var d = todayReconData();
+  var book = fourBookCheck();
+  var now = new Date();
+  var timeText = now.toLocaleString('zh-CN', {hour12:false});
+  var rows = [];
+  var add = function(){ rows.push(_reconCsvRow([].slice.call(arguments))); };
+  var n = function(v){ return Number(v || 0); };
+  var orPending = function(v){ return (v === null || v === undefined) ? '待开奖' : n(v); };
+  add('今日对账');
+  add('店铺', d.shop);
+  add('导出时间', timeText);
+  add('活动订单数', d.orders.length);
+  add('订单表', d.orderOk ? '已对平' : '有差异');
+  add('飞单表', d.flyOk ? '已对平' : '有差异');
+  add('四本账', book.pending ? '待开奖' : (book.ok ? '已对平' : '有差异'));
+  add([]);
+  add('汇总');
+  add('项目','数值');
+  add('订单总额', n(d.sales));
+  add('明细合计', n(d.detail));
+  add('订单差异', n(d.sales - d.detail));
+  add('应飞总额', n(d.fly.totalFly));
+  add('已飞金额', n(d.fly.already));
+  add('本轮待飞', n(d.fly.thisRound));
+  add('分类合计', n(d.flyCalc));
+  add('特号应飞', n(d.specFull));
+  add('平特应飞', n(d.pteFull));
+  add('连肖应飞', n(d.lxFull));
+  add('二三中应飞', n(d.emFull));
+  add('客户赔付', orPending(d.payout));
+  add('毛净盈亏', orPending(d.gross));
+  add('飞后净盈亏', orPending(d.localNet));
+  add('返水', d.rebateOn ? n(d.rebate) : '未开');
+  add('含返水到手', d.localNet === null || d.localNet === undefined ? '待开奖' : n(d.localNet + d.rebate));
+  add('上家结算', orPending(d.upSettle));
+  add([]);
+  add('四本账自检');
+  add('项目','全盘','今日','差异','结果');
+  if(book.pending){
+    book.rows.forEach(function(r){ add(r.label, '待开奖', '待开奖', '', '待开奖'); });
+  } else {
+    book.rows.forEach(function(r){
+      var av = n(r.a), bv = n(r.b), diff = av - bv, ok = Math.abs(diff) <= 0.01;
+      add(r.label, av, bv, diff, ok ? '一致' : '差异');
+    });
+  }
+  add([]);
+  add('订单明细（' + d.orders.length + ' 笔）');
+  add('序号','客户','订单金额','明细合计','差异','下单时间','香港单','内容');
+  d.orders.forEach(function(o, i){
+    var oa = n(o.amount), od = _reconOrderDetail(o);
+    add(i + 1, o.customer || '散客', oa, od, oa - od, o.createdAt || o.ts || '', o.hk ? '是' : '否', o.raw || '');
+  });
+  add([]);
+  add('飞单明细（' + d.fly.lines.length + ' 项）');
+  add('号码','应飞','已飞','待飞');
+  d.fly.lines.forEach(function(l){ add(l.code, n(l.full), n(l.done), n(l.amt)); });
+  if(d.badOrders.length){
+    add([]);
+    add('差异订单');
+    add('序号','客户','订单金额','明细合计','差异','内容');
+    d.badOrders.forEach(function(b){ add(b.idx, b.customer, b.amount, b.detail, b.amount - b.detail, b.raw); });
+  }
+  var csv = '\ufeff' + rows.join('\r\n') + '\r\n';
+  download('今日对账_' + d.shop + '_' + dateStr() + '.csv', csv, 'text/csv;charset=utf-8');
+}
+
 function showTodayRecon(){
   var d = todayReconData();
   var fmt = function(v){ return Number(v || 0).toFixed(2); };
@@ -9675,6 +9761,7 @@ function showTodayRecon(){
   });
   h += '</div></details>';
   h += '</div>';
+  h += '<button id="trCsv" style="width:100%;padding:12px;border:none;border-top:1px solid #eee;background:#fff;font-size:14px;color:#16a34a;font-weight:700">导出今日对账 CSV</button>';
   h += '<button id="trNext" style="width:100%;padding:12px;border:none;border-top:1px solid #eee;background:#f8f7ff;font-size:14px;color:#7c3aed;font-weight:700">归档并开下一期</button>';
   h += '<button id="trClose" style="width:100%;padding:14px;border:none;border-top:1px solid #eee;background:#fff;font-size:15px;color:#7c3aed;font-weight:700">关闭</button>';
   h += '</div>';
@@ -9682,6 +9769,7 @@ function showTodayRecon(){
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML = h;
   document.body.appendChild(ov);
+  ov.querySelector('#trCsv').onclick = exportTodayReconCSV;
   ov.querySelector('#trNext').onclick = function(){ ov.remove(); nextPeriodAfterSettle(); };
   ov.querySelector('#trClose').onclick = function(){ ov.remove(); };
 }
