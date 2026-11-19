@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.34';
+var APP_VER = 'v59.35';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6816,6 +6816,12 @@ function doSave(overrideText){
     var _mix = text, _keepMix = [];
     // 组合码里的逗号必须保护：带冒号的，以及「二中二03,10」这种没写冒号的裸组合
     _mix = _mix.replace(/(二中二|三中三|三中二)[ \t]*:?[ \t]*([0-9]{2}(?:[ \t]*,[ \t]*[0-9]{2}){1,2})/g, function(m, p, n){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
+    // 纯号码列表后面的「各/每」要先保护：18,30,42各20 是一个号码组，
+    // 不是三笔订单，不能按逗号拆成 18 / 30 / 42各20。
+    _mix = _mix.replace(/(\d{1,2}(?:[ \t]*[,，][ \t]*\d{1,2})+)[ \t]*(?:各|每)(?:[ \t]*(?:号|数|码|个|肖))?/g, function(m){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
+    // 没写「各」的纯号码组也要保护：18,30,42 20 是一个待确认的号码组，
+    // 先保留给解析器弹「各号/共号」，不要按逗号拆成三行。
+    _mix = _mix.replace(/(\d{1,2}(?:[ \t]*[,，][ \t]*\d{1,2})+)[ \t]+([0-9]+(?:\.[0-9]+)?)(?=[ \t]*(?:$|\n))/g, function(m){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
     _mix = _mix.replace(/[，,]+/g, '\n');
     _mix = _mix.replace(/§(\d+)§/g, function(m, i){ return _keepMix[parseInt(i)]; });
     rawLines = _mix.split(/[\r\n。；;]+/);
@@ -6823,14 +6829,9 @@ function doSave(overrideText){
   window.__skipPair = false;
   const lines = rawLines.map(s => s.trim()).filter(Boolean);
   if(lines.length === 0){ myAlert('请先粘贴订单内容'); return; }
-  // 分店制：澳门店只收澳门单，香港店只收香港单，互不混入
-  if(shop === 'A'){
-    var _hkBad = lines.filter(function(l){ return isHKLine(l); })[0];
-    if(_hkBad){ myAlert('香港单请到香港分店录入。\n本店只收澳门单：' + _hkBad); return; }
-  } else {
-    var _macBad = lines.filter(function(l){ return /^(澳门|澳)\s*/.test(String(l).trim()); })[0];
-    if(_macBad){ myAlert('澳门单请到澳门分店录入。\n本店只收香港单：' + _macBad); return; }
-  }
+  // 分店制：未标前缀的行按当前店铺入账；明确写了「香港/澳门」的行按前缀自动分盘，
+  // 不再因为当前停在澳门店就把「香港牛50」整批拦掉。
+  // 这样澳门店也能直接粘香港单，香港店也能直接粘澳门单，账本仍然分开。
 
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
@@ -6975,37 +6976,55 @@ renderAll();
           }
           r.isPer = (_sel === 'per');
         }
-        // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）
+        // 裸号码/裸生肖歧义：没写“各/共”，有末尾金额时弹确认。
+        // 选择结果按「原行+金额+号码」记住，重新解析时不再重复弹，避免同一条无限循环。
         const allBareNums = !window.__skipAmbig && r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
-        if(allBareNums && PARSE_DEFAULTS.bareNumAmount === 'perNum'){
-          r.isPer = true;
-        } else if(allBareNums){
-          window.__ambigAbort = true;
-          warnBatchNotSaved();
-          var _codes = r.codes.join(' ');
-          var _price = r.price;
-          var _n = r.codes.length;
-          var _digits = line.replace(/[^\d]/g,'');
-          myChoice('这串怎么算？', _codes + ' 共'+_price+'元？怎么分？', ['各'+_price+'元（每个号）','共'+_price+'元（'+_n+'个号分）','重新编辑'], function(pick){
-            if(pick===0){
-              var inp = document.getElementById('input');
-              var outLines = inp.value.split(/\r?\n/).map(function(l){
-                if(l.replace(/[^\d]/g,'') === _digits){
-                  return l.replace(/(\d+)(?!.*\d)/, '各号$1');
+        if(allBareNums){
+          const _bareKey = line.trim()+'|'+r.price+'|'+r.codes.join(',');
+          const _bareSel = (window.__bareNumsChoice || {})[_bareKey];
+          if(_bareSel){
+            r.isPer = (_bareSel === 'per');
+          } else if(PARSE_DEFAULTS.bareNumAmount === 'perNum'){
+            r.isPer = true;
+          } else {
+            window.__ambigAbort = true;
+            warnBatchNotSaved();
+            var _codes = r.codes.join(' ');
+            var _price = r.price;
+            var _n = r.codes.length;
+            var _digits = line.replace(/[^\d]/g,'');
+            var _zLine = String(line).replace(/^(香港|澳门|澳|港)\s*/, '');
+            var _zM = _zLine.match(/^([马蛇龙兔虎牛鼠猪狗鸡猴羊])\s*([0-9]+(?:\.[0-9]+)?)\s*$/);
+            var _zName = _zM ? _zM[1] : '';
+            var _title = _zName ? ('「'+_zName+'」'+_price+'怎么算？') : '这串怎么算？';
+            var _msg = _zName
+              ? ('是整肖'+_zName+'共'+_price+'元（'+_n+'个号分），还是每个号'+_price+'元？')
+              : (_codes + ' 共'+_price+'元？怎么分？');
+            myChoice(_title, _msg,
+              _zName ? ['整肖共'+_price+'元（'+_n+'个号分）','每号'+_price+'元（'+_n+'个号×'+_price+'='+(_n*_price)+'元）','重新编辑']
+                     : ['各'+_price+'元（每个号）','共'+_price+'元（'+_n+'个号分）','重新编辑'],
+              function(pick){
+                if(pick===2){ window.__ambigAbort=false; return; }
+                window.__bareNumsChoice = window.__bareNumsChoice || {};
+                // 生肖弹窗：0=整肖共，1=每号；号码弹窗：0=各号，1=共
+                window.__bareNumsChoice[_bareKey] = _zName ? (pick===0?'total':'per') : (pick===0?'per':'total');
+                window.__ambigAbort = false;
+                var _needPer = _zName ? (pick===1) : (pick===0);
+                if(_needPer){
+                  var inp = document.getElementById('input');
+                  var outLines = inp.value.split(/\r?\n/).map(function(l){
+                    if(l.replace(/[^\d]/g,'') === _digits){
+                      return l.replace(/(\d+)(?!.*\d)/, '各号$1');
+                    }
+                    return l;
+                  });
+                  inp.value = outLines.join('\n');
                 }
-                return l;
+                // 这里必须是 doSave，不是 handleSave：否则同一批会被判成“3分钟内重复”再弹一次确认
+                doSave();
               });
-              inp.value = outLines.join('\n');
-              window.__skipAmbig = true;
-              handleSave();
-              window.__skipAmbig = false;
-            } else if(pick===1){
-              window.__skipAmbig = true;
-              handleSave();
-              window.__skipAmbig = false;
-            }
-          });
-          return;
+            return;
+          }
         }
         parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer, hk: _isHK });
         lastPrice = r.price; lastIsPer = r.isPer;
@@ -7238,6 +7257,7 @@ renderAll();
   restoreIfNeeded();
 renderAll();
   switchTab('orders');
+  window.__bareNumsChoice = {};
   setTimeout(() => { try{ autoStableAfterSave(); }catch(e){} }, 350);
   setTimeout(() => { try{ focusOrderById(window.__lastSavedOrderId); }catch(e){} }, 80);
   // 保存后自动展开平特肖列表
@@ -7320,6 +7340,7 @@ function updateCustLabel(){
 function clearInput(){
   document.getElementById('input').value = '';
   document.getElementById('saveMsg').textContent = '';
+  window.__bareNumsChoice = {};
 }
 
 function selectCustomer(name){
