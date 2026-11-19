@@ -647,7 +647,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.46-Pro';
+var APP_VER = 'v59.47-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8562,7 +8562,10 @@ function renderOrdersList(){
   h += `<div onclick="toggleOd('upDetail',this)" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-weight:700;font-size:14px;color:#333">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
+  h += `<div style="display:flex;gap:4px">`;
   h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
+  h += `<button onclick="event.stopPropagation();confirmThisRoundFly()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:4px 8px;font-size:12px;font-weight:600;white-space:nowrap">确认本轮飞单</button>`;
+  h += `</div>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走(已实付) <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
@@ -8587,6 +8590,7 @@ function renderOrdersList(){
   h += `<div style="display:flex;justify-content:space-between;font-size:10px;padding-top:2px"><span style="color:#bbb">历史累计</span><b style="color:#bbb">${_sg(upCum)}</b></div>`;
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
+  h += `<div style="font-size:10px;color:#999;line-height:1.5;margin-bottom:4px">带「待飞」= 应飞但还没确认实付；点右上角「确认本轮飞单」后转为已实付。</div>`;
   // 三栏：左特码 中肖 右二中二三中三
   let upL = '', upM = '', upR = '';
   try {
@@ -8599,7 +8603,7 @@ function renderOrdersList(){
       const showK = paidK > 0 ? paidK : due;
       if(due > 0 || paidK > 0){
         const hit = _drawO && Number(k) === _drawO.specialNum;
-        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
+        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(!upL) upL = '<div style="color:#bbb">—</div>';
@@ -8616,7 +8620,7 @@ function renderOrdersList(){
       const showP = paidP > 0 ? paidP : dueP;
       if(dueP > 0 || paidP > 0){
         const hit = drawZodsD.has(z);
-        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
+        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(lxFlyAmt > 0){
