@@ -400,7 +400,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         &nbsp;&nbsp;二中二 03,10 100　二中二:03,10 100　03,10二中二100<br>
         &nbsp;&nbsp;三中二 03,10,22 100　三中三 07,24,32 100　07,24,32三中三100<br>
         &nbsp;&nbsp;三中三:07,24,32 100　（用横杠写的 07-24-32 也会自动识别）<br>
-        &nbsp;&nbsp;<b style="color:#b45309">香港单不在这里录：切到香港分店，本店只收澳门单。</b><br><br>
+        &nbsp;&nbsp;<b style="color:#b45309">港澳可同单录：单独一行「香港：」后续整段进香港，「澳门：」切回澳门；单行写「香港牛50」也会把后面未标注行带入香港段。</b><br><br>
 
         <b style="color:var(--modalText,#fff)">⑥ 快捷批量写法</b><br>
         &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">头数：</b>0头200（=01~09全买）1头100（=10~19）<br>
@@ -526,12 +526,14 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港分店（与澳门店同一套功能）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         <b style="color:var(--modalText,#fff)">1. 怎么录</b><br>
-        &nbsp;&nbsp;顶部店铺切到「<b style="color:var(--modalText,#fff)">香港</b>」，按和澳门完全一样的格式直接录<br>
-        &nbsp;&nbsp;香港单只进香港店，澳门单只进澳门店；录错店会提示去另一家分店<br><br>
+        &nbsp;&nbsp;顶部切到「<b style="color:var(--modalText,#fff)">香港</b>」可以录；在澳门店也能直接录香港单<br>
+        &nbsp;&nbsp;单独一行「<b style="color:var(--modalText,#fff)">香港：</b>」→ 后面整段进香港；「<b style="color:var(--modalText,#fff)">澳门：</b>」→ 后面整段切回澳门<br>
+        &nbsp;&nbsp;单行写「香港牛50」也会把后续未标注行带入香港段；行尾写「…澳门」只把该行算澳门<br>
+        &nbsp;&nbsp;同一客户的澳门单和香港单在同一张客户卡合并算下注/中奖，明细仍分「澳门单目录 / 香港单目录」<br><br>
 
         <b style="color:var(--modalText,#fff)">2. 独立一池</b><br>
-        &nbsp;&nbsp;两店的订单、飞单、开奖、统计、归档、客户、对账全部<b style="color:var(--modalText,#fff)">互不串</b><br>
-        &nbsp;&nbsp;切店后只看本店数据，互不影响<br><br>
+        &nbsp;&nbsp;订单池、开奖、赔付、飞单、统计、归档仍按港澳分开存，互不串号<br>
+        &nbsp;&nbsp;客户汇总可以合并看，但每笔明细只用自己盘口的开奖计算<br><br>
 
         <b style="color:var(--modalText,#fff)">3. 香港飞单</b><br>
         &nbsp;&nbsp;和澳门<b style="color:var(--modalText,#fff)">一模一样</b>：特号 / 平特 / 连肖 / 二中二三中三逐号台账、阈值、档位、削峰、凑整、已飞、复制、确认飞单<br>
@@ -555,9 +557,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 点右上角「<b style="color:var(--modalText,#fff)">澳门🇲🇴▾</b>」→ 选「香港🇭🇰」，页面自动重载<br>
-        2. <b style="color:var(--modalText,#fff)">A 店＝澳门</b>：订单池是澳门单，开奖读澳门<br>
-        3. <b style="color:var(--modalText,#fff)">B 店＝香港</b>：订单池是香港单，开奖读香港<br>
-        4. 两店数据<b style="color:var(--modalText,#fff)">互不相通</b>，切店不会串数据、也不会互相顶掉开奖记录<br>
+        2. <b style="color:var(--modalText,#fff)">A 店＝澳门</b>：默认收澳门单，带「香港」标注的行自动进香港账<br>
+        3. <b style="color:var(--modalText,#fff)">B 店＝香港</b>：默认收香港单，带「澳门」标注的行自动进澳门账<br>
+        4. 两本账分开存，但同一客户的港单和澳单会在客户卡片里合并显示<br>
         5. 分店就是这个切换，<b style="color:var(--modalText,#fff)">不用另外的网址</b>
       </div>
 
@@ -636,7 +638,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.37-Pro';
+var APP_VER = 'v59.38-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1536,8 +1538,8 @@ try {
 } catch(e){}
 const KEY = sk('product_stats_orders_v1');
 let storageOK = true;
-let orders = (shop === 'B') ? [] : loadOrders();  // 香港店只挂港单，历史混入的澳门单不再参与本店账
-let hkOrders = (shop === 'B') ? loadHKOrders() : [];  // 分店制：澳门店不混入香港单，香港店才加载
+let orders = loadOrders();  // 两店都加载各自账本；港单再单独进 hkOrders
+let hkOrders = loadHKOrders();  // 两店都加载港单：澳门店也能录港单，客户明细要合在一起看
 function activeOrders(){
   // 香港店 orders 与 hkOrders 指向同一批港单，合并时必须去重，避免对账/盈亏双计
   var seenIds = {}, seenSigs = {}, out = [];
@@ -1619,14 +1621,9 @@ function resolveCode(token){
 function saveOrders(){
   invalidateStats();
   try {
-    // 澳门店只保存澳门单；历史混入的港单原样保留在存储里，不再参与本店账
+    // 两本账都从内存写：澳门单 orders、香港单 hkOrders，互不覆盖
     var _hkKeep = hkOrders;
     var _macKeep = orders;
-    if(shop !== 'B'){
-      try { _hkKeep = loadHKOrders(); } catch(e){ _hkKeep = []; }
-    } else {
-      try { _macKeep = loadOrders(); } catch(e){ _macKeep = []; }
-    }
     localStorage.setItem(KEY, JSON.stringify(_macKeep.concat(_hkKeep)));
     return true;
   }
@@ -6850,7 +6847,9 @@ function doSave(overrideText){
     // 去掉"新澳"等前缀和尾部顿号
     ln = ln.replace(/^新澳/, '').replace(/[、，,]\s*$/, '').trim();
     if(/^(共|合计)/.test(ln)) continue;
-    if(!/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
+    // 分段标题不是号码行，但它决定后面整段的盘口，必须保留到 workLines
+    var _isSecHeadLine = /^(香港|港|澳门|澳)\s*[:：]?\s*$/.test(ln);
+    if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
     // 混合订单拆分：金额(>49)后面紧跟生肖时，自动断行
     ln = ln.replace(/(\d{2,}(?:\.\d+)?)\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, function(m, num){
       return parseFloat(num) > 49 ? num + '\n' : m;
@@ -6926,11 +6925,18 @@ renderAll();
       return ln;
     }).filter(x=>x!==null);
   }
+  let _secHK = (typeof shop !== 'undefined' && shop === 'B');  // 「香港：」标题后，后续行默认进香港，直到出现「澳门：」
   workLines.forEach((line, i) => {
     // 前一行已经弹了待确认框：先停住，等用户选完由回调重新 doSave 再继续，
     // 避免一张单里同时弹出多个选择框，用户不知道该先答哪个。
     if(window.__ambigAbort) return;
     const trimmed = line.trim();
+    // 分段标题：单独一行「香港」「香港：」「澳门」「澳门：」只切换盘口，不参与号码解析
+    const _secHead = trimmed.match(/^(香港|港|澳门|澳)\s*[:：]?\s*$/);
+    if(_secHead){
+      _secHK = /^(香港|港)$/.test(_secHead[1]);
+      return;
+    }
     // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行；允许前面带香港/澳门
     var _pm = trimmed.match(/^(香港|澳门|澳|港)?\s*(三中三|二中二|三中二)\s*(复式?)?[:：\s]*$/);
     if(_pm){
@@ -6945,13 +6951,19 @@ renderAll();
     }
     // 合并后统一归一化组合码，避免号码里的逗号、横杠被后面的逻辑拆散
     line = normalizeComboLine(line);
-    // 先记下这行有没有写「澳门」标注（后面判断店铺默认要用），再把标注剥掉
-    const _hadMacTag = /^(澳门|澳)/.test(String(line).trim());
-    // 行首「澳门/澳」只是标注，澳门本来就是默认池，落库前剥掉，避免同一种单显示成两种写法
-    if(!isHKLine(line)) line = line.trim().replace(/^(澳门|澳)\s*/, '');
+    // 行首/行尾的港澳标注：标注只决定这一行的盘口，同时把后续未标注行带到同一段
+    const _leadHK = /^(香港|港)\s*[^:：\s]/.test(trimmed);
+    const _leadMac = /^(澳门|澳)\s*[^:：\s]/.test(trimmed) || /[\s（(]\s*(澳门|澳)\s*$/.test(trimmed);
+    const _trailHK = /[\s（(]\s*(香港|港)\s*$/.test(trimmed);
+    if(_leadHK) _secHK = true;
+    if(_leadMac) _secHK = false;
+    const _hadMacTag = _leadMac;
     try {
-      // 香港店里不带标记的行默认算港单（写了「澳门/澳」的仍算澳门单）
-      const _isHK = isHKLine(line) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
+      // 分段标题优先，其次看本行港澳标注；澳门店里没标注的行默认算澳门单
+      const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK)) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
+      if(!_isHK){
+        line = line.trim().replace(/^(澳门|澳)\s*/, '').replace(/[\s:：]*(澳门|澳)\s*$/, '').trim();
+      }
       const r = parseLine(_isHK ? stripHKMark(line) : line);
       if(r){
         // 裸复式没写「各」：金额是每组还是总共，必须先问清
