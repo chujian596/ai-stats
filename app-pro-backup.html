@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.36-Pro';
+var APP_VER = 'v59.37-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3217,7 +3217,8 @@ function cycleHKRound(){
 // 香港单赔付速算：拿到香港开奖结果后，按同一套赔率（payMult）算收/赔/净
 // 把香港开奖缓存转成和澳门 lastDraw 同形的对象，供 calcOrderWinDetail 复用
 function hkDrawObj(){
-  if(shop !== 'B') return null;
+  // 香港开奖只跟香港单走，不再看当前停在哪个店：
+  // 澳门店也能录香港单，否则会出现“香港单已保存、却显示香港开奖未录入 / 中奖0”。
   var c = hkDrawCache();
   if(!c || !c.nums || c.nums.length < 7) return null;
   return { draw: c.draw, specialNum: Number(c.nums[6]), regularNums: c.nums.slice(0,6).map(Number) };
