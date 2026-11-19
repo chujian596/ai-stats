@@ -230,9 +230,9 @@ def post_special(g, special):
             zodiacc[zodiac(n, segs[i + 1])] += 1
         nextc[orders[i + 1][6]] += 1
     ping = [{"号": n, "次": c, "肖": zodiac(n, segs[-1]), "波": wave(n)}
-            for n, c in sorted(pingc.items(), key=lambda x: (-x[1], x[0]))]
-    zc = [{"肖": z, "次": c} for z, c in sorted(zodiacc.items(), key=lambda x: (-x[1], Z.index(x[0])))]
-    nc = [{"号": n, "次": c} for n, c in sorted(nextc.items(), key=lambda x: (-x[1], x[0]))[:10]]
+            for n, c in sorted(pingc.items(), key=lambda x: -x[1])]
+    zc = [{"肖": z, "次": c} for z, c in sorted(zodiacc.items(), key=lambda x: -x[1])]
+    nc = [{"号": n, "次": c} for n, c in sorted(nextc.items(), key=lambda x: -x[1])[:10]]
     return {"特码": special, "样本": sample, "平码": ping, "生肖": zc, "下期特码": nc}
 
 
