@@ -470,6 +470,29 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   reset(); shop='A';
 }
 
+/* 离线/弱网：主订单键写入失败时，先写待补记队列，恢复后补记且不重复 */
+{
+  reset(); shop='A';
+  localStorage.removeItem(sk('order_pending_v1'));
+  const origSet=Storage.prototype.setItem;
+  try{
+    Storage.prototype.setItem=function(k,v){ if(k===KEY) throw new Error('qa-quota'); return origSet.call(this,k,v); };
+    for(let i=0;i<3;i++){
+      document.getElementById('customerName').value='离线'+String(i+1).padStart(2,'0');
+      await appendSave('特01 10');
+    }
+  } finally {
+    Storage.prototype.setItem=origSet;
+  }
+  const pendingBefore=_readPendingOrders().length;
+  const memBefore=orders.length;
+  orders=[]; hkOrders=[];
+  const added=flushPendingOrders();
+  const ids=orders.map(o=>o.id);
+  gate('待补记队列不丢不重', pendingBefore===3 && memBefore===3 && added===3 && orders.length===3 && new Set(ids).size===3 && _readPendingOrders().length===0, {pendingBefore,memBefore,added,restored:orders.length,queueAfter:_readPendingOrders().length});
+  reset(); shop='A';
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

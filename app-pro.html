@@ -221,6 +221,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-weight:700;font-size:15px">订单对账</div>
       <div style="display:flex;gap:6px"><button onclick="showLastOrder()" style="border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:6px;padding:4px 10px;font-size:12px">本次订单</button><button onclick="showTodayRecon()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 10px;font-size:12px">今日对账</button><button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button></div>
     </div>
+    <div id="pendingOrdersBar" style="display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <input id="orderSearch" placeholder="搜客户 / 号码 / 金额" oninput="resetOrdersPage()" style="flex:1;min-width:0;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#333">
       <select id="orderDay" onchange="resetOrdersPage()" style="width:104px;padding:9px 6px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#333">
@@ -632,7 +633,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.31-Pro';
+var APP_VER = 'v59.03.32-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -1449,9 +1450,80 @@ function saveOrders(){
       try { _macKeep = loadOrders(); } catch(e){ _macKeep = []; }
     }
     localStorage.setItem(KEY, JSON.stringify(_macKeep.concat(_hkKeep)));
+    return true;
   }
-  catch(e){ storageOK = false; }
+  catch(e){ storageOK = false; return false; }
 }
+// ===== 离线/弱网：订单待补记队列（本地存储，按店隔离） =====
+function _pendingKey(){ return sk('order_pending_v1'); }
+function _readPendingOrders(){
+  try {
+    var arr = JSON.parse(localStorage.getItem(_pendingKey()) || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){ return []; }
+}
+function _writePendingOrders(list){
+  try {
+    if(!list || !list.length) localStorage.removeItem(_pendingKey());
+    else localStorage.setItem(_pendingKey(), JSON.stringify(list));
+    return true;
+  } catch(e){ return false; }
+}
+function queuePendingOrders(list){
+  if(!list || !list.length) return true;
+  var q = _readPendingOrders();
+  var ids = {};
+  q.forEach(function(o){ if(o && o.id) ids[o.id] = 1; });
+  list.forEach(function(o){ if(o && o.id && !ids[o.id]){ q.push(o); ids[o.id] = 1; } });
+  return _writePendingOrders(q);
+}
+function clearPendingOrders(ids){
+  if(!ids || !ids.length) return;
+  var q = _readPendingOrders();
+  var drop = {}; ids.forEach(function(id){ if(id) drop[id] = 1; });
+  _writePendingOrders(q.filter(function(o){ return !(o && o.id && drop[o.id]); }));
+}
+function flushPendingOrders(){
+  var q = _readPendingOrders();
+  if(!q.length) return 0;
+  var seen = {};
+  orders.concat(hkOrders).forEach(function(o){ if(o && o.id) seen[o.id] = 1; });
+  var added = 0;
+  q.forEach(function(raw){
+    var o = normalizeOrder(raw);
+    if(!o || !o.id || seen[o.id]) return;
+    if(o.hk){
+      hkOrders.push(o);
+      if(typeof shop !== 'undefined' && shop === 'B') orders.push(o);
+    } else orders.push(o);
+    seen[o.id] = 1; added++;
+  });
+  if(saveOrders()){
+    clearPendingOrders(q.map(function(o){ return o && o.id; }));
+    return added;
+  }
+  return 0;
+}
+window.addEventListener('online', function(){ try{ if(flushPendingOrders()) renderAll(); }catch(e){} });
+function retryPendingOrders(){
+  var added = flushPendingOrders();
+  renderAll();
+  if(added) myAlert('已补记 ' + added + ' 笔订单。');
+  else if(_readPendingOrders().length) myAlert('还有待补记订单，当前存储写入失败，请先导出备份或清理空间。');
+  else myAlert('没有待补记订单。');
+}
+function renderPendingOrdersBar(){
+  var bar = document.getElementById('pendingOrdersBar');
+  if(!bar) return;
+  var q = _readPendingOrders();
+  if(!q.length){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'block';
+  bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid #f5d27a;background:#fffbe6;border-radius:8px;margin-bottom:8px">'
+    + '<span style="font-size:12px;color:#b45309;font-weight:600">有 ' + q.length + ' 笔订单待补记，未丢失</span>'
+    + '<button onclick="retryPendingOrders()" style="border:1px solid #f5d27a;background:#fff;color:#b45309;border-radius:5px;padding:4px 10px;font-size:12px">立即补记</button></div>';
+}
+
+
 function delOrder(idx){
   myConfirm('删除这笔订单？金额会同步扣减', function(){
   orders.splice(idx, 1);
@@ -5422,6 +5494,7 @@ setInterval(function(){
 }, 1000);
 // 页面加载完成后自动测试AI连接
 window.onload = function(){
+  try { if(flushPendingOrders()) renderAll(); } catch(e){}
   // 下拉刷新：收起号码 + 查线上版本；开奖号码仍然只能点按钮手动获取
   var stY = 0, pulled = false;
   document.addEventListener('touchstart', function(e){
@@ -6781,6 +6854,7 @@ renderAll();
   const customer = document.getElementById('customerName').value.trim() || '散客';
   const created = new Date().toLocaleString('zh-CN', { hour12: false });
   const results = [];
+  const _ordersBefore = orders.length, _hkBefore = hkOrders.length;
 
   // 一次保存=一个单，所有行合并成一条订单记录
   const allCodes = [];
@@ -6876,7 +6950,12 @@ renderAll();
     }
   }
 
-  saveOrders();
+  const _newOrders = orders.slice(_ordersBefore).concat(hkOrders.slice(_hkBefore));
+  const _newOrderIds = _newOrders.map(function(o){ return o && o.id; }).filter(Boolean);
+  queuePendingOrders(_newOrders);
+  const _savedOK = saveOrders();
+  if(_savedOK) clearPendingOrders(_newOrderIds);
+  renderPendingOrdersBar();
   // 记住本次保存的订单 ID：保存后自动展开并定位到这一单
   try{
     const _lastMain = orders[orders.length-1];
@@ -7436,7 +7515,7 @@ function renderOrdersList(){
     h += `</div>`;
     h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
     h += `<div id="od_${gi}" style="${focusGroup ? '' : 'display:none;'}padding:6px 8px">`;
-    const _ordSorted = g.orders.slice().sort((a,b) => (a.hk?1:0) - (b.hk?1:0));
+    const _ordSorted = _visibleOrders.slice().sort((a,b) => (a.hk?1:0) - (b.hk?1:0));
     let _ordLastHk = null;
     _ordSorted.forEach(({o, idx, hk}) => {
       if(g.hkCnt > 0 && g.orders.length > g.hkCnt && _ordLastHk !== hk){
@@ -9118,6 +9197,7 @@ box.innerHTML = h;
 
 function renderAll(){
   const tv = document.getElementById('topVer'); if(tv) tv.textContent = APP_VER;
+  try { renderPendingOrdersBar(); } catch(e){}
   try { renderHKDraw(); refreshHKDraw(); } catch(e){}
   // 自定义标题
   const mt = document.getElementById('mainTitle');
