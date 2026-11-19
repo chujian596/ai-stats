@@ -576,7 +576,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.27';
+var APP_VER = 'v59.28';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6880,8 +6880,8 @@ function renderOrdersList(){
         const lz = lxFlyName.replace(/[0-9连]+$/,'');
         const zods = lz.split('');
         const drawZods = new Set([...lastDraw.regularNums, lastDraw.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean));
-        const hit = zods.every(z => drawZods.has(z));
-        if(hit) flyBackTotal += lxFlyAmt * 4; // 2连4倍
+        const _m = codeWinMult('连肖' + lz, lastDraw);
+        if(_m > 0) flyBackTotal += lxFlyAmt * _m;
       }
     }
     // 二中二/三中三飞单
@@ -7318,7 +7318,7 @@ function renderRisk(){
     });
   });
   // 连肖飞单：飞出去的注码按2连4倍算赔付扣除
-  if(lxFlyAmt > 0){ lxPayout = Math.max(0, lxPayout - lxFlyAmt * 4); }
+  if(lxFlyAmt > 0){ const _lz=(lxFlyName||'').replace(/[0-9连]+$/,''); lxPayout = Math.max(0, lxPayout - lxFlyAmt * lxOddsOf(_lz)); }
   // 各产品独立核算：特号自留现金（只算特号本身）
   let pteTotalSalesSum = 0;
   Object.values(pteBetByZod).forEach(v => pteTotalSalesSum += v);
@@ -7400,7 +7400,7 @@ function renderRisk(){
         }
       });
     });
-    if(lxFlyAmt > 0){ actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * 4); }
+    if(lxFlyAmt > 0){ const _lz=(lxFlyName||'').replace(/[0-9连]+$/,''); actualLxPayout = Math.max(0, actualLxPayout - lxFlyAmt * lxOddsOf(_lz)); }
     const actualNet = keptCash - actualSpecPayout - actualPtePayout - actualLxPayout;
     h += `<div style="margin:6px 0;padding:12px;background:#f8f9fa;border-radius:8px;font-size:15px;line-height:1.8;border:1px solid #e5e5e5">`;
     const regNums = (lastDraw.regularNums||[]).map(n => String(n).padStart(2,'0') + (NUM2ZODIAC[n]||'')).join(' ');
@@ -7697,7 +7697,7 @@ function renderRisk(){
         }
       }
     });});
-    if(lxFlyAmt > 0) dLxPayout = Math.max(0, dLxPayout - lxFlyAmt * 4);
+    if(lxFlyAmt > 0){ const _lz=(lxFlyName||'').replace(/[0-9连]+$/,''); dLxPayout = Math.max(0, dLxPayout - lxFlyAmt * lxOddsOf(_lz)); }
     dNet = keptCash - dSpecPayout - dPtePayout - dLxPayout;
   }
   const dPayout = dSpecPayout + dPtePayout + dLxPayout;
