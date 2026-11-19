@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>站点清单 · 站号 / 站名 / 数据路径</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:10px 12px 40px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f5f6f8;color:#1c1c1c}
+h1{font-size:17px;margin:4px 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+select,button,input{border:1px solid #cfd4da;background:#fff;border-radius:9px;padding:7px 10px;font-size:13px}
+button{cursor:pointer;font-weight:600}
+button.on{background:#fffaf0;border-color:#b8860b;color:#8a6500}
+.sum{background:#fff;border:1px solid #e6e8eb;border-radius:10px;padding:9px 11px;font-size:13px;line-height:1.7;margin-bottom:8px}
+.wrap{overflow-x:auto;background:#fff;border:1px solid #e6e8eb;border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:7px 8px;border-bottom:1px solid #eef0f3;white-space:nowrap}
+th{background:#fafbfc;text-align:left;font-weight:600;position:sticky;top:0}
+td.name{font-weight:700}
+td.path{font-family:ui-monospace,Menlo,monospace;color:#0b6;font-size:12px}
+.tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11.5px}
+.yes{background:#eaf7ee;color:#187a3c}
+.no{background:#f4f5f7;color:#999}
+.note{color:#888;font-size:12px;margin-top:8px;line-height:1.7}
+</style>
+</head>
+<body>
+<h1>站点清单 · 站号 / 站名 / 数据路径</h1>
+<div class="bar">
+  <button id="btnK3" class="on">只看有杀三肖</button>
+  <button id="btnAll">显示全部站点</button>
+  <input id="q" placeholder="搜站名或站号" style="min-width:130px">
+  <button id="btnCsv">导出 CSV</button>
+</div>
+<div class="sum" id="summary">加载中…</div>
+<div class="wrap">
+  <table>
+    <thead><tr><th>序号</th><th>站名</th><th>站号</th><th>数据路径</th><th>杀三肖栏目</th><th id="thMode">本期杀三肖</th><th>九肖栏目</th><th>本期九肖</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+<div class="note" id="note"></div>
+<script>
+var REG=null, ONLYK3=true, KEY='';
+function fetchJson(u){return fetch(u,{cache:'no-store'}).then(function(r){return r.json();});}
+function render(){
+  if(!REG) return;
+  var q=KEY.trim();
+  var list=REG.sites.filter(function(s){
+    if(ONLYK3 && !s.has_kill3) return false;
+    if(q && (s.name+' '+s.id+' '+s.path).indexOf(q)<0) return false;
+    return true;
+  });
+  document.getElementById('summary').innerHTML =
+    '清单更新 <b>'+REG.updated_at+'</b>　共 <b>'+REG.total+'</b> 站 · 有杀三肖 <b>'+REG.with_kill3+'</b> 站 · 有九肖 <b>'+REG.with_nine+'</b> 站'+
+    (ONLYK3?'　当前视图：只显示有杀三肖的站':'　当前视图：全部站点')+
+    '　&nbsp;|&nbsp; 当前筛选出 <b>'+list.length+'</b> 站';
+  document.getElementById('thMode').textContent='第'+REG.issue+'期杀三肖';
+  var tb=document.getElementById('rows');
+  tb.innerHTML=list.map(function(s){
+    return '<tr>'+
+      '<td>'+s.no+'</td>'+
+      '<td class="name">'+(s.name||'（未命名）')+'</td>'+
+      '<td>'+s.id+'</td>'+
+      '<td class="path">'+s.path+'</td>'+
+      '<td>'+(s.has_kill3?'<span class="tag yes">有</span>':'<span class="tag no">无</span>')+'</td>'+
+      '<td>'+(s.kill3||'—')+'</td>'+
+      '<td>'+(s.has_nine?'<span class="tag yes">有</span>':'<span class="tag no">无</span>')+'</td>'+
+      '<td>'+(s.nine||'—')+'</td>'+
+      '</tr>';
+  }).join('');
+  document.getElementById('note').textContent='数据路径格式：主机/站号（对应 https://主机.wanpz.com/script/站号/）。清单由最新站点快照自动生成，每小时随台账一起重建。';
+}
+function load(){
+  fetchJson('data/site-registry.json?v='+Date.now()).then(function(d){
+    REG=d; var n=document.getElementById('note');
+    n.textContent=''; render();
+    n.textContent='清单来源 '+d.source_snapshot+'，更新于 '+d.updated_at+'。数据路径 = 主机/站号（https://主机.wanpz.com/script/站号/）。';
+  }).catch(function(e){
+    document.getElementById('summary').textContent='读取失败：'+e;
+  });
+}
+document.getElementById('btnK3').addEventListener('click',function(){ONLYK3=true;this.classList.add('on');document.getElementById('btnAll').classList.remove('on');render();});
+document.getElementById('btnAll').addEventListener('click',function(){ONLYK3=false;this.classList.add('on');document.getElementById('btnK3').classList.remove('on');render();});
+document.getElementById('q').addEventListener('input',function(){KEY=this.value;render();});
+document.getElementById('btnCsv').addEventListener('click',function(){
+  var q=KEY.trim();
+  var list=REG.sites.filter(function(s){return (!ONLYK3||s.has_kill3)&&(!q||(s.name+' '+s.id+' '+s.path).indexOf(q)>=0);});
+  var head=['序号','站名','站号','数据路径','有杀三肖','第'+REG.issue+'期杀三肖','有九肖','九肖'];
+  var lines=[head.join(',')].concat(list.map(function(s){
+    return [s.no,s.name||'',s.id,s.path,s.has_kill3?'有':'无',s.kill3,s.has_nine?'有':'无',s.nine].map(function(v){v=String(v==null?'':v);return /[,\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',');
+  }));
+  var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='站点清单-'+REG.issue+'期.csv';a.click();
+});
+load();
+</script>
+</body>
+</html>

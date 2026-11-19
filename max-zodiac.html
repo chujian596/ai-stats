@@ -38,6 +38,7 @@
     <div class="ttab on" id="tabNine" onclick="switchTop('nine')">九肖台账</div>
     <div class="ttab" id="tabThree" onclick="switchTop('three')">三肖共识</div>
     <div class="ttab" id="tabKill3" onclick="switchTop('kill3')">杀三肖台账</div>
+    <div class="ttab" id="tabReg" onclick="switchTop('reg')">站点清单</div>
   </div>
 
   <div class="sub-tabs" id="subTabs" style="display:none">
@@ -50,6 +51,7 @@
     <iframe id="frameNine" src="nine-zodiac.html?v=5"></iframe>
     <iframe id="frameThree" src="stats.html#kill" class="hidden"></iframe>
     <iframe id="frameKill3" src="kill3-ledger.html?v=2" class="hidden"></iframe>
+  <iframe id="frameReg" src="site-registry.html?v=1" class="hidden"></iframe>
   </div>
 </div>
 
@@ -57,7 +59,7 @@
 var top='nine', threeK='kill';
 function switchTop(t){
   top=t;
-  var on={'nine':'tabNine','three':'tabThree','kill3':'tabKill3'};
+  var on={'nine':'tabNine','three':'tabThree','kill3':'tabKill3','reg':'tabReg'};
   Object.keys(on).forEach(function(k){
     document.getElementById(on[k]).className='ttab'+(k===t?' on':'');
   });
@@ -65,10 +67,11 @@ function switchTop(t){
   document.getElementById('frameNine').classList.toggle('hidden',t!=='nine');
   document.getElementById('frameThree').classList.toggle('hidden',t!=='three');
   document.getElementById('frameKill3').classList.toggle('hidden',t!=='kill3');
+  document.getElementById('frameReg').classList.toggle('hidden',t!=='reg');
   if(t==='three') switchThree(threeK,true);
 }
 function refreshAll(){
-  ['frameNine','frameThree','frameKill3'].forEach(function(id){
+  ['frameNine','frameThree','frameKill3','frameReg'].forEach(function(id){
     var f=document.getElementById(id);
     var base=f.getAttribute('data-base')||f.src.split('?')[0].split('#')[0];
     f.setAttribute('data-base',base);
