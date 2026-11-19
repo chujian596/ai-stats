@@ -265,6 +265,42 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="splitTakeAll=parseFloat(this.value)||0;saveSplitAll();try{localStorage.setItem('autoStable','0')}catch(e){};var s2=document.getElementById('sideSplitTh');if(s2)s2.value=splitTakeAll;flyThChanged();">
       <button class="btn primary" style="font-size:16px;padding:10px 20px" onclick="toggleSplit()">飞单统计</button>
     </div>
+    <div id="cutPanel" style="margin:10px 0 4px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">削峰测算（按当前订单自动算）</div>
+      <div id="cutNow" style="font-size:14px;line-height:1.8;color:#333;margin-bottom:8px">暂无订单</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:14px;white-space:nowrap">单号上限</span>
+        <input id="cutM" type="number" inputmode="decimal" oninput="cutRender(parseFloat(this.value)||0)" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0;text-align:center">
+      </div>
+      <div id="cutQuicks" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"></div>
+      <div id="cutOut" style="font-size:15px;line-height:1.9"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #ddd">
+        <span style="font-size:14px;white-space:nowrap">我能扛</span>
+        <input id="cutTol" type="number" inputmode="decimal" placeholder="亏多少" oninput="cutByTolerance()" style="flex:1;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:16px;min-width:0;text-align:center">
+        <span style="font-size:14px;white-space:nowrap">元</span>
+      </div>
+      <div id="cutTolOut" style="font-size:15px;line-height:1.8;margin-top:6px;color:#cf1322"></div>
+    </div>
+    <div id="needPanel" style="margin:10px 0 4px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">大额建议 · 要收的号</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;white-space:nowrap">目标最坏</span>
+        <input id="needTarget" type="number" placeholder="如 -800" onchange="window.__needTarget=this.value" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:7px;font-size:14px;text-align:center">
+        <button class="btn" style="font-size:13px;padding:6px 10px" onclick="renderNeedList()">算清单</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button class="btn" style="flex:1;font-size:12px;padding:5px 8px;color:#16a34a;border:1px solid #16a34a;background:#fff" onclick="needTargetSet(0)">按不亏算</button>
+        <button class="btn" style="flex:1;font-size:12px;padding:5px 8px" onclick="needTargetSet(Math.round(window.__curWorst||0))">按当前最坏看</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;white-space:nowrap">我手上</span>
+        <input id="needBudget" type="number" placeholder="多少钱" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:7px;font-size:14px;text-align:center">
+        <span style="font-size:13px;white-space:nowrap">统一收</span>
+        <input id="needUnit" type="number" placeholder="如50" style="width:70px;border:1px solid #ddd;border-radius:6px;padding:7px;font-size:14px;text-align:center">
+        <button class="btn" style="font-size:13px;padding:6px 10px" onclick="renderNeedListByBudget()">按这个收</button>
+      </div>
+      <div id="needBox" style="font-size:13px"></div>
+    </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
       <button class="btn primary" style="font-size:15px;padding:8px 14px" onclick="copySplit()">复制本轮飞单</button>
@@ -576,7 +612,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.28';
+var APP_VER = 'v59.29';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -2323,6 +2359,371 @@ function getSplitSales(){
   });
   return sales;
 }
+/* ===== 削峰测算：按当前订单算出削到哪一档最划算 ===== */
+function cutBets(raw){
+  var sales = getSplitSales();
+  var cap = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+  var arr = [];
+  Object.keys(sales).forEach(function(k){
+    var nb = Number(sales[k]) || 0;
+    if(nb <= 0) return;
+    var self = raw ? nb : (cap > 0 ? Math.min(nb, cap) : nb);
+    arr.push({n:k, nb:nb, self:self});
+  });
+  arr.sort(function(a,b){ return b.self - a.self; });
+  return arr;
+}
+function cutCalc(M, raw){
+  var bets = cutBets(raw);
+  var kept=0, flown=0, maxKeep=0, full=0, n=0;
+  bets.forEach(function(b){
+    if(b.self <= 0) return;
+    n++;
+    var k = (M > 0) ? Math.min(b.self, M) : b.self;
+    kept += k;
+    flown += (b.self - k);
+    if(k > maxKeep) maxKeep = k;
+    if(M > 0 && b.self >= M) full++;
+  });
+  var line = kept / payMult;
+  var worst = kept - payMult * maxKeep;
+  var exp = kept * 2 / 49 + flown * 0.03;
+  return {M:M, kept:kept, flown:flown, line:line, worst:worst, full:full, n:n, maxKeep:maxKeep, exp:exp};
+}
+function cutRefresh(){
+  try{
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    var base = cutCalc(top);
+    var elNow = document.getElementById('cutNow');
+    if(elNow){
+      if(bets.length === 0){ elNow.textContent = '暂无订单'; }
+      else{
+        var gap = payMult * top - base.kept;
+        var capShow = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+        elNow.innerHTML = '实际飞单阈值 <b>' + (capShow > 0 ? capShow + '</b> 元/号（每号最多自留这么多）· 有注号 ' + base.n + ' 个<br>' : '未设（全额自留）· 有注号 ' + base.n + ' 个<br>')
+          + '当前自留 <b>' + base.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + base.line.toFixed(1) + '</b><br>'
+          + '最重号自留 <b>' + top.toFixed(2) + '</b> 元 · 覆盖缺口 ' + (gap>0?'<b style="color:#cf1322">'+gap.toFixed(2)+'</b>':'0') + ' 元<br>'
+          + '开在最重号时净 <b style="color:' + (base.worst>=0?'#16a34a':'#cf1322') + '">' + base.worst.toFixed(2) + '</b>';
+        if(base.n < 47){
+          elNow.innerHTML += '<br><span style="color:#cf1322">有注号 ' + base.n + '/49 个：号数不足 47，削峰数学上归不了零，尾部只能飞掉</span>';
+        }
+      }
+    }
+    var q = document.getElementById('cutQuicks');
+    if(q){
+      var lv = [];
+      [100,78,63,47,30,21,15,10].forEach(function(m){ if(m <= top && m > 0) lv.push(m); });
+      q.innerHTML = lv.map(function(m){
+        return '<button class="btn" style="font-size:14px;padding:6px 12px" data-m="'+m+'" onclick="cutPick('+m+')">'+m+'</button>';
+      }).join('');
+    }
+    var inp = document.getElementById('cutM');
+    if(inp && inp.value === '' && top > 0) inp.value = top;
+    if(inp && inp.value !== '' && top > 0) cutRender(parseFloat(inp.value) || 0);
+  }catch(e){}
+}
+function cutPick(m){
+  var i = document.getElementById('cutM');
+  if(i) i.value = m;
+  cutRender(m);
+}
+function cutRender(M){
+  try{
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    if(top <= 0 || M <= 0) return;
+    var r = cutCalc(M), r0 = cutCalc(top);
+    var el = document.getElementById('cutOut');
+    if(!el) return;
+    var pct = r.full / 49 * 100;
+    var eff = r.flown > 0 ? ((r.worst - r0.worst) / r.flown) : 0;
+    var html = '';
+    html += '削到 <b>' + M + '</b>：自留 <b>' + r.kept.toFixed(2) + '</b> 元 · 亏损线 <b>' + r.line.toFixed(1) + '</b> 元/号 · 有注号 ' + r.n + ' 个<br>';
+    html += '最坏 <b style="color:' + (r.worst>=0?'#16a34a':'#cf1322') + '">' + (r.worst>=0?'+':'') + r.worst.toFixed(2) + '</b>（开在满额号）· 满额号 <b>' + r.full + '</b> 个（' + pct.toFixed(1) + '%）<br>';
+    html += '飞掉 <b>' + r.flown.toFixed(2) + '</b> 元';
+    if(r.flown > 0) html += ' · 每飞 1 元买到 <b style="color:' + (eff>=5?'#16a34a':eff>=2?'#f59e0b':'#cf1322') + '">' + eff.toFixed(1) + '</b> 元安全';
+    if(M >= top) html += '<br><span style="color:#666">这一档等于不削，全额自留。</span>';
+
+    var LV = [100,78,63,47,30,21,15].filter(function(x){ return x < top && x > 0; });
+    var prevM = top, prevW = r0.worst, prevF = r0.flown, rowsArr = [];
+    LV.forEach(function(m){
+      var rr = cutCalc(m), dW = rr.worst - prevW, dF = rr.flown - prevF;
+      var e = dF > 0 ? dW / dF : 0;
+      rowsArr.push({from: prevM, to: m, dF: dF, e: e});
+      prevM = m; prevW = rr.worst; prevF = rr.flown;
+    });
+    var breakEven = 0;
+    for(var m2 = Math.floor(top); m2 >= 1; m2--){ if(cutCalc(m2).worst >= 0){ breakEven = m2; break; } }
+    var valueLine = 0;
+    rowsArr.forEach(function(x){ if(x.e >= 5) valueLine = x.to; });
+
+    if(rowsArr.length){
+      var rows = '';
+      rowsArr.forEach(function(x){
+        var tag = '';
+        if(breakEven && x.to === breakEven) tag = ' <b style="color:#1677ff">←不亏点</b>';
+        else if(valueLine && x.to === valueLine) tag = ' <b style="color:#16a34a">←性价比线</b>';
+        rows += '<div>' + x.from + '→' + x.to + '　飞+' + x.dF.toFixed(0)
+             + '　每飞1元买到 <b style="color:' + (x.e>=5?'#16a34a':x.e>=2?'#f59e0b':'#cf1322') + '">' + (x.e>0?x.e.toFixed(1):'—') + '</b> 元安全' + tag + '</div>';
+      });
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:14px">分档效率'
+           + '<div style="font-family:monospace;line-height:1.75;margin-top:4px">' + rows + '</div>';
+      if(breakEven) html += '<div style="margin-top:4px;font-size:13px;color:#1677ff">不亏点：削到 <b>' + breakEven + '</b> 元/号，开在任何一个号都不亏</div>';
+      else html += '<div style="margin-top:4px;font-size:13px;color:#cf1322">这盘削到底也归不了零（有注号太少），只能靠飞单摊掉尾部</div>';
+      if(valueLine) html += '<div style="margin-top:2px;font-size:13px;color:#16a34a">性价比线：削到 <b>' + valueLine + '</b> 元/号，每飞 1 元还能买到 5 元以上安全；再往下不划算</div>';
+      html += '</div>';
+    }
+
+    var bhtml = '';
+    bets.slice(0, 10).forEach(function(b){
+      var k = Math.min(b.self, M), net = r.kept - payMult * k;
+      bhtml += '<div><span style="display:inline-block;min-width:56px">' + b.n + ' 号</span>'
+             + '<span style="display:inline-block;min-width:46px">' + b.self.toFixed(0) + '</span>'
+             + '净 <b style="color:' + (net>=0?'#16a34a':'#cf1322') + '">' + (net>=0?'+':'') + net.toFixed(0) + '</b></div>';
+    });
+    if(bhtml){
+      var cnt = bets.filter(function(b){ return b.self > 0; }).length;
+      html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:14px">'
+           + '分号明细（削到 ' + M + '，按注额排' + (cnt > 10 ? '，前 10 个号' : '') + '）'
+           + '<div style="font-family:monospace;line-height:1.75;margin-top:4px">' + bhtml + '</div></div>';
+    }
+
+    var btns = '';
+    if(breakEven && breakEven < M) btns += '<button class="btn primary" style="flex:1;font-size:14px;padding:9px" onclick="cutApply(' + breakEven + ')">用不亏点 ' + breakEven + '</button>';
+    if(M < top) btns += '<button class="btn" style="flex:1;font-size:14px;padding:9px" onclick="cutApply(' + M + ')">用当前档 ' + M + '</button>';
+    if(btns) html += '<div style="margin-top:8px;display:flex;gap:6px">' + btns + '</div>';
+    el.innerHTML = html;
+  }catch(e){}
+}
+var cutMode = 'raw', cutPickVal = 78;
+try{
+  var _cm = localStorage.getItem(sk('cut_mode_v1')); if(_cm === 'cut' || _cm === 'raw') cutMode = _cm;
+  var _cp = parseFloat(localStorage.getItem(sk('cut_pick_v1'))); if(isFinite(_cp) && _cp >= 0) cutPickVal = _cp;
+}catch(e){}
+function applyCutTolerance(){
+  var v = parseFloat((document.getElementById('cutTolerance')||{}).value) || 0;
+  if(v <= 0){ myAlert('先填一个你能扛的亏损金额，比如 1500'); return; }
+  var bets = cutBets(), top = 0;
+  bets.forEach(function(b){ if(b.self > top) top = b.self; });
+  if(top <= 0){ myAlert('当前没有有注号'); return; }
+  var hit = 0;
+  var oth = window.__othPay || 0;   // 平特/连肖最坏赔付，一起算进「我能扛」
+  for(var m = Math.floor(top); m >= 5; m--){
+    if(-(cutCalc(m).worst - oth) <= v){ hit = m; break; }
+  }
+  if(hit > 0){ pickCut(hit); }
+  else { myAlert('削到每号只留 5 元也扛不住 ' + v + ' 元，这盘削峰救不了，建议拒单或整盘飞掉。'); }
+}
+function switchCutMode(m){
+  cutMode = (m === 'cut') ? 'cut' : 'raw';
+  try{ localStorage.setItem(sk('cut_mode_v1'), cutMode); }catch(e){}
+  renderRisk();
+}
+function pickCut(m){
+  cutMode = 'cut';
+  try{ localStorage.setItem(sk('cut_mode_v1'),'cut'); }catch(e){}
+  applyTh(m);
+}
+// 录完新单后手动重算一次：按当前盘面落一次阈值，不改变自动稳健开关
+function recalcAutoStableOnce(silent){
+  try{
+    var _autoOn = false;
+    try{ _autoOn = localStorage.getItem(sk('autoStable')) === '1'; }catch(e){}
+    var _target = Number(window.__optM) || 0;
+    if(_target <= 0){
+      if(!silent) myAlert('当前盘面没有可自动削的档位；请先看本盘建议，或手动定档。');
+      return;
+    }
+    try{
+      if(_autoOn && localStorage.getItem(sk('prev_th_before_auto')) === null){
+        localStorage.setItem(sk('prev_th_before_auto'), String(splitTakeAll));
+      }
+    }catch(e){}
+    applyTh(_target, true);
+    if(_autoOn){ try{ localStorage.setItem(sk('autoStable'),'1'); }catch(e){} }
+    try{ renderSplit(); renderRisk(); }catch(e){}
+    if(!silent) myAlert('已按当前盘面重算：阈值 ' + _target + ' 元/号。');
+  }catch(e){ if(!silent) myAlert('重算失败：' + e.message); }
+}
+// 保存新单后：自动稳健开启时只重算一次，不随每次渲染追值
+function autoStableAfterSave(){
+  try{
+    if(localStorage.getItem(sk('autoStable')) !== '1') return;
+    var _target = Number(window.__optM) || 0;
+    if(_target <= 0) return;
+    recalcAutoStableOnce(true);
+  }catch(e){}
+}
+// 阈值只有一个入口：改阈值 = 改削峰档，号码表/飞单统计/档位卡跟着一起变
+function applyTh(v){
+  var n = parseFloat(v); if(!isFinite(n) || n < 0) n = 0;
+  splitTakeAll = n;
+  if(typeof cutPickVal !== 'undefined'){ cutPickVal = n; try{ localStorage.setItem(sk('cut_pick_v1'), String(n)); }catch(e){} }
+  try{ localStorage.setItem(sk('autoStable'),'0'); }catch(e){}
+  try{ saveSplitAll(); }catch(e){}
+  try{ renderSplit(); }catch(e){}
+  try{ renderRisk(); }catch(e){}
+}
+function cutApply(M){
+  try{
+    splitTakeAll = M;
+    saveSplitAll();
+    var i = document.getElementById('splitTakeAll'); if(i) i.value = M;
+    var s = document.getElementById('sideSplitTh'); if(s) s.value = M;
+    try{ localStorage.setItem(sk('autoStable'),'0'); }catch(e){}
+    try{ calcSplit(); }catch(e){}
+    try{ renderSplit(); }catch(e){}
+    try{ if(typeof flyThChanged === 'function') flyThChanged(); }catch(e){}
+    try{ cutRefresh(); }catch(e){}
+    myAlert('飞单阈值已设为 ' + M + ' 元/号。\n飞单明细、持仓分析、风险体检都按这个数重算了。');
+  }catch(e){ myAlert('设置失败：' + e.message); }
+}
+function cutByTolerance(){
+  try{
+    var tol = parseFloat((document.getElementById('cutTol')||{}).value) || 0;
+    var out = document.getElementById('cutTolOut');
+    if(!out) return;
+    if(tol <= 0){ out.textContent = ''; return; }
+    var bets = cutBets();
+    var top = 0; bets.forEach(function(b){ if(b.self > top) top = b.self; });
+    if(top <= 0){ out.textContent = '暂无订单'; return; }
+    var hit = 0;
+    for(var m = Math.floor(top); m >= 1; m--){
+      if(-cutCalc(m).worst <= tol){ hit = m; break; }
+    }
+    if(hit > 0){
+      var r = cutCalc(hit);
+      out.innerHTML = '扛 ' + tol + ' 元 → 削到 <b>' + hit + '</b>：最坏 ' + r.worst.toFixed(2) + '，自留 ' + r.kept.toFixed(2) + '，飞掉 ' + r.flown.toFixed(2)
+        + ' <button class="btn" style="font-size:13px;padding:4px 10px;margin-left:6px" onclick="cutPick('+hit+')">采用</button>';
+    }else{
+      out.textContent = '削到底也扛不住 ' + tol + ' 元，这单只能靠飞单或对冲。';
+    }
+  }catch(e){}
+}
+
+// ===== 大额建议：按目标最坏反推要收哪些号 =====
+function _pad2(n){ return String(n).length<2 ? '0'+n : String(n); }
+function buildNeedList(T){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets) return null;
+  var bets = s.bets;
+  var cap = (typeof cutMode !== 'undefined' && cutMode === 'cut') ? cutPickVal : (splitTakeAll || 100);
+  var mult = s.mult > 0 ? s.mult : 47;
+  var self = [];
+  for(var i=1;i<=49;i++) self.push({n:i, v:Math.min(bets[i]||0, cap)});
+  var K = 0; self.forEach(function(x){K+=x.v;});
+  var M = 0; self.forEach(function(x){ if(x.v>M) M=x.v; });
+  var need = T + mult*M - K;
+  var space = 0; self.forEach(function(x){ space += (cap-x.v); });
+  if(need <= 0) return { list:[], need:0, space:space, ok:true, K:K, M:M, cap:cap };
+  if(need > space) return { list:[], need:need, space:space, ok:false, K:K, M:M, cap:cap };
+  var sorted = self.slice().sort(function(a,b){ return a.v - b.v; });
+  var remain = need, list = [];
+  for(var j=0;j<sorted.length && remain>0;j++){
+    var room = cap - sorted[j].v;
+    if(room <= 0) continue;
+    var amt = Math.min(room, remain);
+    list.push({ n: sorted[j].n, amt: amt, have: sorted[j].v });
+    remain -= amt;
+  }
+  return { list:list, need:need, space:space, ok:true, K:K, M:M, cap:cap };
+}
+function buildNeedByBudget(B, unit){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets) return null;
+  var bets = s.bets;
+  var cap = (typeof cutMode !== 'undefined' && cutMode === 'cut') ? cutPickVal : (splitTakeAll || 100);
+  unit = unit > 0 ? unit : cap;
+  var mult = s.mult > 0 ? s.mult : 47;
+  var self = [];
+  for(var i=1;i<=49;i++) self.push({ n:i, v:Math.min(bets[i]||0, cap) });
+  var K = 0; self.forEach(function(x){K+=x.v;});
+  var M = 0; self.forEach(function(x){ if(x.v>M) M=x.v; });
+  var sorted = self.slice().sort(function(a,b){ return a.v - b.v; });
+  var left = B, list = [], M2 = M, added = 0;
+  for(var j=0;j<sorted.length && left>0.5;j++){
+    var room = cap - sorted[j].v;
+    if(room <= 0) continue;
+    var amt = Math.min(room, unit, left);
+    if(amt <= 0.5) continue;
+    list.push({ n: sorted[j].n, amt: amt, have: sorted[j].v });
+    left -= amt; added += amt;
+    if(sorted[j].v + amt > M2) M2 = sorted[j].v + amt;
+  }
+  var K2 = K + added;
+  var worst2 = K2 - mult*M2;
+  return { list:list, spent:added, moneyLeft:left, worst:worst2, cap:cap, unit:unit, ok:true };
+}
+function renderNeedListByBudget(){
+  var b = parseFloat((document.getElementById('needBudget')||{}).value);
+  var u = parseFloat((document.getElementById('needUnit')||{}).value);
+  if(!isFinite(b) || b<=0){ myAlert('先填你手上有多少钱。'); return; }
+  var r = buildNeedByBudget(b, u);
+  var box = document.getElementById('needBox');
+  if(!box || !r) return;
+  if(!r.list.length){ box.innerHTML='<div style="color:#999;font-size:12px">这些号的空位都补满了，不用再收。</div>'; window.__needListText=''; return; }
+  var txt = r.list.map(function(x){ return String(x.n).padStart(2,'0') + ' ' + x.amt.toFixed(0); }).join('\n');
+  window.__needListText = txt;
+  var rows = r.list.map(function(x){
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #f7f7f7">'
+      + '<span><b>'+String(x.n).padStart(2,'0')+'</b><span style="color:#999;margin-left:4px">现有 '+x.have.toFixed(0)+'</span></span>'
+      + '<span style="color:#333"><b>收 '+x.amt.toFixed(0)+'</b></span></div>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:11px;color:#666;margin-bottom:4px">花 <b>'+r.spent.toFixed(0)+'</b> 元，收 '+r.list.length+' 个号'
+    + (r.moneyLeft>0.5 ? '，还剩 <b>'+r.moneyLeft.toFixed(0)+'</b> 元' : '（钱正好用完）')
+    + '；补后最坏 <b style="color:'+(r.worst>=0?'#16a34a':'#cf1322')+'">'+(r.worst>=0?'+':'')+r.worst.toFixed(0)+'</b></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 / 现有</span><span>建议收</span></div>'
+    + rows
+    + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>';
+}
+function needTargetSet(v){
+  window.__needTarget = String(Math.round(v));
+  var el = document.getElementById('needTarget');
+  if(el) el.value = Math.round(v);
+  renderNeedList();
+}
+function renderNeedList(){
+  var t = parseFloat((document.getElementById('needTarget')||{}).value);
+  if(!isFinite(t) && window.__needTarget !== undefined) t = parseFloat(window.__needTarget);
+  if(!isFinite(t)) t = Math.round(window.__curWorst || 0);
+  var r = buildNeedList(t);
+  var box = document.getElementById('needBox');
+  if(!box) return;
+  if(!r){ box.innerHTML = '<span style="color:#cf1322">先展开一次持仓分析。</span>'; return; }
+  if(!r.ok && r.need > r.space){
+    box.innerHTML = '<div style="color:#cf1322;font-size:12px">49 个号全补到 '+r.cap+' 元，最多只能进 '+r.space.toFixed(0)+' 元，到不了 '+t+'。差额 '+(r.need-r.space).toFixed(0)+' 元得靠削峰。</div>';
+    return;
+  }
+  if(r.need <= 0){
+    box.innerHTML = '<span style="color:#16a34a;font-size:12px">现在的自留已经扛得住 '+t+'，不用再收。</span>';
+    window.__needListText = '';
+    return;
+  }
+  var txt = r.list.map(function(x){ return String(x.n).padStart(2,'0') + ' ' + x.amt.toFixed(0); }).join('\n');
+  window.__needListText = txt;
+  var rows = r.list.map(function(x){
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px solid #f7f7f7">'
+      + '<span><b>'+String(x.n).padStart(2,'0')+'</b><span style="color:#999;margin-left:4px">现有 '+x.have.toFixed(0)+'</span></span>'
+      + '<span style="color:#333"><b>收 '+x.amt.toFixed(0)+'</b></span></div>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:11px;color:#666;margin-bottom:4px">共要收 <b>'+r.need.toFixed(0)+'</b> 元，分 '+r.list.length+' 个号（都补到 '+r.cap+' 以内，不抬高最重号）</div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:2px"><span>号 / 现有</span><span>建议收</span></div>'
+    + rows
+    + '<button onclick="copyNeedList()" style="width:100%;margin-top:8px;padding:8px;border:1px solid #333;background:#333;color:#fff;border-radius:6px;font-size:13px;font-weight:600">复制清单发出去</button>';
+}
+function copyNeedList(){
+  var txt = window.__needListText || '';
+  if(!txt){ myAlert('清单是空的，先算一次。'); return; }
+  try{
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    var ok = document.execCommand('copy'); document.body.removeChild(ta);
+    myAlert(ok ? '已复制 ' + txt.split('\n').length + ' 行，可以发给下家了。' : '复制失败，请长按清单手动复制。');
+  }catch(e){ myAlert('复制失败，请长按清单手动复制。'); }
+}
+
 function renderSplit(){
   const tbody = document.getElementById('tbody-split');
   if(!tbody) return;
@@ -3162,6 +3563,7 @@ function toggleOd(id, el){
   }
 }
 function toggleSplit(){
+  setTimeout(function(){ try{ cutRefresh(); }catch(e){} }, 60);
   splitVisible = !splitVisible;
   document.getElementById('splitSummary').style.display = splitVisible ? '' : 'none';
   document.getElementById('splitCopyWrap').style.display = splitVisible ? '' : 'none';
@@ -4219,6 +4621,7 @@ function parseLine(text){
       }
     });
   }
+  let comboAmbig = false;
   // 二中二/三中三识别：数字在前或产品名在前
   // 复式展开：03.04.06.05.49复二 → 展开成所有两两组合
   function comb(arr, k){
@@ -4236,7 +4639,9 @@ function parseLine(text){
     const nums = Array.from(new Set(numStr.split(/[^0-9]+/).filter(x=>/^\d{1,2}$/.test(x)).map(x=>x.padStart(2,'0')))).filter(x=>{const n=parseInt(x,10); return n>=1 && n<=49;});
     const kNum = prod === '二中二' ? 2 : 3;
     if(nums.length < kNum) return m;
-    return ' ' + comb(nums, kNum).map(c => prod + ':' + c.join(',')).join(' ') + ' ';
+    const combos = comb(nums, kNum);
+    if(!isPer && combos.length > 1) comboAmbig = true;
+    return ' ' + combos.map(c => prod + ':' + c.join(',')).join(' ') + ' ';
   });
   codeText = codeText.replace(/((?:\d{2}[-.、\s])+\d{2})\s*复(?:式)?\s*(?:(三中三|二中二|三中二)|([二三]))/g, (m, numStr, fullProd, k) => {
     const nums = numStr.split(/[-.、\s]/).filter(x=>/^\d{2}$/.test(x)).sort();
@@ -4245,6 +4650,7 @@ function parseLine(text){
     const kNum = is2 ? 2 : 3;
     if(nums.length < kNum) return m;
     const combos = comb(nums, kNum);
+    if(!isPer && combos.length > 1) comboAmbig = true;
     return ' ' + combos.map(c => prod + ':' + c.join(',')).join(' ') + ' ';
   });
   // 清理：如果已经有了"产品:号码"格式，去掉开头多余的裸产品名
@@ -4329,7 +4735,7 @@ function parseLine(text){
     }
   }
   if(codes.length === 0) throw new Error('没有识别到产品');
-  return { codes, price, isPer };
+  return { codes, price, isPer, ambiguousCombo: comboAmbig };
 }
 
 
@@ -5567,6 +5973,7 @@ renderAll();
     return;
   }
 
+  if(!window.__skipAmbig) window.__comboSel = {};
   const parsed = [], errors = [];
   let lastPrice = null, lastIsPer = false;
   let pendingProduct = null, pendingProductMark = '';
@@ -5618,6 +6025,32 @@ renderAll();
       const _isHK = isHKLine(line) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
       const r = parseLine(_isHK ? stripHKMark(line) : line);
       if(r){
+        // 裸复式没写「各」：金额是每组还是总共，必须先问清
+        if(r.ambiguousCombo){
+          const _ck = line + '|' + r.price + '|' + r.codes.length;
+          const _sel = (window.__comboSel || {})[_ck];
+          if(!_sel){
+            window.__ambigAbort = true;
+            warnBatchNotSaved();
+            const _n = r.codes.length, _p = r.price;
+            myChoice('这组复式怎么算？', _n + ' 组，' + _p + ' 元是每组还是总共？', [
+              '每组' + _p + '元（共' + (_p * _n).toFixed(2) + '元）',
+              '总共' + _p + '元（每组' + (_p / _n).toFixed(2) + '元）',
+              '重新编辑'
+            ], function(pick){
+              if(pick === 0 || pick === 1){
+                window.__comboSel = window.__comboSel || {};
+                window.__comboSel[_ck] = (pick === 0 ? 'per' : 'total');
+                window.__ambigAbort = false;
+                window.__skipAmbig = true;
+                doSave();
+                window.__skipAmbig = false;
+              }
+            });
+            return;
+          }
+          r.isPer = (_sel === 'per');
+        }
         // 裸号码歧义：没写"各"、全是2位号、有末尾金额时弹确认（不管金额大小）
         const allBareNums = !window.__skipAmbig && r.codes.length >= 2 && !r.isPer && r.price > 0 && r.codes.every(c=>/^\d{2}$/.test(c));
         if(allBareNums && PARSE_DEFAULTS.bareNumAmount === 'perNum'){
@@ -7336,6 +7769,8 @@ function renderRisk(){
   const worstNum = sorted[0];
   const worstKeptBet = splitTakeAll > 0 ? Math.min(numBets[worstNum]||0, splitTakeAll) : 0;
   const worstNet = keptCash - worstKeptBet*payMult - totalOtherPayout;
+  window.__rkSnapshot = {S: totalSales, mult: payMult, maxNum: Number(sorted[0])||0, maxBet: worstKeptBet, bets: numBets, cap: splitTakeAll, breakeven: (keptCash||totalSales)/(payMult||1)};
+  window.__curWorst = worstNet;
   // 集中度
   const top5sum = top5.reduce((s,n) => s + numBets[n], 0);
   const concPct = totalSales > 0 ? (top5sum/totalSales*100).toFixed(0) : 0;
@@ -7441,6 +7876,7 @@ function renderRisk(){
   let autoStable = false;
   try { autoStable = localStorage.getItem('autoStable') === '1'; } catch(e){}
   window.__autoStableTarget = rec20;
+  window.__optM = rec20 > 0 ? rec20 : 0;
   window.__autoStableTotal = totalSales;
   h += `<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:#333;cursor:pointer">`
     + `<input type="checkbox" id="autoStableChk" ${autoStable?'checked':''} onchange="toggleAutoStable(this.checked)" style="width:16px;height:16px">`
@@ -7716,6 +8152,7 @@ function renderRisk(){
     + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span>'
     + '</div>' + h;
 box.innerHTML = h;
+  try{ cutRefresh(); }catch(e){}
 }
 
 var _activeTab = 'all';

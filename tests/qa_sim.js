@@ -617,6 +617,73 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('派彩统一·今日对账一致', _reconOk, {payout:_reconPay,detail:_detail&&_detail.total});
 }
 
+/* 旧词回归：新词（三中二/复式）不能抢走二中二/三中三/连肖/平特/尾数/头数的原有识别 */
+{
+  const fails=[];
+  function ck(name, input, check){
+    try{ const r=parseLine(input); if(!check(r)) fails.push(name+':'+JSON.stringify(r)); }
+    catch(e){ fails.push(name+':ERR '+e.message); }
+  }
+  function one(prod, nums, price){ return r => r.codes.length===1 && r.codes[0]===prod+':'+nums && Math.abs(r.price-price)<0.01; }
+  ck('三中二空格', '三中二 03,10,22 100', one('三中二','03,10,22',100));
+  ck('三中二无空格', '三中二03,10,22 100', one('三中二','03,10,22',100));
+  ck('三中二后置', '03,10,22三中二100', one('三中二','03,10,22',100));
+  ck('三中二冒号', '三中二:03,10,22 100', one('三中二','03,10,22',100));
+  ck('二中二', '二中二 03,10 100', one('二中二','03,10',100));
+  ck('三中三', '三中三 07,24,32 100', one('三中三','07,24,32',100));
+  ck('3中2', '3中2 03,10,22 100', one('三中二','03,10,22',100));
+  ck('2中2', '2中2 03,10 100', one('二中二','03,10',100));
+  ck('3中3', '3中3 07,24,32 100', one('三中三','07,24,32',100));
+  ck('连肖前置', '连肖龙虎兔100', r => r.codes.length===1 && r.codes[0]==='连肖龙虎兔' && r.price===100);
+  ck('连肖后置', '龙虎兔三连肖100', r => r.codes.length===1 && r.codes[0]==='连肖龙虎兔' && r.price===100);
+  ck('平特多肖', '平特马龙兔各100', r => r.codes.length===3 && r.codes.indexOf('平特马')>=0 && r.codes.indexOf('平特龙')>=0 && r.codes.indexOf('平特兔')>=0 && r.price===100);
+  ck('平特一肖', '平特一肖猴100', r => r.codes[0]==='平特猴' && r.price===100);
+  ck('尾数', '尾5各20', r => r.codes.length===5 && r.price===20 && r.isPer===true);
+  ck('头数', '头4各10', r => r.codes.length===10 && r.price===10 && r.isPer===true);
+  ck('裸号码各', '09 19 29 39 49 各40', r => r.codes.length===5 && r.price===40 && r.isPer===true);
+  ck('单号', '07 100', r => r.codes.length===1 && r.codes[0]==='07' && r.price===100);
+  ck('红波', '红波100', r => r.codes.length===1 && r.codes[0]==='红波' && r.price===100);
+  ck('复式每组', '三中三复式01.02.03.04 各10', r => r.codes.length===4 && r.price===10 && r.isPer===true && r.ambiguousCombo===false);
+  ck('复式歧义', '三中三复式01.02.03.04 100', r => r.codes.length===4 && r.price===100 && r.ambiguousCombo===true);
+  ck('组金额', '三中三 04-07-18组100', r => r.codes.length===1 && r.codes[0]==='三中三:04,07,18' && r.isPer===true);
+  gate('旧词回归·新词不抢老词', fails.length===0, {fails});
+}
+
+/* 裸复式不带「各」：必须弹窗选每组/总共，并落对金额 */
+{
+  function runCombo(pick){
+    reset();
+    window.__previewConfirmed = true;
+    window.__lastInputFp = null; window.__lastInputAt = 0; window.__dupConfirmed = true;
+    const oldChoice = window.myChoice, oldAlert = window.myAlert;
+    let seen = '';
+    window.myChoice = function(title, msg, opts, cb){ seen = msg; cb(pick); };
+    window.myAlert = function(){};
+    document.getElementById('input').value = '三中三复式01.02.03.04 100';
+    try{ handleSave(); }finally{ window.myChoice = oldChoice; window.myAlert = oldAlert; }
+    const o = orders[0] || {};
+    return {seen, amt:o.amount, qty:o.qty, n:(o.codes||[]).length};
+  }
+  const per = runCombo(0), total = runCombo(1);
+  gate('裸复式·每组落单', per.amt===400 && per.qty===4 && per.n===4 && /4 组/.test(per.seen), per);
+  gate('裸复式·总共落单', total.amt===100 && total.qty===4 && total.n===4 && /4 组/.test(total.seen), total);
+}
+
+/* 大额建议：收号清单不能超过阈值上限，收满金额要等于缺口 */
+{
+  const oldSnap = window.__rkSnapshot, oldCap = splitTakeAll;
+  splitTakeAll = 100;
+  window.__rkSnapshot = {S:150, mult:47, maxNum:1, maxBet:100, cap:100, bets:{1:100,2:50}};
+  const r = (typeof buildNeedList === 'function') ? buildNeedList(-500) : null;
+  const spent = r && r.list ? r.list.reduce((s,x)=>s+x.amt,0) : 0;
+  const over = r && r.list ? r.list.some(x=>x.have+x.amt>100.0001) : true;
+  gate('大额建议·收号清单守恒', !!r && r.ok && Math.abs(spent-r.need)<0.01 && !over, {need:r&&r.need,spent,over});
+  const rb = (typeof buildNeedByBudget === 'function') ? buildNeedByBudget(300, 50) : null;
+  const spent2 = rb && rb.list ? rb.list.reduce((s,x)=>s+x.amt,0) : 0;
+  gate('大额建议·预算收号', !!rb && spent2<=300.0001 && spent2>0, {spent:spent2,worst:rb&&rb.worst});
+  window.__rkSnapshot = oldSnap; splitTakeAll = oldCap;
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
