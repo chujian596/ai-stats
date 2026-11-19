@@ -314,6 +314,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
             <button class="btn" style="font-size:13px;padding:6px 10px" onclick="simNeed()">算需要补多少</button>
           </div>
           <div id="simResult" style="font-size:13px;color:#333;margin-top:6px"></div>
+          <button class="btn" style="width:100%;margin-top:6px;font-size:13px;padding:7px" onclick="preflightReport()">单笔接单预演（输号码金额，看接了之后更痛还是更好）</button>
         </div>
       </div>
     </div>
@@ -2824,6 +2825,35 @@ function renderSimPanel(){
   rows.innerHTML=html;
   var best=simAddNum(bets,cap,49,cap);
   capEl.innerHTML='上限：49 个号全补到 '+cap+' 元，共需 '+best.added.toFixed(0)+' 元 → 最坏 '+(best.worst>=0?'+':'')+best.worst.toFixed(0)+'（全盘任何号开出都赚）';
+}
+
+function preflightReport(){
+  var s = window.__rkSnapshot;
+  if(!s || !s.S){ myAlert('先展开「持仓分析」看一次当前盘面，再来预演。'); return; }
+  var input = window.prompt('要加进来的号码和金额\n格式：号码 空格 金额\n例如：38 300', '');
+  if(!input) return;
+  var parts = String(input).trim().split(/[\s,，]+/);
+  var n = parseInt(parts[0], 10), amt = parseFloat(parts[1]);
+  if(!(n >= 1 && n <= 49) || !(amt > 0)){ myAlert('格式不对。举例如下：\n38 300'); return; }
+  var mult = s.mult > 0 ? s.mult : 47;
+  var S2 = s.S + amt;
+  var maxBet2 = (n === s.maxNum) ? (s.maxBet + amt) : Math.max(s.maxBet, amt);
+  var worst1 = s.S - mult * s.maxBet;
+  var worst2 = S2 - mult * maxBet2;
+  var L1 = s.breakeven, L2 = S2 / mult;
+  var lines = '';
+  lines += '现在：最坏净盈亏 ' + worst1.toFixed(0) + '\n';
+  lines += '接这单后：最坏净盈亏 ' + worst2.toFixed(0) + '（' + (worst2 > worst1 ? '好 ' : '差 ') + Math.abs(worst2 - worst1).toFixed(0) + '）\n';
+  lines += '亏损线：' + L1.toFixed(0) + ' → ' + L2.toFixed(0) + '\n';
+  if(n === s.maxNum){
+    lines += '这单压在你最重的第 ' + n + ' 号上，会让它更痛。\n';
+  } else if(amt > L2){
+    lines += '这单把第 ' + n + ' 号压到 ' + amt + '，超过亏损线 ' + L2.toFixed(0) + '，它就成了新的痛点。\n';
+  } else {
+    lines += '第 ' + n + ' 号压到 ' + amt + '，在亏损线以内，不新增痛点。\n';
+  }
+  lines += '建议：单号不超过 ' + L2.toFixed(0) + ' 元；超了就把超出部分飞出去。';
+  myAlert(lines);
 }
 
 function renderSplit(){
