@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>每站最多肖台账</title>
+<style>
+  :root{
+    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
+    --line:#e3e3e3; --bg:#f6f6f6; --yellow:#b8860b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
+  .wrap{max-width:640px;margin:0 auto}
+  header{margin-bottom:16px}
+  h1{margin:0 0 6px;font-size:22px;font-weight:700}
+  .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
+  .bar-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
+  .stat{font-size:13px;color:var(--ink)}
+  .stat b{font-variant-numeric:tabular-nums}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+  th{color:var(--sub);font-weight:600;font-size:11.5px;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .site{font-weight:700;white-space:nowrap}
+  .sys{color:var(--sub);font-size:11px}
+  .col{color:var(--sub);font-size:11px;max-width:120px}
+  .zs{display:flex;flex-wrap:wrap;gap:4px}
+  .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;
+    border-radius:7px;background:#f0f2f5;font-size:12px}
+  .hit{color:var(--green);font-weight:700;white-space:nowrap}
+  .miss{color:var(--red);font-weight:700;white-space:nowrap}
+  .na{color:var(--sub);white-space:nowrap}
+  .streak{white-space:nowrap;font-variant-numeric:tabular-nums}
+  .streak.w{color:var(--green)} .streak.l{color:var(--red)}
+  .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
+  .trail{display:flex;gap:3px;flex-wrap:wrap}
+  .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
+  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
+  .empty{color:var(--sub);font-style:italic}
+  .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>每站最多肖台账</h1>
+    <div class="meta">每站只记本站推荐里生肖最多的一栏（3–9肖），排除杀栏 / 平特栏 / 图片栏 / 11–12肖全包栏；生肖按站点原排序保留。<br>命中＝当期特肖落在推荐肖内；连对/连错由历史期推导；改料＝18点快照与当晚晚些快照推荐肖不一致。</div>
+  </header>
+
+  <div class="bar-row">
+    <select id="periodSel"></select>
+    <div class="stat" id="summary"></div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>站号</th><th>栏目</th><th>推荐肖（原序）</th><th>结果</th><th>连对/错</th><th>近7期轨迹</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="note" id="ruleNote"></div>
+</div>
+
+<script>
+var LG=null;
+function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+
+function streakOf(key){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var win=0,lose=0,streak=0,type='';
+  issues.forEach(function(i){
+    var r=LG.periods[i].stations[key];
+    if(!r||r.hit===null||r.hit===undefined) return;
+    if(r.hit){win++; if(type==='对')streak++; else {streak=1;type='对';}}
+    else {lose++; if(type==='错')streak++; else {streak=1;type='错';}}
+  });
+  return {win:win,lose:lose,streak:streak,type:type};
+}
+
+function render(){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var sel=document.getElementById('periodSel');
+  if(!sel.options.length){
+    issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+    sel.value=issues[issues.length-1];
+  }
+  var cur=sel.value||issues[issues.length-1];
+  var per=LG.periods[cur];
+  var keys=Object.keys(per.stations);
+  keys.sort(function(a,b){
+    var ra=per.stations[a],rb=per.stations[b];
+    if(ra.status!==rb.status) return ra.status==='有推荐'?-1:1;
+    return ra.siteKey<rb.siteKey?-1:1;
+  });
+
+  var elig=keys.filter(function(k){return per.stations[k].status==='有推荐';});
+  var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
+  var chg=elig.filter(function(k){return per.stations[k].changed;}).length;
+  document.getElementById('summary').innerHTML=
+    '特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有推荐 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无推荐栏 <b>'+(keys.length-elig.length)+'</b>';
+
+  var recent=issues.slice(-7);
+  var tb=document.getElementById('rows');
+  tb.innerHTML='';
+  keys.forEach(function(k){
+    var r=per.stations[k];
+    var tr=document.createElement('tr');
+    var trail=recent.map(function(i){
+      var rr=LG.periods[i].stations[k];
+      var cls,tx;
+      if(!rr||rr.hit===null||rr.hit===undefined){cls='n';tx='·';}
+      else if(rr.hit){cls='w';tx='中';} else {cls='l';tx='错';}
+      return '<span class="t '+cls+'">'+tx+'</span>';
+    }).join('');
+
+    if(r.status==='无推荐栏'){
+      tr.innerHTML='<td><div class="site">'+r.siteKey+'</div><div class="sys">'+r.system+'</div></td>'+
+        '<td class="col empty">—</td><td class="empty">（无合格推荐栏）</td><td class="na">—</td><td class="streak na">—</td><td><div class="trail">'+trail+'</div></td>';
+    } else {
+      var st=streakOf(k);
+      var hitCls=r.hit?'hit':'miss';
+      var hitTx=r.hit?'中':'错';
+      var chg=r.changed?'<span class="chg">改料</span>':'';
+      var zs=r.zodiacs.map(function(z){return '<span class="z">'+z+'</span>';}).join('');
+      var sk=st.streak?('<span class="streak '+(st.type==='对'?'w':'l')+'">'+st.type+st.streak+'</span>'):'<span class="streak na">—</span>';
+      tr.innerHTML='<td><div class="site">'+r.siteKey+'</div><div class="sys">'+r.system+'</div></td>'+
+        '<td class="col">'+(r.column||'')+'</td>'+
+        '<td><div class="zs">'+zs+'</div></td>'+
+        '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td>'+
+        '<td>'+sk+'</td><td><div class="trail">'+trail+'</div></td>';
+    }
+    tb.appendChild(tr);
+  });
+  document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
+}
+
+fetchJson('data/max-zodiac-ledger.json').then(function(d){
+  LG=d;
+  document.getElementById('periodSel').addEventListener('change',render);
+  render();
+}).catch(function(e){
+  document.getElementById('rows').innerHTML='<tr><td colspan="6" class="empty">台账数据加载失败：'+e+'</td></tr>';
+});
+</script>
+</body>
+</html>
