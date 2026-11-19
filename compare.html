@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>九肖 × 杀三肖 · 左右对比</title>
+<style>
+  :root{--line:#ececec;--sub:#888;--bg:#f5f6f8;--ink:#222}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1500px;margin:0 auto;padding:12px}
+  header h1{font-size:19px;margin-bottom:4px}
+  header .meta{font-size:12px;color:var(--sub);line-height:1.7}
+  .bar{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+  .bar button{padding:7px 12px;border:1px solid #222;border-radius:9px;background:#fff;font-size:13px;font-weight:600;cursor:pointer}
+  .bar .hint{font-size:12px;color:#888}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .col{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .col-head{padding:10px 14px;font-weight:700;font-size:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .col-head.left{color:var(--blue,#2456a6)}
+  .col-head.right{color:var(--red,#c8322b)}
+  .col-head span{font-size:11px;color:var(--sub);font-weight:400}
+  iframe{width:100%;border:none;background:#fff;min-height:560px;display:block}
+  @media(max-width:900px){
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>九肖 × 杀三肖 · 左右对比</h1>
+    <div class="meta">左栏＝九肖台账（首肖排行 + 逐站九肖），右栏＝杀三肖台账（被杀排行 + 逐站杀肖）。两侧期号下拉联动到同一期；九肖仅有 316 期起记录，选更早期号时九肖栏保持自身最新。手机窄屏自动堆叠为上下排列。</div>
+  </header>
+
+  <div class="bar">
+    <button onclick="refreshAll()">刷新数据</button>
+    <span class="hint">点一下重新拉取后台最新台账（不是重新去网站抓取）；两侧期号自动对齐。</span>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <div class="col-head left">九肖台账 <span>首肖排行 · 逐站九肖</span></div>
+      <iframe id="frameNine" src="nine-zodiac.html?v=9"></iframe>
+    </div>
+    <div class="col">
+      <div class="col-head right">杀三肖台账 <span>被杀排行 · 逐站杀肖</span></div>
+      <iframe id="frameKill" src="kill3-ledger.html?v=8"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+var fNine=document.getElementById('frameNine');
+var fKill=document.getElementById('frameKill');
+var BASE={nine:'nine-zodiac.html?v=9', kill:'kill3-ledger.html?v=8'};
+
+function doc(f){ try{ return f.contentDocument; }catch(e){ return null; } }
+function sel(f){ var d=doc(f); return d?d.getElementById('periodSel'):null; }
+function hasOpt(s,v){ if(!s) return false; for(var i=0;i<s.options.length;i++){ if(s.options[i].value===v) return true; } return false; }
+
+function syncPeriod(src){
+  var sSrc=sel(src); if(!sSrc) return;
+  var v=sSrc.value;
+  var other=(src===fNine)?fKill:fNine;
+  var sO=sel(other);
+  if(sO && hasOpt(sO,v) && sO.value!==v){
+    sO.value=v;
+    sO.dispatchEvent(new Event('change'));
+  }
+  fit(other); fit(src);
+}
+
+function fit(f){
+  var d=doc(f); if(!d||!d.body) return;
+  var h=Math.max(d.body.scrollHeight||560, 560);
+  f.style.height=h+'px';
+}
+
+function bind(f){
+  f.addEventListener('load',function(){
+    var s=sel(f);
+    if(s) s.addEventListener('change',function(){ syncPeriod(f); });
+    // 内容异步填充后再量高度，多次兜底
+    var tries=0;
+    var t=setInterval(function(){ fit(f); if(++tries>=8) clearInterval(t); },250);
+    setTimeout(function(){ syncPeriod(f); },300);
+  });
+}
+bind(fNine);
+bind(fKill);
+
+function refreshAll(){
+  var n=Date.now();
+  fNine.src=BASE.nine.split('?')[0]+'?t='+n;
+  fKill.src=BASE.kill.split('?')[0]+'?t='+n;
+}
+</script>
+</body>
+</html>
