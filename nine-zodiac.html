@@ -135,6 +135,7 @@
       <div class="rc-title" id="rankTitle">本期首肖排行</div>
       <div class="rc-sub">本期各站把哪个肖放在第一位，按站次排名；点一行看是哪些站推的它。</div>
       <div id="curRankList"></div>
+      <div id="specialNine" style="border-top:1px solid var(--line)"></div>
       <div class="cum-toggle" id="cumToggle" onclick="toggleCum()">历史累计参考 ▾</div>
       <div id="cumWrap" style="display:none">
         <div class="rc-sub" style="margin-top:6px">跨全部已记录期数累计，仅供参考。</div>
@@ -147,7 +148,7 @@
 </div>
 
 <script>
-var LG=null, ALIAS={}, PEND=null;
+var LG=null, ALIAS={}, PEND=null, POS=null;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function nameOf(r,key){
@@ -305,6 +306,24 @@ function renderRank(cur){
     function(row){ return row.z+' 本期被 '+row.list.length+' 站放在第一位'; });
   renderRankList(document.getElementById('rankList'), pickRows(histAgg), picks.length,
     function(row){ return row.z+' 累计 '+row.list.length+' 站次（按期倒序）'; });
+  renderSpecialNine(cur);
+}
+
+function renderSpecialNine(cur){
+  var el=document.getElementById('specialNine');
+  if(!LG){ el.innerHTML=''; return; }
+  var per=LG.periods[cur];
+  var curPer=(POS&&POS.periods&&POS.periods[String(cur)])||null;
+  var curPos=curPer?curPer.firstRank:null;
+  var fr=(POS&&POS.total&&POS.total.firstRank)||null;
+  var seg=fr?fr.seg:{}, n=fr?fr.n:0;
+  function pct(k){ return n?Math.round((seg[k]||0)/n*100):0; }
+  function row(label,k){ return '<div class="rank-row"><div class="rank-z">'+label+'</div><div class="rank-c">'+(seg[k]||0)+' 期 · '+pct(k)+'%</div></div>'; }
+  var html='<div class="rc-title" style="padding-top:12px">特肖首肖名次</div>';
+  html+='<div class="rc-sub">本期特肖 '+per.actual+' 排第 '+(curPos||'—')+' 名；下表为累计 '+n+' 期首肖票数排行中的特肖名次（随机基准：任一名段约 25%）。</div>';
+  html+=row('前 3 名','p1_3')+row('第 4–6 名','p4_6')+row('第 7–9 名','p7_9')+row('后 3 名','p10_12');
+  html+='<div class="rc-sub" style="padding-bottom:12px">样本不足，仅记录不定论。</div>';
+  el.innerHTML=html;
 }
 
 function render(){
@@ -411,7 +430,9 @@ function loadPend(){
 
 fetchJson('data/max-zodiac-ledger.json').then(function(d){
   LG=d;
-  return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
+  var p1=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
+  var p2=fetchJson('data/zodiac-position-stats.json').then(function(p){POS=p;}).catch(function(){});
+  return Promise.all([p1,p2]);
 }).then(loadPend).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
   var rb=document.getElementById('btnRefresh');

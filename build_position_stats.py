@@ -10,6 +10,7 @@
 产出: data/zodiac-position-stats.json（供后续攒样本看首肖/各位置开出趋势）
 """
 import json, os, datetime
+from collections import Counter
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 LEDGER = os.path.join(ROOT, "data", "max-zodiac-ledger.json")
@@ -21,23 +22,36 @@ def empty_pos():
     return [0] * 9
 
 
+def seg_of(pos):
+    if pos <= 3:
+        return "p1_3"
+    if pos <= 6:
+        return "p4_6"
+    if pos <= 9:
+        return "p7_9"
+    return "p10_12"
+
+
 def main():
     with open(LEDGER, encoding="utf-8") as f:
         ledger = json.load(f)
 
     periods = {}
     tot = {"elig": 0, "hit": 0, "first": 0, "pos": empty_pos()}
+    first_rank_positions = []
 
     for issue in sorted(ledger.get("periods", {}).keys(), key=int):
         per = ledger["periods"][issue]
         actual = per.get("actual")
         elig = hit = first = 0
         pos = empty_pos()
+        first_votes = Counter()
         for r in per.get("stations", {}).values():
             if r.get("status") != "有九肖" or not r.get("zodiacs"):
                 continue
             elig += 1
             zs = r["zodiacs"]
+            first_votes[zs[0]] += 1
             if actual in zs:
                 hit += 1
                 idx = zs.index(actual)
@@ -45,12 +59,17 @@ def main():
                     pos[idx] += 1
                 if idx == 0:
                     first += 1
+        order = [z for z, _ in first_votes.most_common()]
+        first_rank = order.index(actual) + 1 if actual in order else None
+        if first_rank:
+            first_rank_positions.append(first_rank)
         periods[issue] = {
             "actual": actual,
             "elig": elig,
             "hit": hit,
             "firstHit": first,
             "pos": pos,
+            "firstRank": first_rank,
         }
         tot["elig"] += elig
         tot["hit"] += hit
@@ -58,10 +77,17 @@ def main():
         for i in range(9):
             tot["pos"][i] += pos[i]
 
+    seg = Counter(seg_of(p) for p in first_rank_positions)
+    tot["firstRank"] = {
+        "n": len(first_rank_positions),
+        "positions": first_rank_positions,
+        "seg": {k: seg.get(k, 0) for k in ("p1_3", "p4_6", "p7_9", "p10_12")},
+    }
+
     out = {
         "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "baseline": round(1 / 9, 4),
-        "rule": "位置＝特肖在站点九肖名单原序中的位次；firstHit＝第1位(首肖)；分母为有九肖站次",
+        "rule": "位置＝特肖在站点九肖名单原序中的位次；firstHit＝第1位(首肖)；firstRank＝特肖在跨站首肖票数排行中的名次；分母为有九肖站次",
         "periods": periods,
         "total": tot,
     }

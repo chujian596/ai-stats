@@ -117,6 +117,15 @@ for iss in sorted(periods):
         'stations': st,
     }
 
+# ---- 跳期存疑：前后相邻两期都有、唯独本期无记录的站（仅标记，不判对错、不补票）----
+# 用交集排除单侧新增/退场的站，避免站点规模扩张被误判为跳期。
+issue_list = sorted(out_periods, key=int)
+for idx, iss in enumerate(issue_list):
+    cur = set(out_periods[iss]['stations'])
+    prev = set(out_periods[issue_list[idx - 1]]['stations']) if idx > 0 else set()
+    nxt = set(out_periods[issue_list[idx + 1]]['stations']) if idx < len(issue_list) - 1 else set()
+    out_periods[iss]['gaps'] = sorted((prev & nxt) - cur)
+
 latest_snap_at = max((at for at, _, _ in by_issue.values()), default='')
 out = {
     'updated_at': latest_snap_at or sc.get('updatedAt', ''),
