@@ -233,7 +233,7 @@ document.getElementById('meta').innerHTML =
   `<span class="tag"><span class="dot ${prev['波色']}"></span>上期 ${prev['期']} 特码 ${prev['特码']} ${prev['生肖']}</span>`
   + `<span class="tag">兵 ${DATA['统计']['兵']}</span>`
   + `<span class="tag">触发 ${DATA['统计']['触发']}</span>`
-  + `<span class="tag">静态快照 · ${DATA['期']}期 · 开奖后需重灌</span>`;
+  + `<span class="tag">自动生成 · ${DATA['期']}期 · 开奖数据更新后重算</span>`;
 
 /* 四档：方形色块 */
 const TIERS=[12,14,16,18];
@@ -383,7 +383,7 @@ document.getElementById('past').innerHTML = DATA['往年今日'].map(p=>{
 const s2=DATA['统计'];
 document.getElementById('foot').innerHTML =
 `<b>罗盘</b>：条件库 ${s2['条件数'].toLocaleString()} 条 · 池集 ${s2['池集数']} 类 · 用上一期数据出票<br>`
-+`<b>口径</b>：2409 净票序（正票×1.0 / 反票×0.5；T12/T14 按净票排、T16/T18 按正票排），净票降序、同票按号码升序；1赔46，命中得47；四档嵌套截取。<br>`
++`<b>口径</b>：纯正向 1642 票序（正向 ×1.0 / 反 0；四档按正票降序、同票按号码升序），1赔46，命中得47；四档嵌套截取。<br>`
 +`<b>钉死</b>：反向票≥10 的号码标「钉」，只作标记、不参与剔除；61 期实测剔除仅 T12 多 1 期，却会误杀大号。<br>`
 +`<b>说明</b>：号码颜色即波色，进度条长度按最高票归一；特码后与往年今日为历史统计，仅供参考，不参与排序。`;
 </script>
