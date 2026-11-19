@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.35-Pro';
+var APP_VER = 'v59.36-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6778,7 +6778,7 @@ function doSave(overrideText){
       // 「每/注/码/只」也是单位词；三位数以上一定是金额（如 100/120/500），不参与 4 位拆解
       var _hasZod = /[马蛇龙兔虎牛鼠猪狗鸡猴羊特平连复各每注码只]/.test(_t);
       var _hasBigNum = /\d{3,}/.test(_t.replace(/『P\d+』/g, ''));
-      if(_nums && _nums.length === 4 && !_hasZod && !_hasBigNum && _t.indexOf('/') < 0 && !window.__skipPair && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
+      if(_nums && _nums.length === 4 && !_hasZod && !_hasBigNum && _t.indexOf('/') < 0 && !window.__skipPair && !/[，,]/.test(_t) && typeof myChoice === 'function' && !/三中三|二中二|三中二/.test(_t)){
         var _a1=_nums[0],_a2=_nums[1],_a3=_nums[2],_a4=_nums[3];
         window.__ambigAbort = true;
           warnBatchNotSaved();
@@ -6800,7 +6800,7 @@ function doSave(overrideText){
         });
         return;
       }
-      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !/三中三|二中二|三中二/.test(_t)){
+      if(_nums && _nums.length === 4 && !_hasZod && _t.indexOf('/') < 0 && !/[，,]/.test(_t) && !/三中三|二中二|三中二/.test(_t)){
         var _positions = [];
         var _re2 = /\d{1,2}/g; var _mm;
         while((_mm = _re2.exec(_t)) !== null) _positions.push({i:_mm.index, l:_mm[0].length});
@@ -6926,6 +6926,9 @@ renderAll();
     }).filter(x=>x!==null);
   }
   workLines.forEach((line, i) => {
+    // 前一行已经弹了待确认框：先停住，等用户选完由回调重新 doSave 再继续，
+    // 避免一张单里同时弹出多个选择框，用户不知道该先答哪个。
+    if(window.__ambigAbort) return;
     const trimmed = line.trim();
     // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行；允许前面带香港/澳门
     var _pm = trimmed.match(/^(香港|澳门|澳|港)?\s*(三中三|二中二|三中二)\s*(复式?)?[:：\s]*$/);
