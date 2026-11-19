@@ -97,6 +97,7 @@
     <div class="rc-title" id="rankTitle">本期被杀排行</div>
     <div class="rc-sub" id="rankSub"></div>
     <div id="curRankList"></div>
+    <div id="specialRank" style="border-top:1px solid var(--line)"></div>
     <div class="cum-toggle" id="cumToggle" onclick="toggleCum()">历史累计参考 ▾</div>
     <div id="cumWrap" style="display:none">
       <div class="rc-sub" style="margin-top:6px">跨全部已记录期数累计：被杀票次＝累计把该肖列入杀三肖的站次；开出＝作为特肖开出次数；比值越高＝被杀得多、开得少。样本不足，仅记录不定论。</div>
@@ -199,7 +200,28 @@ function renderRank(cur){
       '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
       '<div class="rank-c">'+r.kill+' 票</div></div>';
   }).join('');
+  renderSpecial(per);
   renderCum();
+}
+
+function renderSpecial(per){
+  var el=document.getElementById('specialRank');
+  if(!KR||!KR.total||!KR.total.specialRank){ el.innerHTML=''; return; }
+  var sr=KR.total.specialRank;
+  var order=per.rank.map(function(r){return r.z;});
+  var curPos=per.actual?(order.indexOf(per.actual)+1):null;
+  var c=sr.cred||{n:0,seg:{}};
+  var seg=c.seg||{};
+  function pct(k){ return c.n? Math.round((seg[k]||0)/c.n*100):0; }
+  function row(label,key){
+    return '<div class="rank-row"><div class="rank-z">'+label+'</div><div class="rank-c">'+(seg[key]||0)+' 期 · '+pct(key)+'%</div></div>';
+  }
+  var html='<div class="rc-title" style="padding-top:12px">特肖历史名次</div>';
+  html+='<div class="rc-sub">本期特肖 '+per.actual+' 排第 '+(curPos||'—')+' 名；下表为有本地快照、记录较全的 '+c.n+' 期累计（随机基准：任一名段约 25%）。</div>';
+  html+=row('前 3 名','p1_3')+row('第 4–6 名','p4_6')+row('第 7–9 名','p7_9')+row('后 3 名','p10_12');
+  var a=sr.all||{n:0};
+  html+='<div class="rc-sub" style="padding-bottom:12px">另有早期无快照 '+(a.n-c.n)+' 期记录不全，未计入上表；样本不足，仅记录不定论。</div>';
+  el.innerHTML=html;
 }
 
 function renderCum(){
