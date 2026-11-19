@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.34-Pro';
+var APP_VER = 'v59.03.35-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1594,6 +1594,7 @@ function resolveCode(token){
   return null;
 }
 function saveOrders(){
+  invalidateStats();
   try {
     // 澳门店只保存澳门单；历史混入的港单原样保留在存储里，不再参与本店账
     var _hkKeep = hkOrders;
@@ -7248,7 +7249,10 @@ function pickProduct(code){
   ta.focus();
 }
 
-function getStats(){
+var _statsCache = null;
+function invalidateStats(){ _statsCache = null; }
+function getStats(force){
+  if(_statsCache && !force) return _statsCache;
   const map = {};
   effectiveRows().forEach(r => { map[r.key] = { qty: 0, amount: 0 }; });
   const custMap = {};
@@ -7277,7 +7281,8 @@ function getStats(){
     totalQty += (o.codes || []).length;
     totalAmount += Number(o.amount) || 0;
   });
-  return { map, custMap, totalQty, totalAmount };
+  _statsCache = { map, custMap, totalQty, totalAmount };
+  return _statsCache;
 }
 
 function clearProduct(code){
@@ -9353,22 +9358,11 @@ box.innerHTML = h;
   try{ renderNeedList(); }catch(e){}
 }
 
-function renderAll(){
-  const tv = document.getElementById('topVer'); if(tv) tv.textContent = APP_VER;
-  try { renderPendingOrdersBar(); } catch(e){}
-  try { renderHKDraw(); refreshHKDraw(); } catch(e){}
-  // 自定义标题
-  const mt = document.getElementById('mainTitle');
-  if(mt) mt.textContent = (labels.mainTitle||'AI云统计系统');
-  const bb = document.getElementById('mode-btn-bundle');
-  if(bb) bb.textContent = labels.bundleBtn || '套餐模式';
-  const sb = document.getElementById('mode-btn-single');
-  if(sb) sb.textContent = labels.singleBtn || '单品模式';
-  const { map, custMap, totalQty, totalAmount } = getStats();
-  const payTotal = pays.reduce((s,p) => s + Number(p.amount||0), 0);
-  document.getElementById('bigAmount').textContent = totalAmount.toFixed(2);
-  document.getElementById('bigSub').textContent = activeOrders().length + '单';
-
+var _activeTab = 'all';
+function isStatsTab(name){ return name === 'all' || name === 'rank' || name === 'cust'; }
+function renderStatsSections(stats){
+  window.__statsRenderCount = (window.__statsRenderCount || 0) + 1;
+  const map = stats.map, custMap = stats.custMap, totalQty = stats.totalQty, totalAmount = stats.totalAmount;
   let allHtml = '';
   const seenCodes = {};
   products.slice().sort((a,b) => a.code.localeCompare(b.code,'zh')).forEach(p => {
@@ -9487,7 +9481,29 @@ function renderAll(){
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
-  const allCustNames = Array.from(new Set([...roster, ...custRows.map(r => r.name)]));
+}
+
+function renderAll(){
+  const tv = document.getElementById('topVer'); if(tv) tv.textContent = APP_VER;
+  try { renderPendingOrdersBar(); } catch(e){}
+  try { renderHKDraw(); refreshHKDraw(); } catch(e){}
+  // 自定义标题
+  const mt = document.getElementById('mainTitle');
+  if(mt) mt.textContent = (labels.mainTitle||'AI云统计系统');
+  const bb = document.getElementById('mode-btn-bundle');
+  if(bb) bb.textContent = labels.bundleBtn || '套餐模式';
+  const sb = document.getElementById('mode-btn-single');
+  if(sb) sb.textContent = labels.singleBtn || '单品模式';
+  const { map, custMap, totalQty, totalAmount } = getStats();
+  const payTotal = pays.reduce((s,p) => s + Number(p.amount||0), 0);
+  document.getElementById('bigAmount').textContent = totalAmount.toFixed(2);
+  document.getElementById('bigSub').textContent = activeOrders().length + '单';
+
+  if(isStatsTab(_activeTab)){
+    try { renderStatsSections({ map: map, custMap: custMap, totalQty: totalQty, totalAmount: totalAmount }); }
+    catch(e){ logErr('stats_render', e && e.message ? e.message : String(e)); }
+  }
+  const allCustNames = Array.from(new Set([...roster, ...Object.keys(custMap)]));
   document.getElementById('customerList').innerHTML =
     allCustNames.map(n => `<option value="${esc(n)}">`).join('');
 
@@ -9535,12 +9551,17 @@ function renderAll(){
 }
 
 function switchTab(name){
+  _activeTab = name;
   ['all','rank','cust','orders','pay','split','settings'].forEach(k => {
     var sec = document.getElementById('tab-' + k);
     var btn = document.getElementById('tab-btn-' + k);
     if(sec) sec.style.display = (k === name ? 'block' : 'none');
     if(btn) btn.classList.toggle('active', k === name);
   });
+  if(isStatsTab(name)){
+    try { renderStatsSections(getStats()); }
+    catch(e){ logErr('stats_render', e && e.message ? e.message : String(e)); }
+  }
 }
 
 function download(filename, content, type){
@@ -9558,7 +9579,7 @@ function download(filename, content, type){
 }
 
 function exportCSV(){
-  const { map, custMap, totalQty, totalAmount } = getStats();
+  const { map, custMap, totalQty, totalAmount } = getStats(true);
   let csv = '\ufeff产品累计（全部客户）\n产品,销量,累计金额\n';
   products.forEach(p => {
     const links = p.links || [];
@@ -10117,6 +10138,7 @@ function clearOrders(){
   myConfirm('确定清除所有订单和赔付记录？<br>客户名单保留。', () => {
   orders = [];
   hkOrders = [];
+  invalidateStats();
   pays = [];
   custpays = [];
   try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}

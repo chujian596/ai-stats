@@ -521,6 +521,22 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('存储容量预警三档', storageQuotaState(W).level==='warn' && storageQuotaState(C).level==='critical' && storageQuotaState(L).level==='ok' && wOk && cOk && lOk, {w:wOk,c:cOk,l:lOk});
 }
 
+/* 统计页按需计算：同数据命中缓存；非统计页 renderAll 不重建统计 DOM */
+{
+  const s1=getStats(), s2=getStats();
+  const cached=s1===s2;
+  invalidateStats();
+  const s3=getStats();
+  const refreshed=s3!==s1;
+  switchTab('orders');
+  const c1=window.__statsRenderCount||0;
+  renderAll();
+  const c2=window.__statsRenderCount||0;
+  switchTab('all');
+  const c3=window.__statsRenderCount||0;
+  gate('统计页按需计算', cached && refreshed && c2===c1 && c3>c2 && isStatsTab('all') && !isStatsTab('orders'), {cached,refreshed,before:c2,after:c3});
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
