@@ -728,6 +728,21 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('实操清单·香港整组75元', h.only===75 && h.codes===12 && h.bad.length===0, h);
 }
 
+/* 订单明细：每一笔都要自带澳门/香港标识，不能只靠分组标题 */
+{
+  const oldO=orders, oldH=hkOrders, oldLimit=_ordersCustLimit;
+  window.myAlert=function(){};
+  localStorage.removeItem('product_stats_macau_orders_global_v1');
+  function _o(id,raw,codes,amt,hk){ return {id:id,customer:'叶',raw:raw,codes:codes,amount:amt,hk:!!hk,originShop:hk?'B':'A',createdAt:new Date().toLocaleString('zh-CN')}; }
+  orders=[_o('M1','三中三:13,19,17 5',['三中三:13,19,17'],5,false),_o('M2','22 34 46 各10',['22','34','46'],30,false)];
+  hkOrders=[_o('H1','40 28 16 各5',['40','28','16'],15,true)];
+  _ordersCustLimit={}; renderOrdersList();
+  const rows=[...document.querySelectorAll('#ordersList [data-order-id]')];
+  const bad=rows.filter(r=>!/>(澳门|香港)</.test(r.innerHTML)).map(r=>r.getAttribute('data-order-id'));
+  gate('订单明细·每笔都带港澳标识', rows.length===3 && bad.length===0, {rows:rows.length,bad});
+  orders=oldO; hkOrders=oldH; _ordersCustLimit=oldLimit; renderOrdersList();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

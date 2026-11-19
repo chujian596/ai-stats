@@ -647,7 +647,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.42-Pro';
+var APP_VER = 'v59.43-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8237,17 +8237,15 @@ function renderOrdersList(){
       if(isDup){
         h += `<div style="font-size:10px;color:#b45309;font-weight:700;margin-bottom:2px">疑似重复 · 同客户同内容30分钟内</div>`;
       }
-      if(hk && !(g.hkCnt > 0 && g.orders.length > g.hkCnt)){
-        h += `<div style="font-size:10px;color:#b45309;font-weight:700;margin-bottom:2px">香港单</div>`;
-      }
+      const _badge = `<span style="display:inline-block;font-size:10px;line-height:14px;padding:0 4px;border-radius:3px;margin-right:4px;border:1px solid ${hk?'#f5d27a':'#d9e2ec'};background:${hk?'#fffbe6':'#f1f5f9'};color:${hk?'#b45309':'#475569'};font-weight:700;vertical-align:1px">${hk?'香港':'澳门'}</span>`;
       // Show original lines
       const rawLines = (o.raw||'').split('; ').filter(Boolean);
       if(rawLines.length){
-        rawLines.forEach(rl => {
-          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${esc(rl)}</div>`;
+        rawLines.forEach((rl, ri) => {
+          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${ri===0?_badge:''}${esc(rl)}</div>`;
         });
       } else {
-        h += `<div style="color:#333;font-size:13px">${esc((o.codes||[]).join(' '))}</div>`;
+        h += `<div style="color:#333;font-size:13px">${_badge}${esc((o.codes||[]).join(' '))}</div>`;
       }
       if(wd.lines.length){
         wd.lines.forEach(l => {
