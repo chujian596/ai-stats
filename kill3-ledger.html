@@ -73,6 +73,7 @@
   <div class="bar-row">
     <label for="periodSel" class="stat">期号</label>
     <select id="periodSel"></select>
+    <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
     <div class="stat" id="summary"></div>
   </div>
   <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 所杀三肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
@@ -253,6 +254,11 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
 }).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
+  var rb=document.getElementById('btnRefresh');
+  if(rb) rb.addEventListener('click',function(){
+    rb.textContent='刷新中…';
+    fetchJson('data/kill3-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(function(){render();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
+  });
   render();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';

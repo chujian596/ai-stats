@@ -94,7 +94,7 @@ for iss in sorted(periods):
     }
 
 out = {
-    'updated_at': sc.get('updatedAt', ''),
+    'updated_at': __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M'),
     'rule': '杀特3肖：当期特肖不在所杀3肖内记为「中」；连对/连错按逐期尾段推导；只收本站固定杀三肖栏，跳转外站的链接不计',
     'periods': out_periods,
 }
