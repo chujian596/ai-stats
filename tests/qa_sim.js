@@ -553,7 +553,7 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
     orders=[]; hkOrders=[]; saveOrders();
     myConfirm=(m,cb)=>cb();
     applyBackup(data);
-    _ok=(_hk===1 && orders.length===1 && hkOrders.length===1 && activeOrders().length===2);
+    _ok=(_hk===1 && orders.length===1 && hkOrders.length===1 && activeOrders().length===1 && allActiveOrders().length===2);
   }catch(e){ _ok=false; }
   finally{ orders=_o; hkOrders=_h; download=_dl; myConfirm=_cf; saveOrders(); renderAll(); }
   gate('备份携带港单', _ok, {hk:_hk});

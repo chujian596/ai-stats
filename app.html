@@ -638,7 +638,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.38';
+var APP_VER = 'v59.39';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5135,6 +5135,8 @@ function parseLine(text){
   // 折叠连续"特"、把"特号/特碼/特码"统一成"特"
   codeText = codeText.replace(/特号|特碼/g, '特');
   codeText = codeText.replace(/特{2,}/g, '特');
+  // 波色复合词顺序归一：绿波小单 → 绿波单小（产品名以「波+单双+大小」为准）
+  codeText = codeText.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
   // 裸"单/双"（前面不是波色/合数）补成"单数/双数"，避免无产品可匹配
   codeText = codeText.replace(/(^|[^红蓝绿波合数黑])单(?=\s*\d|\s*$)/g, '$1单数');
   codeText = codeText.replace(/(^|[^红蓝绿波合数黑])双(?=\s*\d|\s*$)/g, '$1双数');
@@ -6302,14 +6304,16 @@ function scanAmbigAmount(text, from){
       if(amt && flat.length) return { idx:i, kind:'zod', prefix:mm[1]||'', zods:zods, amt:amt, codes:flat, label:(mm[1]||'')+zods };
       continue;
     }
-    var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(单数|双数|单|双|大数|小数|大|小)?(.*)$/);
+    var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(.*)$/);
     if(wm){
-      var wtail = wm[3] || '';
+      var wtail = wm[2] || '';
       var wamt = _mxAmount(wtail);
       if(wamt){
         var wv = wm[1].indexOf('波') > -1 ? wm[1] : wm[1] + '波';
-        var sd = (wm[2] || '').replace('数',''), dx = '';
-        var canonical = wv + (sd ? (sd === '单' || sd === '双' ? sd + '数' : sd) : '');
+        // 允许「波+单双+大小」任意顺序，不能只吃一个后缀，否则绿波单小会被截成绿波单
+        var sdM = wtail.match(/单数|双数|单|双/), dxM = wtail.match(/大数|小数|大|小/);
+        var sd = sdM ? sdM[0].replace('数','') : '', dx = dxM ? dxM[0].replace('数','') : '';
+        var canonical = wv + (sd ? (sd === '单' || sd === '双' ? sd + '数' : sd) : '') + (dx || '');
         var pd = products.filter(function(p){ return p.code === canonical; })[0];
         if(!pd){
           var alt = canonical.replace(/数$/, '');
@@ -6440,6 +6444,7 @@ function doSave(overrideText){
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 混搭/多类：分号先拆行；同一行不同玩法前缀前也拆行，避免组合词互相吞并
   text = text.replace(/[；;]/g, '\n');
+  text = text.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
   text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))/g, '\n');
   // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
   var _zchars0 = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
@@ -6649,7 +6654,7 @@ function doSave(overrideText){
           // 只有明确写了"各号"或"各数"才不弹窗
           // 只看含波色的那一行，避免别行的「各」把这一行的问询吞掉
           const _waveLine = String(text).split('\n').filter(l => /红波|蓝波|绿波|红|蓝|绿/.test(l))[0] || '';
-          const hasExplicit = /各\s*(号|数|码)|每\s*(号|个号|码)/.test(_waveLine);
+          const hasExplicit = /各\s*(号|数|码|\d)|每\s*(号|个号|码)/.test(_waveLine);
           if(hasExplicit){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
           } else if(PARSE_DEFAULTS.waveAmount){
@@ -6680,9 +6685,7 @@ function doSave(overrideText){
         // 已经选了，替换文本中的产品名
         if(window._waveChoice && window._waveCanonical){
           // 把识别到的组件替换成标准名
-          text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双|各)+/g, function(m){
-            // 保留"各"
-            if(m==='各') return m;
+          text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, function(m){
             return window._waveCanonical;
           });
           const _wcChoice = window._waveChoice;
@@ -6697,7 +6700,8 @@ function doSave(overrideText){
               text = text.replace(_wre, function(m, amt){ return wc + '各' + (parseFloat(amt)/_wn).toFixed(4); });
             }
           } else if(window._waveLastPerNum){
-            text = text.replace(wc, wc+'各');
+            // 已经写了「各10」就不要再补一个「各」，否则会变成「红波各各10」解析失败
+            if(!new RegExp(wc + '\\s*各').test(text)) text = text.replace(wc, wc+'各');
             window._waveLastPerNum = false;
           }
         }

@@ -638,7 +638,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.38-Pro';
+var APP_VER = 'v59.39-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -951,6 +951,8 @@ var NUM2ZODIAC_REV = {'马':[1,13,25,37,49],'蛇':[2,14,26,38],'龙':[3,15,27,39
 
 // 自动结算：解析开奖结果，自动计算所有命中赔付
 function autoPayout(){
+  // 结算账本按当前店铺：A=澳门单，B=香港单，不能拿 orders 去算港单
+  var ledger = (typeof shop !== 'undefined' && shop === 'B') ? hkOrders : orders;
   var raw = document.getElementById('input').value.trim();
   if(!raw){ myAlert('请输入开奖结果'); return; }
   // 提取所有数字
@@ -1007,7 +1009,7 @@ function autoPayout(){
   lastDraw = { specialNum, regularNums: [...regularNums], period };
   saveLastDraw();
 
-  var allOrders = JSON.parse(localStorage.getItem(KEY) || '[]').filter(function(o){ return shop === 'B' ? !!o.hk : !o.hk; });
+  var allOrders = ledger.slice();
   var results = [];
   var totalPayout = 0;
 
@@ -1061,7 +1063,7 @@ function autoPayout(){
     results.push(label + ' 下注' + r.bet.toFixed(2) + ' ×' + r.mult + ' = ' + payout.toFixed(2));
   });
 
-  var totalSales = orders.reduce(function(s,o){ return s + Number(o.amount||0); }, 0);
+  var totalSales = ledger.reduce(function(s,o){ return s + Number(o.amount||0); }, 0);
   var net = totalSales - totalPayout;
 
   var msg = '';
@@ -1089,7 +1091,7 @@ function autoPayout(){
       flyOutAmt += specFlyReal0;
       flyBackAmt += flownRealOf(String(specialNum).padStart(2,'0')) * payMult;
       const pteAgg0 = {};
-      orders.forEach(o => { (o.codes||[]).forEach(c => {
+      ledger.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && c.startsWith('平特')){
           const z = c.replace('平特','');
           pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
@@ -1104,7 +1106,7 @@ function autoPayout(){
       });
       if(lxFlyAmt > 0){ const _lxFlown = autoFlyOn ? lxFlyAmt : Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')] || 0); flyOutAmt += _lxFlown; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(_lxFlown > 0 && lz.split('').every(z => drawZ2.has(z))) flyBackAmt += _lxFlown * lxOddsOf(lz); }
       let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-      if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(emOn){ const allN = new Set(regularNums); ledger.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
           const mult = codeWinMult(c, {specialNum:specialNum, regularNums:regularNums});
@@ -1135,6 +1137,7 @@ function autoPayout(){
       ov.remove();
       pays.unshift({ product: '自动结算', amount: totalPayout, note: period ? '期' + period + ' ' : '' + '特' + specialNum, time: new Date().toLocaleString('zh-CN'), _upBefore: parseFloat(localStorage.getItem('upCum') || '0') });
       savePays();
+      if(period) localStorage.setItem(sk('lastDrawPeriod'), String(period));
       // 累计上家盈亏
       try {
         let upCum = parseFloat(localStorage.getItem('upCum') || '0');
@@ -1157,7 +1160,7 @@ function autoPayout(){
         Object.keys(sales0).forEach(k => { flyOut0 += Math.max(0, sales0[k] - splitTakeAll); });
         flyBack0 += Math.max(0, (sales0[specialNum]||0) - splitTakeAll) * 47;
         const pteAgg0 = {};
-        orders.forEach(o => { (o.codes||[]).forEach(c => {
+        ledger.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && c.startsWith('平特')){
             const z = c.replace('平特','');
             pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
@@ -1181,7 +1184,7 @@ function autoPayout(){
           }
         }
         let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-        if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(emOn){ const allN = new Set(regularNums); ledger.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
             const mult = codeWinMult(c, {specialNum:specialNum, regularNums:regularNums});
@@ -1541,7 +1544,13 @@ let storageOK = true;
 let orders = loadOrders();  // 两店都加载各自账本；港单再单独进 hkOrders
 let hkOrders = loadHKOrders();  // 两店都加载港单：澳门店也能录港单，客户明细要合在一起看
 function activeOrders(){
-  // 香港店 orders 与 hkOrders 指向同一批港单，合并时必须去重，避免对账/盈亏双计
+  // 当前店铺自己的账：A 店只算澳门单，B 店只算香港单。
+  // 客户明细要合并时由 renderOrdersList 直接读 orders + hkOrders，不能把两本账塞进这里，
+  // 否则赔付/飞单/统计会拿澳门开奖去算香港单。
+  return (typeof shop !== 'undefined' && shop === 'B') ? hkOrders.slice() : orders.slice();
+}
+function allActiveOrders(){
+  // 只给「客户汇总 / 订单列表」这类需要港澳合并看的场景用
   var seenIds = {}, seenSigs = {}, out = [];
   orders.concat(hkOrders).forEach(function(o){
     if(!o) return;
@@ -1556,7 +1565,7 @@ function activeOrders(){
     out.push(o);
   });
   return out;
-}  // 本店活动单池：A=澳单，B=港单
+}  // 全量活动单：港澳两本账合并去重
 
 function updateOrderSummary(){
   var el = document.getElementById('orderSummary');
@@ -5135,6 +5144,8 @@ function parseLine(text){
   // 折叠连续"特"、把"特号/特碼/特码"统一成"特"
   codeText = codeText.replace(/特号|特碼/g, '特');
   codeText = codeText.replace(/特{2,}/g, '特');
+  // 波色复合词顺序归一：绿波小单 → 绿波单小（产品名以「波+单双+大小」为准）
+  codeText = codeText.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
   // 裸"单/双"（前面不是波色/合数）补成"单数/双数"，避免无产品可匹配
   codeText = codeText.replace(/(^|[^红蓝绿波合数黑])单(?=\s*\d|\s*$)/g, '$1单数');
   codeText = codeText.replace(/(^|[^红蓝绿波合数黑])双(?=\s*\d|\s*$)/g, '$1双数');
@@ -5526,7 +5537,16 @@ function autoFetchDraw(retry){
           try { renderHKDraw(); } catch(e){}
           renderLiveBalls(snap.numbers.map(Number), true);
           updateDrawInfoBar();
-          myAlert('香港 ' + snap.draw + ' 期开奖已更新。');
+          var _hkLine = '开' + snap.draw + ' ' + snap.numbers.map(function(n){ return String(n).padStart(2,'0'); }).join('.');
+          var _hkSettled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
+          var _hkDrawNo = parseInt(snap.draw) || 0;
+          if(_hkDrawNo > _hkSettled){
+            // 香港店拉到新一期：自动进入同一套结算确认，确认后才写赔付台账
+            document.getElementById('input').value = _hkLine;
+            try { autoPayout(); } catch(e){ myAlert('香港开奖已更新，自动结算失败：' + e.message); }
+          } else {
+            myAlert('香港 ' + snap.draw + ' 期开奖已更新（该期已结算过）。');
+          }
           return;
         }
         applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
@@ -6302,14 +6322,16 @@ function scanAmbigAmount(text, from){
       if(amt && flat.length) return { idx:i, kind:'zod', prefix:mm[1]||'', zods:zods, amt:amt, codes:flat, label:(mm[1]||'')+zods };
       continue;
     }
-    var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(单数|双数|单|双|大数|小数|大|小)?(.*)$/);
+    var wm = raw.match(/^(红波|蓝波|绿波|红|蓝|绿)(.*)$/);
     if(wm){
-      var wtail = wm[3] || '';
+      var wtail = wm[2] || '';
       var wamt = _mxAmount(wtail);
       if(wamt){
         var wv = wm[1].indexOf('波') > -1 ? wm[1] : wm[1] + '波';
-        var sd = (wm[2] || '').replace('数',''), dx = '';
-        var canonical = wv + (sd ? (sd === '单' || sd === '双' ? sd + '数' : sd) : '');
+        // 允许「波+单双+大小」任意顺序，不能只吃一个后缀，否则绿波单小会被截成绿波单
+        var sdM = wtail.match(/单数|双数|单|双/), dxM = wtail.match(/大数|小数|大|小/);
+        var sd = sdM ? sdM[0].replace('数','') : '', dx = dxM ? dxM[0].replace('数','') : '';
+        var canonical = wv + (sd ? (sd === '单' || sd === '双' ? sd + '数' : sd) : '') + (dx || '');
         var pd = products.filter(function(p){ return p.code === canonical; })[0];
         if(!pd){
           var alt = canonical.replace(/数$/, '');
@@ -6440,6 +6462,7 @@ function doSave(overrideText){
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 混搭/多类：分号先拆行；同一行不同玩法前缀前也拆行，避免组合词互相吞并
   text = text.replace(/[；;]/g, '\n');
+  text = text.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
   text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))/g, '\n');
   // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
   var _zchars0 = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
@@ -6649,7 +6672,7 @@ function doSave(overrideText){
           // 只有明确写了"各号"或"各数"才不弹窗
           // 只看含波色的那一行，避免别行的「各」把这一行的问询吞掉
           const _waveLine = String(text).split('\n').filter(l => /红波|蓝波|绿波|红|蓝|绿/.test(l))[0] || '';
-          const hasExplicit = /各\s*(号|数|码)|每\s*(号|个号|码)/.test(_waveLine);
+          const hasExplicit = /各\s*(号|数|码|\d)|每\s*(号|个号|码)/.test(_waveLine);
           if(hasExplicit){
             text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, canonical);
           } else if(PARSE_DEFAULTS.waveAmount){
@@ -6680,9 +6703,7 @@ function doSave(overrideText){
         // 已经选了，替换文本中的产品名
         if(window._waveChoice && window._waveCanonical){
           // 把识别到的组件替换成标准名
-          text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双|各)+/g, function(m){
-            // 保留"各"
-            if(m==='各') return m;
+          text = text.replace(/(?:红波|蓝波|绿波|红|蓝|绿|单数|双数|单|双|大数|小数|大|小|合数单|合数双)+/g, function(m){
             return window._waveCanonical;
           });
           const _wcChoice = window._waveChoice;
@@ -6697,7 +6718,8 @@ function doSave(overrideText){
               text = text.replace(_wre, function(m, amt){ return wc + '各' + (parseFloat(amt)/_wn).toFixed(4); });
             }
           } else if(window._waveLastPerNum){
-            text = text.replace(wc, wc+'各');
+            // 已经写了「各10」就不要再补一个「各」，否则会变成「红波各各10」解析失败
+            if(!new RegExp(wc + '\\s*各').test(text)) text = text.replace(wc, wc+'各');
             window._waveLastPerNum = false;
           }
         }
@@ -6959,8 +6981,9 @@ renderAll();
     if(_leadMac) _secHK = false;
     const _hadMacTag = _leadMac;
     try {
-      // 分段标题优先，其次看本行港澳标注；澳门店里没标注的行默认算澳门单
-      const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK)) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
+      // 分段标题优先，其次看本行港澳标注；_secHK 已按当前店铺初始化，
+      // 所以「澳门：」切回后不会再被香港店默认值拉回香港。
+      const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK));
       if(!_isHK){
         line = line.trim().replace(/^(澳门|澳)\s*/, '').replace(/[\s:：]*(澳门|澳)\s*$/, '').trim();
       }
