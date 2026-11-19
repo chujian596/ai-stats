@@ -647,7 +647,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.45-Pro';
+var APP_VER = 'v59.46-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3288,7 +3288,7 @@ function hkSummaryLine(){
   if(!hkOrders.length) return '';
   return '<div style="padding-top:2px;color:#b45309">香港 <b>' + hkOrders.length + '</b> 单 ｜ 合计 <b>' + hkTotalAmount().toFixed(0) + '</b></div>';
 }
-// 香港单分组：号码同金额并成一行；平特/连肖/组合这类玩法各占一行，不再被过滤掉
+// 香港单分组：号码同金额并成一行；同时标出 待飞 / 已飞 / 只记录，供目录分栏
 function hkGroups(){
   var nums = {};    // 号码 code -> 金额
   var other = {};   // 其它玩法 code -> 金额
@@ -3302,17 +3302,31 @@ function hkGroups(){
       else other[c] = (other[c]||0) + amt;
     });
   });
-  var by = {};      // 号码金额 -> [code]
-  Object.keys(nums).forEach(function(c){
-    var a = hkRoundOn() ? hkFlyAmt(nums[c]) : Math.round(nums[c]);
-    (by[a] = by[a] || []).push(c);
-  });
-  var out = Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).map(function(a){
-    return { amt: a, codes: by[a].sort() };
-  });
-  Object.keys(other).sort().forEach(function(c){
-    out.push({ amt: Math.round(other[c]), codes: [c] });
-  });
+  var all = hkPlanAll(), flown = hkFlownPlan();
+  function _st(c){
+    var sent = Number(flown[c] || 0);
+    if(sent > 0.01){
+      if(!(c in all)) return 'flown';                      // 之前飞过、现在模式不飞，也要留在已飞目录
+      var target = Number(hkFlyAmt(all[c]) || 0);
+      return (sent + 0.01 >= target) ? 'flown' : 'partial';
+    }
+    if(!(c in all)) return 'record';                       // 飞单模式不飞这类，只记录
+    return 'pending';
+  }
+  function _bucket(src, numeric){
+    var by = {};
+    Object.keys(src).forEach(function(c){
+      var a = numeric && hkRoundOn() ? hkFlyAmt(src[c]) : Math.round(src[c]);
+      var s = _st(c), key = String(a) + '|' + s;
+      if(!by[key]) by[key] = { amt: a, codes: [], status: s };
+      by[key].codes.push(c);
+    });
+    return Object.keys(by).map(function(k){ return by[k]; });
+  }
+  var out = _bucket(nums, true).concat(_bucket(other, false));
+  var _ord = { pending:0, partial:1, flown:2, record:3 };
+  out.sort(function(a,b){ return (_ord[a.status]-_ord[b.status]) || (b.amt-a.amt); });
+  out.forEach(function(g){ g.codes.sort(); });
   return out;
 }
 
@@ -3672,22 +3686,40 @@ function renderHKFlyBox(){
   var st = hkFlyState();
   var open = !!window.__hkFlyOpen;   // 默认收起，只显示标题行
   var planTotal = fi.planned;
+  var _recTotal = total - fi.full;   // 飞单模式不覆盖、只记录的部分
+  var _hdr = [];
+  if(fi.flyOut > 0.01) _hdr.push('已飞' + fi.flyOut.toFixed(0));
+  if(planTotal > 0.01) _hdr.push('待飞' + planTotal.toFixed(0));
+  if(_recTotal > 0.01) _hdr.push('记录' + _recTotal.toFixed(0));
+  if(!_hdr.length) _hdr.push('已飞0');
   var h = '<div style="border:1px solid #f0c36d;border-radius:6px;overflow:hidden">';
   h += '<div onclick="toggleHKFlyBox()" style="background:#fffbe6;padding:5px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer">'
      + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">香港单 · ' + hkOrders.length + ' 单 <span style="color:#999;font-weight:400">（港澳共享）</span>'
      + ' <a href="javascript:cycleHKRound()" onclick="event.stopPropagation()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:2px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
      + '<span style="display:flex;align-items:center;gap:5px;white-space:nowrap">'
-     + '<span>' + (planTotal > 0.01
-          ? (fi.flyOut > 0.01 ? '已飞' + fi.flyOut.toFixed(0) + ' 待飞' + planTotal.toFixed(0) : '待飞 ' + planTotal.toFixed(0))
-          : '已飞 ' + fi.flyOut.toFixed(0)) + '</span>'
+     + '<span>' + _hdr.join(' ') + '</span>'
      + (done ? '' : '<button onclick="event.stopPropagation();confirmHKFly()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">确认</button>')
      + '<span style="color:#999;font-weight:400">' + (open ? '收起 ▲' : '展开 ▼') + '</span></span></div>';
   h += '<div style="display:' + (open ? 'block' : 'none') + '">';
-  h += '<div style="max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">';
-  gs.forEach(function(g){
-    h += '<div style="padding:2px 6px;border-bottom:1px solid #f8f8f8;display:flex;justify-content:space-between;gap:4px">'
-       + '<span style="font-size:12px;color:#333;word-break:break-all">香港 ' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
-       + '<span style="font-size:12px;color:#b45309;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+  h += '<div style="max-height:250px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fff">';
+  var _secs = [
+    ['pending', '待飞目录', '#cf1322'],
+    ['partial', '部分已飞', '#d97706'],
+    ['flown', '已飞目录', '#b45309'],
+    ['record', '只记录', '#999']
+  ];
+  _secs.forEach(function(sd){
+    var arr = gs.filter(function(g){ return g.status === sd[0]; });
+    if(!arr.length) return;
+    var cnt = arr.reduce(function(n,g){ return n + g.codes.length; }, 0);
+    var sum = arr.reduce(function(n,g){ return n + g.amt * g.codes.length; }, 0);
+    h += '<div style="display:flex;justify-content:space-between;gap:6px;padding:3px 6px;background:#faf7ef;border-bottom:1px solid #f3e8d2;font-size:11px;color:' + sd[2] + ';font-weight:700">'
+       + '<span>' + sd[1] + '（' + cnt + '项）</span><span>合计 ' + sum.toFixed(0) + '</span></div>';
+    arr.forEach(function(g){
+      h += '<div style="padding:2px 6px;border-bottom:1px solid #f8f8f8;display:flex;justify-content:space-between;gap:4px">'
+         + '<span style="font-size:12px;color:#333;word-break:break-all">香港 ' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
+         + '<span style="font-size:12px;color:#b45309;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+    });
   });
   h += '</div>';
   var _hp = hkPayoutInfo();
@@ -3715,6 +3747,7 @@ function renderHKFlyBox(){
      + '<br>香港实际 <b style="color:' + (_hkActual>=0?'#16a34a':'#cf1322') + '">' + (_hkActual>=0?'+':'') + _hkActual.toFixed(0) + '</b>'
      + '<span style="color:#999;font-weight:400">（收' + _hkSales.toFixed(0) + ' − 赔' + _hkPay.toFixed(0) + ' − 已飞' + fi.flyOut.toFixed(0) + ' + 赔回' + fi.flyBack.toFixed(0) + '）</span>'
      + (Math.abs(fi.roundGap) > 0.01 ? '<br><span style="color:#b45309">凑整差 ' + (fi.roundGap>0?'+':'') + fi.roundGap.toFixed(0) + '（' + (fi.roundGap>0?'多飞自己多付，已计入已飞':'少飞自己留，已计入香港实际') + '）</span>' : '')
+     + (hkGlobalMode() !== 'all' ? '<br><span style="color:#999">飞单模式：' + hkModeLabel(hkGlobalMode()) + (hkGlobalMode() === 'rule' ? '（单号只记录，不进飞单账）' : '（本批只记录）') + '</span>' : '')
      + (hkRoundOn() ? '<br><span style="color:#999">订单行显示凑整后飞额；「收」按客户原单额。</span>' : '')
      + (st.at ? '<br><span style="color:#999">确认时间 ' + st.at + ' · 只记香港飞单账</span>' : '<br><span style="color:#999">点“确认已飞”按号记账，不写澳门飞单</span>')
      + '</div>';

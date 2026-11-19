@@ -807,6 +807,39 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   renderHKFlyBox();
 }
 
+/* 香港工作台：已飞必须单独进「已飞目录」，只记录不能冒充待飞 */
+{
+  const oldH=hkOrders, oldAuto=autoFlyOn, oldOpen=window.__hkFlyOpen;
+  const oldMode=localStorage.getItem('product_stats_hk_fly_mode_global_v1');
+  const oldState=localStorage.getItem('product_stats_hk_fly_global_v1');
+  const oldRoundOn=localStorage.getItem('hk_round_on');
+  window.myAlert=function(){};
+  localStorage.setItem('product_stats_hk_fly_mode_global_v1','rule');
+  localStorage.removeItem('product_stats_hk_fly_global_v1');
+  localStorage.removeItem('hk_round_on');
+  autoFlyOn=true;
+  function _ho(id,codes,amts){ var ca={}; codes.forEach((c,i)=>{ca[c]=amts[i];}); var s=amts.reduce((a,b)=>a+b,0); return {id:id,customer:'叶',raw:codes.join(' '),codes:codes,codeAmts:ca,price:s,amount:s,qty:codes.length,hk:true,originShop:'A',createdAt:new Date().toLocaleString('zh-CN')}; }
+  hkOrders=[
+    _ho('S1',['16','19','28','40'],[68,68,68,68]), _ho('S2',['03','15','39'],[60,60,60]),
+    _ho('S3',['43'],[25]), _ho('S4',['47'],[5]),
+    _ho('S5',['三中三:13,19,17'],[5]), _ho('S6',['三中三:25,29,27'],[5]),
+    _ho('S7',['三中三:31,35,37'],[5]), _ho('S8',['三中三:43,41,49'],[10])
+  ];
+  window.__hkFlyOpen=true; renderHKFlyBox();
+  const fi=hkFlyInfo(), gg=hkGroups(), txt=document.getElementById('hkFlyBox').innerText;
+  const flownN=gg.filter(g=>g.status==='flown').reduce((n,g)=>n+g.codes.length,0);
+  const recordN=gg.filter(g=>g.status==='record').reduce((n,g)=>n+g.codes.length,0);
+  const pendingN=gg.filter(g=>g.status==='pending').reduce((n,g)=>n+g.codes.length,0);
+  gate('香港目录·已飞单独成目录', fi.full===25 && fi.flyOut===25 && flownN===4 && recordN===9 && pendingN===0
+       && /已飞目录（4项）/.test(txt) && /只记录（9项）/.test(txt) && /记录482/.test(txt),
+       {full:fi.full,flyOut:fi.flyOut,flownN,recordN,pendingN});
+  hkOrders=oldH; autoFlyOn=oldAuto; window.__hkFlyOpen=oldOpen;
+  if(oldMode===null) localStorage.removeItem('product_stats_hk_fly_mode_global_v1'); else localStorage.setItem('product_stats_hk_fly_mode_global_v1',oldMode);
+  if(oldState===null) localStorage.removeItem('product_stats_hk_fly_global_v1'); else localStorage.setItem('product_stats_hk_fly_global_v1',oldState);
+  if(oldRoundOn===null) localStorage.removeItem('hk_round_on'); else localStorage.setItem('hk_round_on',oldRoundOn);
+  renderHKFlyBox();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
