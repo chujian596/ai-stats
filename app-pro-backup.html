@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.43-Pro';
+var APP_VER = 'v59.03.44-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8496,7 +8496,6 @@ function copyNeedList(){
   }
 }
 function preflightReport(){
-  if(!(typeof isOwnerDevice === 'function' && isOwnerDevice())){ myAlert('这台设备没有查看权限。'); return; }
   var s = window.__rkSnapshot;
   if(!s || !s.S){ myAlert('先展开「持仓分析」看一次当前盘面，再来预演。'); return; }
   var input = window.prompt('要加进来的号码和金额\n格式：号码 空格 金额\n例如：38 300', '');
@@ -8728,7 +8727,6 @@ function renderRisk(){
     h += `</div>`;
   }
   h += `<div onclick="toggleRiskBox()" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">持仓分析${splitTakeAll>0?'（飞单后）':'（全飞）'}${_riskDraw&&_riskDraw.specialNum?'（已开奖）':'（开奖前预测）'} · 最坏 <span style="color:#cf1322">${worstNet.toFixed(0)}</span> ▶</div>`;
-  h += `<div id="riskAnalysisBox" style="display:${riskBoxOpen?'':'none'};margin:6px 0;padding:12px;background:#f8f9fa;border:1px solid #e5e5e5;border-radius:8px;font-size:14px;line-height:1.8">`;
   // 特号独立盈亏
   const specWorstNet = specKept - worstKeptBet*payMult;
 
@@ -8766,7 +8764,6 @@ function renderRisk(){
   try { autoStable = localStorage.getItem(sk('autoStable')) === '1'; } catch(e){}
   // 自动稳健不再每次渲染强制改阈值（曾经会把用户手动设的值反复改回 50）；只在勾选那一刻设一次
 
-  h += `</div>`;
   // 特号持仓表（可折叠）
   let _swN=0,_swV=0,_sbet=0;
   for(let _i=1;_i<=49;_i++){ const b=numBets[_i]||0; const k=splitTakeAll>0?Math.min(b,splitTakeAll):b; _sbet+=b; const v=specKept-k*payMult; if(v<_swV||_swN===0){_swV=v;_swN=_i;} }
@@ -8946,7 +8943,7 @@ function renderRisk(){
   window.__optM = _optM>0 ? _optM : 0;
   window.__needReject = _needReject;
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
-  if(typeof isOwnerDevice === 'function' && isOwnerDevice()){
+  if(true){
   h += `<div id="riskHealthCard" style="display:${riskBoxOpen?'':'none'}">`;
   h += `<div style="margin-top:8px;padding:10px 10px 6px;background:#fff;border:1px solid #eee;border-bottom:none;border-radius:8px 8px 0 0;font-size:13px;line-height:1.75">`;
   h += `<div style="font-weight:700;color:#333;margin-bottom:2px">风险体检 · 削峰</div>`;
@@ -9041,7 +9038,7 @@ function renderRisk(){
   try{
     var _bets = cutBets(), _top = 0, _tot = 0;
     _bets.forEach(function(b){ _tot += b.nb; if(b.self > _top) _top = b.self; });
-    if(_top > 0 && typeof isOwnerDevice === 'function' && isOwnerDevice()){
+    if(_top > 0){
       var _cap  = (splitTakeAll > 0) ? splitTakeAll : _top;   // 阈值只有一个：号码表、飞单统计、档位卡都用这个数
       var _lv   = [95,90,85,80,78,70,63,55,47,40,30,21];
       var _topRaw0 = 0; _bets.forEach(function(b){ if(b.nb > _topRaw0) _topRaw0 = b.nb; });
