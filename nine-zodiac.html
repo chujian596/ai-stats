@@ -81,6 +81,9 @@
   .rank-detail table{min-width:0}
   .rank-chip{display:inline-block;margin:2px 5px 2px 0;padding:2px 8px;border-radius:8px;background:#f0f2f5;font-size:12px}
   .cum-toggle{padding:11px 14px;font-size:12.5px;color:var(--blue);font-weight:600;cursor:pointer;border-top:1px solid var(--line)}
+  .pending-card{border-color:#c9dcf2;background:#f7faff}
+  .pending-card .rc-title{color:var(--blue)}
+  #pendTableWrap table{min-width:420px}
 </style>
 </head>
 <body>
@@ -89,6 +92,18 @@
     <h1>每站九肖台账</h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
+
+  <div class="card pending-card" id="pendingCard" style="display:none">
+    <div class="rc-title" id="pendTitle"></div>
+    <div class="rc-sub" id="pendSub"></div>
+    <div id="pendRank"></div>
+    <div class="table-scroll" id="pendTableWrap" style="display:none">
+      <table>
+        <thead><tr><th>站名</th><th>本期九肖（原序）</th></tr></thead>
+        <tbody id="pendRows"></tbody>
+      </table>
+    </div>
+  </div>
 
   <div class="bar-row">
     <label for="periodSel" class="stat">期号</label>
@@ -132,7 +147,7 @@
 </div>
 
 <script>
-var LG=null, ALIAS={};
+var LG=null, ALIAS={}, PEND=null;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function nameOf(r,key){
@@ -231,6 +246,45 @@ function renderRankList(container, rows, total, titleFn){
       '<table class="det-table"><thead><tr><th>期号</th><th>站名（站号 · 系统）</th></tr></thead><tbody>'+detRows+'</tbody></table>';
     entry.addEventListener('click',function(){ det.style.display=det.style.display==='none'?'':'none'; });
     container.appendChild(entry); container.appendChild(det);
+  });
+}
+
+function renderPending(){
+  var card=document.getElementById('pendingCard');
+  if(!PEND){card.style.display='none';return;}
+  card.style.display='block';
+  var title=document.getElementById('pendTitle');
+  var sub=document.getElementById('pendSub');
+  var rank=document.getElementById('pendRank');
+  var wrap=document.getElementById('pendTableWrap');
+  if(PEND.status!=='pending'){
+    title.textContent='第'+PEND.period+'期 · 资料待抓取';
+    sub.textContent='开奖前各站快照入库后，这里会自动显示该期待开期的首肖排行与逐站九肖；开奖对账后并入下方复盘台账。';
+    rank.innerHTML=''; wrap.style.display='none';
+    return;
+  }
+  var sites=(PEND.sites||[]).filter(function(s){return s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length;});
+  title.textContent='待开期推荐 · 第'+PEND.period+'期（待开奖 · 未对账）';
+  sub.textContent='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+sites.length+' 站有九肖；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
+  var agg={};
+  var picks=sites.map(function(s){
+    var name=ALIAS[s.siteKey]||s.siteKey;
+    var p={issue:PEND.period,key:s.system+':'+s.siteKey,siteKey:s.siteKey,system:s.system,name:name,z:s.zodiacs[0]};
+    (agg[p.z]=agg[p.z]||[]).push(p);
+    return p;
+  });
+  renderRankList(rank, pickRows(agg), picks.length,
+    function(row){ return row.z+' 被 '+row.list.length+' 站放在第一位'; });
+  wrap.style.display='block';
+  var tb=document.getElementById('pendRows'); tb.innerHTML='';
+  sites.slice().sort(function(a,b){
+    return (ALIAS[a.siteKey]||a.siteKey).localeCompare(ALIAS[b.siteKey]||b.siteKey,'zh');
+  }).forEach(function(s){
+    var nm=ALIAS[s.siteKey]||s.siteKey;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
+      '<td>'+zsHtml(s.zodiacs)+'</td>';
+    tb.appendChild(tr);
   });
 }
 
@@ -351,17 +405,22 @@ function render(){
   renderRank(cur);
 }
 
+function loadPend(){
+  return fetchJson('data/current-recommend.json?v='+Date.now()).then(function(d){PEND=d;}).catch(function(){PEND=null;});
+}
+
 fetchJson('data/max-zodiac-ledger.json').then(function(d){
   LG=d;
   return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
-}).then(function(){
+}).then(loadPend).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
   var rb=document.getElementById('btnRefresh');
   if(rb) rb.addEventListener('click',function(){
     rb.textContent='刷新中…';
-    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(function(){render();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
+    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(loadPend).then(function(){render();renderPending();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
   });
   render();
+  renderPending();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
 });
