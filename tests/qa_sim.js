@@ -138,6 +138,7 @@ const cases=[
   ['特多肖每肖', '特马龙兔各5', {n:1,amt:15}, {choice:'perZod'}],
   ['特多肖每肖100', '特马龙兔各100', {n:1,amt:300}, {choice:'perZod'}],
   ['波色单各', '红波单各100', {n:1,amt:800}, {mode:'bundle'}],
+  ['三中三复式', '三中三复式01.02.03.04.05.06.07各50', {n:1,amt:1750}],
   ['混行', '特01 100\n平特马 100', {n:1,amt:200}],
   ['香港店', '香港 01 100', {n:0,hk:1,amt:100}, {shop:'B'}],
   ['重复单', '特01 100', {n:1,amt:100}],
@@ -225,6 +226,7 @@ for(const c of cases){
 /* 订单搜索 / 日期筛选 */
 {
   reset();
+  lastDraw = {period:322, regularNums:[2,3,4,5,6,7], specialNum:1};
   const cn = document.getElementById('customerName');
   const inp = document.getElementById('input');
   window.__previewConfirmed = true;

@@ -632,7 +632,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.26-Pro';
+var APP_VER = 'v59.03.27-Pro';
 /* 保存前预览：固定开关，默认开；localStorage 关闭后不再弹预览。
    这里保留 window.__previewEnabled 兼容旧代码，但 doSave 以 previewEnabled() 为准，
    避免清理脚本误删这个全局后预览页再次消失。 */
@@ -4954,6 +4954,13 @@ function parseLine(text){
     return result;
   }
   // 复式展开：支持 "03.04.06.05.49复二"、"44-10-08-09-04-05复式三中三" 等写法
+  // 产品名在前 + 复式 + 号码：三中三复式01.02...各50 → 展开全部组合
+  codeText = codeText.replace(/(二中二|三中三|三中二)\s*复式?\s*((?:\d{1,2}[\s、,，.\-]+)+\d{1,2})/g, function(m, prod, numStr){
+    const nums = Array.from(new Set(numStr.split(/[^0-9]+/).filter(x=>/^\d{1,2}$/.test(x)).map(x=>x.padStart(2,'0')))).filter(x=>{const n=parseInt(x,10); return n>=1 && n<=49;});
+    const kNum = prod === '二中二' ? 2 : 3;
+    if(nums.length < kNum) return m;
+    return ' ' + comb(nums, kNum).map(c => prod + ':' + c.join(',')).join(' ') + ' ';
+  });
   codeText = codeText.replace(/((?:\d{2}[-.、\s])+\d{2})\s*复(?:式)?\s*(?:(三中三|二中二|三中二)|([二三]))/g, (m, numStr, fullProd, k) => {
     const nums = numStr.split(/[-.、\s]/).filter(x=>/^\d{2}$/.test(x)).sort();
     const is2 = (fullProd === '二中二') || (k === '二');
