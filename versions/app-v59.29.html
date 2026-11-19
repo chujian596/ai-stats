@@ -300,6 +300,22 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <button class="btn" style="font-size:13px;padding:6px 10px" onclick="renderNeedListByBudget()">按这个收</button>
       </div>
       <div id="needBox" style="font-size:13px"></div>
+      <div style="border-top:1px solid #eee;margin-top:8px;padding-top:8px">
+        <div onclick="var b=document.getElementById('simBox');b.style.display=b.style.display==='none'?'':'none';if(b.style.display==='')renderSimPanel()" style="cursor:pointer;font-size:15px;font-weight:700;color:#374151">接单预演 · 补号模拟 ▶</div>
+        <div id="simBox" style="display:none;margin-top:6px">
+          <div id="simSummary" style="font-size:12px;color:#888;margin-bottom:4px"></div>
+          <div id="simLow" style="font-size:12px;color:#555;margin-bottom:5px"></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;padding-bottom:2px;border-bottom:1px solid #eee"><span>补法</span><span>进自留</span><span>补后最坏</span></div>
+          <div id="simRows"></div>
+          <div id="simCap" style="font-size:12px;color:#16a34a;margin-top:6px"></div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+            <span style="font-size:13px;color:#666;white-space:nowrap">我能扛到</span>
+            <input id="simTarget" type="number" placeholder="如 -800" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:7px;font-size:14px;text-align:center">
+            <button class="btn" style="font-size:13px;padding:6px 10px" onclick="simNeed()">算需要补多少</button>
+          </div>
+          <div id="simResult" style="font-size:13px;color:#333;margin-top:6px"></div>
+        </div>
+      </div>
     </div>
     <div id="splitSummary" style="font-size:17px;margin-bottom:6px;display:none"></div>
     <div style="display:flex;gap:6px;margin-bottom:6px;display:none" id="splitCopyWrap">
@@ -2722,6 +2738,92 @@ function copyNeedList(){
     var ok = document.execCommand('copy'); document.body.removeChild(ta);
     myAlert(ok ? '已复制 ' + txt.split('\n').length + ' 行，可以发给下家了。' : '复制失败，请长按清单手动复制。');
   }catch(e){ myAlert('复制失败，请长按清单手动复制。'); }
+}
+
+function simAddNum(bets, cap, nAdd, amtEach){
+  var arr = [];
+  for(var i=1;i<=49;i++) arr.push({ no:i, v: Math.min(bets[i]||0, cap) });
+  var added = 0, worst = 0;
+  for(var j=0;j<nAdd;j++){
+    arr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+    var low = arr[0];
+    if(low.v >= cap) break;
+    var add = Math.min(amtEach, cap - low.v);
+    if(add <= 0) break;
+    low.v += add; added += add;
+  }
+  var K = 0, M = 0;
+  for(var k=1;k<=49;k++){ var v = Math.min(bets[k]||0, cap); K += v; if(v>M) M=v; }
+  worst = (K + added) - 47 * Math.max(M, Math.min(cap, added>0?Math.max.apply(null, arr.map(function(x){return x.v;})):M));
+  return {added:added, worst:worst};
+}
+function simPickList(bets, cap, nAdd, amtEach){
+  var arr = [];
+  for(var i=1;i<=49;i++) arr.push({ no:i, v: Math.min(bets[i]||0, cap) });
+  var out = [];
+  for(var j=0;j<nAdd;j++){
+    arr.sort(function(a,b){ return a.v - b.v || a.no - b.no; });
+    var low = arr[0];
+    if(low.v >= cap) break;
+    var add = Math.min(amtEach, cap - low.v);
+    if(add <= 0) break;
+    out.push({ no: low.no, before: low.v, after: low.v + add, add: add });
+    low.v += add;
+  }
+  return out;
+}
+function simNeedAmount(bets, cap, target){
+  var self=[];
+  for(var i=1;i<=49;i++) self.push(Math.min(bets[i]||0, cap));
+  var K=0; self.forEach(function(v){K+=v;});
+  var M=Math.max.apply(null, self);
+  var need=target + 47*M - K;
+  if(need<=0) return {need:0, rooms:0};
+  var room=0, rooms=0;
+  self.forEach(function(v){ room += (cap - v); if(cap-v>0) rooms++; });
+  return { need:need, rooms:rooms, room:room, enough: room>=need };
+}
+function simNeed(){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets){ myAlert('先展开一次持仓分析。'); return; }
+  var t = parseFloat((document.getElementById('simTarget')||{}).value);
+  if(!isFinite(t)){ myAlert('填个金额，比如 -800'); return; }
+  var r = simNeedAmount(s.bets, s.cap||100, t);
+  var box = document.getElementById('simResult');
+  if(!box) return;
+  if(r.need <= 0){ box.innerHTML = '<span style="color:#16a34a">现在的自留已经扛得住 '+t+'，不用再补。</span>'; return; }
+  var _curW = s.S - 47*s.maxBet;
+  var html = '<span style="color:#b45309">要把最坏从 '+(_curW>=0?'+':'')+_curW.toFixed(0)+' 压到 '+t+'，需要再补 <b>'+r.need.toFixed(0)+'</b> 元自留。</span><br>';
+  if(r.enough){
+    html += '<span style="color:#666">可补：'+r.rooms+' 个号还有空间（总共还差 '+r.room.toFixed(0)+' 到满）。分 '+Math.min(r.rooms,10)+' 个号补，每号约 <b>'+(r.need/Math.min(r.rooms,10)).toFixed(0)+'</b> 元。</span>';
+  } else {
+    html += '<span style="color:#cf1322">空间不够：49 个号全补满最多只能加到 '+r.room.toFixed(0)+' 元，到不了 '+t+'。得靠飞单（削峰）补上剩下 '+(r.need-r.room).toFixed(0)+' 元。</span>';
+  }
+  box.innerHTML = html;
+}
+function renderSimPanel(){
+  var s = window.__rkSnapshot;
+  if(!s || !s.bets) return;
+  var cap = (typeof cutMode !== 'undefined' && cutMode === 'cut') ? cutPickVal : (splitTakeAll || 100);
+  var bets = s.bets, sum = document.getElementById('simSummary'), low = document.getElementById('simLow'), rows = document.getElementById('simRows'), capEl = document.getElementById('simCap');
+  if(!sum || !rows) return;
+  var active = 0; for(var i=1;i<=49;i++) if(bets[i] > 0) active++;
+  sum.innerHTML = '现在 <b>'+active+'</b>/49 号有注　自留 <b>'+s.S.toFixed(0)+'</b>　最坏 <b style="color:'+(window.__curWorst>=0?'#16a34a':'#cf1322')+'">'+(window.__curWorst>=0?'+':'')+(window.__curWorst||0).toFixed(0)+'</b>';
+  var arr=[]; for(var j=1;j<=49;j++) arr.push({no:j, v:Math.min(bets[j]||0, cap)});
+  arr.sort(function(a,b){ return a.v-b.v || a.no-b.no; });
+  low.innerHTML = '现在最少的 12 个号（补这些最划算）：<br><b style="color:#333">'+arr.slice(0,12).map(function(x){return _pad2(x.no)+' '+x.v.toFixed(0);}).join('　')+'</b>';
+  var html='';
+  [[5,50],[10,50],[15,50],[20,50],[5,cap],[10,cap],[20,cap]].forEach(function(p){
+    var r2=simAddNum(bets, cap, p[0], p[1]);
+    var pk=simPickList(bets, cap, p[0], p[1]);
+    html += '<div style="padding:3px 0;border-bottom:1px solid #f7f7f7"><div style="display:flex;justify-content:space-between;font-size:12px">'
+      + '<span>补 '+p[0]+' 号 到 '+p[1]+' 元</span><span style="color:'+(r2.added>0?'#16a34a':'#999')+'">+'+r2.added.toFixed(0)+'</span>'
+      + '<b style="color:'+(r2.worst>=0?'#16a34a':'#cf1322')+'">'+(r2.worst>=0?'+':'')+r2.worst.toFixed(0)+'</b></div>'
+      + '<div style="font-size:10px;color:#999;word-break:break-all">'+(pk.map(function(x){return _pad2(x.no)+'('+x.before.toFixed(0)+'→'+x.after.toFixed(0)+')';}).join(' ')||'（已补满）')+'</div></div>';
+  });
+  rows.innerHTML=html;
+  var best=simAddNum(bets,cap,49,cap);
+  capEl.innerHTML='上限：49 个号全补到 '+cap+' 元，共需 '+best.added.toFixed(0)+' 元 → 最坏 '+(best.worst>=0?'+':'')+best.worst.toFixed(0)+'（全盘任何号开出都赚）';
 }
 
 function renderSplit(){

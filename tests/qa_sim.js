@@ -681,6 +681,8 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   const rb = (typeof buildNeedByBudget === 'function') ? buildNeedByBudget(300, 50) : null;
   const spent2 = rb && rb.list ? rb.list.reduce((s,x)=>s+x.amt,0) : 0;
   gate('大额建议·预算收号', !!rb && spent2<=300.0001 && spent2>0, {spent:spent2,worst:rb&&rb.worst});
+  const sim = (typeof simAddNum === 'function') ? simAddNum({1:100,2:50},100,5,50) : null;
+  gate('补号模拟·补最低号', !!sim && Math.abs(sim.added-250)<0.01 && Math.abs(sim.worst-(-4300))<0.01, {added:sim&&sim.added,worst:sim&&sim.worst});
   window.__rkSnapshot = oldSnap; splitTakeAll = oldCap;
 }
 
