@@ -222,6 +222,7 @@ function render(){
       var lCell;
       if(cs.l>=3){ lCell='<span class="streak l alert3">'+cs.l+' ⚠</span>'; }
       else if(cs.l===2){ lCell='<span class="streak l alert2">'+cs.l+'</span>'; }
+      else if(cs.l===1){ lCell='<span class="streak l">1</span>'; }
       else { lCell='<span class="streak na">0</span>'; }
       var nm=nameOf(r,k);
       var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
