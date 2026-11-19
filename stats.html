@@ -1507,7 +1507,8 @@ function loadSnapshot(){
 
 // 启动：先读快照渲染，再后台刷新
 loadSnapshot();
-switchTab('img');
+var initTab=(location.hash||'').replace('#','');
+switchTab(TAB_MAP[initTab]?initTab:'img');
 loadImg().then(function(){ renderImg(); }).catch(function(){});
 fetchLatestPeriod().then(function(){ return loadTextwall(); }).then(function(){ renderTw(); });
 loadForum().then(function(){ renderRank(); renderForum(); renderOverview(); }).catch(function(){});
