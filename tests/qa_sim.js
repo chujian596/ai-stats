@@ -743,6 +743,33 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   orders=oldO; hkOrders=oldH; _ordersCustLimit=oldLimit; renderOrdersList();
 }
 
+/* 香港飞单：连/二/三自动飞要从待飞扣除；新港单不能把已飞清零 */
+{
+  const oldH=hkOrders, oldAuto=autoFlyOn, oldMode=localStorage.getItem('product_stats_hk_fly_mode_global_v1'), oldSt=localStorage.getItem('product_stats_hk_fly_global_v1');
+  window.myAlert=function(){};
+  localStorage.setItem('product_stats_hk_fly_mode_global_v1','rule');
+  localStorage.removeItem('product_stats_hk_fly_global_v1');
+  autoFlyOn=true;
+  function _ho(id,codes,amts){ var ca={}; codes.forEach((c,i)=>{ca[c]=amts[i];}); var s=amts.reduce((a,b)=>a+b,0); return {id:id,customer:'叶',raw:codes.join(' '),codes:codes,codeAmts:ca,price:s,amount:s,qty:codes.length,hk:true,originShop:'A',createdAt:new Date().toLocaleString('zh-CN')}; }
+  hkOrders=[_ho('Q1',['三中三:13,19,17'],[5]),_ho('Q2',['三中三:25,29,27'],[5]),_ho('Q3',['三中三:31,35,37'],[5]),_ho('Q4',['三中三:43,41,49'],[10])];
+  renderHKFlyBox();
+  const i1=hkFlyInfo();
+  gate('香港飞单·自动飞不进待飞', i1.pending===0 && i1.flyOut===25 && i1.full===25, {pending:i1.pending,flyOut:i1.flyOut,full:i1.full});
+  autoFlyOn=false; renderHKFlyBox();
+  const i2=hkFlyInfo();
+  gate('香港飞单·关自动飞才回待飞', i2.pending===25 && i2.flyOut===0, {pending:i2.pending,flyOut:i2.flyOut});
+  autoFlyOn=true; confirmHKFly();
+  const i3=hkFlyInfo();
+  hkOrders.push(_ho('Q5',['三中三:43,41,49'],[5]));
+  const st=hkFlyState(); st.done=false; st.at=''; saveHKFlyState(st); renderHKFlyBox();
+  const i4=hkFlyInfo();
+  gate('香港飞单·新增港单保留已飞', i3.flyOut===25 && i4.flyOut===30 && i4.pending===0, {before:i3.flyOut,after:i4.flyOut,pending:i4.pending});
+  hkOrders=oldH; autoFlyOn=oldAuto;
+  if(oldMode===null) localStorage.removeItem('product_stats_hk_fly_mode_global_v1'); else localStorage.setItem('product_stats_hk_fly_mode_global_v1',oldMode);
+  if(oldSt===null) localStorage.removeItem('product_stats_hk_fly_global_v1'); else localStorage.setItem('product_stats_hk_fly_global_v1',oldSt);
+  renderHKFlyBox();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
