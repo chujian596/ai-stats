@@ -636,7 +636,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.03.37-Pro';
+var APP_VER = 'v59.03.38-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1702,14 +1702,34 @@ function delHKOrder(idx){
   });
 }
 function undoLastOrder(){
-  if(!orders.length){ document.getElementById('saveMsg').textContent='没有可撤销的订单'; return; }
-  var last = orders[orders.length-1];
-  myConfirm('撤销上一条订单？\n'+(last.raw||last.cust||'')+' 金额:'+(last.amount||''), function(){
-  orders.pop();
-  saveOrders();
-  restoreIfNeeded();
-  renderAll();
-  document.getElementById('saveMsg').textContent='已撤销上一条订单';
+  var all = (typeof orders !== 'undefined' ? orders : []).concat(typeof hkOrders !== 'undefined' ? hkOrders : []);
+  if(!all.length){ document.getElementById('saveMsg').textContent='没有可撤销的订单'; return; }
+  var target = null;
+  if(window.__lastSavedOrderId){
+    for(var i=0;i<all.length;i++){ if(all[i] && all[i].id === window.__lastSavedOrderId){ target = all[i]; break; } }
+  }
+  if(!target){
+    all.forEach(function(o){
+      if(!o) return;
+      if(!target || _orderTs(o) >= _orderTs(target)) target = o;
+    });
+  }
+  if(!target){ document.getElementById('saveMsg').textContent='没有可撤销的订单'; return; }
+  myConfirm('撤销上一条订单？\n'+(target.raw||target.customer||'')+' 金额:'+(target.amount||''), function(){
+    if(target.id){
+      orders = orders.filter(function(o){ return !(o && o.id === target.id); });
+      hkOrders = hkOrders.filter(function(o){ return !(o && o.id === target.id); });
+    } else {
+      var oi = orders.indexOf(target);
+      var hi = hkOrders.indexOf(target);
+      if(oi >= 0) orders.splice(oi, 1);
+      if(hi >= 0) hkOrders.splice(hi, 1);
+    }
+    window.__lastSavedOrderId = null;
+    saveOrders();
+    restoreIfNeeded();
+    renderAll();
+    document.getElementById('saveMsg').textContent='已撤销上一条订单';
   });
 }
 

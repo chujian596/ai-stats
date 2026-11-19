@@ -574,6 +574,22 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   gate('订单池自检', _ok, _a);
 }
 
+/* 撤销上一条订单：最近一单是港单时也要从港单池删除，不能保存后回魂 */
+{
+  const _o=orders, _h=hkOrders, _cf=myConfirm, _last=window.__lastSavedOrderId;
+  let _ok=false;
+  try{
+    orders=[{id:'UNDO-M',ts:'2026-11-19T09:00:00',customer:'撤销澳',codes:['01'],amount:100}];
+    hkOrders=[{id:'UNDO-H',hk:true,ts:'2026-11-19T09:05:00',customer:'撤销港',codes:['02'],amount:200}];
+    saveOrders(); window.__lastSavedOrderId='UNDO-H';
+    myConfirm=(m,cb)=>cb();
+    undoLastOrder();
+    _ok=(orders.length===1 && hkOrders.length===0 && activeOrders().length===1 && !window.__lastSavedOrderId);
+  }catch(e){ _ok=false; }
+  finally{ orders=_o; hkOrders=_h; myConfirm=_cf; window.__lastSavedOrderId=_last; saveOrders(); renderAll(); }
+  gate('撤销港单', _ok, {orders:orders.length,hk:hkOrders.length});
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;
