@@ -139,15 +139,15 @@ function nameOf(r,key){
   return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
 }
 
-function historyOf(key){
+function historyOf(key, upTo){
   return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}).map(function(i){
     return {issue:i, per:LG.periods[i], rec:LG.periods[i].stations[key]};
-  }).filter(function(x){return x.rec;});
+  }).filter(function(x){return x.rec && (!upTo || +x.issue <= +upTo);});
 }
 
-function streakOf(key){
+function streakOf(key, upTo){
   var win=0,lose=0,streak=0,type='';
-  historyOf(key).forEach(function(h){
+  historyOf(key, upTo).forEach(function(h){
     var r=h.rec;
     if(r.hit===null||r.hit===undefined) return;
     if(r.hit){win++; if(type==='对')streak++; else {streak=1;type='对';}}
@@ -157,8 +157,8 @@ function streakOf(key){
 }
 
 // 当前尾段连续中 / 连续错（两列分开，最新一期是中则连错为0，反之亦然）
-function curStreak(key){
-  var h=historyOf(key).filter(function(x){return x.rec.hit===true||x.rec.hit===false;});
+function curStreak(key, upTo){
+  var h=historyOf(key, upTo).filter(function(x){return x.rec.hit===true||x.rec.hit===false;});
   var w=0,l=0,i;
   for(i=h.length-1;i>=0;i--){ if(h[i].rec.hit) w++; else break; }
   for(i=h.length-1;i>=0;i--){ if(!h[i].rec.hit) l++; else break; }
@@ -169,8 +169,8 @@ function zsHtml(zs){
   return '<div class="zs">'+zs.map(function(z){return '<span class="z">'+z+'</span>';}).join('')+'</div>';
 }
 
-function detailHtml(key,r){
-  var hist=historyOf(key).reverse();
+function detailHtml(key,r,upTo){
+  var hist=historyOf(key, upTo).reverse();
   var rows=hist.map(function(h){
     var rr=h.rec, actual=h.per.actual;
     var hitTx,hitCls,chg='';
@@ -275,7 +275,8 @@ function render(){
   document.getElementById('summary').innerHTML=
     '第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
 
-  var recent=issues.slice(-7);
+  var histIssues=issues.filter(function(i){return +i<=+cur;});
+  var recent=histIssues.slice(-7);
   var tb=document.getElementById('rows');
   tb.innerHTML='';
   var miss2=[], miss3=[];
@@ -296,8 +297,8 @@ function render(){
         '<td class="empty">（无九肖栏目）</td><td class="na">—</td><td class="streak na">—</td><td class="streak na">—</td>'+
         '<td class="tot na">—</td><td class="tot na">—</td><td><div class="trail">'+trail+'</div></td>';
     } else {
-      var st=streakOf(k);
-      var cs=curStreak(k);
+      var st=streakOf(k,cur);
+      var cs=curStreak(k,cur);
       var hitCls=r.hit?'hit':'miss';
       var hitTx=r.hit?'中':'错';
       var chgBadge=r.changed?'<span class="chg">改料</span>':'';
@@ -325,7 +326,7 @@ function render(){
     var det=document.createElement('tr');
     det.className='detail';
     det.style.display='none';
-    det.innerHTML='<td colspan="9">'+detailHtml(k,r)+'</td>';
+    det.innerHTML='<td colspan="9">'+detailHtml(k,r,cur)+'</td>';
     tr.addEventListener('click',function(){
       det.style.display=det.style.display==='none'?'':'none';
     });
