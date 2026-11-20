@@ -61,6 +61,10 @@
   .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
   .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
   .det-table tr:last-child td{border-bottom:none}
+  .raw{font-size:10px;color:var(--sub);margin-top:3px;white-space:normal;word-break:break-all}
+  .qc-note{font-size:11.5px;margin:6px 2px 0;color:var(--sub)}
+  .qc-ok{color:var(--green);font-weight:600}
+  .qc-bad{color:var(--red);font-weight:600}
   .arrow{color:var(--sub);font-size:11px}
   .layout{display:flex;flex-direction:column;gap:14px}
   #rankCard{order:-1}
@@ -133,6 +137,7 @@
     <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
     <div class="stat" id="summary"></div>
   </div>
+  <div class="qc-note" id="qcNote"></div>
 
   <div class="card pending-card" id="pendingCard" style="display:none">
     <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html">完整对比 ↗</a></div>
@@ -196,6 +201,17 @@
 <script>
 var LG=null, ALIAS={}, PEND=null, POS=null;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+function loadQC(ledgerName){
+  fetchJson('data/quality-report.json').then(function(q){
+    var el=document.getElementById('qcNote'); if(!el||!q) return;
+    var an=(q.anomalies||[]).filter(function(a){return a.ledger===ledgerName;});
+    if(!an.length){
+      el.innerHTML='<span class="qc-ok">质检通过</span> · 共 '+(q.summary.stations_checked||0)+' 站次，无解析 / 原文 / 判定异常';
+    } else {
+      el.innerHTML='<span class="qc-bad">质检发现 '+an.length+' 项异常</span>：'+an.map(function(a){return a.issue+'期 '+a.siteKey+' '+a.type;}).join('、');
+    }
+  }).catch(function(){});
+}
 
 function nameOf(r,key){
   return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
@@ -240,7 +256,8 @@ function detailHtml(key,r,upTo){
     else if(rr.hit){hitTx='中';hitCls='hit';}
     else {hitTx='错';hitCls='miss';}
     if(rr.changed) chg='<span class="chg">改料</span>';
-    var zcell=rr.status==='无九肖栏目'?'<span class="empty">无九肖栏目</span>':zsHtml(rr.zodiacs);
+    var rawTxt=rr.raw?'<div class="raw">原话：'+rr.raw+'</div>':'';
+    var zcell=rr.status==='无九肖栏目'?'<span class="empty">无九肖栏目</span>':zsHtml(rr.zodiacs)+rawTxt;
     return '<tr><td>'+h.issue+'期</td><td>开'+actual+'</td><td>'+zcell+'</td>'+
       '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td></tr>';
   }).join('');
@@ -525,7 +542,7 @@ function render(){
   var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
   var chg=elig.filter(function(k){return per.stations[k].changed;}).length;
   document.getElementById('summary').innerHTML=
-    '第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b>（'+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
+    '第 <b>'+cur+'</b> 期　特码 <b>'+per.specialNum+'</b> 特肖 <b>'+per.actual+'</b>　有九肖 <b>'+elig.length+'</b> 站 · 中 <b>'+wins+'</b> 错 <b>'+(elig.length-wins)+'</b>（命中率 '+(elig.length?Math.round(wins/elig.length*100):0)+'%）· 改料 <b>'+chg+'</b> · 无九肖栏目 <b>'+(keys.length-elig.length)+'</b>';
 
   var histIssues=issues.filter(function(i){return +i<=+cur;});
   var recent=histIssues.slice(-7);
@@ -614,6 +631,7 @@ function loadPend(){
   return fetchJson('data/current-recommend.json?v='+Date.now()).then(function(d){PEND=d;}).catch(function(){PEND=null;});
 }
 
+loadQC('九肖');
 fetchJson('data/max-zodiac-ledger.json').then(function(d){
   LG=d;
   var p1=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});

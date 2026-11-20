@@ -61,6 +61,10 @@
   .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
   .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
   .det-table tr:last-child td{border-bottom:none}
+  .raw{font-size:10px;color:var(--sub);margin-top:3px;white-space:normal;word-break:break-all}
+  .qc-note{font-size:11.5px;margin:6px 2px 0;color:var(--sub)}
+  .qc-ok{color:var(--green);font-weight:600}
+  .qc-bad{color:var(--red);font-weight:600}
   .arrow{color:var(--sub);font-size:11px}
   .rc-title{font-weight:700;font-size:15px;padding:14px 14px 4px}
   .rc-sub{font-size:11.5px;color:var(--sub);padding:0 14px 8px;line-height:1.6}
@@ -124,6 +128,7 @@
     <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
     <div class="stat" id="summary"></div>
   </div>
+  <div class="qc-note" id="qcNote"></div>
 
   <div class="card" id="pendCard" style="display:none;border-color:#f3c9c6;background:#fffafa">
     <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html">完整对比 ↗</a></div>
@@ -186,6 +191,17 @@
 <script>
 var LG=null, KR=null, ALIAS={}, PEND=null, MISS2=false;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+function loadQC(ledgerName){
+  fetchJson('data/quality-report.json').then(function(q){
+    var el=document.getElementById('qcNote'); if(!el||!q) return;
+    var an=(q.anomalies||[]).filter(function(a){return a.ledger===ledgerName;});
+    if(!an.length){
+      el.innerHTML='<span class="qc-ok">质检通过</span> · 共 '+(q.summary.stations_checked||0)+' 站次，无解析 / 原文 / 判定异常';
+    } else {
+      el.innerHTML='<span class="qc-bad">质检发现 '+an.length+' 项异常</span>：'+an.map(function(a){return a.issue+'期 '+a.siteKey+' '+a.type;}).join('、');
+    }
+  }).catch(function(){});
+}
 
 function nameOf(r,key){
   return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
@@ -231,7 +247,8 @@ function detailHtml(key,r,upTo){
     else if(rr.hit){hitTx='中';hitCls='hit';}
     else {hitTx='错';hitCls='miss';}
     if(rr.changed) chg='<span class="chg">改料</span>';
-    var zcell=rr.status==='无三肖栏目'?'<span class="empty">无三肖栏目</span>':zsHtml(rr.zodiacs);
+    var rawTxt=rr.raw?'<div class="raw">原话：'+rr.raw+'</div>':'';
+    var zcell=rr.status==='无三肖栏目'?'<span class="empty">无三肖栏目</span>':zsHtml(rr.zodiacs)+rawTxt;
     return '<tr><td>'+h.issue+'期</td><td>开'+actual+'</td><td>'+zcell+'</td>'+
       '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td></tr>';
   }).join('');
@@ -616,6 +633,7 @@ function render(){
   renderRank(cur);
 }
 
+loadQC('杀三肖');
 fetchJson('data/kill3-ledger.json').then(function(d){
   LG=d;
   var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
