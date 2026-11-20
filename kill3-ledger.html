@@ -73,6 +73,11 @@
   .rank-bar i{display:block;height:100%;background:var(--red)}
   .rank-hot{color:var(--red);font-weight:700}
   .cum-toggle{padding:11px 14px;font-size:12.5px;color:var(--blue);font-weight:600;cursor:pointer;border-top:1px solid var(--line)}
+  /* 待开逐站表：窄屏不横向滚动，站名与杀肖紧挨 */
+  .pend-table{min-width:auto;width:100%}
+  .pend-table td{padding:8px 12px;vertical-align:middle}
+  .pend-table td.pend-site{width:42%;font-weight:700;white-space:nowrap}
+  .pend-table td.pend-z{width:58%}
 </style>
 </head>
 <body>
@@ -99,7 +104,7 @@
     <div class="rc-sub" id="pendSub"></div>
     <div id="pendRank"></div>
     <div class="table-scroll" id="pendTableWrap" style="display:none">
-      <table>
+      <table class="pend-table">
         <thead><tr><th>站名</th><th>本期杀三肖（原序）</th></tr></thead>
         <tbody id="pendRows"></tbody>
       </table>
@@ -292,8 +297,8 @@ function renderPendingKill(){
   tb.innerHTML='';
   killSites.forEach(function(s){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
-      '<td>'+zsHtml(s.killZodiacs)+'</td>';
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
+      '<td class="pend-z">'+zsHtml(s.killZodiacs)+'</td>';
     tb.appendChild(tr);
   });
   wrap.style.display=killSites.length?'block':'none';
