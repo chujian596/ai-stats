@@ -45,6 +45,7 @@
   .alertbox b{color:var(--red)}
   .alertbox.a2{background:#fffaf0;border-color:#ecd9a8}
   .alert-chip{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:8px;background:#fff;border:1px solid var(--line)}
+  button.alert-chip{font:inherit;color:inherit;cursor:pointer}
   .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
   .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
   .trail{display:flex;gap:3px;flex-wrap:wrap}
@@ -296,6 +297,21 @@ function toggleCum(){
   t.textContent=open?'历史累计参考 ▴':'历史累计参考 ▾';
 }
 
+function jumpSite(key){
+  var tb=document.getElementById('rows');
+  var trs=tb.querySelectorAll('tr.rowlink');
+  for(var i=0;i<trs.length;i++){
+    if(trs[i].dataset.key===key){
+      var det=trs[i].nextElementSibling;
+      if(det && det.classList.contains('detail') && det.style.display==='none'){ det.style.display=''; }
+      trs[i].scrollIntoView({behavior:'smooth',block:'center'});
+      trs[i].style.background='#fff6df';
+      setTimeout(function(){ trs[i].style.background=''; },1600);
+      return;
+    }
+  }
+}
+
 function renderRank(cur){
   var picks=firstPicks();
   var curPicks=picks.filter(function(p){return p.issue===cur;});
@@ -357,6 +373,7 @@ function render(){
     var r=per.stations[k];
     var tr=document.createElement('tr');
     tr.className='rowlink';
+    tr.dataset.key=k;
     var trail=recent.map(function(i){
       var rr=LG.periods[i].stations[k];
       var cls,tx;
@@ -385,7 +402,7 @@ function render(){
       var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
       if(cs.l>=2){
         tr.classList.add('rowalert');
-        var chip='<span class="alert-chip">'+nm+'（连错'+cs.l+'）</span>';
+        var chip='<button type="button" class="alert-chip" data-key="'+k+'">'+nm+'（连错'+cs.l+'）</button>';
         if(cs.l>=3) miss3.push(chip); else miss2.push(chip);
       }
       tr.innerHTML='<td class="tot na">'+cur+'期</td><td>'+nmHtml+'</td>'+
@@ -416,6 +433,9 @@ function render(){
     alertBox.innerHTML=parts.join('<br>');
     alertBox.style.display='block';
     alertBox.classList.toggle('a2',miss3.length===0);
+    alertBox.querySelectorAll('.alert-chip').forEach(function(b){
+      b.addEventListener('click',function(){ jumpSite(b.dataset.key); });
+    });
   } else {
     alertBox.style.display='none';
   }
