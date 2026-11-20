@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>来源名单 · 站点固定 / 论坛轮换</title>
+<title>来源名单 · 站点固定 / 论坛轮换 / 316后成绩</title>
 <style>
 :root{
   --bg:#f4f6f8; --card:#fff; --line:#e5e8ec; --txt:#1d2129; --sub:#6b7280; --faint:#9aa3ad;
@@ -116,12 +116,31 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 .status.bad{color:var(--red)}
 .hr{height:1px;background:#eef1f4;margin:12px 0}
 .empty{padding:24px 8px;text-align:center;color:var(--faint);font-size:12px}
+.tablewrap{overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
+.perf-table{width:100%;border-collapse:collapse;font-size:11px;min-width:650px}
+.perf-table th{text-align:left;color:var(--sub);font-weight:700;border-bottom:1px solid #e8edf2;padding:7px 6px;white-space:nowrap}
+.perf-table td{border-bottom:1px solid #f0f2f5;padding:8px 6px;vertical-align:middle}
+.perf-table tr:last-child td{border-bottom:0}
+.perf-table .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.perf-table .sitecell{font-weight:700;min-width:130px}
+.perf-table .sub{font-size:9.5px;color:var(--faint);font-weight:400;margin-top:2px;line-height:1.4;word-break:break-all}
+.perf-table .bar{display:inline-block;height:5px;width:46px;background:#eef2f7;border-radius:3px;overflow:hidden;margin-left:4px;vertical-align:middle}
+.perf-table .bar i{display:block;height:100%;background:#bfd3f7}
+.perf-table .bar i.hi{background:#7ba7e8}
+.perf-table .muted{color:var(--faint)}
+.perf-table .good{color:var(--green)}
+.perf-table .bad{color:var(--red)}
 @media(max-width:430px){
   .kpis{grid-template-columns:repeat(2,1fr)}
   .site-row .site-main{font-size:12px}
   header h1{font-size:18px}
-  .top-actions button{padding:6px 8px;font-size:11px}
+  .top-actions{flex-wrap:nowrap;gap:5px}
+  .top-actions button{padding:6px 7px;font-size:10.5px}
   .tabs button{font-size:11px;padding:8px 8px}
+  .perf-table{min-width:0;width:100%;table-layout:auto}
+  .perf-table th:nth-child(5),.perf-table td:nth-child(5),.perf-table th:nth-child(6),.perf-table td:nth-child(6){display:none}
+  .perf-table .sitecell{min-width:0}
+  .perf-table .bar{display:none}
 }
 </style>
 </head>
@@ -129,8 +148,8 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 <div class="wrap">
   <header>
     <div>
-      <h1>来源名单<span class="ver" id="ver">v1.00</span></h1>
-      <div class="sub">站点固定 · 论坛轮换 · 名单治理<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a></div>
+      <h1>来源名单<span class="ver" id="ver">v1.01</span></h1>
+      <div class="sub">站点固定 · 论坛轮换 · 316后成绩<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a></div>
     </div>
     <div class="top-actions">
       <button id="btnRefresh">刷新</button>
@@ -143,12 +162,13 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
     <button data-view="home" class="on">概览</button>
     <button data-view="sites">站点 81</button>
     <button data-view="forum">论坛池 811</button>
+    <button data-view="scores">成绩</button>
     <button data-view="chain">数据链</button>
   </div>
 
   <div id="notice" class="notice hidden"></div>
   <div id="content"></div>
-  <footer id="pageFoot">来源名单 v1.00 · 只做来源治理，不改历史 ratio/core 数字</footer>
+  <footer id="pageFoot">来源名单 v1.01 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
 </div>
 
 <div class="badge" id="draftBadge">
@@ -176,7 +196,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
 <script>
 var KEY='source-registry-draft-v1', TOKEN_KEY='source-registry-gh-token', REPO_KEY='source-registry-gh-repo';
-var state={base:null,view:'home',siteFilter:'all',siteQuery:'',forumFilter:'core',forumQuery:'',forumLimit:80,editSite:null};
+var state={base:null,view:'home',siteFilter:'all',siteQuery:'',forumFilter:'core',forumQuery:'',forumLimit:80,editSite:null,perf:null,perfLoading:false,perfError:'',perfDim:'kill3',perfMin:'full',perfSort:'rate'};
 var PATCH=readDraft();
 
 function CUR(){return state.base?state.base.dataThrough:325;}
@@ -233,7 +253,7 @@ function load(){
     return r.json();
   }).then(function(d){
     state.base=d;
-    document.getElementById('ver').textContent=d.schema==='source-registry/v1'?'v1.00':'v1.00';
+    document.getElementById('ver').textContent='v1.01';
     PATCH=readDraft(); render(); renderBadge();
   }).catch(function(e){
     notice('读取 data/source-registry.json 失败：'+e.message,true);
@@ -283,8 +303,9 @@ function render(){
   if(state.view==='home') renderHome();
   else if(state.view==='sites') renderSites();
   else if(state.view==='forum') renderForum();
+  else if(state.view==='scores') renderScores();
   else renderChain();
-  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.00 · 只做来源治理，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
+  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.01 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
   renderBadge();
 }
 
@@ -313,6 +334,75 @@ function renderHome(){
   html+='</div><div class="tip">319 期起论坛扩量到 600 条抓取；317–318 只有 33 / 31 个名字，属于早期小样本，不纳入常驻判定。</div></section>';
   html+='<section class="card"><div class="eyebrow">口径</div><h2>三个数字别混</h2><p class="lead">77 = 本期成功站；81 = 登记站（含 4 个空站）；46 = 有核心杀栏目并计入分母的站。论坛 204 = 本期有效帖，811 = 近七期化名池，604 = 常驻池。</p><div class="tip">这套名单只做来源治理；启停、改名、主池标记不会倒改历史 ratio/core 数字。</div></section>';
   document.getElementById('content').innerHTML=html;
+}
+
+
+function pct(x){return x===null||x===undefined?'—':(Math.round(x*1000)/10)+'%';}
+function loadPerformance(){
+  if(state.perf||state.perfLoading) return;
+  state.perfLoading=true;state.perfError='';
+  fetch('data/site-performance.json?t='+Date.now(),{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    state.perf=d;state.perfLoading=false;
+    if(state.view==='scores') render();
+  }).catch(function(e){
+    state.perfLoading=false;state.perfError=e.message;
+    if(state.view==='scores') render();
+  });
+}
+function perfRows(){
+  var p=state.perf;if(!p) return [];
+  var d=p.dimensions[state.perfDim];if(!d) return [];
+  var min=state.perfMin==='full'?p.window.nPeriods:(state.perfMin==='watch'?6:1);
+  var rows=d.sites.filter(function(s){return s.n>=min;});
+  rows.sort(function(a,b){
+    if(state.perfSort==='n') return (b.n-a.n)||((b.rate||0)-(a.rate||0));
+    return ((b.rate||0)-(a.rate||0))||(b.n-a.n);
+  });
+  return rows;
+}
+function renderScores(){
+  var box=document.getElementById('content');
+  if(state.perfError){
+    box.innerHTML='<div class="empty">成绩数据未加载：'+esc(state.perfError)+'<br><button class="sm" onclick="state.perfError=\'\';state.perf=null;render()">重试</button></div>';
+    return;
+  }
+  if(!state.perf){
+    box.innerHTML='<div class="empty">正在读取 316 期后成绩…</div>';
+    loadPerformance();return;
+  }
+  var p=state.perf,d=p.dimensions[state.perfDim];
+  if(!d){box.innerHTML='<div class="empty">这一维还没有成绩</div>';return;}
+  var dims=Object.keys(p.dimensions);
+  var opts=dims.map(function(k){return '<option value="'+k+'"'+(k===state.perfDim?' selected':'')+'>'+esc(p.dimensions[k].label)+'</option>';}).join('');
+  var minOpts=[['full','完整 '+p.window.nPeriods+' 期'],['watch','≥6 期'],['all','显示全部']].map(function(x){return '<option value="'+x[0]+'"'+(x[0]===state.perfMin?' selected':'')+'>'+x[1]+'</option>';}).join('');
+  var rows=perfRows();
+  var full=d.sites.filter(function(s){return s.sampleTier==='full';}).length;
+  var short=d.sites.filter(function(s){return s.sampleTier==='short';}).length;
+  var base=d.baseline,delta=(base===null||base===undefined||d.overall.rate===null)?null:Math.round((d.overall.rate-base)*1000)/10;
+  var html='';
+  html+='<section class="card"><div class="eyebrow">316 期后 · 真实成绩</div><h2>只看有本地快照的 '+p.window.nPeriods+' 期</h2>'+
+    '<p class="lead">统计窗口 <b>'+p.window.from+'–'+p.window.to+'</b>，共 '+p.window.nPeriods+' 期。316 前无本地快照的回填段不纳入；成绩是历史统计，不是未来预测。</p>'+
+    '<div class="kpis">'+kpi(pct(d.overall.rate),d.label+' 整体命中',d.overall.hits+' / '+d.overall.n+' 条')+kpi(pct(base),'随机基线',d.baselineNote)+kpi(full+' / '+d.sites.length,'完整样本站',short+' 个样本不足')+kpi(delta===null?'—':((delta>=0?'+':'')+delta+'pp'),'相对基线','316 后窗口')+'</div>'+
+    '<div class="chip-row"><span class="chip green">n='+p.window.nPeriods+' 完整</span><span class="chip amber">n=6–8 观察</span><span class="chip">n&lt;6 不排名</span><span class="chip blue">全历史≥20期只作长期标签</span></div></section>';
+  html+='<section class="card"><div class="eyebrow">站点成绩 · '+esc(d.label)+'</div><div class="toolbar">'+
+    '<select id="perfDim" data-act="perf-dim">'+opts+'</select><select id="perfMin" data-act="perf-min">'+minOpts+'</select><select id="perfSort" data-act="perf-sort"><option value="rate"'+(state.perfSort==='rate'?' selected':'')+'>按命中率</option><option value="n"'+(state.perfSort==='n'?' selected':'')+'>按样本</option></select>'+
+    '<span class="sum-line" style="margin:0">'+rows.length+' 站 · '+esc(d.label)+'</span></div>'+
+    '<div class="tablewrap"><table class="perf-table"><thead><tr><th>站点</th><th class="num">样本</th><th class="num">命中</th><th class="num">命中率</th><th class="num">95% 区间</th><th class="num">全历史</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var tier=r.sampleTier==='full'?'<span class="tag green">完整</span>':(r.sampleTier==='watch'?'<span class="tag amber">观察</span>':'<span class="tag">样本不足</span>');
+    var long=r.fullTier==='long'?'<span class="tag blue">长期站</span>':'';
+    var core=r.coreKill?'<span class="tag">核心杀</span>':'';
+    html+='<tr><td class="sitecell">'+esc(r.name)+'<div class="sub">'+esc(r.siteId||'')+'</div><div class="sub">'+tier+long+core+'</div></td>'+
+      '<td class="num">'+r.n+'</td><td class="num">'+r.hits+'</td><td class="num"><b>'+pct(r.rate)+'</b><span class="bar"><i class="'+(r.rate>=0.75?'hi':'')+'" style="width:'+Math.round((r.rate||0)*100)+'%"></i></span></td>'+
+      '<td class="num muted">'+pct(r.ciLow)+'–'+pct(r.ciHigh)+'</td><td class="num muted">'+r.fullN+' 期</td></tr>';
+  });
+  html+='</tbody></table></div><div class="tip">全历史样本只说明这个站被记录了多少期，包含 293–315 无快照回填段，不能直接拿来和 316 后命中率比较。</div></section>';
+  html+='<section class="card"><div class="eyebrow">怎么判断</div><h2>先看样本，再看百分比</h2><ul class="note-list"><li><b>完整：</b>n='+p.window.nPeriods+'，九期都在；可以进本期榜单。</li><li><b>观察：</b>n=6–8，缺过站；只看趋势，不排第一。</li><li><b>样本不足：</b>n&lt;6，默认不显示；不要拿 2 期 100% 当“神站”。</li><li><b>长期站：</b>全历史≥20 期，只代表记录久，不代表更准；仍要和随机基线比。</li><li><b>异常：</b>连续缺站、整列空、成绩突然偏离，标出来复核，不悄悄改数。</li></ul></section>';
+  html+='<section class="card"><div class="eyebrow">谁跟踪</div><h2>机器算，我复核，你拍板</h2><ul class="note-list"><li><b>自动：</b>每期台账更新后，<span class="mono">publish_ledgers.sh</span> 调 <span class="mono">tools/build_site_performance.py</span> 重建 <span class="mono">data/site-performance.json</span>；页面只读。</li><li><b>我（AI）：</b>每期查缺站、连接失败、样本骤降、连续偏差；异常在页面标出，并留下改动记录。</li><li><b>你：</b>只决定名单、口径、准不准入；百分比由系统算，不用你手工核。</li><li><b>节奏：</b>开奖后入账 → 台账 → 成绩 JSON → 页面刷新；325 期开奖后自动接上。</li></ul></section>';
+  box.innerHTML=html;
 }
 
 function sitePass(s){
@@ -390,11 +480,12 @@ function forumRow(a){
 
 function renderChain(){
   var s=effSummary(),base=state.base;
-  var html='<section class="card"><div class="eyebrow">数据链 · 第 '+base.dataThrough+' 期</div><h2>两套口径，不能相加</h2><p class="lead">论坛推杀和站方核心杀各自独立：一个算“帖子票数强度”，一个算“站点核心栏目覆盖”，最后只做并列展示。</p>'+
+  var html='<section class="card"><div class="eyebrow">数据链 · 第 '+base.dataThrough+' 期</div><h2>两套来源，一套派生成绩</h2><p class="lead">论坛推杀和站方核心杀各自独立；成绩表只从 316 后带快照的台账派生，不改两边原始口径。</p>'+
     '<div class="chain">'+
     '<div class="source-card"><div class="k">01 · 论坛</div><h3>公开论坛文字帖 → 推杀强度</h3><p>1 个接口 / 6 页 / 600 条抓取 → '+s.forumCurrent+' 条当期有效帖（'+s.forumCurrentRec+' 推荐 + '+s.forumCurrentKill+' 杀）→ '+s.forumCurrentPicks+' 个生肖票 → <span class="mono">ratio-'+CUR()+'.json</span>。每肖票数 ÷ 总票数 × 12，1.00=平均。</p><a href="data/forum-'+CUR()+'.json" target="_blank">论坛原始解析</a> <a href="data/ratio-'+CUR()+'.json" target="_blank">推杀强度</a></div>'+
     '<div class="source-card"><div class="k">02 · 站点</div><h3>站点快照 → 站方核心杀</h3><p>'+s.siteRegistered+' 个登记站 → '+s.siteActive+' 个成功、'+s.siteEmpty+' 个空站 → '+s.coreKillSites+' 个有核心杀栏目并计入分母。核心杀% = 核心杀站并集 ÷ 有核心栏目站数。</p><a href="'+((base.sources||[]).filter(function(x){return x.key==='snapshot';})[0]||{}).url+'" target="_blank">最新快照</a> <a href="data/core-'+CUR()+'.json" target="_blank">核心杀</a></div>'+
-    '<div class="source-card"><div class="k">03 · 使用</div><h3>票数强度与核心杀只做对照</h3><p>论坛侧是“多少人提”，站点侧是“多少站杀”；两边分母不同，不能把 795 推进和 46 核心杀站相加，也不能用一个总数解释另一个。</p></div>'+
+    '<div class="source-card"><div class="k">03 · 成绩</div><h3>316 后台账 → 站点成绩</h3><p>只取 316–324 有本地快照的 9 期，按站/维度汇总样本、命中、95% 区间；n&lt;6 不排名，全历史只作长期标签。</p><a href="data/site-performance.json" target="_blank">316后成绩 JSON</a></div>'+
+    '<div class="source-card"><div class="k">04 · 使用</div><h3>票数强度、核心杀、成绩只做对照</h3><p>论坛侧是“多少人提”，站点侧是“多少站杀”，成绩是“历史命中”；三套分母不同，不能相加，也不能用一个总数解释另一个。</p></div>'+
     '</div></section>'+
     '<section class="card"><div class="eyebrow">口径差</div><h2>为什么看到 43 / 46 / 47 三个数</h2><p class="lead">43 = 严格“杀三肖”栏；46 = 核心杀栏目并集（包含绝杀三肖 / 绝杀专区 / 杀3肖）；47 = 有任何杀肖数据的站。页面推杀强度用 46。</p></section>'+
     '<section class="card"><div class="eyebrow">名单怎么生效</div><h2>本页改的是来源治理，不是历史账</h2><ul class="note-list"><li>站点开关、改名、备注、锁定：写入名单草稿；提交后成为主名单。</li><li>论坛“主池”开关：标记常驻/一次性；不重算已生成的 ratio，避免倒改历史。</li><li>导出 JSON 可离线保存；提交 GitHub 需要 Contents 写权限 token。</li><li>页面本身不存数据，只读同站 <span class="mono">data/source-registry.json</span>。</li></ul></section>';
@@ -511,6 +602,9 @@ document.getElementById('content').addEventListener('change',function(e){
   else if(t.dataset.act==='site-name'){setSite(t.dataset.id,'name',t.value.trim());}
   else if(t.dataset.act==='site-note'){setSite(t.dataset.id,'note',t.value.trim());}
   else if(t.dataset.act==='forum-core'){setForum(t.dataset.name,'includeCore',t.checked);}
+  else if(t.dataset.act==='perf-dim'){state.perfDim=t.value;render();}
+  else if(t.dataset.act==='perf-min'){state.perfMin=t.value;render();}
+  else if(t.dataset.act==='perf-sort'){state.perfSort=t.value;render();}
 });
 document.getElementById('content').addEventListener('keydown',function(e){
   if(e.key!=='Enter')return;
