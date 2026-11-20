@@ -89,7 +89,7 @@
 
 <script>
 var ZOD=['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
-var LG=null, KR=null, CUR=null;
+var LG=null, KR=null, PEND=null, CUR=null;
 var fNine=document.getElementById('frameNine');
 var fKill=document.getElementById('frameKill');
 var BASE={nine:'nine-zodiac.html?v=11', kill:'kill3-ledger.html?v=10'};
@@ -139,14 +139,42 @@ function renderKill(cur){
   document.getElementById('killRank').innerHTML=rowsHtml(rows, per.actual, '票', 'right');
 }
 
+/* ---- 待开期（未对账）推荐排行 ---- */
+function renderNinePending(){
+  var agg={}, total=0;
+  (PEND.sites||[]).forEach(function(s){
+    if(s.status==='有九肖' && s.zodiacs && s.zodiacs.length){
+      var z=s.zodiacs[0]; agg[z]=(agg[z]||0)+1; total++;
+    }
+  });
+  var rows=ZOD.map(function(z){return {z:z,n:agg[z]||0,total:total};})
+    .sort(function(a,b){return b.n-a.n||a.z.localeCompare(b.z,'zh');});
+  document.getElementById('nineTitle').textContent='待开首肖排行 · 第'+PEND.period+'期';
+  document.getElementById('nineSub').textContent='本期 '+total+' 站把哪个肖放在第一位；待开推荐 · 未对账。';
+  document.getElementById('nineRank').innerHTML=rowsHtml(rows, null, '站', 'left');
+}
+
+function renderKillPending(){
+  var rows=(PEND.pendingKill||[]).map(function(r){return {z:r.z,n:r.kill};});
+  document.getElementById('killTitle').textContent='待开被杀排行 · 第'+PEND.period+'期';
+  document.getElementById('killSub').textContent='第 '+PEND.period+' 期 · '+PEND.killSites+' 站有杀三肖；待开推荐 · 未对账。';
+  document.getElementById('killRank').innerHTML=rowsHtml(rows, null, '票', 'right');
+}
+
+function isPendingCur(cur){
+  return PEND && PEND.status==='pending' && String(cur)===String(PEND.period);
+}
+
 function render(cur){
   CUR=cur;
-  renderNine(cur);
-  renderKill(cur);
+  if(isPendingCur(cur)){ renderNinePending(); renderKillPending(); }
+  else { renderNine(cur); renderKill(cur); }
   syncFrames(cur);
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var last=issues[issues.length-1];
-  document.getElementById('issueNote').textContent='台账/快照期号 '+last+' · 待开 '+(parseInt(last,10)+1);
+  var note='台账/快照期号 '+last;
+  if(PEND && PEND.status==='pending') note+=' · 待开 '+PEND.period;
+  document.getElementById('issueNote').textContent=note;
 }
 
 /* 下方 iframe 期号同步 */
@@ -163,34 +191,52 @@ function fit(f){ var d=doc(f); if(!d||!d.body)return; f.style.height=Math.max(d.
 function bind(f){
   f.addEventListener('load',function(){
     var s=sel(f);
-    if(s) s.addEventListener('change',function(){ var v=s.value; if(v&&v!==CUR){ CUR=v; document.getElementById('periodSel').value=v; renderNine(v); renderKill(v); } });
+    if(s) s.addEventListener('change',function(){ var v=s.value; if(v&&v!==CUR){ CUR=v; document.getElementById('periodSel').value=v; render(v); } });
     var t=0; var tm=setInterval(function(){fit(f); if(++t>=8)clearInterval(tm);},250);
   });
 }
 bind(fNine); bind(fKill);
 
+function buildOptions(){
+  var sel=document.getElementById('periodSel');
+  sel.innerHTML='';
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  if(PEND && PEND.status==='pending'){
+    var po=document.createElement('option');
+    po.value=PEND.period; po.textContent='第'+PEND.period+'期（待开）'; sel.appendChild(po);
+  }
+  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+  return issues;
+}
+
 function refreshAll(){
   var n=Date.now();
   Promise.all([
     fetchJson('data/max-zodiac-ledger.json?v='+n).then(function(d){LG=d;}),
-    fetchJson('data/kill-rank-stats.json?v='+n).then(function(d){KR=d;})
+    fetchJson('data/kill-rank-stats.json?v='+n).then(function(d){KR=d;}),
+    fetchJson('data/current-recommend.json?v='+n).then(function(d){PEND=d;}).catch(function(){PEND=null;})
   ]).then(function(){
+    var issues=buildOptions();
+    var sel=document.getElementById('periodSel');
+    var def=(PEND&&PEND.status==='pending')?String(PEND.period):issues[issues.length-1];
+    sel.value=def;
     fNine.src=BASE.nine.split('?')[0]+'?t='+n;
     fKill.src=BASE.kill.split('?')[0]+'?t='+n;
-    render(CUR||document.getElementById('periodSel').value);
+    render(def);
   });
 }
 
-fetchJson('data/max-zodiac-ledger.json').then(function(d){
-  LG=d;
-  return fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;});
-}).then(function(){
-  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+Promise.all([
+  fetchJson('data/max-zodiac-ledger.json').then(function(d){LG=d;}),
+  fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;}),
+  fetchJson('data/current-recommend.json').then(function(d){PEND=d;}).catch(function(){PEND=null;})
+]).then(function(){
+  var issues=buildOptions();
   var sel=document.getElementById('periodSel');
-  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
-  sel.value=issues[issues.length-1];
+  var def=(PEND&&PEND.status==='pending')?String(PEND.period):issues[issues.length-1];
+  sel.value=def;
   sel.addEventListener('change',function(){render(sel.value);});
-  render(sel.value);
+  render(def);
 }).catch(function(e){
   document.getElementById('nineRank').innerHTML='<div class="rc-sub">数据加载失败：'+e+'</div>';
 });

@@ -20,6 +20,18 @@ LEDGER_PUB = os.path.join(ROOT, "data", "max-zodiac-ledger.json")
 SNAP_DIR = os.path.join(PARENT, "snapshots")
 OUT = os.path.join(ROOT, "data", "current-recommend.json")
 Z = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+# 与 build_kill3_ledger.py 同一杀三肖栏口径
+KILL_COLS = ['杀特3肖', '绝杀三肖', '📛绝杀三肖']
+
+
+def pick_kill(columns):
+    for cn in KILL_COLS:
+        cd = (columns or {}).get(cn)
+        if isinstance(cd, dict):
+            v = cd.get('value')
+            if v:
+                return [c for c in v if c in Z]
+    return []
 
 
 def eligible(title, zs):
@@ -87,16 +99,25 @@ def main():
             "updatedAt": None,
             "source": None,
             "sites": [],
+            "pendingKill": [],
+            "killSites": 0,
         }
     else:
         issue = max(pending.keys())
         sp, snap = pending[issue]
         sites = []
+        kill_agg = {}
+        kill_sites = 0
         for _sk, sd in (snap.get("sites") or {}).items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
             pick = pick_column(sd.get("columns", {}))
             cols = sd.get("columns") or {}
+            kill = pick_kill(cols)
+            if kill:
+                kill_sites += 1
+                for z in kill:
+                    kill_agg[z] = kill_agg.get(z, 0) + 1
             if pick:
                 title, zs = pick
                 sites.append({
@@ -104,6 +125,7 @@ def main():
                     "siteKey": site_key,
                     "column": title,
                     "zodiacs": zs,
+                    "killZodiacs": kill,
                     "status": "有九肖",
                 })
             elif sd.get("error") or not cols:
@@ -113,6 +135,7 @@ def main():
                     "siteKey": site_key,
                     "column": None,
                     "zodiacs": [],
+                    "killZodiacs": kill,
                     "status": "还没更新",
                 })
             else:
@@ -121,22 +144,27 @@ def main():
                     "siteKey": site_key,
                     "column": None,
                     "zodiacs": [],
+                    "killZodiacs": kill,
                     "status": "无九肖栏目",
                 })
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
+        pending_kill = [{"z": z, "kill": kill_agg[z]} for z in Z if kill_agg.get(z)]
+        pending_kill.sort(key=lambda x: (-x["kill"], Z.index(x["z"])))
         out = {
             "period": issue,
             "status": "pending",
             "updatedAt": snap.get("generated_at"),
             "source": os.path.basename(sp),
             "sites": sites,
+            "pendingKill": pending_kill,
+            "killSites": kill_sites,
         }
 
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     n = sum(1 for s in out["sites"] if s["status"] == "有九肖")
     print(f"current-recommend.json: status={out['status']} period={out['period']} "
-          f"有九肖 {n}/{len(out['sites'])} 站 updated={out['updatedAt']}")
+          f"有九肖 {n}/{len(out['sites'])} 站 杀肖 {out['killSites']} 站 updated={out['updatedAt']}")
 
 
 if __name__ == "__main__":
