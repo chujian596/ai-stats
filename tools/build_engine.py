@@ -259,6 +259,38 @@ def mirror_pairs():
     return sorted(pairs, key=lambda x: -x['periods'])
 
 
+def kill_nine_overlap():
+    """同站杀三肖(3) 与九肖(9) 的平均重叠；随机期望=3*9/12。"""
+    kill = json.load(open(os.path.join(DATA, 'kill3-ledger.json'), encoding='utf-8'))
+    nine = json.load(open(os.path.join(DATA, 'max-zodiac-ledger.json'), encoding='utf-8'))
+    groups = 0
+    total = 0
+    all3 = 0
+    by_period = {}
+    for p in sorted({p for p in kill.get('periods', {}) if int(p) >= START} & {p for p in nine.get('periods', {}) if int(p) >= START}, key=int):
+        K = {x.get('siteId'): x for x in kill['periods'][p].get('stations', {}).values()}
+        N = {x.get('siteId'): x for x in nine['periods'][p].get('stations', {}).values()}
+        n = 0
+        for sid in set(K) & set(N):
+            kz = K[sid].get('zodiacs') or []
+            nz = N[sid].get('zodiacs') or []
+            if len(kz) != 3 or len(nz) != 9:
+                continue
+            ov = len(set(kz) & set(nz))
+            groups += 1
+            n += 1
+            total += ov
+            all3 += (ov == 3)
+        by_period[str(p)] = n
+    return {
+        'groups': groups,
+        'avgOverlap': round(total / groups, 3) if groups else None,
+        'expectedOverlap': 2.25,
+        'all3Overlap': all3,
+        'byPeriod': by_period,
+        'note': '同站杀三3肖与九肖9肖平均重叠接近随机2.25，说明两个栏目不是一个独立判断。',
+    }
+
 def main():
     rows = load_periods()
     if not rows:
@@ -267,6 +299,7 @@ def main():
     latest = rows[-1]['period']
     hypotheses = hypothesis_stats(rows)
     pairs = mirror_pairs()
+    overlap = kill_nine_overlap()
     # 总体信号：只给历史统计，不给方向。
     kill_n = sum(r['killSites'] for r in rows)
     nine_n = sum(r['nineSites'] for r in rows)
@@ -341,6 +374,7 @@ def main():
             'killSites': max(r['killSites'] for r in rows),
             'nineSites': max(r['nineSites'] for r in rows),
             'mirrorPairs': pairs,
+            'killNineOverlap': overlap,
             'note': '站点推荐不等于注码；镜像站只算一票，不按站点数量放大。',
         },
         'periods': rows,

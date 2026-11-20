@@ -142,7 +142,7 @@ td.actual{color:var(--blue);font-weight:800}
 <div class="wrap">
   <div class="top">
     <div class="brand">
-      <h1>研判引擎<span class="badge"><i></i>v1.00</span></h1>
+      <h1>研判引擎<span class="badge"><i></i>v1.01</span></h1>
       <p>316 后 · 公众推荐拥挤度审计 · 只筛异常，不输出方向</p>
     </div>
     <div class="links">
@@ -200,11 +200,11 @@ td.actual{color:var(--blue);font-weight:800}
   <div class="grid2">
     <div class="card">
       <div class="sectionHead">
-        <div><h2>网络结构</h2><div class="sub">站点不是独立票；镜像先合并。</div></div>
+        <div><h2>网络结构</h2><div class="sub">先合并镜像，再看同站栏目是否重复。</div></div>
       </div>
       <div class="net" id="network"></div>
       <div class="hr"></div>
-      <div class="note">个人榜降级为异常筛查；可点“来源名单 → 成绩”查看单站样本，但不要用它选神站。</div>
+      <div class="note">同站杀三与九肖平均重叠 2.29/3，接近随机 2.25：同站两个栏目不是一个独立判断。个人榜只做异常筛查。</div>
     </div>
     <div class="card">
       <div class="sectionHead">
@@ -302,7 +302,9 @@ function renderNetwork(){
   const net=engine.network||{};
   const pairs=net.mirrorPairs||[];
   const rows=pairs.length?pairs.map(x=>`<div class="row"><span class="w">镜像</span><span>${x.a} ↔ ${x.b}</span><span class="desc">${x.periods}期同模板</span></div>`).join(''):'<div class="row">未发现完全镜像对</div>';
-  document.getElementById('network').innerHTML=rows+`<div class="row"><span class="w">口径</span><span>杀三 ${net.killSites} 站 / 九肖 ${net.nineSites} 站</span><span class="desc">不按站点数量放大</span></div>`;
+  const ov=net.killNineOverlap||{};
+  const ovRow=ov.groups?`<div class="row"><span class="w">重叠</span><span>同站杀三/九肖平均 ${Number(ov.avgOverlap).toFixed(2)}/3</span><span class="desc">随机 ${ov.expectedOverlap} · ${ov.groups}组</span></div>`:'';
+  document.getElementById('network').innerHTML=rows+ovRow+`<div class="row"><span class="w">口径</span><span>杀三 ${net.killSites} 站 / 九肖 ${net.nineSites} 站</span><span class="desc">不按站点数量放大</span></div>`;
 }
 
 function renderTargets(){
