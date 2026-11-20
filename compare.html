@@ -208,5 +208,9 @@ Promise.all([
   document.getElementById('nineRank').innerHTML='<div class="rc-sub">数据加载失败：'+e+'</div>';
 });
 </script>
+<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-094 · 对比页仅呈现当期待开推荐</div>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
 </body>
 </html>

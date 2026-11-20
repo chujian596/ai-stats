@@ -1,5 +1,5 @@
-/* 离线缓存：有网时取最新，没网时用上一次缓存，保证断网也能打开录单 */
-var CACHE_NAME = 'aistats-shell-v1';
+/* 离线缓存：有网时强制取最新（绕过浏览器强缓存），没网时用上一次缓存，保证断网也能打开 */
+var CACHE_NAME = 'aistats-shell-v2';
 var SHELL = ['/app', '/app.html', '/app-pro', '/app-pro.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -29,7 +29,7 @@ self.addEventListener('fetch', function (e) {
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(
-    fetch(req).then(function (res) {
+    fetch(req, { cache: 'reload' }).then(function (res) {
       if (res && res.status === 200 && res.type === 'basic') {
         var copy = res.clone();
         caches.open(CACHE_NAME).then(function (c) { c.put(req, copy); }).catch(function () {});
