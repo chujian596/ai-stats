@@ -8,6 +8,8 @@ python3 build_kill3_ledger.py || exit 1
 python3 build_site_registry.py || exit 1
 python3 build_site_directory.py || exit 1
 python3 build_current_recommend.py || exit 1
+# 站方核心杀口径（可选；没有快照/校准文件时跳过，不影响主台账）
+python3 tools/build_core_view.py >/dev/null 2>&1 && echo "CORE_OK" || echo "CORE_SKIP"
 python3 build_position_stats.py || exit 1
 python3 build_kill_rank_stats.py || exit 1
 python3 build_extra_ledgers.py || exit 1
@@ -31,7 +33,8 @@ data/head-ledger.json
 data/size-ledger.json
 data/parity-ledger.json
 data/draws-recent.json
-data/quality-report.json"
+data/quality-report.json
+$(ls data/core-*.json 2>/dev/null | tr '\n' ' ')"
 
 git add $FILES 2>/dev/null
 

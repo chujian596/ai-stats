@@ -174,6 +174,33 @@
   .doc-section h3{font-size:13px;margin:0 0 5px}
   .doc-section p{font-size:12px;color:var(--muted);line-height:1.75;margin:0}
 
+  .intensity-meta{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 9px}
+  .intensity-meta .tag{font-size:10.5px;color:var(--muted);background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:3px 6px;white-space:nowrap}
+  .tier-block{border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin-top:8px;background:#fff}
+  .tier-block.hot{border-color:#efd4d1;background:#fffafa}
+  .tier-block.good{border-color:#d9e8e0;background:#fbfdfb}
+  .tier-block.gray{background:#fafbfc}
+  .tier-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .tier-head b{font-size:13px}
+  .tier-head span{font-size:10.5px;color:var(--faint);white-space:nowrap}
+  .tier-desc{font-size:11.5px;color:var(--muted);line-height:1.65;margin:3px 0 7px}
+  .tier-logic{font-size:10.5px;color:var(--faint);margin-left:4px}
+  .tier-members{display:flex;flex-wrap:wrap;gap:6px}
+  .tier-member{flex:1 1 46%;min-width:132px;border:1px solid #edf0f4;border-radius:9px;padding:7px 9px;background:#fff}
+  .tier-member .zm{display:flex;align-items:baseline;gap:5px}
+  .tier-member .zm b{font-size:18px;line-height:1.1}
+  .tier-member .zm span{font-size:10.5px;color:var(--faint);white-space:nowrap}
+  .tier-member .lift{font-size:10.5px;color:#5c6774;line-height:1.6;margin-top:2px}
+  .tier-member .core{font-size:10px;color:#7b8490;line-height:1.5;margin-top:2px}
+  .core-good{color:var(--green)}
+  .core-watch{color:var(--red)}
+  .core-mid{color:var(--gold)}
+  .tier-empty{font-size:11.5px;color:var(--faint);padding:3px 0}
+  @media(max-width:430px){.tier-member{flex:1 1 100%}}
+  .trace{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+  .trace summary{cursor:pointer;font-size:12px;font-weight:650;color:var(--muted)}
+  .trace-body{font-size:11.5px;line-height:1.8;color:#5c6774;padding-top:7px}
+  .trace-body p{margin:0 0 6px}
   .loading{padding:24px 0;text-align:center;color:var(--faint);font-size:12.5px}
   .error{border:1px solid #efd4d1;background:#fff7f6;color:var(--red);border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.7}
   .retry{margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12px;color:var(--blue);font-weight:650}
@@ -187,7 +214,7 @@
       <div class="sub">多站资料 · 逐站台账 · 开奖对账</div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.01</span>
+      <span class="version">v59.02</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -218,10 +245,15 @@
     </div>
     <div class="doc-section">
       <h3>四个入口</h3>
-      <p><b>本期数据</b>只回答一件事：这一期各站公开资料汇总后，九肖、杀三肖、平特、波色、尾数、头数、大小、单双分别是什么结构。<br>
+      <p><b>本期数据</b>先看“本期数据 · 推杀强度”（论坛四档 + 站方核心杀），再看这一期各站公开资料汇总后的九肖、杀三肖、平特、波色、尾数、头数、大小、单双结构。<br>
       <b>逐站明细</b>把每一站的原始栏目和推荐列出来，可按站名或固定 ID 搜。<br>
       <b>历期复盘</b>看某一维度最近几期的覆盖、命中、错误和命中率。<br>
       <b>开奖记录</b>看最近开奖号码与特码。</p>
+    </div>
+    <div class="doc-section">
+      <h3>本期数据 · 推杀强度</h3>
+      <p>旧版页叫“相对强度”，现在归到“本期数据”首卡。论坛推票和杀票先各自归一，再乘 12：1.00=平均；按“推多/推少 × 杀狠/杀少”分四档。四档名称沿用旧版：推平杀狠·最该盯、推高杀狠·分歧最大、推高杀少·一致看好、双低·集体不管。<br>
+      每张卡下面的“站方核心杀”来自站点快照的核心杀栏目，和论坛票是两套口径，不能相加。</p>
     </div>
     <div class="doc-section">
       <h3>票数口径</h3>
@@ -241,7 +273,7 @@
     </div>
     <div class="doc-section">
       <h3>数据存在哪里</h3>
-      <p>页面本身不存数据，只读同站点的 JSON。本期汇总在 <b>data/current-recommend.json</b>，站点目录在 <b>data/site-directory.json</b>，八本逐站台账在 <b>data/</b> 下的 max-zodiac / kill3 / pingte / wave / tail / head / size / parity 八个 ledger.json；原始抓取快照在仓库 <b>snapshots/</b>，按“期号+时间”命名。页面和这些文件一起放在 <b>chujian596/ai-stats</b> 仓库，GitHub Pages 直接读取同目录的 data/。</p>
+      <p>页面本身不存数据，只读同站点的 JSON。本期汇总在 <b>data/current-recommend.json</b>，站点目录在 <b>data/site-directory.json</b>，八本逐站台账在 <b>data/</b> 下的 max-zodiac / kill3 / pingte / wave / tail / head / size / parity 八个 ledger.json；论坛推杀强度在 <b>data/ratio-*.json</b>，站方核心杀在 <b>data/core-*.json</b>；原始抓取快照在仓库 <b>snapshots/</b>，按“期号+时间”命名。页面和这些文件一起放在 <b>chujian596/ai-stats</b> 仓库，GitHub Pages 直接读取同目录的 data/。</p>
     </div>
     <div class="doc-section">
       <h3>数据来源</h3>
@@ -254,6 +286,7 @@
 var ZOD = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
 var state = {
   current:null, latest:null, periods:[], official:{}, draws:null,
+  ratio:null, core:null, forum:null, intensityLoading:false, intensitySeq:0,
   ledgers:{}, ledgerPending:{}, activeTab:'now', dim:'nine',
   stationQuery:'', stationLimit:30, openSite:'', expanded:{}
 };
@@ -338,6 +371,7 @@ function totalList(arr){ return arr.reduce(function(a,x){ return a+num(x.n); },0
 
 function loadBase(){
   state.ledgers={}; state.ledgerPending={};
+  state.ratio=null; state.core=null; state.forum=null; state.intensityLoading=true;
   var nowP=$('panel-now'); if(nowP) nowP.innerHTML='<div class="loading">正在读取本期资料…</div>';
   return Promise.all([
     safe(fetchJson('data/current-recommend.json',9000)),
@@ -348,6 +382,8 @@ function loadBase(){
   ]).then(function(r){
     state.current=r[0]; state.latest=r[1]||{}; state.periods=(r[2]&&r[2].periods)||[];
     state.official=r[3]||{}; state.draws=r[4];
+    var intensityPer=(state.current&&state.current.period)||(state.latest&&state.latest.period)||'';
+    if(intensityPer) loadIntensity(intensityPer);
     renderNow();
     if(state.activeTab==='stations') renderStations();
     if(state.activeTab==='history') loadHistory();
@@ -357,6 +393,107 @@ function loadBase(){
   });
 }
 
+var TIER_DEFS=[
+  {key:'watch',name:'推平杀狠 · 最该盯',logic:'推 <1.00 × 杀 ≥1.00',tone:'hot',desc:'推的人不多，却有人在猛杀它。没人喊、又有人踩，最值得盯。'},
+  {key:'split',name:'推高杀狠 · 分歧最大',logic:'推 ≥1.00 × 杀 ≥1.00',tone:'hot',desc:'既有很多人推，也有很多人杀。两边打架，分歧最大。'},
+  {key:'consensus',name:'推高杀少 · 一致看好',logic:'推 ≥1.00 × 杀 <1.00',tone:'good',desc:'推的人多、几乎没人杀它。大家都看好，反而要防“共识陷阱”。'},
+  {key:'ignore',name:'双低 · 集体不管',logic:'推 <1.00 × 杀 <1.00',tone:'gray',desc:'推得少、也没人杀。资料里基本没人提它。'}
+];
+function tierKeyOf(r){
+  var hiR=Number(r.recLift)>=1, hiK=Number(r.killLift)>=1;
+  if(!hiR&&hiK) return 'watch';
+  if(hiR&&hiK) return 'split';
+  if(hiR&&!hiK) return 'consensus';
+  return 'ignore';
+}
+function coreLineFor(z){
+  var c=state.core; if(!c||!c.rows) return '';
+  var row=null; for(var i=0;i<c.rows.length;i++){ if(c.rows[i].z===z){ row=c.rows[i]; break; } }
+  if(!row) return '';
+  var cls=row.verdict.indexOf('看好')>=0?'core-good':(row.verdict.indexOf('回避')>=0?'core-watch':'core-mid');
+  var hist=(row.histRate!==null&&row.histRate!==undefined)?'；该档历史 '+row.histRate+'%（'+esc(row.histCi||'')+'，n='+row.histN+'）':'';
+  return '<div class="core '+cls+'">站方核心杀 '+row.corePct+'%（'+esc(row.verdict)+hist+'）</div>';
+}
+function loadIntensity(per){
+  var seq=++state.intensitySeq;
+  state.intensityLoading=true;
+  Promise.all([
+    safe(fetchJson('data/ratio-'+per+'.json',9000)),
+    safe(fetchJson('data/core-'+per+'.json',9000)),
+    safe(fetchJson('data/forum-'+per+'.json',9000))
+  ]).then(function(r){
+    if(seq!==state.intensitySeq) return;
+    state.ratio=r[0]; state.core=r[1]; state.forum=r[2]; state.intensityLoading=false;
+    if(state.activeTab==='now') renderNow();
+  });
+}
+function retryIntensity(){
+  var per=(state.current&&state.current.period)||(state.latest&&state.latest.period)||'';
+  if(per) loadIntensity(per);
+}
+function intensitySection(per){
+  var rt=state.ratio, f=state.forum, c=state.core;
+  var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">01</span><h3>本期数据 · 推杀强度</h3></div><span class="card-note">论坛推杀 × 站方核心杀</span></div>';
+  if(state.intensityLoading||!rt){
+    h+='<div class="loading">正在读取第 '+esc(per)+' 期推杀强度…</div>';
+    h+='<div class="method"><b>这一节是什么：</b>旧版“本期数据”里的相对强度，把论坛推票和杀票归一后分四档；不是开奖概率。</div>';
+    h+='</section>'; return h;
+  }
+  if(!rt.rows||!rt.rows.length){
+    h+='<div class="error">这一期还没有推杀强度数据（ratio-'+esc(per)+'.json）。</div>';
+    h+='<button class="retry" onclick="retryIntensity()">重新读取</button>';
+    h+='<div class="method"><b>这一节是什么：</b>旧版“本期数据”里的相对强度，把论坛推票和杀票归一后分四档；不是开奖概率。</div>';
+    h+='</section>'; return h;
+  }
+  var totalPosts=(f&&f.detail&&f.detail.length)||0;
+  var totalFetched=(f&&f.total_fetched)||0;
+  var updated=(f&&f.fetched_at)?fmtTime(f.fetched_at):'—';
+  var coreSites=(c&&c.sites)||0, coreDen=(c&&c.coreDen)||0;
+  var sumRec=rt.sumRec||0, sumKill=rt.sumKill||0;
+  var avgRec=Math.round(sumRec/12), avgKill=(sumKill/12).toFixed(1);
+  h+='<div class="intensity-meta">'
+    +'<span class="tag">第 '+esc(per)+' 期</span>'
+    +'<span class="tag">论坛 '+totalPosts+'/'+totalFetched+' 条</span>'
+    +'<span class="tag">推 '+sumRec+' · 杀 '+sumKill+'</span>'
+    +'<span class="tag">核心杀 '+(coreDen?coreDen+'/'+coreSites+' 站':'未生成')+'</span>'
+    +'<span class="tag">论坛更新 '+esc(updated)+'</span>'
+    +'</div>';
+  h+='<div class="method"><b>怎么算：</b>每个肖的推票、杀票各自先除本期总票，再乘 12；<b>1.00 = 平均</b>。推均 '+avgRec+'、杀均 '+avgKill+'，量级差约 '+(avgKill?Math.round(avgRec/Number(avgKill)):'—')+' 倍，所以不能直接拿票数相减。</div>';
+  var rows=rt.rows;
+  var q={}; rows.forEach(function(r){ var k=tierKeyOf(r); (q[k]=q[k]||[]).push(r); });
+  h+='<div>';
+  TIER_DEFS.forEach(function(d){
+    var list=q[d.key]||[];
+    if(d.key==='watch') list.sort(function(a,b){ return (Number(b.killLift)-Number(a.killLift))||(Number(b.recLift)-Number(a.recLift)); });
+    else list.sort(function(a,b){ return (Number(b.recLift)-Number(a.recLift))||(Number(b.killLift)-Number(a.killLift)); });
+    h+='<div class="tier-block '+d.tone+'"><div class="tier-head"><b>'+esc(d.name)+'</b><span>'+list.length+' 肖</span></div>'
+      +'<div class="tier-desc">'+esc(d.desc)+'<span class="tier-logic">'+esc(d.logic)+'</span></div>';
+    if(!list.length){
+      h+='<div class="tier-empty">本期没有落在这档的肖。</div>';
+    }else{
+      h+='<div class="tier-members">';
+      list.forEach(function(r){
+        var hiR=Number(r.recLift)>=1, hiK=Number(r.killLift)>=1;
+        h+='<div class="tier-member"><div class="zm"><b>'+esc(r.z)+'</b><span>推 '+num(r.rec)+' · 杀 '+num(r.kill)+'</span></div>'
+          +'<div class="lift">强度 推 '+Number(r.recLift).toFixed(2)+'（'+(hiR?'推多':'推少')+'） / 杀 '+Number(r.killLift).toFixed(2)+'（'+(hiK?'杀狠':'杀少')+'）</div>'
+          +coreLineFor(r.z)+'</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="method"><b>读法：</b>推/杀是论坛票数归一后的相对强度，不是概率。站方核心杀是另一套站点栏目口径，只并列参考，<b>不能相加</b>。';
+  h+='<details class="trace"><summary>计算口径、四档名称与数据来源</summary><div class="trace-body">'
+    +'<p><b>来龙去脉：</b>这是旧版页“本期数据”里的相对强度版块，现恢复为“本期数据 · 推杀强度”；四档名称沿用旧版，不改口径。</p>'
+    +'<p><b>四档命名：</b>推多=推强度≥1.00，推少=＜1.00；杀狠=杀强度≥1.00，杀少=＜1.00。四组是交叉分类，不是四个预测结论。</p>'
+    +'<p><b>本期数据链：</b>论坛 6 页抓 '+totalFetched+' 条，去重后有效 '+totalPosts+' 条 → 推 '+sumRec+' / 杀 '+sumKill+' 票 → ratio-'+esc(per)+'.json；站方核心杀来自 '+coreSites+' 站快照、'+coreDen+' 站有核心杀栏目 → core-'+esc(per)+'.json（'+esc((c&&c.source)||'快照未生成')+'，'+esc((c&&c.generatedAt)||'—')+'）。</p>'
+    +'<p><b>档位：</b>核心杀按 0–20% / 20–40% / 40–60% 分档，历史命中率来自 signal-calibration.json；样本不足统一标“待定”，不代表下期结果。</p>'
+    +'<div class="links"><a href="data/ratio-'+esc(per)+'.json">本期强度 JSON <span>查看</span></a><a href="data/core-'+esc(per)+'.json">核心杀 JSON <span>查看</span></a><a href="data/forum-'+esc(per)+'.json">论坛解析 <span>查看</span></a></div>'
+    +'</div></details></div>';
+  h+='</section>';
+  return h;
+}
 function renderNow(){
   var p=$('panel-now'), cur=state.current;
   if(!cur || !Array.isArray(cur.sites) || !cur.sites.length){
@@ -391,7 +528,9 @@ function renderNow(){
     +'<div class="quality"><span>站名 <b>'+named+'/'+sites.length+'</b></span><span>匿名站 <b>'+(sites.length-named)+'</b></span><span>八维台账</span><span>同期限累计</span></div>'
     +'</div>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">01</span><h3>本期共识</h3></div><span class="card-note">资料共识，不是开奖结论</span></div>'
+  h+=intensitySection(per);
+
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">02</span><h3>本期共识</h3></div><span class="card-note">资料共识，不是开奖结论</span></div>'
     +'<div class="summary-grid">'
       +'<div class="summary-main"><div><div class="label">九肖里出现最多</div><div class="big"><b>'+esc(topNine.z)+'</b><span>'+topNine.n+' 票</span></div><div class="sub">'+nineDen+' 站口径 · 九肖共 '+nineTotal+' 票</div></div>'
         +'<div class="rest">'+sortCount(nine).slice(1,4).map(function(x){return '<span class="chip blue"><b>'+esc(x.z)+'</b><em>'+x.n+'</em></span>';}).join('')+'</div></div>'
@@ -401,16 +540,16 @@ function renderNow(){
     +'<div class="method"><b>读法：</b>九肖看“谁被最多站写进 9 肖”，杀三肖看“谁被最多站列入必杀”。两者是站方资料结构，不是概率，也不代表开奖结果。</div>'
     +'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">02</span><h3>九肖票数</h3></div><span class="card-note">'+nineDen+' 站 · '+nineTotal+' 票</span></div>'
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">03</span><h3>九肖票数</h3></div><span class="card-note">'+nineDen+' 站 · '+nineTotal+' 票</span></div>'
     +barRows(sortCount(nine),'', 'nine')+'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">03</span><h3>杀三肖票数</h3></div><span class="card-note">'+killDen+' 站 · '+killTotal+' 票</span></div>'
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">04</span><h3>杀三肖票数</h3></div><span class="card-note">'+killDen+' 站 · '+killTotal+' 票</span></div>'
     +barRows(sortCount(kill),'kill','kill')+'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">04</span><h3>平特一肖票数</h3></div><span class="card-note">'+(cov.pingte||siteDen(sites,'pingte'))+' 站 · '+totalList(pingte)+' 票</span></div>'
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">05</span><h3>平特一肖票数</h3></div><span class="card-note">'+(cov.pingte||siteDen(sites,'pingte'))+' 站 · '+totalList(pingte)+' 票</span></div>'
     +barRows(pingte.slice().sort(function(a,b){return b.n-a.n;}),'rec','pingte')+'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">05</span><h3>其他维度</h3></div><span class="card-note">'+esc(covLine)+'</span></div>'
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">06</span><h3>其他维度</h3></div><span class="card-note">'+esc(covLine)+'</span></div>'
     +'<div class="mini-grid">'
       +miniBlock('波色', cov.wave||siteDen(sites,'wave'), wave, 'blue', false)
       +miniBlock('尾数', cov.tail||siteDen(sites,'tail'), tail, 'blue', false)
@@ -422,7 +561,7 @@ function renderNow(){
     +'<div class="method"><b>口径：</b>每站每栏算 1 票；波色选 2 波的站会各计 1 票，所以波色总票数可大于站数。大小、单双只取纯栏目，复合栏不计。</div>'
     +'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">06</span><h3>数据质量</h3></div><span class="card-note">可复查</span></div>'
+  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">07</span><h3>数据质量</h3></div><span class="card-note">可复查</span></div>'
     +'<div class="chips"><span class="chip blue">固定 ID '+sites.length+' 站</span><span class="chip rec">站名 '+named+' 站</span><span class="chip">匿名 '+(sites.length-named)+' 站</span><span class="chip">来源 '+esc(cur.source||'—')+'</span><span class="chip">合并 '+esc(cur.mergeMode||'same-period-union')+'</span></div>'
     +'<div class="links"><a href="nine-zodiac.html">九肖逐站台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖逐站台账 <span>查看</span></a><a href="extra-ledger.html">平特/波色/尾/头/大小/单双 <span>查看</span></a><a href="site-registry.html">站点总目录 · 固定ID/站名 <span>查看</span></a></div>'
     +'</section>';
