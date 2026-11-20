@@ -652,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.52-Pro';
+var APP_VER = 'v59.53-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -687,6 +687,55 @@ function logErr(type, msg, meta){
 }
 function readErrLog(){ try{ return _errLoad().slice(); }catch(e){ return []; } }
 function clearErrLog(){ _errMem = []; try{ localStorage.removeItem(ERR_KEY); }catch(e){} }
+
+/* 无法识别清单：把 parse 日志按“原文 + 错误”归并，便于看出到底哪些词录不进。 */
+function parseFailGroups(){
+  var logs = readErrLog().filter(function(r){ return r && r.type === 'parse'; });
+  var map = {};
+  logs.forEach(function(r){
+    var raw = '';
+    try{ raw = (r.meta && r.meta.raw) ? String(r.meta.raw) : ''; }catch(e){}
+    if(!raw) return;
+    var key = raw + '\n' + String(r.msg || '');
+    if(!map[key]) map[key] = {raw:raw, msg:String(r.msg || ''), count:0, lastDay:'', lastAt:0};
+    map[key].count++;
+    if(r.day) map[key].lastDay = String(r.day);
+    map[key].lastAt = Math.max(map[key].lastAt, Number(r.at || 0));
+  });
+  var groups = Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return b.lastAt - a.lastAt; });
+  return {total:logs.length, groups:groups};
+}
+function parseFailText(){
+  var pf = parseFailGroups();
+  if(!pf.total) return '';
+  var h = '港澳双盘口 ' + (typeof APP_VER !== 'undefined' ? APP_VER : '') + ' 无法识别清单\n'
+    + '导出时间：' + new Date().toLocaleString('zh-CN', {hour12:false}) + '\n'
+    + '共 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种\n\n';
+  pf.groups.forEach(function(g, i){
+    h += (i+1) + '. [' + g.count + '次]' + (g.lastDay ? ' ' + g.lastDay : '') + '\n'
+      + '原文：' + g.raw + '\n'
+      + '错误：' + g.msg + '\n\n';
+  });
+  return h;
+}
+function copyParseFails(){
+  var txt = parseFailText();
+  if(!txt){ myAlert('还没有无法识别记录。'); return; }
+  function done(){
+    var b = document.getElementById('elCopyFails');
+    if(b) b.textContent = '已复制';
+    myAlert('已复制无法识别清单，可直接发给我。');
+  }
+  function fb(){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
+    }catch(e){ myAlert('复制失败，请点“导出诊断”发我 JSON。'); }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(fb);
+  } else fb();
+}
 function _storageStats(){
   var keys = [], bytes = 0;
   try{
@@ -753,14 +802,24 @@ function showErrLog(){
   var ov = document.createElement('div');
   ov.className = 'ai-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var pf = parseFailGroups();
+  var pfHtml = '';
+  if(pf.total){
+    pfHtml = '<div style="margin:10px 16px 0;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:9px 10px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '<b>无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种</b><div style="color:#666;margin-top:3px">' + pf.groups.slice(0,6).map(function(g){
+          return esc(String(g.raw).slice(0,50)) + ' <span style="color:#999">×' + g.count + (g.lastDay ? ' · ' + esc(g.lastDay) : '') + '</span>';
+        }).join('<br>') + (pf.groups.length > 6 ? '<br>…还有 ' + (pf.groups.length-6) + ' 种' : '') + '</div>'
+      + '<button id="elCopyFails" onclick="copyParseFails()" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">复制失败清单</button></div>';
+  }
   var rows = logs.slice(-60).reverse().map(function(r){
     var raw = '';
-    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,120) : ''; } catch(e){}
+    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,200) : ''; } catch(e){}
     return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + (r.day ? ' · 账本日 ' + esc(r.day) : '') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + (raw ? '<div style="font-size:11px;color:#b45309;margin-top:3px;white-space:pre-wrap">原文：' + esc(raw) + '</div>' : '') + '</div></div>';
   }).join('');
   if(!rows) rows = '<div style="padding:24px 0;text-align:center;font-size:13px;color:#999">暂无错误记录</div>';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;flex-direction:column">'
     + '<div style="padding:14px 16px;font-size:16px;font-weight:700;color:#333;border-bottom:1px solid #eee">错误日志（' + logs.length + ' 条，最多保留 200 条）</div>'
+    + pfHtml
     + '<div style="padding:2px 16px 8px;overflow-y:auto;flex:1">' + rows + '</div>'
     + '<div style="display:flex;border-top:1px solid #eee">'
     + '<button id="elClear" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#cf1322;border-right:1px solid #eee">清空</button>'
@@ -7651,10 +7710,19 @@ renderAll();
     window._waveLastPerNum = false;
     var _inp = document.getElementById('input');
     if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
-    var _fail = (window.__failedLines || [])[0];
+    var _fails = (window.__failedLines || []).slice(0, 10);
     window.__failedLines = [];
-    if(_fail) logErr('parse', _fail.msg || '未知解析错误', {line: _fail.idx || 0, rawLen: String(_fail.raw || '').length, raw: String(_fail.raw || '').slice(0,120), day: (billBookDate() || billToday())});
-    else logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,120), day: (billBookDate() || billToday())});
+    if(_fails.length){
+      _fails.forEach(function(f){
+        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,200), day: (billBookDate() || billToday()), failedTotal: errors.length});
+      });
+      if(errors.length > _fails.length){
+        logErr('parse', '本批还有 ' + (errors.length - _fails.length) + ' 行无法识别，仅记前 ' + _fails.length + ' 行原文', {day: (billBookDate() || billToday()), failedTotal: errors.length});
+      }
+    } else {
+      logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,200), day: (billBookDate() || billToday())});
+    }
+    var _fail = _fails[0];
     if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
     myAlert('无法识别：' + errors[0]);
     return;

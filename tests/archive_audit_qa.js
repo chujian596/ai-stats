@@ -58,5 +58,17 @@ await WAIT(80);
 logs=readErrLog(); last=logs[logs.length-1]||{};
 ck('重复单写日志', last.type==='dup_order', last);
 
+// 5. 一次多行无法识别：每一行都要进日志，且能汇总成可复制清单
+clearErrLog();
+inp.value='特0X 100\n特0Y 200';
+try{ doSave(); }catch(e){}
+await WAIT(150);
+logs=readErrLog().filter(function(r){ return r.type==='parse'; });
+ck('失败行逐条入日志', logs.length>=2 && logs.some(function(r){ return String((r.meta||{}).raw||'').indexOf('特0X')>=0; }) && logs.some(function(r){ return String((r.meta||{}).raw||'').indexOf('特0Y')>=0; }), logs.map(function(r){ return (r.meta||{}).raw; }));
+const pf=parseFailGroups();
+ck('失败清单按原文汇总', pf.total>=2 && pf.groups.length>=2, {total:pf.total,groups:pf.groups.length});
+const pft=parseFailText();
+ck('失败清单文本含原文', pft.indexOf('特0X')>=0 && pft.indexOf('特0Y')>=0, pft.slice(0,160));
+
 window.__archiveQA=out;
 })();
