@@ -122,6 +122,10 @@
   .mbar i{display:block;height:100%}
   .cmp2-col.left .mbar i{background:var(--blue)} .cmp2-col.right .mbar i{background:var(--red)}
   .mc{font-size:10px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dim-tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:nowrap;overflow-x:auto}
+  .dimtab{white-space:nowrap;padding:8px 14px;border:1px solid var(--line);background:#fff;color:#666;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+  .dimtab.on{border-color:#222;background:#222;color:#fff}
+  #extraView iframe{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;height:calc(100vh - 170px);min-height:520px;display:block}
 </style>
 </head>
 <body>
@@ -139,6 +143,15 @@
   </div>
   <div class="qc-note" id="qcNote"></div>
 
+  <div class="dim-tabs" id="dimTabs">
+    <button class="dimtab on" data-dim="nine">九肖</button>
+    <button class="dimtab" data-dim="pingte">平特一肖</button>
+    <button class="dimtab" data-dim="wave">波色</button>
+    <button class="dimtab" data-dim="tail">尾数</button>
+    <button class="dimtab" data-dim="head">头数</button>
+  </div>
+
+  <div id="nineView">
   <div class="card pending-card" id="pendingCard" style="display:none">
     <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html">完整对比 ↗</a></div>
     <div class="rc-sub" id="pendSub"></div>
@@ -196,11 +209,35 @@
 
   <div class="note" id="ruleNote"></div>
   </div>
+  </div>
+
+  <div id="extraView" class="hidden">
+    <iframe id="extraFrame" src="about:blank" title="扩展维度台账"></iframe>
+  </div>
 </div>
 
 <script>
-var LG=null, ALIAS={}, PEND=null, POS=null;
+var LG=null, ALIAS={}, PEND=null, POS=null, curDim='nine';
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+
+function switchDim(d){
+  curDim=d;
+  Array.prototype.forEach.call(document.querySelectorAll('.dimtab'),function(b){
+    b.classList.toggle('on',b.dataset.dim===d);
+  });
+  var nineV=document.getElementById('nineView'), extraV=document.getElementById('extraView');
+  if(d==='nine'){
+    nineV.classList.remove('hidden'); extraV.classList.add('hidden');
+  } else {
+    nineV.classList.add('hidden'); extraV.classList.remove('hidden');
+    var f=document.getElementById('extraFrame');
+    var src='extra-ledger.html?dim='+d+'&t='+Date.now();
+    if(f.getAttribute('src')!==src) f.src=src;
+  }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.dimtab'),function(b){
+  b.addEventListener('click',function(){ switchDim(b.dataset.dim); });
+});
 function loadQC(ledgerName){
   fetchJson('data/quality-report.json').then(function(q){
     var el=document.getElementById('qcNote'); if(!el||!q) return;

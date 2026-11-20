@@ -128,7 +128,9 @@ var DIMS = {
   tail:   {title:'尾数',     file:'tail-ledger.json',   unit:'尾', hot:'actualTail', pend:'pendingTail', ext:'tail'},
   head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead', pend:'pendingHead', ext:'head'}
 };
-var dim='pingte', LG=null, ALIAS={}, PEND=null, mode='pending', pendLoaded=false;
+var dim=(new URLSearchParams(location.search).get('dim'))||location.hash.replace('#','')||'pingte';
+if(!DIMS[dim]) dim='pingte';
+var LG=null, ALIAS={}, PEND=null, mode='pending', pendLoaded=false;
 
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 function nameOf(r,key){ return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
