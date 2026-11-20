@@ -37,8 +37,10 @@
   .ledger-title{font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--ink)}
   .ledger{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
   .col{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .col-head{padding:10px 14px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line)}
+  .col-head{padding:10px 14px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
   .col-head.left{color:var(--blue)} .col-head.right{color:var(--red)}
+  .col-arrow{font-size:12px;color:var(--sub);font-weight:400}
+  .col-body.collapsed{display:none}
   table{width:100%;border-collapse:collapse;font-size:12.5px}
   td{padding:7px 12px;border-top:1px solid var(--line);vertical-align:middle}
   td.site{font-weight:600;white-space:nowrap}
@@ -83,12 +85,12 @@
   <div class="ledger-title" id="siteTitle">待开逐站推荐</div>
   <div class="ledger">
     <div class="col">
-      <div class="col-head left">各站九肖</div>
-      <table id="nineSites"></table>
+      <div class="col-head left" onclick="toggleCol('nine')"><span>各站九肖</span><span class="col-arrow" id="arrow-nine">▾</span></div>
+      <div class="col-body" id="body-nine"><table id="nineSites"></table></div>
     </div>
     <div class="col">
-      <div class="col-head right">各站杀三肖</div>
-      <table id="killSites"></table>
+      <div class="col-head right" onclick="toggleCol('kill')"><span>各站杀三肖</span><span class="col-arrow" id="arrow-kill">▾</span></div>
+      <div class="col-body" id="body-kill"><table id="killSites"></table></div>
     </div>
   </div>
 
@@ -174,6 +176,13 @@ function renderSiteTables(){
   if(!killSites.length){ nk.innerHTML='<tr><td class="empty">暂无杀三肖推荐</td></tr>'; }
 }
 
+function toggleCol(k){
+  var body=document.getElementById('body-'+k);
+  var arr=document.getElementById('arrow-'+k);
+  var collapsed=body.classList.toggle('collapsed');
+  if(arr) arr.textContent=collapsed?'▸':'▾';
+}
+
 function render(){
   if(!PEND){ return; }
   var note='待开第 '+PEND.period+' 期';
@@ -208,7 +217,7 @@ Promise.all([
   document.getElementById('nineRank').innerHTML='<div class="rc-sub">数据加载失败：'+e+'</div>';
 });
 </script>
-<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-094 · 对比页仅呈现当期待开推荐</div>
+<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-107 · 逐站九肖 / 杀三肖栏目可折叠展开</div>
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
