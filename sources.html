@@ -148,7 +148,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 <div class="wrap">
   <header>
     <div>
-      <h1>来源名单<span class="ver" id="ver">v1.01</span></h1>
+      <h1>来源名单<span class="ver" id="ver">v1.02</span></h1>
       <div class="sub">站点固定 · 论坛轮换 · 316后成绩<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a></div>
     </div>
     <div class="top-actions">
@@ -168,7 +168,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
   <div id="notice" class="notice hidden"></div>
   <div id="content"></div>
-  <footer id="pageFoot">来源名单 v1.01 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
+  <footer id="pageFoot">来源名单 v1.02 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
 </div>
 
 <div class="badge" id="draftBadge">
@@ -253,7 +253,7 @@ function load(){
     return r.json();
   }).then(function(d){
     state.base=d;
-    document.getElementById('ver').textContent='v1.01';
+    document.getElementById('ver').textContent='v1.02';
     PATCH=readDraft(); render(); renderBadge();
   }).catch(function(e){
     notice('读取 data/source-registry.json 失败：'+e.message,true);
@@ -305,7 +305,7 @@ function render(){
   else if(state.view==='forum') renderForum();
   else if(state.view==='scores') renderScores();
   else renderChain();
-  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.01 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
+  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.02 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
   renderBadge();
 }
 
@@ -401,6 +401,16 @@ function renderScores(){
   });
   html+='</tbody></table></div><div class="tip">全历史样本只说明这个站被记录了多少期，包含 293–315 无快照回填段，不能直接拿来和 316 后命中率比较。</div></section>';
   html+='<section class="card"><div class="eyebrow">怎么判断</div><h2>先看样本，再看百分比</h2><ul class="note-list"><li><b>完整：</b>n='+p.window.nPeriods+'，九期都在；可以进本期榜单。</li><li><b>观察：</b>n=6–8，缺过站；只看趋势，不排第一。</li><li><b>样本不足：</b>n&lt;6，默认不显示；不要拿 2 期 100% 当“神站”。</li><li><b>长期站：</b>全历史≥20 期，只代表记录久，不代表更准；仍要和随机基线比。</li><li><b>异常：</b>连续缺站、整列空、成绩突然偏离，标出来复核，不悄悄改数。</li></ul></section>';
+  var qualified=0;
+  Object.keys(p.dimensions).forEach(function(k){var dd=p.dimensions[k];if(dd.baseline===null||dd.baseline===undefined)return;dd.sites.forEach(function(s){if(s.n>=9&&s.ciLow!==null&&s.ciLow>dd.baseline)qualified++;});});
+  var pt=p.dimensions.pingte;
+  var ptRate=pt&&pt.overall?pct(pt.overall.rate):'—',ptBase=pt&&pt.baseline?pct(pt.baseline):'—';
+  html+='<section class="card"><div class="eyebrow">阶段目标</div><h2>不设“命中率必须 80%”的假目标</h2><ul class="note-list">'+
+    '<li><b>330 期（15 期）：</b>站点 77/77 成功、缺站 0；上榜站 n≥15。</li>'+
+    '<li><b>335 期（20 期）：</b>第一次长期榜；只有 95% 下限高于随机基线才进候选。</li>'+
+    '<li><b>现在：</b>按 n≥9 与 95% 门槛，<b>'+qualified+' 站</b>达标；9 期只筛异常，不评“神站”。</li>'+
+    '<li><b>平特：</b>当前 '+ptRate+' vs 基线 '+ptBase+'；先查 316–320 与 323–324 的波动，不先定性。</li>'+
+    '<li><b>升降级：</b>连续两个窗口都过线才升级；不过线就降级，不硬凑目标。</li></ul></section>';
   html+='<section class="card"><div class="eyebrow">谁跟踪</div><h2>机器算，我复核，你拍板</h2><ul class="note-list"><li><b>自动：</b>每期台账更新后，<span class="mono">publish_ledgers.sh</span> 调 <span class="mono">tools/build_site_performance.py</span> 重建 <span class="mono">data/site-performance.json</span>；页面只读。</li><li><b>我（AI）：</b>每期查缺站、连接失败、样本骤降、连续偏差；异常在页面标出，并留下改动记录。</li><li><b>你：</b>只决定名单、口径、准不准入；百分比由系统算，不用你手工核。</li><li><b>节奏：</b>开奖后入账 → 台账 → 成绩 JSON → 页面刷新；325 期开奖后自动接上。</li></ul></section>';
   box.innerHTML=html;
 }
