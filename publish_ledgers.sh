@@ -6,17 +6,21 @@ cd "$(dirname "$0")" || exit 1
 python3 build_sites_current.py || exit 1
 python3 build_kill3_ledger.py || exit 1
 python3 build_site_registry.py || exit 1
+python3 build_site_directory.py || exit 1
 python3 build_current_recommend.py || exit 1
 python3 build_position_stats.py || exit 1
 python3 build_kill_rank_stats.py || exit 1
 python3 build_extra_ledgers.py || exit 1
 python3 build_draws_recent.py || exit 1
 python3 build_quality_check.py || exit 1
+python3 enrich_site_names.py || exit 1
 
 FILES="data/sites-current.json
 data/kill3-ledger.json
 data/max-zodiac-ledger.json
 data/site-registry.json
+data/site-directory.json
+data/site-aliases.json
 data/current-recommend.json
 data/zodiac-position-stats.json
 data/kill-rank-stats.json
@@ -24,6 +28,8 @@ data/pingte-ledger.json
 data/wave-ledger.json
 data/tail-ledger.json
 data/head-ledger.json
+data/size-ledger.json
+data/parity-ledger.json
 data/draws-recent.json
 data/quality-report.json"
 

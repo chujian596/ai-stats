@@ -151,6 +151,8 @@
     <button class="dimtab" data-dim="wave">波色</button>
     <button class="dimtab" data-dim="tail">尾数</button>
     <button class="dimtab" data-dim="head">头数</button>
+    <button class="dimtab" data-dim="size">大小</button>
+    <button class="dimtab" data-dim="parity">单双</button>
   </div>
 
   <div id="nineView">
@@ -254,7 +256,7 @@ function loadQC(ledgerName){
 }
 
 function nameOf(r,key){
-  return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
+  return r.siteName || ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
 }
 
 function historyOf(key, upTo){

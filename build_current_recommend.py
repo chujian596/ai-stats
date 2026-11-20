@@ -12,7 +12,7 @@
 
 产出: data/current-recommend.json（供 nine-zodiac.html 待开期推荐视图读取）
 """
-import json, os, re, glob
+import json, os, re, glob, copy
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(ROOT)
@@ -74,7 +74,26 @@ def pick_head(cols):
     return None
 
 
-EXTRA_PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail, 'head': pick_head}
+def pick_size(cols):
+    cd = cols.get('大小中特')
+    if cd and cd.get('value'):
+        v = [c for c in _val(cd) if c in '大小']
+        if len(v) == 1:
+            return {'column': '大小中特', 'picks': v, 'raw': _val(cd)}
+    return None
+
+
+def pick_parity(cols):
+    cd = cols.get('单双中特')
+    if cd and cd.get('value'):
+        v = [c for c in _val(cd) if c in '单双']
+        if len(v) == 1:
+            return {'column': '单双中特', 'picks': v, 'raw': _val(cd)}
+    return None
+
+
+EXTRA_PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail,
+                 'head': pick_head, 'size': pick_size, 'parity': pick_parity}
 
 
 def pick_kill(columns):
@@ -119,6 +138,67 @@ def pick_column(columns):
 def load_json(p):
     with open(p, encoding="utf-8") as f:
         return json.load(f)
+
+
+def _col_has_value(cd):
+    """栏目是否真有内容；空栏/只报错不能覆盖早先抓到的有效值。"""
+    if not isinstance(cd, dict):
+        return False
+    v = cd.get("value")
+    return bool(v) or bool(cd.get("parts"))
+
+
+def merge_pending(seq):
+    """同一期的多份快照按站点累计合并，只增不减。
+
+    - 先出现的有效栏目先入账；后抓到的有效栏目覆盖同栏目旧值（真改料）；
+    - 后一份整站缺失或栏目为空时，保留前一份，不把站点/票数打回去；
+    - 同站多份快照的栏目取并集，避免“站还在但栏目少了”导致票数下降。
+    """
+    merged = {}
+    sources = []
+    for sp, snap in seq:
+        fname = os.path.basename(sp)
+        sources.append(fname)
+        for key, rec in (snap.get("sites") or {}).items():
+            if key not in merged:
+                merged[key] = copy.deepcopy(rec)
+                merged[key]["_lastSource"] = fname
+                merged[key]["_lastSeen"] = snap.get("generated_at")
+                continue
+            cur = merged[key]
+            new_cols = rec.get("columns") or {}
+            has_new = any(_col_has_value(cd) for cd in new_cols.values())
+            if has_new:
+                old_cols = cur.get("columns") or {}
+                for title, cd in new_cols.items():
+                    if _col_has_value(cd):
+                        old_cols[title] = copy.deepcopy(cd)
+                cur["columns"] = old_cols
+                for field in ("system", "siteKey", "issue"):
+                    if rec.get(field) not in (None, ""):
+                        cur[field] = rec[field]
+                cur["carried"] = False
+                cur["carryFrom"] = None
+                cur["fresh"] = True
+            else:
+                # 本轮没抓到该站或栏目为空：保留旧栏目，标沿用
+                if cur.get("columns"):
+                    cur["carried"] = True
+                    cur["carryFrom"] = fname
+                    cur["fresh"] = False
+                else:
+                    cur.update(copy.deepcopy(rec))
+            cur["_lastSource"] = fname
+            cur["_lastSeen"] = snap.get("generated_at")
+    return merged, sources
+
+
+def _snapshot_score(snap):
+    sites = snap.get("sites") or {}
+    ok = sum(1 for v in sites.values() if v.get("columns"))
+    cols = sum(len(v.get("columns") or {}) for v in sites.values())
+    return ok, cols
 
 
 def main():
@@ -172,6 +252,7 @@ def main():
         issue = max(pending.keys())
         seq = pending[issue]
         sp, snap = seq[-1]
+        merged_sites, merged_sources = merge_pending(seq)
 
         def _ok_n(s):
             return sum(1 for v in (s.get("sites") or {}).values() if "columns" in v)
@@ -179,14 +260,14 @@ def main():
         # 基准取当天同期最完整的一份（排除本轮），缺站对照对齐最佳水平
         prev, prev_sp = None, None
         for p, s in seq[:-1]:
-            if prev is None or _ok_n(s) > _ok_n(prev):
+            if prev is None or _snapshot_score(s) > _snapshot_score(prev):
                 prev, prev_sp = s, os.path.basename(p)
         sites = []
         kill_agg = {}
         kill_sites = 0
         extra_agg = {dim: {} for dim in EXTRA_PICKERS}
         extra_sites = {dim: 0 for dim in EXTRA_PICKERS}
-        for _sk, sd in (snap.get("sites") or {}).items():
+        for _sk, sd in merged_sites.items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
             carried = bool(sd.get("carry"))
@@ -215,6 +296,8 @@ def main():
                 "wave": extra['wave'] or {},
                 "tail": extra['tail'] or {},
                 "head": extra['head'] or {},
+                "size": extra['size'] or {},
+                "parity": extra['parity'] or {},
             }
             if pick:
                 title, zs = pick
@@ -268,6 +351,19 @@ def main():
             "status": "pending",
             "updatedAt": snap.get("generated_at"),
             "source": os.path.basename(sp),
+            "mergeMode": "same-period-union",
+            "mergedSources": merged_sources,
+            "coverage": {
+                "sites": len(sites),
+                "nine": sum(1 for s in sites if s.get("status") == "有九肖"),
+                "kill": kill_sites,
+                "pingte": extra_sites.get("pingte", 0),
+                "wave": extra_sites.get("wave", 0),
+                "tail": extra_sites.get("tail", 0),
+                "head": extra_sites.get("head", 0),
+                "size": extra_sites.get("size", 0),
+                "parity": extra_sites.get("parity", 0),
+            },
             "sites": sites,
             "pendingKill": pending_kill,
             "killSites": kill_sites,
@@ -275,6 +371,8 @@ def main():
             "pendingWave": agg_list('wave'),
             "pendingTail": agg_list('tail'),
             "pendingHead": agg_list('head'),
+            "pendingSize": agg_list('size'),
+            "pendingParity": agg_list('parity'),
             "extraSites": extra_sites,
             "prevSnapshot": {"file": prev_sp, "updatedAt": (prev or {}).get("generated_at"), "nine": prev_nine},
             "missingStations": missing,
@@ -284,12 +382,19 @@ def main():
         }
 
     with open(OUT, "w", encoding="utf-8") as f:
+        try:
+            from enrich_site_names import attach
+            for s in out.get("sites", []):
+                attach(s)
+        except Exception:
+            pass
         json.dump(out, f, ensure_ascii=False, indent=2)
     n = sum(1 for s in out["sites"] if s["status"] == "有九肖")
     es = out.get("extraSites", {})
     print(f"current-recommend.json: status={out['status']} period={out['period']} "
           f"有九肖 {n}/{len(out['sites'])} 站 杀肖 {out['killSites']} 站 "
-          f"平特 {es.get('pingte', 0)} 波色 {es.get('wave', 0)} 尾 {es.get('tail', 0)} 头 {es.get('head', 0)} 站 "
+          f"平特 {es.get('pingte', 0)} 波色 {es.get('wave', 0)} 尾 {es.get('tail', 0)} 头 {es.get('head', 0)} "
+          f"大小 {es.get('size', 0)} 单双 {es.get('parity', 0)} 站 "
           f"updated={out['updatedAt']}")
 
 

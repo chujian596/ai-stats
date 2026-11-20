@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>扩展维度台账 · 平特/波色/尾数/头数</title>
+<title>扩展维度台账 · 平特/波色/尾数/头数/大小/单双</title>
 <style>
   :root{
     --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
@@ -74,7 +74,7 @@
   <header>
     <h1>扩展维度台账</h1>
     <div class="meta">在九肖 / 杀三肖之外，逐站逐期登记各站推荐并复盘命中。<br>
-      <b>平特一肖</b>：推肖落在当期 6 平码生肖 ∪ 特肖（七肖）内记中；<b>波色</b>：特码波色落在推双色内记中；<b>尾数</b>：特码个位落在推尾集合内记中；<b>头数</b>：特码头位落在推头集合内记中。<br>
+      <b>平特一肖</b>：推肖落在当期 6 平码生肖 ∪ 特肖（七肖）内记中；<b>波色</b>：特码波色落在推双色内记中；<b>尾数</b>：特码个位落在推尾集合内记中；<b>头数</b>：特码头位落在推头集合内记中；<b>大小</b>：特码 25-49 记大、1-24 记小；<b>单双</b>：奇数为单、偶数为双。<br>
       默认显示<b>待开期</b>各站最新推荐；要看往期成绩，用上方「期号」下拉选已开奖期进入复盘。样本偏小，只记录不定论；早期无快照期（仅平特历史库）留存不全，命中率不与快照期并列对比。</div>
   </header>
 
@@ -126,14 +126,16 @@ var DIMS = {
   pingte: {title:'平特一肖', file:'pingte-ledger.json', unit:'肖', hot:'actual', pend:'pendingPingte', ext:'pingte'},
   wave:   {title:'波色',     file:'wave-ledger.json',   unit:'色', hot:'actualWave', pend:'pendingWave', ext:'wave'},
   tail:   {title:'尾数',     file:'tail-ledger.json',   unit:'尾', hot:'actualTail', pend:'pendingTail', ext:'tail'},
-  head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead', pend:'pendingHead', ext:'head'}
+  head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead', pend:'pendingHead', ext:'head'},
+  size:   {title:'大小',     file:'size-ledger.json',   unit:'',  hot:'actualSize', pend:'pendingSize', ext:'size'},
+  parity: {title:'单双',     file:'parity-ledger.json', unit:'',  hot:'actualParity', pend:'pendingParity', ext:'parity'}
 };
 var dim=(new URLSearchParams(location.search).get('dim'))||location.hash.replace('#','')||'pingte';
 if(!DIMS[dim]) dim='pingte';
 var LG=null, ALIAS={}, PEND=null, mode='pending', pendLoaded=false;
 
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
-function nameOf(r,key){ return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
+function nameOf(r,key){ return r.siteName || ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
 
 function issues(){ return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}); }
 function lastIssue(){ var i=issues(); return i[i.length-1]; }

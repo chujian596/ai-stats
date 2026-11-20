@@ -49,6 +49,8 @@ for k, v in load(DRAW).items():
         'seven': set(plains_zod) | {sp_zod},
         'wave': meta[sp]['wave'] if sp in meta else None,
         'tail': sp % 10, 'head': sp // 10,
+        'big': '大' if sp >= 25 else '小',
+        'parity': '单' if sp % 2 else '双',
     }
 
 # ---- 栏目提取：返回 (栏目名, picks, 原文) 或 None ----
@@ -95,8 +97,30 @@ def pick_head(cols):
     return None
 
 
-PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail, 'head': pick_head}
-DIM_TITLE = {'pingte': '平特一肖', 'wave': '波色', 'tail': '尾数', 'head': '头数'}
+def pick_size(cols):
+    # 只取纯「大小中特」，不混 2期/合数/半单双/大小肖/复合栏
+    cd = cols.get('大小中特')
+    if cd and cd.get('value'):
+        v = [c for c in cd['value'] if c in '大小']
+        if len(v) == 1:
+            return ('大小中特', v, cd['value'])
+    return None
+
+
+def pick_parity(cols):
+    # 只取纯「单双中特」，不混 2期/合数/半单双/单双肖/复合栏
+    cd = cols.get('单双中特')
+    if cd and cd.get('value'):
+        v = [c for c in cd['value'] if c in '单双']
+        if len(v) == 1:
+            return ('单双中特', v, cd['value'])
+    return None
+
+
+PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail, 'head': pick_head,
+           'size': pick_size, 'parity': pick_parity}
+DIM_TITLE = {'pingte': '平特一肖', 'wave': '波色', 'tail': '尾数', 'head': '头数',
+             'size': '大小', 'parity': '单双'}
 
 
 def site_of(rec, key):
@@ -132,6 +156,10 @@ def hit_of(dim, picks, dr):
         return str(dr['tail']) in picks
     if dim == 'head':
         return str(dr['head']) in picks
+    if dim == 'size':
+        return picks[0] == dr['big']
+    if dim == 'parity':
+        return picks[0] == dr['parity']
     return False
 
 
@@ -189,6 +217,7 @@ for iss, dr in draws.items():
             ledgers[dim]['periods'][str(iss)] = {
                 'specialNum': dr['sp'], 'actual': dr['sp_zod'],
                 'actualWave': dr['wave'], 'actualTail': dr['tail'], 'actualHead': dr['head'],
+                'actualSize': dr['big'], 'actualParity': dr['parity'],
                 'hasSnapshot': early_path is not None,
                 'source': 'snapshot' if early_path else 'history',
                 'stations': stations,
@@ -199,9 +228,12 @@ rules = {
     'wave': '波色：特码波色落在站推双色内记「中」；取「2波中特」栏。',
     'tail': '尾数：特码个位落在站推尾数集合内记「中」；取纯数字尾栏，单双/复合尾栏不计。',
     'head': '头数：特码头位落在站推头数集合内记「中」；取纯数字头栏。',
+    'size': '大小：特码 25-49 记「大」、1-24 记「小」；只取纯「大小中特」栏，不混 2期/合数/大小肖/复合栏。',
+    'parity': '单双：特码奇数为「单」、偶数为「双」；只取纯「单双中特」栏，不混 2期/合数/半单双/单双肖/复合栏。',
 }
 out_files = {'pingte': 'pingte-ledger.json', 'wave': 'wave-ledger.json',
-             'tail': 'tail-ledger.json', 'head': 'head-ledger.json'}
+             'tail': 'tail-ledger.json', 'head': 'head-ledger.json',
+             'size': 'size-ledger.json', 'parity': 'parity-ledger.json'}
 
 latest_at = ''
 for f in glob.glob(os.path.join(SNAP, 'snapshot-*.json')):

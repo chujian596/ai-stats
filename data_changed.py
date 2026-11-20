@@ -12,6 +12,7 @@ import sys
 TS_KEYS = {
     "updated_at", "update_at", "updatedAt", "generated_at", "generatedAt",
     "created_at", "createdAt", "_updated", "ts", "timestamp", "checked_at",
+    "fetched_at", "fetchedAt",
 }
 
 

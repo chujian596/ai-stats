@@ -213,7 +213,7 @@ function loadQC(ledgerName){
 }
 
 function nameOf(r,key){
-  return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
+  return r.siteName || ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
 }
 
 function historyOf(key, upTo){
