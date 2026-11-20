@@ -10,6 +10,17 @@ from concurrent.futures import ThreadPoolExecutor
 BASE = "https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044"
 UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_last_drawn_period():
+    """读开奖库 official-history.json，返回最新已开奖期号（int）；读不到返回 None。"""
+    try:
+        off = json.load(open(os.path.join(ROOT_DIR, "official-history.json"), encoding="utf-8"))
+        ks = [int(k) for k in off.keys() if str(k).isdigit()]
+        return max(ks) if ks else None
+    except Exception:
+        return None
 
 ZODIACS = ["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"]
 ZOD_RE = re.compile(r"[鼠牛虎兔龙蛇马羊猴鸡狗猪]")
@@ -152,14 +163,30 @@ def main():
         print(json.dumps(result, ensure_ascii=False))
         sys.exit(1)
 
-    # 确定当前期号：取最多的draw值
+    # 确定当前期号：优先「最新已开奖期 +1」（待开期）；论坛投票最大值仅作兜底。
+    # 开奖库已并入上一期开奖结果后，待开期自然推进到下一期，不再被论坛帖期号投票带偏。
     draw_counts = {}
     for it in all_items:
         d = it.get("draw")
-        if d:
-            draw_counts[d] = draw_counts.get(d, 0) + 1
-    period = max(draw_counts, key=draw_counts.get)
-    print(f"  当前期号: {period} (出现{draw_counts[period]}次)", flush=True)
+        if d is not None and str(d).isdigit():
+            di = int(d)
+            draw_counts[di] = draw_counts.get(di, 0) + 1
+
+    last_drawn = load_last_drawn_period()
+    target = last_drawn + 1 if last_drawn else None
+
+    if target and draw_counts.get(target, 0) > 0:
+        period = target
+        print(f"  当前期号: {period}（已开奖 {last_drawn} +1；论坛 {draw_counts[period]} 帖）", flush=True)
+    elif draw_counts:
+        period = max(draw_counts, key=draw_counts.get)
+        if target:
+            print(f"  WARN 待开期 {target} 论坛暂无帖，回退论坛投票最大期 {period}（出现{draw_counts[period]}次）", flush=True)
+        else:
+            print(f"  当前期号: {period}（开奖库不可用，按论坛投票 {draw_counts[period]} 次）", flush=True)
+    else:
+        period = target
+        print(f"  当前期号: {period}（开奖库待开期；论坛无 draw 标记）", flush=True)
 
     # Step 2: 解析每条帖子
     print("=== Step 2: 解析帖子 ===", flush=True)
@@ -167,7 +194,8 @@ def main():
     seen = set()  # (author, title) 去重
 
     for it in all_items:
-        if it.get("draw") != period:
+        d = it.get("draw")
+        if d is None or not str(d).isdigit() or int(d) != period:
             continue
         topic = it.get("topic") or ""
         author = (it.get("user") or {}).get("nickname") or "匿名"
