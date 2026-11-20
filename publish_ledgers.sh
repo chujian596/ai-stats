@@ -20,6 +20,8 @@ python3 enrich_site_names.py || exit 1
 python3 tools/build_source_registry.py >/dev/null 2>&1 && echo "SOURCES_OK" || echo "SOURCES_SKIP"
 # 316 后站点成绩（只统计有快照的台账）
 python3 tools/build_site_performance.py >/dev/null 2>&1 && echo "PERF_OK" || echo "PERF_SKIP"
+# 研判引擎：316 后拥挤度审计（只做统计分级，不生成方向）
+python3 tools/build_engine.py >/dev/null 2>&1 && echo "ENGINE_OK" || echo "ENGINE_SKIP"
 
 FILES="data/sites-current.json
 data/kill3-ledger.json
@@ -40,6 +42,8 @@ data/draws-recent.json
 data/quality-report.json
 data/source-registry.json
 data/site-performance.json
+data/engine.json
+$(ls data/engine-*.json 2>/dev/null | tr '\n' ' ')
 $(ls data/core-*.json 2>/dev/null | tr '\n' ' ')"
 
 git add $FILES 2>/dev/null
