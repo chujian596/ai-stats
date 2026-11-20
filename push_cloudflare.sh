@@ -92,9 +92,11 @@ fi
 # 只推 Cloudflare 的话，安卓端一直看到旧代码。这里补上同步。
 if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   cd "$SRC" || exit 1
-  git add -A -- app-pro.html app-pro-backup.html app.html version.txt version-client.txt sw.js manifest.json versions functions >/dev/null 2>&1
-  if ! git diff --cached --quiet; then
-    git commit -q -m "sync: $(date '+%F %T') 推送同步" >/dev/null 2>&1
+  SYNC_PATHS=(app-pro.html app-pro-backup.html app.html version.txt version-client.txt sw.js manifest.json versions functions)
+  git add -- "${SYNC_PATHS[@]}" >/dev/null 2>&1
+  # 只提交白名单路径：即使别的进程往暂存区放了无关改动（含删除），也不会被本脚本带走。
+  if ! git diff --cached --quiet -- "${SYNC_PATHS[@]}"; then
+    git commit -q -m "sync: $(date '+%F %T') 推送同步" -- "${SYNC_PATHS[@]}" >/dev/null 2>&1
   fi
   if git push -q origin HEAD 2>>"$LOG"; then
     echo "$(date '+%F %T') GitHub Pages 已同步" >> "$LOG"
