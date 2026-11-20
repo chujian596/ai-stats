@@ -92,16 +92,18 @@ for iss, (at, sp, d) in sorted(by_issue.items()):
         snapshot_issues.add(iss)
         periods.setdefault(iss, {}).update(cur)   # 快照覆盖历史库同站同期
 
-# ---- 组台账
+# ---- 组台账（只收已开奖对账的期；未开奖的待开期不进台账，待开推荐走 current-recommend）----
 out_periods = {}
 for iss in sorted(periods):
-    st = {}
     sp_num, sp_z = (draws.get(iss, (None, None)))
+    if sp_z is None:
+        continue
+    st = {}
     for sid, zs in periods[iss].items():
         if not zs:
             continue
         meta = sites_meta.get(sid, {'system': 'wanpz'})
-        hit = None if sp_z is None else (sp_z not in zs)
+        hit = sp_z not in zs
         st[sid] = {
             'siteKey': sid,
             'system': meta['system'],
