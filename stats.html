@@ -176,6 +176,7 @@
 
   .loading{padding:24px 0;text-align:center;color:var(--faint);font-size:12.5px}
   .error{border:1px solid #efd4d1;background:#fff7f6;color:var(--red);border-radius:10px;padding:11px 12px;font-size:12.5px;line-height:1.7}
+  .retry{margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12px;color:var(--blue);font-weight:650}
 </style>
 </head>
 <body>
@@ -186,7 +187,7 @@
       <div class="sub">多站资料 · 逐站台账 · 开奖对账</div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.00</span>
+      <span class="version">v59.01</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -239,6 +240,10 @@
       <p>每天四个节点：09:30、15:30、20:00、22:30。20:00 封存当期资料；同一期多份快照按站点并集、栏目并集累计，晚班漏抓不会把下午的票数打回去。开奖后 22:30 入账并切到下一期。</p>
     </div>
     <div class="doc-section">
+      <h3>数据存在哪里</h3>
+      <p>页面本身不存数据，只读同站点的 JSON。本期汇总在 <b>data/current-recommend.json</b>，站点目录在 <b>data/site-directory.json</b>，八本逐站台账在 <b>data/</b> 下的 max-zodiac / kill3 / pingte / wave / tail / head / size / parity 八个 ledger.json；原始抓取快照在仓库 <b>snapshots/</b>，按“期号+时间”命名。页面和这些文件一起放在 <b>chujian596/ai-stats</b> 仓库，GitHub Pages 直接读取同目录的 data/。</p>
+    </div>
+    <div class="doc-section">
       <h3>数据来源</h3>
       <p>本期汇总读取 <b>current-recommend.json</b>；逐站来自同一份快照合并结果；历期来自九肖/杀三肖/六维逐站台账；开奖来自开奖镜像。所有数据文件都在站点根目录的 <b>data/</b> 下，可直接复查。</p>
     </div>
@@ -249,7 +254,7 @@
 var ZOD = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
 var state = {
   current:null, latest:null, periods:[], official:{}, draws:null,
-  ledgers:null, activeTab:'now', dim:'nine',
+  ledgers:{}, ledgerPending:{}, activeTab:'now', dim:'nine',
   stationQuery:'', stationLimit:30, openSite:'', expanded:{}
 };
 var LEDGER_FILES = {
@@ -332,6 +337,7 @@ function listOf(cur, key){
 function totalList(arr){ return arr.reduce(function(a,x){ return a+num(x.n); },0); }
 
 function loadBase(){
+  state.ledgers={}; state.ledgerPending={};
   var nowP=$('panel-now'); if(nowP) nowP.innerHTML='<div class="loading">正在读取本期资料…</div>';
   return Promise.all([
     safe(fetchJson('data/current-recommend.json',9000)),
@@ -502,27 +508,58 @@ function detailLine(label, val){
 }
 
 function loadHistory(){
-  var p=$('panel-history');
-  if(!state.ledgers){
-    p.innerHTML='<div class="loading">正在读取历期台账…</div>';
-    var jobs=Object.keys(LEDGER_FILES).map(function(k){
-      return safe(fetchJson(LEDGER_FILES[k],10000)).then(function(d){ return [k,d]; });
-    });
-    Promise.all(jobs).then(function(list){
-      var m={}; list.forEach(function(x){ m[x[0]]=x[1]; });
-      state.ledgers=m; renderHistory();
-    }).catch(function(e){ p.innerHTML='<div class="error">台账读取失败：'+esc(e.message||e)+'</div>'; });
-    return;
-  }
   renderHistory();
 }
-function renderHistory(){
-  var p=$('panel-history'); if(!state.ledgers){ loadHistory(); return; }
+function ledgerConfig(){
   var cfg=null; DIMS.forEach(function(d){ if(d.key===state.dim) cfg=d; });
-  if(!cfg) cfg=DIMS[0];
+  return cfg||DIMS[0];
+}
+function reviewShell(cfg, body){
+  var note=(cfg.key==='size'||cfg.key==='parity')?'大小/单双从 2026-11-13 起才有逐站台账。':'';
+  return '<div class="card"><div class="card-head"><div class="card-title"><span class="sec-no">01</span><h3>历期复盘</h3></div><span class="card-note">最近 8 期 · 逐站口径</span></div>'
+    + '<div class="dim-tabs">'+DIMS.map(function(d){ return '<button class="'+(d.key===cfg.key?'on':'')+'" onclick="setDim(\''+d.key+'\')">'+esc(d.short)+'</button>'; }).join('')+'</div>'
+    + '<div class="fine" style="margin-bottom:8px">'+esc(cfg.label)+'：覆盖站数、中/错、命中率；只统计有明确站方栏目且已开奖的期。'+note+'</div>'
+    + body
+    + '<div class="links"><a href="nine-zodiac.html">九肖完整台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖完整台账 <span>查看</span></a><a href="extra-ledger.html">六维完整台账 <span>查看</span></a><a href="site-registry.html">站点目录 <span>查看</span></a></div></div>';
+}
+function reviewError(cfg, msg, retry){
+  return '<div class="error">'+esc(msg)+'</div>'+(retry?'<button class="retry" onclick="loadLedger(\''+cfg.key+'\',true)">重新读取</button>':'');
+}
+function loadLedger(key, force){
+  state.ledgerPending=state.ledgerPending||{};
+  if(state.ledgerPending[key]) return;
+  if(force && state.ledgers) delete state.ledgers[key];
+  if(force && state.activeTab==='history') renderHistory();
+  state.ledgerPending[key]=true;
+  fetchJson(LEDGER_FILES[key],12000).then(function(d){
+    state.ledgers=state.ledgers||{};
+    state.ledgers[key]=d;
+    delete state.ledgerPending[key];
+    if(state.activeTab==='history') renderHistory();
+  }).catch(function(){
+    state.ledgers=state.ledgers||{};
+    state.ledgers[key]=null;
+    delete state.ledgerPending[key];
+    if(state.activeTab==='history') renderHistory();
+  });
+}
+function renderHistory(){
+  var p=$('panel-history'); if(!p) return;
+  var cfg=ledgerConfig();
+  var has=state.ledgers && Object.prototype.hasOwnProperty.call(state.ledgers,cfg.key);
+  if(!has){
+    p.innerHTML=reviewShell(cfg,'<div class="loading">正在读取'+esc(cfg.label)+'台账…</div>');
+    loadLedger(cfg.key,false);
+    return;
+  }
   var ledger=state.ledgers[cfg.key];
-  if(!ledger || !ledger.periods){
-    p.innerHTML='<div class="card"><div class="error">这一维还没有台账。</div></div>'; return;
+  if(!ledger){
+    p.innerHTML=reviewShell(cfg,reviewError(cfg,'这一维台账读取失败，可能是手机网络慢或文件暂时不可用。',true));
+    return;
+  }
+  if(!ledger.periods){
+    p.innerHTML=reviewShell(cfg,reviewError(cfg,'这一维还没有台账。',false));
+    return;
   }
   var ps=Object.keys(ledger.periods).map(Number).sort(function(a,b){ return b-a; }).slice(0,8);
   var rows=ps.map(function(per){
@@ -536,21 +573,17 @@ function renderHistory(){
     var actual=actualOf(cfg.key,pd);
     return {per:per, total:vals.length, hit:hit, miss:miss, rate:rate, actual:actual, num:pd.specialNum};
   });
-  var h='<div class="card"><div class="card-head"><div class="card-title"><span class="sec-no">01</span><h3>历期复盘</h3></div><span class="card-note">最近 8 期 · 逐站口径</span></div>'
-    +'<div class="dim-tabs">'+DIMS.map(function(d){ return '<button class="'+(d.key===cfg.key?'on':'')+'" onclick="setDim(\''+d.key+'\')">'+esc(d.short)+'</button>'; }).join('')+'</div>'
-    +'<div class="fine" style="margin-bottom:8px">'+esc(cfg.label)+'：覆盖站数、中/错、命中率；只统计有明确站方栏目且已开奖的期。'+(cfg.key==='size'||cfg.key==='parity'?'大小/单双从 2026-11-13 起才有逐站台账。':'')+'</div>'
-    +'<table class="table"><thead><tr><th>期号</th><th>开奖</th><th>覆盖</th><th>中</th><th>错</th><th>命中率</th></tr></thead><tbody>';
+  var body='<table class="table"><thead><tr><th>期号</th><th>开奖</th><th>覆盖</th><th>中</th><th>错</th><th>命中率</th></tr></thead><tbody>';
   rows.forEach(function(r){
-    h+='<tr><td><span class="main">'+r.per+'</span></td>'
+    body+='<tr><td><span class="main">'+r.per+'</span></td>'
       +'<td>'+esc(r.actual||'—')+(r.num?'<span class="sub">特 '+r.num+'</span>':'')+'</td>'
       +'<td>'+r.total+'</td>'
       +'<td class="hit">'+r.hit+'</td>'
       +'<td class="miss">'+r.miss+'</td>'
       +'<td>'+(r.rate===null?'—':r.rate+'%')+'</td></tr>';
   });
-  h+='</tbody></table><div class="method"><b>说明：</b>九肖“中”=开奖特肖在 9 肖内；杀三肖“中”=开奖特肖不在 3 肖内；其余维度按对应栏目是否覆盖开奖值。命中率只做描述，不构成下期结论。</div>'
-    +'<div class="links"><a href="nine-zodiac.html">九肖完整台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖完整台账 <span>查看</span></a><a href="extra-ledger.html">六维完整台账 <span>查看</span></a><a href="site-registry.html">站点目录 <span>查看</span></a></div></div>';
-  p.innerHTML=h;
+  body+='</tbody></table><div class="method"><b>说明：</b>九肖“中”=开奖特肖在 9 肖内；杀三肖“中”=开奖特肖不在 3 肖内；其余维度按对应栏目是否覆盖开奖值。命中率只做描述，不构成下期结论。</div>';
+  p.innerHTML=reviewShell(cfg,body);
 }
 function actualOf(key,pd){
   if(key==='nine'||key==='kill'||key==='pingte') return pd.actual||'';
