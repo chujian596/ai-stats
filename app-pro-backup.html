@@ -653,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.59-Pro';
+var APP_VER = 'v59.60-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7726,6 +7726,7 @@ function doSave(overrideText){
 
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
+  const _dropLines = [];
   for(let i = 0; i < lines.length; i++){
     let ln = lines[i];
     // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100，避免中间空格被当成两行
@@ -7742,7 +7743,16 @@ function doSave(overrideText){
     if(/^(共|合计)/.test(ln)) continue;
     // 分段标题不是号码行，但它决定后面整段的盘口，必须保留到 workLines
     var _isSecHeadLine = /^(香港|港|澳门|澳)\s*[:：]?\s*$/.test(ln);
-    if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
+    // 纯标题行（如「澳特：」「香港：」）不参与解析，也不能当失败行
+    var _isTitleLine = /^[\u4e00-\u9fa5A-Za-z]{1,12}[:：]$/.test(ln);
+    if(_isTitleLine && !_isSecHeadLine) continue;
+    if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)){
+      // 含玩法关键词却没有数字/生肖/组合，旧逻辑会静默丢掉；现在要留下证据，整批按失败处理
+      if(/[尾头波单双大小合肖特平连组各每号码生肖注]/.test(ln)){
+        _dropLines.push({idx:i+1, raw:String(lines[i]||'').slice(0,500), msg:'这一行没有识别到号码/生肖/玩法'});
+      }
+      continue;
+    }
     // 混合订单拆分：金额(>49)后面紧跟生肖时，自动断行
     ln = ln.replace(/(\d{2,}(?:\.\d+)?)\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, function(m, num){
       return parseFloat(num) > 49 ? num + '\n' : m;
@@ -7978,6 +7988,20 @@ renderAll();
   });
 
   if(window.__ambigAbort){ window.__ambigAbort = false; return; }
+  // 没有抛错但被静默丢掉的行，也要算失败，不能让它悄悄消失
+  if(_dropLines.length){
+    _dropLines.forEach(function(d){
+      errors.push('第' + d.idx + '行：' + d.msg);
+      if(!window.__failedLines) window.__failedLines = [];
+      window.__failedLines.push(d);
+    });
+  }
+  // 一行都没识别出来（例如整段乱码）：不能再显示“合计 0.00”让用户以为保存成功
+  if(parsed.length === 0 && errors.length === 0 && mergedLines.length){
+    errors.push('整批没有识别到任何项目');
+    if(!window.__failedLines) window.__failedLines = [];
+    window.__failedLines.push({idx:1, raw:String(_rawIn || '').slice(0,500), msg:'整批没有识别到任何项目'});
+  }
   if(errors.length > 0){
     // 报错后复位：一次识别失败不再拖累下一次
     _texiaoChoice = null;
