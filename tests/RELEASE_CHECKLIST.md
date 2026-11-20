@@ -56,7 +56,7 @@ bash tests/release_check.sh
 
 ### G. 浏览器端到端门禁（自动）
 `bash tests/release_check.sh` 第 5 步会跑 `tests/browser_gate.py`，必须看到：
-`QA 116/116、词库 143/143、混搭 4/4、选择对账 55/55、归档/日志 22/22、开奖按钮 2/2，共 342/342`，失败禁止发版。
+`QA 116/116、词库 143/143、混搭 4/4、选择对账 55/55、录入金额 22/22、归档/日志 36/36、开奖按钮 2/2，共 378/378`，失败禁止发版。
 
 ### H. 历史归档自检（真机）
 打开「历史账单」，顶部应显示「历史归档自检通过」或差异明细。
@@ -78,6 +78,11 @@ bash tests/release_check.sh
 1. `Wait 85` 秒等 Pages 部署
 2. `curl "...app-pro.html?t=$RANDOM" | grep APP_VER` 核对版本
 3. 生成快照：`bash versions/snapshot.sh vXX.XX-Pro "说明"`，更新 `versions/index.html`
+
+
+### F2. 录入金额 / 弹窗回归（22 项）
+判定：`tests/order_amount_qa.js` 必须 `tested=22 / pass=22 / fail=0`。
+覆盖：同一单同码 300+500 只落 800；订单金额=保存消息=800；总单/平特应飞/今日对账/分类合计=800；飞单“按现阈值还该飞 800、还要补 500”；弹窗只弹一个、点选项后关闭、选项标注金额=落单金额。
 
 ### F. 需确认项：真实选择 + 落单对账（23 项 / 55 分支）
 浏览器执行 `tests/choice_settle_qa.js`，等待 `window.__choiceQA` 生成。

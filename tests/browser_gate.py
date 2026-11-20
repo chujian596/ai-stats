@@ -111,6 +111,28 @@ def main():
             fresh()
             page.evaluate(
                 """() => {
+                window.__orderAmtQA=null;
+                fetch('/tests/order_amount_qa.js?t='+Date.now()).then(r=>r.text()).then(t=>{
+                    try{eval(t)}catch(e){window.__orderAmtQA={err:String(e)}}
+                });
+                return true;
+            }"""
+            )
+            page.wait_for_function("window.__orderAmtQA !== null", timeout=120000)
+            oa = page.evaluate(
+                """() => window.__orderAmtQA ? {
+                tested:window.__orderAmtQA.tested,pass:window.__orderAmtQA.pass,
+                fail:window.__orderAmtQA.fail,fails:window.__orderAmtQA.fails,
+                err:window.__orderAmtQA.err||''
+            } : null"""
+            )
+            checks["order_amount"] = oa
+            if not oa or oa.get("err") or oa["pass"] != oa["tested"] or oa["fail"] != 0:
+                errors.append("order_amount: %s" % json.dumps(oa, ensure_ascii=False))
+
+            fresh()
+            page.evaluate(
+                """() => {
                 window.__archiveQA=null;
                 fetch('/tests/archive_audit_qa.js?t='+Date.now()).then(r=>r.text()).then(t=>{
                     try{eval(t)}catch(e){window.__archiveQA={err:String(e)}}
@@ -177,13 +199,15 @@ def main():
     total = (
         checks["qa_sim"]["total"] + checks["lexicon"]["total"] +
         checks["settle_mixed"]["total"] + checks["choice_settle"]["tested"] +
+        checks["order_amount"]["tested"] +
         a["total"] + checks["draw_button"]["tested"]
     )
-    print("\n浏览器门禁通过：QA %d/%d、词库 %d/%d、混搭 %d/%d、选择对账 %d/%d、归档/日志/诊断 %d/%d、开奖按钮 %d/%d，共 %d/%d" % (
+    print("\n浏览器门禁通过：QA %d/%d、词库 %d/%d、混搭 %d/%d、选择对账 %d/%d、录入金额 %d/%d、归档/日志/诊断 %d/%d、开奖按钮 %d/%d，共 %d/%d" % (
         checks["qa_sim"]["pass"], checks["qa_sim"]["total"],
         checks["lexicon"]["pass"], checks["lexicon"]["total"],
         checks["settle_mixed"]["pass"], checks["settle_mixed"]["total"],
         checks["choice_settle"]["pass"], checks["choice_settle"]["tested"],
+        checks["order_amount"]["pass"], checks["order_amount"]["tested"],
         a["pass"], a["total"],
         checks["draw_button"]["pass"], checks["draw_button"]["tested"],
         total, total
