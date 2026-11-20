@@ -68,7 +68,11 @@ if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
     case "$p" in
       app-pro.html|app-pro-backup.html|app.html|version.txt|version-client.txt|sw.js|manifest.json) ;;
       versions/*|functions/*) ;;
-      .wrangler/*|node_modules/*|__pycache__/*|tools/__pycache__/*) ;;
+      .wrangler/*|node_modules/*|__pycache__/*|*/__pycache__/*|*.pyc|*.pyo) ;;
+      # 运行时产物：抓板缓存/故障登记/日志，从不进部署包，出现改动不阻断部署
+      forum-details-cache.json|forum-snapshot.json|forum-summary.json|问题与故障登记.md|*.log|*.tmp) ;;
+      # 部署/运维脚本与文档：不打进站点包，改动不应阻断部署（.html/.json 仍受保护）
+      *.sh|*.py|*.md) ;;
       *) UNEXPECTED+=("$p") ;;
     esac
   done < <( { git diff --name-only -z; git diff --cached --name-only -z; git ls-files --others --exclude-standard -z; } )
