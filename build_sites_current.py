@@ -30,13 +30,16 @@ for rec in mh:
 # 所有 snapshot（318–322），最新覆盖
 snaps = sorted(glob.glob(str(PARENT/'snapshots'/'snapshot-*.json')))
 latest = None
+latest_ts = ''
 for sp in snaps:
     d = load(sp)
     issue = str(d.get('issue',''))
     if not issue: continue
-    latest = d
+    ts = str(d.get('generated_at') or '')
+    if latest is None or ts >= latest_ts:
+        latest = d; latest_ts = ts
     for key, rec in (d.get('sites') or {}).items():
-        if not key.startswith('wanpz-h2-'): continue
+        if not (key.startswith('wanpz-') or key.startswith('bdmijg-')): continue
         sk = str(rec.get('siteKey'))
         h = hist.setdefault(sk, {})
         for col in COLS:
@@ -49,7 +52,7 @@ issue = int(latest.get('issue'))
 
 sites = []
 for key, rec in (latest.get('sites') or {}).items():
-    if not key.startswith('wanpz-h2-'): continue
+    if not (key.startswith('wanpz-') or key.startswith('bdmijg-')): continue
     sk = str(rec.get('siteKey'))
     h = hist.get(sk, {})
     def score(col):

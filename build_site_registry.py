@@ -23,7 +23,7 @@ for key, s in d.get('sites', {}).items():
     rows.append({
         'no': i,
         'id': site,
-        'name': alias.get(site, ''),
+        'name': alias.get(f'{sysname}:{site}') or alias.get(site, ''),
         'path': f'{host}/{site}',
         'host': f'https://{host}.wanpz.com',
         'script': f'https://{host}.wanpz.com/script/{site}/',

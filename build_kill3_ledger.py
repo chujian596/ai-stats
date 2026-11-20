@@ -54,7 +54,7 @@ for s in sc['sites']:
 
 # ---- 本地快照按期归集：早份 18* / 晚份 20*；早份入账，晚份用于改料比对 ----
 KILL_COLS = ['杀特3肖', '绝杀三肖', '📛绝杀三肖']
-VALID_PREFIX = ('wanpz-h2-', 'wanpz-h9-', 'bdmijg-js-')
+VALID_PREFIX = ('wanpz-h1-', 'wanpz-h2-', 'wanpz-h3-', 'wanpz-h5-', 'wanpz-h6-', 'wanpz-h8-', 'wanpz-h9-', 'bdmijg-js-')
 snapshot_issues = set()
 
 
