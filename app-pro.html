@@ -150,7 +150,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
+        <button class="btn" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
@@ -653,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.56-Pro';
+var APP_VER = 'v59.57-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8219,6 +8219,12 @@ function macDrawGlobal(){
     return null;
   }catch(e){ return null; }
 }
+// 订单/复制/列表统一用这份澳门开奖：A 店以当前 lastDraw 为准，撤销后不能拿旧缓存继续算中奖；
+// B 店展示澳门单时才读跨店全局缓存，但港单必须用香港开奖，绝不互相顶替。
+function macDrawForOrders(){
+  if(typeof shop !== 'undefined' && shop === 'B') return macDrawGlobal();
+  return lastDraw || null;
+}
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
 // 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
@@ -8481,13 +8487,13 @@ function renderOrdersList(){
   const _dupA = duplicateOrderIds(_custOrders);
   const _dupMap = _dupA;
   const _hkD = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
-  const _macD = (typeof macDrawGlobal === 'function') ? macDrawGlobal() : null;
+  const _macD = (typeof macDrawForOrders === 'function') ? macDrawForOrders() : lastDraw;
   const _add = (o, idx, isHK) => {
     const c = o.customer || '散客';
     if(!groups[c]) groups[c] = { orders: [], totalBet: 0, totalWin: 0, hkCnt: 0 };
     groups[c].orders.push({ o, idx, hk: isHK });
     groups[c].totalBet += Number(o.amount) || 0;
-    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWinDetail(o, _macD || lastDraw).total;
+    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWinDetail(o, _macD).total;
     if(isHK) groups[c].hkCnt++;
   };
   _custOrders.forEach((o, idx) => { if(orderMatches(o, !!o.hk, _st)) _add(o, idx, !!o.hk); });
@@ -8563,7 +8569,7 @@ function renderOrdersList(){
         h += `<div style="font-size:11px;font-weight:700;color:${hk?'#b45309':'#666'};margin:6px 0 2px;padding-top:3px;border-top:1px dashed #eee">${hk?'香港单目录':'澳门单目录'}（${_cntDir}）</div>`;
         _ordLastHk = hk;
       }
-      const wd = calcOrderWinDetail(o, hk ? _hkD : undefined);
+      const wd = calcOrderWinDetail(o, hk ? _hkD : _macD);
       const isFocus = !!(o.id && o.id === window.__lastSavedOrderId);
       const isDup = !!(o.id && _dupMap[o.id]);
       h += `<div data-order-id="${esc(o.id||'')}" style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5${hk ? ';background:#fffbe6' : ''}${isDup ? ';box-shadow:inset 3px 0 0 #faad14' : ''}${isFocus ? ';background:#fff7e6;box-shadow:inset 3px 0 0 #fa8c16;padding-left:6px' : ''}">`;
@@ -9035,7 +9041,7 @@ function buildCustOrdersText(cust){
   var text = (cust || '散客') + '\n';
   var b1 = 0, w1 = 0, b2 = 0, w2 = 0;
   if(macList.length){
-    var _md = (typeof macDrawGlobal === 'function' ? macDrawGlobal() : null) || lastDraw;
+    var _md = (typeof macDrawForOrders === 'function') ? macDrawForOrders() : lastDraw;
     var _mNums = _md ? (_md.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(_md.specialNum).padStart(2,'0')) : '';
     var m = custDetailBlock(macList, _md, _md ? ('澳 ' + (_md.period || '') + ' 期　' + _mNums) : '澳 未开奖');
     text += m.text;
@@ -11025,18 +11031,28 @@ function myChoice(title, msg, opts, cb){
 }
 
 function clearOrders(){
-  myConfirm('确定清除所有订单和赔付记录？<br>客户名单保留。', () => {
+  myConfirm('确定清除所有订单和赔付记录？<br>澳门 + 香港两个店铺都会清，客户名单保留。', () => {
   orders = [];
   hkOrders = [];
   invalidateStats();
   pays = [];
   custpays = [];
-  try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}
-  try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
-  try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
+  // 订单记录列表是“本店账 + 跨店客户镜像 + 香港全局池”合并出来的。
+  // 只清本店数组不够：镜像不清，renderOrdersList 会立刻把旧单合并回来。
+  try { _writeJSONArr(MAC_GLOBAL_KEY, []); } catch(e){}
+  try { _writeJSONArr(HK_GLOBAL_KEY, []); } catch(e){}
+  try { _writeJSONArr(HK_GLOBAL_PAY_KEY, []); } catch(e){}
+  try { localStorage.setItem(HK_GLOBAL_FLY_KEY, '{}'); } catch(e){}
+  ['A','B'].forEach(function(s){
+    try { localStorage.setItem('product_stats_orders_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('product_stats_pay_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('product_stats_custpay_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('flownPerPos_shop' + s, '{}'); } catch(e){}
+    try { localStorage.setItem('flownReal_shop' + s, '{}'); } catch(e){}
+    try { localStorage.removeItem('order_pending_v1_shop' + s); } catch(e){}
+  });
   flownPerPos = {}; flownReal = {};
-  try { localStorage.setItem(sk('flownPerPos'), '{}'); } catch(e){}
-  try { localStorage.setItem(sk('flownReal'), '{}'); } catch(e){}
+  try { saveOrders(); } catch(e){}
   restoreIfNeeded();
 renderAll();
   });
@@ -11319,6 +11335,7 @@ function clearDrawRecord(){
   myConfirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。', function(){
   localStorage.removeItem(sk('lastDraw'));
   localStorage.removeItem(sk('lastDrawPeriod'));
+  try { localStorage.removeItem(MAC_DRAW_GLOBAL_KEY); } catch(e){}
   lastDraw = null;
   renderLiveBalls([]);
   updateDrawInfoBar();

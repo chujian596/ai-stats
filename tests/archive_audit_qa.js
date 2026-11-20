@@ -82,5 +82,36 @@ const _mixOrder=(orders||[])[0]||{};
 ck('平龙10按10计价', (orders||[]).length===1 && Math.abs(_mixOrder.amount-15)<0.01 && _mixOrder.codeAmts && _mixOrder.codeAmts['平特龙']===10 && _mixOrder.codeAmts['三中三:11,22,33']===5 && (_mixOrder.codes||[]).indexOf('10')<0, {amount:_mixOrder.amount,amts:_mixOrder.codeAmts,codes:_mixOrder.codes});
 window.__previewConfirmed=false;
 
+// 7. 清除订单：本店账、跨店客户镜像、香港全局池、待补记队列要一起清
+window.myConfirm=(m,f)=>{if(typeof f==='function')f();};
+orders=[{id:'qa-a',customer:'甲',raw:'特01 100',amount:100,createdAt:'2026/11/20 10:00:00'}];
+hkOrders=[{id:'qa-h',customer:'甲',raw:'特02 100',amount:100,createdAt:'2026/11/20 10:00:00',hk:true}];
+_writeJSONArr(MAC_GLOBAL_KEY,[{id:'qa-g',customer:'乙',raw:'特03 100',amount:100,createdAt:'2026/11/20 10:00:00'}]);
+_writeJSONArr(HK_GLOBAL_KEY,hkOrders.slice());
+_writeJSONArr(HK_GLOBAL_PAY_KEY,[{id:'qa-pay'}]);
+localStorage.setItem(HK_GLOBAL_FLY_KEY,'{"x":1}');
+_writePendingOrders([{id:'qa-pending',customer:'丙',raw:'特04 100',amount:100}]);
+clearOrders();
+ck('清除订单连跨店镜像一起清', orders.length===0 && hkOrders.length===0 && customerOrders().length===0
+  && _readJSONArr(MAC_GLOBAL_KEY).length===0 && _readJSONArr(HK_GLOBAL_KEY).length===0
+  && _readPendingOrders().length===0 && localStorage.getItem(HK_GLOBAL_FLY_KEY)==='{}',
+  {orders:orders.length,hk:hkOrders.length,cust:(typeof customerOrders==='function'?customerOrders().length:-1),mac:_readJSONArr(MAC_GLOBAL_KEY).length,hkG:_readJSONArr(HK_GLOBAL_KEY).length,pending:_readPendingOrders().length});
+
+// 8. 没有开奖信息时，不能拿旧全局缓存算中奖
+orders=[{id:'nodraw',customer:'散客',raw:'平特龙10 三中三 11.22.33组5',amount:15,codes:['平特龙','三中三:11,22,33'],codeAmts:{'平特龙':10,'三中三:11,22,33':5},createdAt:'2026/11/20 15:02:30'}];
+hkOrders=[];
+lastDraw=null;
+localStorage.setItem(MAC_DRAW_GLOBAL_KEY,JSON.stringify({period:'323',regularNums:[1,2,3,11,22,33],specialNum:10}));
+var _noDrawWin=calcOrderWinDetail(orders[0],macDrawForOrders()).total;
+ck('无开奖不计算命中', _noDrawWin===0 && macDrawForOrders()===null, {win:_noDrawWin,draw:macDrawForOrders()});
+
+// 9. 撤销开奖要连全局缓存一起清，列表/复制不能再用旧号码
+lastDraw={period:'323',regularNums:[1,2,3,11,22,33],specialNum:10};
+saveLastDraw();
+ck('开奖写入全局缓存', !!localStorage.getItem(MAC_DRAW_GLOBAL_KEY), !!localStorage.getItem(MAC_DRAW_GLOBAL_KEY));
+window.myConfirm=(m,f)=>{if(typeof f==='function')f();};
+clearDrawRecord();
+ck('撤销开奖清全局缓存', lastDraw===null && !localStorage.getItem(MAC_DRAW_GLOBAL_KEY) && !localStorage.getItem(sk('lastDraw')), {lastDraw:lastDraw,global:!!localStorage.getItem(MAC_DRAW_GLOBAL_KEY),local:!!localStorage.getItem(sk('lastDraw'))});
+
 window.__archiveQA=out;
 })();
