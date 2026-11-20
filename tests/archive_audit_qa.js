@@ -113,5 +113,25 @@ window.myConfirm=(m,f)=>{if(typeof f==='function')f();};
 clearDrawRecord();
 ck('撤销开奖清全局缓存', lastDraw===null && !localStorage.getItem(MAC_DRAW_GLOBAL_KEY) && !localStorage.getItem(sk('lastDraw')), {lastDraw:lastDraw,global:!!localStorage.getItem(MAC_DRAW_GLOBAL_KEY),local:!!localStorage.getItem(sk('lastDraw'))});
 
+// 10. 历史归档要存“自留盘”：总盘扣飞走、加上家赔回
+lastDraw={period:'323',regularNums:[1,2,3,11,22,33],specialNum:10};
+orders=[{id:'own-arch',customer:'散客',raw:'平特龙10 三中三 11.22.33组5',amount:15,codes:['平特龙','三中三:11,22,33'],codeAmts:{'平特龙':10,'三中三:11,22,33':5},createdAt:'2026/11/20 15:02:30'}];
+hkOrders=[];
+pays=[{product:'自动结算',amount:20,note:'平特龙×2'}];
+custpays=[];
+flownPerPos={'平特龙':10};
+flownReal={};
+const _archDay=billBookDate()||billToday();
+const _archSaved=billArchiveNow(true);
+const _arch=billArchive[_archDay]||{};
+const _archOwn=billOwnFigures(_arch.sum||{},_arch.own);
+ck('历史归档保存自留盘', _archSaved && _arch.own && Math.abs(Number(_arch.own.flyOut)-10)<0.01 && Math.abs(Number(_arch.own.flyBack)-20)<0.01 && _archOwn && Math.abs(_archOwn.net-5)<0.01, {saved:_archSaved,own:_arch.own,fig:_archOwn,sum:_arch.sum});
+
+// 11. 历史账单页面要能看到总盘/自留两行
+billOpenHistory();
+const _histTxt=(document.getElementById('billHistMask')||{}).innerText||'';
+ck('历史账单显示总盘与自留', _histTxt.indexOf('总盘')>=0 && _histTxt.indexOf('自留')>=0 && _histTxt.indexOf('上家赔回')>=0, _histTxt.slice(0,180));
+billCloseHistory();
+
 window.__archiveQA=out;
 })();

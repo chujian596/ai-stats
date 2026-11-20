@@ -653,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.57-Pro';
+var APP_VER = 'v59.58-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -11509,8 +11509,9 @@ function billAuditText(){
   var _hard = a.issues.length, _warn = (a.review || []).length;
   if(!_hard && !_warn){
     h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#166534;line-height:1.6">'
-      + '<b>历史归档自检通过</b>：' + a.days + ' 天 · ' + a.totals.n + ' 单 · 收 ' + a.totals.amt.toFixed(2) + ' · 净 ' + a.totals.net.toFixed(2)
-      + '<div style="color:#666;margin-top:3px">每天的归档汇总与实际订单/赔付逐日一致。</div></div>';
+      + '<b>历史归档自检通过</b>：' + a.days + ' 天 · ' + a.totals.n + ' 单 · 收 ' + a.totals.amt.toFixed(2) + ' · 总盘净 ' + a.totals.net.toFixed(2)
+      + '<div style="color:#666;margin-top:3px">每天的归档汇总与实际订单/赔付逐日一致。</div>'
+      + '<div style="color:#888;margin-top:3px">总盘=全部订单收单−客户赔付；自留=再扣飞出去、加上家赔回。旧账没存飞单记录时不显示自留。</div></div>';
   } else {
     if(_hard){
       h += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#a8071a;line-height:1.6">'
@@ -11551,6 +11552,43 @@ function billRefreshBar(){
   }
 }
 
+// 历史账单双口径：
+// 总盘 = 全部订单收单 - 全部客户赔付；自留盘 = 总盘 - 飞出去实付 + 上家赔回（+返水）
+function billOwnSnapshot(){
+  try{
+    if(typeof shop !== 'undefined' && shop === 'B'){
+      var hp = (typeof hkPayoutInfo === 'function') ? hkPayoutInfo() : null;
+      var fi = (typeof hkFlyInfo === 'function') ? hkFlyInfo() : null;
+      if(!fi) return null;
+      return { flyOut: Number(fi.flyOut) || 0, flyBack: Number(fi.flyBack) || 0, rebate: 0, rebateRate: 0 };
+    }
+    var ap = (typeof actualPnL === 'function') ? actualPnL() : null;
+    if(!ap) return null;
+    return {
+      flyOut: Number(ap.flyOut) || 0,
+      flyBack: Number(ap.flyBack) || 0,
+      rebate: Number(ap.rebate) || 0,
+      rebateRate: Number(ap.rebateRate) || 0
+    };
+  }catch(e){ return null; }
+}
+function billOwnFigures(sm, own){
+  if(!own) return null;
+  var sales = Number((sm && sm.amt) || 0);
+  var payout = Number((sm && sm.pay) || 0);
+  var flyOut = Number(own.flyOut) || 0;
+  var flyBack = Number(own.flyBack) || 0;
+  var ownSales = sales - flyOut;
+  var ownPay = payout - flyBack;
+  var ownNet = ownSales - ownPay;
+  var rebate = Number(own.rebate) || 0;
+  return {
+    sales: ownSales, payout: ownPay, net: ownNet,
+    flyOut: flyOut, flyBack: flyBack,
+    rebate: rebate, netWithRebate: ownNet + rebate
+  };
+}
+
 function billArchiveNow(silent){
   const d = billBookDate() || billToday();
   const s = billSum();
@@ -11565,7 +11603,8 @@ function billArchiveNow(silent){
     custpays: JSON.parse(JSON.stringify(custpays || [])),
     draw: (typeof curShopDraw === 'function') ? curShopDraw() : null,
     savedAt: new Date().toISOString(),
-    sum: s
+    sum: s,
+    own: billOwnSnapshot()
   };
   billSaveArchive();
   orders = []; hkOrders = [];
@@ -11613,9 +11652,15 @@ function billOpenHistory(){
         + '<button type="button" onclick="billCloseHistory()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>';
   h += billAuditText();
   if(s.n || pays.length){
+    const _todayOwn = billOwnFigures(s, billOwnSnapshot());
     h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
-      + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#333;font-weight:700">净 ' + s.net.toFixed(2) + '</span></div>'
-      + '<div style="font-size:12px;color:#888;margin-top:4px">' + s.n + ' 单 · 收 ' + s.amt.toFixed(2) + ' · 赔付 ' + s.pay.toFixed(2) + '</div></div>';
+      + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#333;font-weight:700">总盘净 ' + s.net.toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#333;margin-top:5px">总盘　收 ' + s.amt.toFixed(2) + ' · 赔 ' + s.pay.toFixed(2) + ' · 净 ' + s.net.toFixed(2) + '</div>'
+      + (_todayOwn ? '<div style="font-size:12px;color:#7c3aed;margin-top:3px;font-weight:600">自留　收 ' + _todayOwn.sales.toFixed(2) + ' · 赔 ' + _todayOwn.payout.toFixed(2) + ' · 净 ' + _todayOwn.net.toFixed(2)
+          + '<span style="color:#888;font-weight:400">　飞走 ' + _todayOwn.flyOut.toFixed(2) + ' · 上家赔回 ' + _todayOwn.flyBack.toFixed(2)
+          + (_todayOwn.rebate > 0.001 ? ' · 返水 ' + _todayOwn.rebate.toFixed(2) : '') + '</span></div>'
+        : '<div style="font-size:12px;color:#999;margin-top:3px">自留：未记录飞单，无法计算</div>')
+      + '<div style="font-size:11px;color:#aaa;margin-top:3px">' + s.n + ' 单</div></div>';
   }
   const keys = Object.keys(billArchive).sort().reverse();
   if(!keys.length && !(s.n || pays.length)){
@@ -11624,10 +11669,21 @@ function billOpenHistory(){
   keys.forEach(k => {
     const a = billArchive[k] || {};
     const sm = a.sum || { n: (a.orders||[]).length, amt: 0, pay: 0, net: 0 };
+    const ownF = billOwnFigures(sm, a.own);
+    let ownLine = '';
+    if(ownF){
+      ownLine = '<div style="font-size:12px;color:#7c3aed;margin-top:3px;font-weight:600">自留　收 ' + ownF.sales.toFixed(2) + ' · 赔 ' + ownF.payout.toFixed(2) + ' · 净 ' + ownF.net.toFixed(2)
+        + '<span style="color:#888;font-weight:400">　飞走 ' + ownF.flyOut.toFixed(2) + ' · 上家赔回 ' + ownF.flyBack.toFixed(2)
+        + (ownF.rebate > 0.001 ? ' · 返水 ' + ownF.rebate.toFixed(2) : '') + '</span></div>';
+    } else {
+      ownLine = '<div style="font-size:12px;color:#999;margin-top:3px">自留：' + (a.ownStale ? '作废过订单，需重新核算' : '旧账未记录飞单，无法还原') + '</div>';
+    }
     h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
       + '<div onclick="billView(\'' + k + '\')" style="cursor:pointer">'
-      + '<div style="display:flex;justify-content:space-between"><b>' + k + '</b><span style="color:#666">' + (sm.n||0) + ' 单 · 净 ' + Number(sm.net||0).toFixed(2) + '</span></div>'
-      + '<div style="font-size:12px;color:#888;margin-top:4px">收 ' + Number(sm.amt||0).toFixed(2) + ' · 赔付 ' + Number(sm.pay||0).toFixed(2) + '　<span style="color:#333">查看明细 →</span></div></div>'
+      + '<div style="display:flex;justify-content:space-between"><b>' + k + '</b><span style="color:#666">' + (sm.n||0) + ' 单 · 总盘净 ' + Number(sm.net||0).toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#333;margin-top:5px">总盘　收 ' + Number(sm.amt||0).toFixed(2) + ' · 赔 ' + Number(sm.pay||0).toFixed(2) + ' · 净 ' + Number(sm.net||0).toFixed(2) + '</div>'
+      + ownLine
+      + '<div style="font-size:12px;color:#888;margin-top:4px"><span style="color:#333">查看明细 →</span></div></div>'
       + '<button onclick="billDelete(\'' + k + '\')" style="margin-top:6px;border:1px solid #ddd;background:#fff;color:#999;border-radius:6px;padding:4px 12px;font-size:12px">删除此日</button>'
       + '</div>';
   });
@@ -11667,10 +11723,18 @@ function billView(k){
         + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,600px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>' + k + '　' + (sm.n||0) + ' 单</b>'
         + '<button type="button" onclick="billCloseView()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>'
-        + '<div style="display:flex;gap:12px;font-size:12px;color:#666;background:#fafafa;border-radius:8px;padding:8px;margin-bottom:10px">'
-        + '<span>收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b></span>'
-        + '<span>赔付 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b></span>'
-        + '<span>净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></span></div>';
+        + (function(){
+            const ownF = billOwnFigures(sm, a.own);
+            let box = '<div style="font-size:12px;color:#666;background:#fafafa;border-radius:8px;padding:8px;margin-bottom:10px;line-height:1.8">'
+              + '<div>总盘　收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b>　赔 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b>　净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></div>';
+            if(ownF){
+              box += '<div>自留　收 <b style="color:#333">' + ownF.sales.toFixed(2) + '</b>　赔 <b style="color:#333">' + ownF.payout.toFixed(2) + '</b>　净 <b style="color:#7c3aed">' + ownF.net.toFixed(2) + '</b>'
+                + '<span style="color:#888">　飞走 ' + ownF.flyOut.toFixed(2) + ' · 上家赔回 ' + ownF.flyBack.toFixed(2) + '</span></div>';
+            } else {
+              box += '<div style="color:#999">自留：' + (a.ownStale ? '作废过订单，需重新核算' : '旧账未记录飞单，无法还原') + '</div>';
+            }
+            return box + '</div>';
+          })();
   if(list.some(function(o){ const key=[String((o&&o.customer)||'散客'),String((o&&o.raw)||''),Number((o&&o.amount)||0).toFixed(2)].join('|'); return dupCounts[key] > 1; })){
     h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
       + '同客户、同原文、同金额出现多笔。先看右侧时间：同一秒/同一分钟多为重复点；间隔很久可能是两注。确认是重复再点「作废这一笔」，会重算当天汇总并留记录。</div>';
@@ -11711,6 +11775,9 @@ function billVoidOrder(k, idx){
     const amt = a.orders.reduce(function(s,x){ return s + Number((x && x.amount) || 0); }, 0);
     const pay = (a.pays || []).reduce(function(s,p){ return s + Number((p && p.amount) || 0); }, 0);
     a.sum = { n: a.orders.length, amt: amt, pay: pay, net: amt - pay };
+    // 作废一笔后无法从历史里还原当天飞单分摊，自留盘标为待重算，不能继续显示旧数
+    a.own = null;
+    a.ownStale = true;
     billSaveArchive();
     logErr('bill_void', '作废历史归档一笔', {day:k, raw:String(o.raw||'').slice(0,120), amount:Number(o.amount||0)});
     billCloseView();
