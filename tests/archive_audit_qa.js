@@ -20,6 +20,13 @@ ck('归档差额识别', a.issues.some(x=>/收单/.test(x.msg)) && a.issues.some
 ck('归档重复识别', a.issues.some(x=>/疑似重复/.test(x.msg)), a.issues);
 ck('无归档日识别', a.missing.indexOf('2026-11-19')>=0, a.missing);
 
+// 2b. 作废其中一笔：汇总重算 + 留 voided
+window.myConfirm=(m,f)=>{if(typeof f==='function')f();};
+const before180=(billArchive['2026-11-20']||{}).sum;
+billVoidOrder('2026-11-20',0);
+const after180=(billArchive['2026-11-20']||{});
+ck('作废后重算', after180.orders.length===1 && after180.sum.n===1 && Math.abs(after180.sum.amt-100)<0.01 && (after180.voided||[]).length===1, {sum:after180.sum,voided:(after180.voided||[]).length,before:before180});
+
 // 3. 解析失败写日志：带原文 + 账本日（doSave 的失败路径就是写这条记录）
 clearErrLog();
 logErr('parse','无法识别：「特0X 100」',{line:1,raw:'特0X 100',day:(billBookDate()||billToday())});

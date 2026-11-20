@@ -652,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.50-Pro';
+var APP_VER = 'v59.51-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -11451,6 +11451,11 @@ function billView(k){
   if(!a) return;
   const list = a.orders || [];
   const sm = a.sum || { n: list.length, amt: 0, pay: 0, net: 0 };
+  const dupCounts = {};
+  list.forEach(function(o){
+    const key = [String((o && o.customer) || '散客'), String((o && o.raw) || ''), Number((o && o.amount) || 0).toFixed(2)].join('|');
+    dupCounts[key] = (dupCounts[key] || 0) + 1;
+  });
   let h = '<div style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1001" onclick="if(event.target===this)billCloseView()">'
         + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,600px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>' + k + '　' + (sm.n||0) + ' 单</b>'
@@ -11459,14 +11464,22 @@ function billView(k){
         + '<span>收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b></span>'
         + '<span>赔付 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b></span>'
         + '<span>净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></span></div>';
+  if(list.some(function(o){ const key=[String((o&&o.customer)||'散客'),String((o&&o.raw)||''),Number((o&&o.amount)||0).toFixed(2)].join('|'); return dupCounts[key] > 1; })){
+    h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '同客户、同原文、同金额出现多笔。先看右侧时间：同一秒/同一分钟多为重复点；间隔很久可能是两注。确认是重复再点「作废这一笔」，会重算当天汇总并留记录。</div>';
+  }
   if(!list.length){
     h += '<div style="color:#999;padding:18px;text-align:center;font-size:13px">这天没有订单</div>';
   }
-  list.forEach(o => {
+  list.forEach((o, idx) => {
     const t = String(o.ts || o.createdAt || '').replace('T',' ').slice(5,16);
-    h += '<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding:7px 0;font-size:13px;color:#333">'
+    const key = [String(o.customer || '散客'), String(o.raw || ''), Number(o.amount || 0).toFixed(2)].join('|');
+    const dup = dupCounts[key] > 1;
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;padding:7px 0;font-size:13px;color:#333;gap:6px">'
       + '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>' + (o.customer || '散客') + '</b>　<span style="color:#888">' + (o.codes||[]).join(' ') + '</span></div>'
-      + '<div style="text-align:right;white-space:nowrap;margin-left:8px">' + Number(o.amount||0).toFixed(2) + ' <span style="color:#aaa;font-size:11px">' + t + '</span></div></div>';
+      + '<div style="text-align:right;white-space:nowrap;margin-left:8px">' + Number(o.amount||0).toFixed(2) + ' <span style="color:#aaa;font-size:11px">' + t + '</span>'
+      + (dup ? '<button type="button" onclick="billVoidOrder(\'' + k + '\',' + idx + ')" style="margin-left:6px;border:1px solid #ffccc7;background:#fff;color:#cf1322;border-radius:5px;padding:3px 7px;font-size:11px">作废这一笔</button>' : '')
+      + '</div></div>';
   });
   h += '<button type="button" onclick="billRestore(\'' + k + '\')" style="width:100%;margin-top:12px;border:1px solid #ddd;background:#fafafa;border-radius:8px;padding:10px;font-size:13px">把这天恢复为当前账本</button>';
   h += '</div></div>';
@@ -11474,6 +11487,29 @@ function billView(k){
   el.id = 'billViewMask';
   el.innerHTML = h;
   document.body.appendChild(el);
+}
+
+/* 作废历史归档中的一笔：不静默删除，先确认；保留 voided 记录，重算当天汇总。 */
+function billVoidOrder(k, idx){
+  const a = billArchive[k];
+  if(!a || !a.orders || !a.orders[idx]) return;
+  const o = a.orders[idx];
+  const desc = String(o.raw || o.customer || '') + ' / ' + Number(o.amount || 0).toFixed(2) + '元';
+  myConfirm('作废 ' + k + ' 这一笔？\n' + desc + '\n\n只在历史归档里删这一笔，重算当天汇总；会留作废记录和错误日志。', function(){
+    a.voided = a.voided || [];
+    const copy = JSON.parse(JSON.stringify(o));
+    copy.voidedAt = new Date().toISOString();
+    a.voided.push(copy);
+    a.orders.splice(idx, 1);
+    const amt = a.orders.reduce(function(s,x){ return s + Number((x && x.amount) || 0); }, 0);
+    const pay = (a.pays || []).reduce(function(s,p){ return s + Number((p && p.amount) || 0); }, 0);
+    a.sum = { n: a.orders.length, amt: amt, pay: pay, net: amt - pay };
+    billSaveArchive();
+    logErr('bill_void', '作废历史归档一笔', {day:k, raw:String(o.raw||'').slice(0,120), amount:Number(o.amount||0)});
+    billCloseView();
+    billOpenHistory();
+    myAlert('已作废这一笔，' + k + ' 已重算：' + a.sum.n + ' 单，收 ' + amt.toFixed(2) + '，净 ' + (amt-pay).toFixed(2) + '。');
+  });
 }
 
 function billOldDayCount(){
