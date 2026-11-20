@@ -6,6 +6,8 @@
 const MAX_BODY = 256 * 1024;
 const MAX_FAILURES = 200;
 const MAX_BATCHES_PER_DAY = 100;
+const MAX_BATCHES_PER_DEVICE = 5;
+const MAX_BATCHES_PER_IP = 10;
 const KEEP_DAYS = 30;
 
 const CORS = {
@@ -25,6 +27,22 @@ function out(data, status, extra) {
 function shDay(offset) {
   const t = new Date(Date.now() + 8 * 3600 * 1000 + (offset || 0) * 86400000);
   return t.toISOString().slice(0, 10);
+}
+
+function quotaOut(error) {
+  return out({ ok: false, error: error }, 429, { 'retry-after': '86400' });
+}
+
+async function hashIp(request, env) {
+  try {
+    const ip = String(request.headers.get('cf-connecting-ip') || '');
+    const salt = String((env && env.DIAG_IP_SALT) || '');
+    if (!ip || !salt || !crypto || !crypto.subtle) return '';
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip));
+    return Array.from(new Uint8Array(buf)).slice(0, 12).map(function (b) {
+      return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+  } catch (e) { return ''; }
 }
 
 function isDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
@@ -82,7 +100,7 @@ async function writeDay(env, day, doc, sha, message) {
   return gh(env, 'PUT', path, body);
 }
 
-function normalize(payload) {
+function normalize(payload, ipHash) {
   const day = isDay(payload.day) ? payload.day : shDay(0);
   const batchId = isId(payload.batchId) ? payload.batchId : '';
   if (!batchId) throw new Error('batchId invalid');
@@ -95,6 +113,7 @@ function normalize(payload) {
     shop: clean(payload.shop, 12),
     day,
     deviceHash: clean(payload.deviceHash, 40),
+    ipHash: clean(ipHash, 24),
     inputMode: clean(payload.inputMode, 40),
     totalLines: Math.max(0, Math.min(10000, Number(payload.totalLines) || 0)),
     failCount: Math.max(fails.length, Math.min(10000, Number(payload.failCount) || 0)),
@@ -129,7 +148,7 @@ export async function onRequest(context) {
       if (text.length > MAX_BODY) return out({ ok: false, error: 'too large' }, 413);
       let payload;
       try { payload = JSON.parse(text); } catch (e) { return out({ ok: false, error: 'bad json' }, 400); }
-      const rec = normalize(payload);
+      const rec = normalize(payload, await hashIp(request, env));
 
       for (let attempt = 0; attempt < 3; attempt++) {
         const cur = await readDay(env, rec.day);
@@ -137,7 +156,15 @@ export async function onRequest(context) {
           return out({ ok: true, duplicate: true, day: rec.day, batchId: rec.batchId }, 200);
         }
         if (cur.doc.batches.length >= MAX_BATCHES_PER_DAY) {
-          return out({ ok: false, error: 'day quota reached' }, 429);
+          return quotaOut('day quota reached');
+        }
+        if (rec.deviceHash) {
+          const devCount = cur.doc.batches.filter(function (x) { return x && x.deviceHash === rec.deviceHash; }).length;
+          if (devCount >= MAX_BATCHES_PER_DEVICE) return quotaOut('device quota reached');
+        }
+        if (rec.ipHash) {
+          const ipCount = cur.doc.batches.filter(function (x) { return x && x.ipHash === rec.ipHash; }).length;
+          if (ipCount >= MAX_BATCHES_PER_IP) return quotaOut('ip quota reached');
         }
         cur.doc.date = rec.day;
         cur.doc.updatedAt = new Date().toISOString();

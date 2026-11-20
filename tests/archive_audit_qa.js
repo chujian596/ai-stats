@@ -140,9 +140,39 @@ try{
   ck('诊断脱敏-两字客户名', diagMaskText('张三 平特龙10')==='[客户] 平特龙10', diagMaskText('张三 平特龙10'));
   ck('诊断脱敏-单字不误抹平特龙', diagMaskText('叶 香港 平特龙 20')==='[客户] 香港 平特龙 20', diagMaskText('叶 香港 平特龙 20'));
   ck('诊断脱敏-手机号', diagMaskText('张三 13800138000')==='[客户] [手机]', diagMaskText('张三 13800138000'));
+  ck('诊断脱敏-行中单字客户名', diagMaskText('张三 龙 30 平特龙10')==='[客户] 30 平特龙10', diagMaskText('张三 龙 30 平特龙10'));
+  ck('诊断脱敏-单字贴金额', diagMaskText('龙30 平特龙10')==='[客户] 30 平特龙10', diagMaskText('龙30 平特龙10'));
+  ck('诊断脱敏-证件号', diagMaskText('张三 110101199001011234')==='[客户] [证件]', diagMaskText('张三 110101199001011234'));
   const _db=diagBuildBatch([{idx:1,raw:'张三 各10 尾数a',msg:'无法识别：「张三」'}],[],'张三 各10 尾数a');
   ck('诊断批次含脱敏完整输入', _db.failures[0].raw.indexOf('张三')<0 && _db.failures[0].msg.indexOf('张三')<0 && _db.rawInput.indexOf('张三')<0 && _db.rawInput.indexOf('尾数a')>=0, _db);
 }finally{ roster=_oldRoster; }
+
+// 12b. 备注/说明行：本来会被判丢行、且没有号码/生肖时，不能拦整批
+orders=[]; hkOrders=[];
+clearErrLog();
+inp.value='特01 100\n备注：平特今天休息';
+window.__previewConfirmed=true;
+try{ doSave(); }catch(e){}
+await WAIT(160);
+ck('备注行不误拦整批', orders.length===1 && (window.__lastNoteLines||[]).length===1 && String(document.getElementById('saveMsg').textContent||'').indexOf('已跳过说明行 1 行')>=0,
+  {orders:orders.length,notes:(window.__lastNoteLines||[]).length,msg:String(document.getElementById('saveMsg').textContent||'').slice(0,120)});
+
+// 12c. 上报超时：8 秒的 AbortController 必须真的中止请求
+const _oldFetch=window.fetch, _oldTimeout=DIAG_TIMEOUT_MS;
+DIAG_TIMEOUT_MS=80;
+window.fetch=function(u,opts){
+  return new Promise(function(res,rej){
+    if(opts && opts.signal && opts.signal.addEventListener){
+      opts.signal.addEventListener('abort', function(){
+        var e=new Error('aborted'); e.name='AbortError'; rej(e);
+      });
+    }
+  });
+};
+let _timedOut=false;
+try{ await diagPostBatch({batchId:'timeout-test'}); }catch(e){ _timedOut=(e && e.name==='AbortError'); }
+window.fetch=_oldFetch; DIAG_TIMEOUT_MS=_oldTimeout;
+ck('诊断上报超时中止', _timedOut, _timedOut);
 
 // 13. 内嵌使用说明必须跟现行香港逻辑一致，防止功能升级后文案留在旧版
 const _helpTxt=String((document.getElementById('helpModal')||{}).textContent||'');

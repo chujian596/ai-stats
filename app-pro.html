@@ -669,7 +669,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.62-Pro';
+var APP_VER = 'v59.63-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -712,6 +712,7 @@ var DIAG_QUEUE_KEY = 'ai_diag_queue_v1';
 var DIAG_STATUS_KEY = 'ai_diag_status_v1';
 var DIAG_MAX_QUEUE = 50;
 var DIAG_MAX_FAILS = 200;
+var DIAG_TIMEOUT_MS = 8000;
 
 function diagEnabled(){
   try{ if(new URLSearchParams(location.search).get('nock')==='1') return false; }catch(e){}
@@ -733,12 +734,16 @@ function diagMaskText(txt){
       if(n.length >= 2){
         if(t.indexOf(n) >= 0) t = t.split(n).join('[客户]');
       } else {
-        // 单字客户名只抹行首，避免把“平特龙”里的“龙”也抹掉
-        t = t.replace(new RegExp('^\\s*' + escRe(n) + '(?=\\s|（|\\(|$)'), '[客户]');
+        // 单字客户名：只抹行首，或分隔符后且后面紧跟分隔符/金额/行尾；
+        // 这样“龙 30”“龙30”“张三 龙 30”会抹，“平特龙10”不会误伤。
+        var re = new RegExp('(^|[\\s,，、:：])' + escRe(n) + '(?=[\\s,，、:：]|（|\\(|\\d|$)', 'gm');
+        t = t.replace(re, function(m, pre){ return pre + '[客户]'; });
       }
     });
   }catch(e){}
   t = t.replace(/^\s*\[客户\]\s*/, '[客户] ');
+  t = t.replace(/\[客户\](?:\s*\[客户\])+/g, '[客户]');
+  t = t.replace(/\b\d{17}[\dXx]\b/g, '[证件]');
   t = t.replace(/1[3-9]\d{9}/g, '[手机]');
   return t;
 }
@@ -773,8 +778,8 @@ function diagQueueWrite(q){
   try{ localStorage.setItem(DIAG_QUEUE_KEY, JSON.stringify((q || []).slice(-DIAG_MAX_QUEUE))); }catch(e){}
   renderDiagBadge();
 }
-function diagSaveStatus(txt, at){
-  try{ localStorage.setItem(DIAG_STATUS_KEY, JSON.stringify({txt:String(txt||''), at: at || Date.now()})); }catch(e){}
+function diagSaveStatus(txt, at, retryAt){
+  try{ localStorage.setItem(DIAG_STATUS_KEY, JSON.stringify({txt:String(txt||''), at: at || Date.now(), retryAt: Number(retryAt) || 0})); }catch(e){}
 }
 function diagReadStatus(){
   try{ return JSON.parse(localStorage.getItem(DIAG_STATUS_KEY) || '{}') || {}; }catch(e){ return {}; }
@@ -797,24 +802,67 @@ function renderDiagBadge(){
     b.style.display = n ? 'inline-block' : 'none';
   }catch(e){}
 }
+function diagPostBatch(b){
+  var opts = {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-diag-key':DIAG_INGEST_KEY},
+    body: JSON.stringify(b),
+    keepalive: true
+  };
+  var ctrl = null, timer = null;
+  try{
+    if(typeof AbortController !== 'undefined'){
+      ctrl = new AbortController();
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, DIAG_TIMEOUT_MS);
+    }
+  }catch(e){}
+  return fetch(DIAG_ENDPOINT, opts).then(function(r){
+    if(timer) clearTimeout(timer);
+    return r;
+  }, function(e){
+    if(timer) clearTimeout(timer);
+    throw e;
+  });
+}
 function diagFlush(manual){
   if(!diagEnabled()){ if(manual) myAlert('测试模式不上报。'); return Promise.resolve(); }
   if(typeof navigator !== 'undefined' && navigator.onLine === false){ if(manual) myAlert('当前离线，已保留在本机，联网后自动上报。'); return Promise.resolve(); }
   var q = diagQueueRead();
   if(!q.length){ if(manual) myAlert('没有待上报的失败批次。'); return Promise.resolve(); }
-  var sent = 0, failed = '';
+  var st = diagReadStatus();
+  if(!manual && st.retryAt && Date.now() < st.retryAt){
+    return Promise.resolve(); // 上次超时/额度满，等退避时间到了再试
+  }
+  var sent = 0, failed = '', stopped = false, retryAt = 0;
+  function done(msg){
+    diagQueueWrite(q);
+    diagSaveStatus(msg, Date.now(), retryAt);
+    if(manual) myAlert(msg);
+  }
   function step(i){
-    if(i >= q.length || sent >= 5){ diagQueueWrite(q); if(sent) diagSaveStatus('已上报 ' + sent + ' 批', Date.now()); else diagSaveStatus('上报失败，已保留在本机', Date.now()); if(manual) myAlert(sent ? ('已上报 ' + sent + ' 批。') : ('上报失败：' + (failed || '网络问题') + '。已保留在本机。')); return; }
+    if(stopped || i >= q.length || sent >= 5){
+      if(sent){ retryAt = 0; done('已上报 ' + sent + ' 批'); }
+      else { retryAt = retryAt || (Date.now() + 60000); done('上报失败：' + (failed || '网络问题') + '。已保留在本机，稍后自动重试。'); }
+      return;
+    }
     var b = q[i];
-    fetch(DIAG_ENDPOINT, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','x-diag-key':DIAG_INGEST_KEY},
-      body: JSON.stringify(b),
-      keepalive: true
-    }).then(function(r){
-      if(r.ok){ sent++; q.splice(i,1); diagQueueWrite(q); diagSaveStatus('已上报 ' + sent + ' 批', Date.now()); return step(i); }
+    diagPostBatch(b).then(function(r){
+      if(r.ok){ sent++; q.splice(i,1); diagQueueWrite(q); return step(i); }
+      if(r.status === 429){
+        var sec = parseInt((r.headers && r.headers.get && r.headers.get('Retry-After')) || '86400', 10);
+        if(!(sec > 0)) sec = 86400;
+        retryAt = Date.now() + sec * 1000;
+        stopped = true;
+        return done('今日诊断额度已满，已保留本机，明日自动补传。');
+      }
       return r.text().then(function(t){ failed = 'HTTP ' + r.status; return step(i+1); });
-    }).catch(function(e){ failed = (e && e.message) || '网络错误'; return step(i+1); });
+    }).catch(function(e){
+      failed = (e && e.name === 'AbortError') ? '超时' : ((e && e.message) || '网络错误');
+      retryAt = Date.now() + 60000;
+      stopped = true;
+      return done('上报' + failed + '，已保留在本机，稍后自动重试。');
+    });
   }
   step(0);
   return Promise.resolve();
@@ -7743,6 +7791,7 @@ function doSave(overrideText){
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
   const _dropLines = [];
+  const _noteLines = [];
   for(let i = 0; i < lines.length; i++){
     let ln = lines[i];
     // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100，避免中间空格被当成两行
@@ -7763,6 +7812,12 @@ function doSave(overrideText){
     var _isTitleLine = /^[\u4e00-\u9fa5A-Za-z]{1,12}[:：]$/.test(ln);
     if(_isTitleLine && !_isSecHeadLine) continue;
     if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)){
+      // 备注/说明行本来就没有号码，不能因为里面提到“平特”就把整批判失败。
+      // 只在这种“本来就会被丢弃”的情况下豁免；备注里真带号码/生肖的仍走正常解析。
+      if(/^(备注|说明|注|提示|温馨提示|注意|附注|补充)\s*[:：]?/.test(ln)){
+        _noteLines.push({idx:i+1, raw:String(lines[i]||'').slice(0,200)});
+        continue;
+      }
       // 含玩法关键词却没有数字/生肖/组合，旧逻辑会静默丢掉；现在要留下证据，整批按失败处理
       if(/[尾头波单双大小合肖特平连组各每号码生肖注]/.test(ln)){
         _dropLines.push({idx:i+1, raw:String(lines[i]||'').slice(0,500), msg:'这一行没有识别到号码/生肖/玩法'});
@@ -7788,6 +7843,7 @@ function doSave(overrideText){
 
 // 股东分账格式：每行 "编号 金额"，如 "02 10.00"
   window.__lastParseTotal = mergedLines.length;
+  window.__lastNoteLines = _noteLines.slice();
   const splitFormat = mergedLines.filter(l => !/^合计/.test(l));
   if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
     var custName = document.getElementById('customerName').value.trim() || '散客';
@@ -8220,6 +8276,9 @@ renderAll();
   if(!storageOK){
     msg += '\n⚠ 当前浏览器不允许本地保存，刷新后数据会丢失，已自动下载备份JSON，请收好！';
     try { exportBackup(); } catch(e){}
+  }
+  if(_noteLines.length){
+    msg += '<br><span style="color:#888;font-size:13px">已跳过说明行 ' + _noteLines.length + ' 行</span>';
   }
   if(window.__lastSavedOrderId){
     msg += '<br><button onclick="showLastOrder()" style="margin-top:8px;padding:8px 14px;border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:8px;font-size:14px;font-weight:600">查看本次订单</button>';
