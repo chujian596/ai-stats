@@ -470,6 +470,13 @@ function renderSpecialNine(cur){
   var html='<div class="rc-title" style="padding-top:12px">特肖首肖名次</div>';
   html+='<div class="rc-sub">本期特肖 '+per.actual+' 排第 '+(curPos||'—')+' 名；下表为累计 '+n+' 期首肖票数排行中的特肖名次（随机基准：任一名段约 25%）。</div>';
   html+=row('前 3 名','p1_3')+row('第 4–6 名','p4_6')+row('第 7–9 名','p7_9')+row('后 3 名','p10_12');
+  if(fr && fr.positions && fr.positions.length){
+    var pos=fr.positions.slice().sort(function(a,b){return a-b;});
+    var top1=fr.positions.filter(function(p){return p===1;}).length;
+    var top3=fr.positions.filter(function(p){return p<=3;}).length;
+    var med=pos.length%2?pos[Math.floor(pos.length/2)]:(pos[pos.length/2-1]+pos[pos.length/2])/2;
+    html+='<div class="rank-row"><div class="rank-z">榜单命中记录</div><div class="rank-c">榜首开出 '+top1+'/'+n+' · 前3含特肖 '+top3+'/'+n+' · 名次中位 '+med+'</div></div>';
+  }
   html+='<div class="rc-sub" style="padding-bottom:12px">样本不足，仅记录不定论。</div>';
   el.innerHTML=html;
 }

@@ -282,6 +282,13 @@ function renderSpecial(per){
   html+='<div class="rc-sub">本期特肖 '+per.actual+' 排第 '+(curPos||'—')+' 名；下表为有本地快照、记录较全的 '+c.n+' 期累计（随机基准：任一名段约 25%）。</div>';
   html+=row('前 3 名','p1_3')+row('第 4–6 名','p4_6')+row('第 7–9 名','p7_9')+row('后 3 名','p10_12');
   var a=sr.all||{n:0};
+  if(a.positions && a.positions.length){
+    var pos=a.positions.slice().sort(function(x,y){return x-y;});
+    var k1=a.positions.filter(function(x){return x===1;}).length;
+    var k3=a.positions.filter(function(x){return x<=3;}).length;
+    var med=pos.length%2?pos[Math.floor(pos.length/2)]:(pos[pos.length/2-1]+pos[pos.length/2])/2;
+    html+='<div class="rank-row"><div class="rank-z">榜单命中记录</div><div class="rank-c">榜首开出 '+k1+'/'+a.n+' · 前3杀错 '+k3+'/'+a.n+' · 名次中位 '+med+'</div></div>';
+  }
   html+='<div class="rc-sub" style="padding-bottom:12px">另有早期无快照 '+(a.n-c.n)+' 期记录不全，未计入上表；样本不足，仅记录不定论。</div>';
   el.innerHTML=html;
 }
