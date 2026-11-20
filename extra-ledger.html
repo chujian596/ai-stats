@@ -195,8 +195,10 @@ function renderPending(){
   card.classList.remove('hidden');
   var sites=(PEND.sites||[]).filter(pendExt);
   document.getElementById('pendTitle').textContent='待开期 '+cfg.title+' · 第'+PEND.period+'期（待开奖 · 未对账）';
+  var carryN=sites.filter(function(s){return s.carried;}).length;
+  var carryTxt=carryN?(' · 上版沿用 '+carryN+' 站（计入票数）'):'';
   var missTxt=(PEND.missingCount||0)?(' · 本轮未纳入 '+(PEND.missingCount||0)+' 站（不计入本轮票数，非改料）'):'';
-  document.getElementById('pendSub').innerHTML='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+sites.length+' 站有'+cfg.title+'推荐'+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。<br><b>历史中错 / 连对连错 / 近 7 期轨迹，把上方期号切到已开奖期（如 323）即可看到。</b>';
+  document.getElementById('pendSub').innerHTML='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+(sites.length-carryN)+' 站有'+cfg.title+'推荐'+carryTxt+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。<br><b>历史中错 / 连对连错 / 近 7 期轨迹，把上方期号切到已开奖期（如 323）即可看到。</b>';
   document.getElementById('pendColHead').textContent='本期'+cfg.title+'推荐';
   document.getElementById('summary').innerHTML='待开 <b>第 '+PEND.period+'</b> 期 · '+cfg.title+' 有推荐 <b>'+sites.length+'</b> 站（未对账）';
   document.getElementById('snapNote').textContent='';

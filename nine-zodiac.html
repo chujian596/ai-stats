@@ -419,7 +419,7 @@ function renderMissing(){
   var bySys={};
   miss.forEach(function(m){ (bySys[m.system]=bySys[m.system]||[]).push(m); });
   var html='<div class="pend-miss"><div class="pm-title">本轮未纳入站点（'+miss.length+' 站 · 上版 '+(prev.updatedAt||'—')+'）</div>'+
-    '<div class="pm-sub">这些站本轮快照未抓到/未回传，未计入本轮首肖票数；列出上一版首肖仅供对照，不代表本轮改料，下一轮快照补齐后自动回到榜单。</div>';
+    '<div class="pm-sub">这些站本轮重试后仍未抓到、且未沿用上版兜底，未计入本轮首肖票数；列出上一版首肖仅供对照，不代表本轮改料，下一轮快照补齐后自动回到榜单。已沿用上版的站见主表“上版沿用”标记，已计入票数。</div>';
   Object.keys(bySys).forEach(function(sys){
     html+='<div class="pm-sys">'+sys+'</div><div class="pm-chips">';
     bySys[sys].forEach(function(m){
@@ -456,10 +456,12 @@ function renderPending(){
     return;
   }
   var sites=(PEND.sites||[]).filter(function(s){return s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length;});
+  var carryNine=sites.filter(function(s){return s.carried;}).length;
   title.textContent='待开期推荐 · 第'+PEND.period+'期（待开奖 · 未对账）';
   var prev=PEND.prevSnapshot||{};
   var miss=PEND.missingStations||[];
-  var subTxt='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+sites.length+' 站有九肖';
+  var subTxt='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+(sites.length-carryNine)+' 站有九肖';
+  if(carryNine){ subTxt+=' · 上版沿用 '+carryNine+' 站（计入票数，标注沿用，非本轮新料）'; }
   if(prev.nine){ subTxt+=' · 上版 '+prev.nine+' 站'; }
   if(miss.length){ subTxt+=' · 本轮未纳入 '+miss.length+' 站（不计入本轮票数，非改料，见下方清单）'; }
   subTxt+='；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
@@ -505,10 +507,11 @@ function renderPending(){
     if(prevFirst && s.zodiacs && s.zodiacs.length && s.zodiacs[0]!==prevFirst){
       changeTag='<div class="pend-hist"><span class="hl-l2">较上版换首肖 '+prevFirst+'→'+s.zodiacs[0]+'</span></div>';
     }
+    var carryTag=s.carried?'<div class="pend-hist"><span class="hl-l2">上版沿用（'+(s.carryFrom||'上一版')+'）</span></div>':'';
     var tr=document.createElement('tr');
     tr.className='rowlink'+alertCls;
     tr.dataset.sk=s.siteKey;
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+changeTag+'</td>'+
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+carryTag+changeTag+'</td>'+
       '<td class="pend-z">'+zcell+trailHtml+'</td>';
     tb.appendChild(tr);
   });

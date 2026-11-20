@@ -166,13 +166,21 @@ def main():
             "missingStations": [],
             "missingCount": 0,
             "prevFirstMap": {},
+            "carriedCount": 0,
         }
     else:
         issue = max(pending.keys())
         seq = pending[issue]
         sp, snap = seq[-1]
-        prev = seq[-2][1] if len(seq) >= 2 else None
-        prev_sp = os.path.basename(seq[-2][0]) if len(seq) >= 2 else None
+
+        def _ok_n(s):
+            return sum(1 for v in (s.get("sites") or {}).values() if "columns" in v)
+
+        # 基准取当天同期最完整的一份（排除本轮），缺站对照对齐最佳水平
+        prev, prev_sp = None, None
+        for p, s in seq[:-1]:
+            if prev is None or _ok_n(s) > _ok_n(prev):
+                prev, prev_sp = s, os.path.basename(p)
         sites = []
         kill_agg = {}
         kill_sites = 0
@@ -181,6 +189,8 @@ def main():
         for _sk, sd in (snap.get("sites") or {}).items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
+            carried = bool(sd.get("carry"))
+            carry_from = sd.get("carryFrom")
             cols = sd.get("columns") or {}
             pick = pick_column(cols)
             kill = pick_kill(cols)
@@ -197,7 +207,9 @@ def main():
             base = {
                 "system": system,
                 "siteKey": site_key,
-                "fresh": True,
+                "fresh": not carried,
+                "carried": carried,
+                "carryFrom": carry_from,
                 "killZodiacs": kill,
                 "pingte": extra['pingte'] or {},
                 "wave": extra['wave'] or {},
@@ -216,8 +228,9 @@ def main():
                 base.update({"column": None, "zodiacs": [], "status": "无九肖栏目"})
                 sites.append(base)
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
+        carried_count = sum(1 for s in sites if s.get("carried"))
 
-        # 上一份快照参照：识别本轮未纳入的站（不计入本轮票数，仅作缺站对照，避免票数被静默稀释）
+        # 上一份快照参照：识别既没抓到、也未沿用兜底的站（仅作缺站对照；沿用站已计入榜单）
         prev_sites = (prev or {}).get("sites") or {}
         cur_keys = {f"{s['system']}-{s['siteKey']}" for s in sites}
         missing = []
@@ -267,6 +280,7 @@ def main():
             "missingStations": missing,
             "missingCount": len(missing),
             "prevFirstMap": prev_first_map,
+            "carriedCount": carried_count,
         }
 
     with open(OUT, "w", encoding="utf-8") as f:
