@@ -87,6 +87,15 @@
   .pend-hist .hl-l3{color:var(--red);font-weight:800}
   .pend-table .trail{margin-top:5px}
   tr.pend-alert{background:#fff7f6}
+  .pend-miss{padding:12px 14px 4px}
+  .pend-miss .pm-title{font-weight:700;font-size:13px;margin-bottom:4px}
+  .pend-miss .pm-sub{font-size:11.5px;color:var(--sub);margin-bottom:8px;line-height:1.6}
+  .pm-chip{display:inline-block;margin:2px 6px 2px 0;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .pm-chip.l1{color:var(--sub);font-weight:500}
+  .pm-chip.l2{border-color:#ecd9a8;background:#fffaf0;color:#8a6500}
+  .pm-chip.l3{border-color:#f3c9c6;background:#fff7f6;color:var(--red)}
+  .pm-chip .pm-n{font-variant-numeric:tabular-nums}
+  tr.pend-flash{background:#fff6df !important}
 </style>
 </head>
 <body>
@@ -108,6 +117,7 @@
     <div class="rc-title" id="pendTitle"></div>
     <div class="rc-sub" id="pendSub"></div>
     <div id="pendRank"></div>
+    <div id="pendMiss"></div>
     <div class="table-scroll" id="pendTableWrap" style="display:none">
       <table class="pend-table">
         <thead><tr><th>站名</th><th>本期杀三肖（原序）</th></tr></thead>
@@ -308,6 +318,41 @@ function pendHist(s){
   return {has:true,w:cs.w,l:cs.l,win:st.win,lose:st.lose,trail:trail};
 }
 
+function renderPendingMiss(){
+  var box=document.getElementById('pendMiss');
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var lastIssue=issues[issues.length-1];
+  var missRows=(PEND.sites||[]).filter(function(s){return s.killZodiacs&&s.killZodiacs.length;})
+    .map(function(s){return {s:s,h:pendHist(s)};})
+    .filter(function(x){return x.h.has&&x.h.l>=1;})
+    .sort(function(a,b){return b.h.l-a.h.l||(b.h.win-a.h.win);});
+  if(!missRows.length){
+    box.innerHTML='<div class="pend-miss"><div class="pm-sub">截至上期 '+lastIssue+'，近期暂无连错记录。</div></div>';
+    return;
+  }
+  var html='<div class="pend-miss"><div class="pm-title">最近连错（截至上期 '+lastIssue+'）</div>'+
+    '<div class="pm-sub">点站名跳到下方逐站表对应记录；连错 2 期橙色、≥3 期红色。</div>';
+  missRows.forEach(function(x){
+    var h=x.h,s=x.s,nm=nameOf(s,s.siteKey);
+    var cls=h.l>=3?'l3':(h.l===2?'l2':'l1');
+    html+='<button type="button" class="pm-chip '+cls+'" data-sk="'+s.siteKey+'">'+nm+'<span class="pm-n">（连错'+h.l+' · 中'+h.win+' 错'+h.lose+'）</span></button>';
+  });
+  html+='</div>';
+  box.innerHTML=html;
+  box.querySelectorAll('.pm-chip').forEach(function(b){
+    b.addEventListener('click',function(){ jumpPendSite(b.dataset.sk); });
+  });
+}
+
+function jumpPendSite(sk){
+  var tb=document.getElementById('pendRows');
+  var tr=tb.querySelector('tr[data-sk="'+sk+'"]');
+  if(!tr) return;
+  tr.scrollIntoView({behavior:'smooth',block:'center'});
+  tr.classList.add('pend-flash');
+  setTimeout(function(){tr.classList.remove('pend-flash');},1600);
+}
+
 function renderPendingKill(){
   var card=document.getElementById('pendCard');
   if(!PEND || PEND.status!=='pending'){ card.style.display='none'; return; }
@@ -327,6 +372,7 @@ function renderPendingKill(){
         '<div class="rank-c">'+r.kill+' 票</div></div>';
     }).join('');
   } else { rankEl.innerHTML=''; }
+  renderPendingMiss();
   var wrap=document.getElementById('pendTableWrap');
   var tb=document.getElementById('pendRows');
   var killSites=(PEND.sites||[]).filter(function(s){return s.killZodiacs&&s.killZodiacs.length;});
@@ -345,6 +391,7 @@ function renderPendingKill(){
     }
     var tr=document.createElement('tr');
     tr.className='rowlink'+alertCls;
+    tr.dataset.sk=s.siteKey;
     tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
       '<td class="pend-z">'+zsHtml(s.killZodiacs)+trailHtml+'</td>';
     tb.appendChild(tr);
