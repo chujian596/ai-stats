@@ -840,6 +840,17 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   renderHKFlyBox();
 }
 
+/* 香港飞单默认：应用内三项文案，必须能一眼看出飞什么、不飞什么 */
+{
+  openHKModeSheet();
+  const body=document.getElementById('hkModeSheetBody');
+  const txt=body.innerText;
+  gate('香港模式面板·三项文案', body.querySelectorAll('button').length===3
+       && txt.indexOf('全飞')>=0 && txt.indexOf('只飞组合')>=0 && txt.indexOf('只记录')>=0
+       && txt.indexOf('单号、平特只记录')>=0 && txt.indexOf('只记客户账')>=0, txt);
+  closeHKModeSheet();
+}
+
 R.pass=R.cases.filter(c=>c.status==='PASS').length;
 R.fail=R.cases.filter(c=>c.status==='FAIL').length;
 return R;

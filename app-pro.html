@@ -233,14 +233,19 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:0 0 8px;padding:6px 8px;border:1px solid #f0c36d;background:#fffbe6;border-radius:8px;font-size:12px;color:#b45309">
       <span style="white-space:nowrap">香港飞单默认（所有客户）</span>
-      <select id="hkGlobalMode" onchange="setHKGlobalMode(this.value)" style="flex:1;max-width:190px;padding:4px 6px;border:1px solid #e8c574;border-radius:5px;background:#fff;color:#b45309;font-size:12px">
-        <option value="all">全飞</option>
-        <option value="rule">只飞连肖/二中二/三中三</option>
-        <option value="none">只记录，不飞</option>
-      </select>
+      <button type="button" id="hkGlobalModeBtn" onclick="openHKModeSheet()" style="flex:1;max-width:190px;padding:5px 8px;border:1px solid #e8c574;border-radius:5px;background:#fff;color:#b45309;font-size:12px;font-weight:600;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">全飞 ▾</button>
     </div>
     <div id="ordersList"></div>
     <div id="hkFlyBox" style="margin-top:8px"></div>
+    <div id="hkModeSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeHKModeSheet()">
+      <div style="background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:14px 16px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;box-shadow:0 -8px 30px rgba(0,0,0,.18)">
+        <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 12px"></div>
+        <div style="font-size:18px;font-weight:700;color:#1f2329">香港飞单默认</div>
+        <div style="font-size:12px;color:#888;line-height:1.5;margin-top:3px">所有客户统一生效；改这里，全部客户一起改。</div>
+        <div id="hkModeSheetBody" style="margin-top:10px"></div>
+        <button type="button" onclick="closeHKModeSheet()" style="width:100%;margin-top:12px;padding:11px;border:1px solid #ddd;border-radius:10px;background:#f7f7f7;color:#666;font-size:15px;font-weight:600">取消</button>
+      </div>
+    </div>
   </section>
 
   <section id="tab-pay" class="card tab-panel" style="display:none">
@@ -647,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.47-Pro';
+var APP_VER = 'v59.48-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3355,8 +3360,7 @@ function setHKGlobalMode(mode){
   try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, m); }catch(e){}
   // 全局框就是“所有客户”：清掉旧的单客覆盖，避免看起来改了全部、实际被老设置挡住
   try{ localStorage.removeItem(HK_MODE_KEY); }catch(e){}
-  var gs = document.getElementById('hkGlobalMode');
-  if(gs) gs.value = m;
+  renderHKGlobalModeBtn();
   var st = hkFlyState();
   st.perPos = {}; st.real = {}; st.done = false; st.at = '';
   saveHKFlyState(st);
@@ -3365,6 +3369,46 @@ function setHKGlobalMode(mode){
 }
 function hkModeLabel(v){
   return v === 'none' ? '只记录' : (v === 'rule' ? '只飞组合' : '全飞');
+}
+function hkModeDesc(v){
+  if(v === 'rule') return '只飞连肖 / 二中二 / 三中二 / 三中三；单号、平特只记录，不飞。';
+  if(v === 'none') return '所有香港单都不飞给上家，只记客户账。';
+  return '所有香港单都飞给上家。';
+}
+function renderHKGlobalModeBtn(){
+  var b = document.getElementById('hkGlobalModeBtn');
+  if(b) b.textContent = hkModeLabel(hkGlobalMode()) + ' ▾';
+}
+function renderHKModeSheet(){
+  var body = document.getElementById('hkModeSheetBody');
+  if(!body) return;
+  var cur = hkGlobalMode();
+  var opts = [
+    { v:'all', t:'全飞', d:hkModeDesc('all') },
+    { v:'rule', t:'只飞组合', d:hkModeDesc('rule') },
+    { v:'none', t:'只记录', d:hkModeDesc('none') }
+  ];
+  body.innerHTML = opts.map(function(o){
+    var on = cur === o.v;
+    return '<button type="button" onclick="pickHKGlobalMode(\'' + o.v + '\')" style="width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;margin-bottom:8px;padding:11px 10px;border:1px solid ' + (on?'#16a34a':'#e5e7eb') + ';border-radius:11px;background:' + (on?'#f0fdf4':'#fff') + '">'
+      + '<span style="flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid ' + (on?'#16a34a':'#c9ced6') + ';margin-top:2px;display:flex;align-items:center;justify-content:center">'
+      + (on?'<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:block"></span>':'') + '</span>'
+      + '<span style="flex:1;min-width:0"><b style="display:block;font-size:15px;color:#1f2329;line-height:1.3">' + o.t + '</b>'
+      + '<span style="display:block;font-size:12px;color:#888;line-height:1.45;margin-top:2px">' + o.d + '</span></span></button>';
+  }).join('');
+}
+function openHKModeSheet(){
+  renderHKModeSheet();
+  var el = document.getElementById('hkModeSheet');
+  if(el) el.style.display = 'flex';
+}
+function closeHKModeSheet(){
+  var el = document.getElementById('hkModeSheet');
+  if(el) el.style.display = 'none';
+}
+function pickHKGlobalMode(v){
+  closeHKModeSheet();
+  setHKGlobalMode(v);
 }
 function hkCodeSends(c, mode){
   if(mode === 'none') return false;
@@ -8255,8 +8299,7 @@ function loadMoreCustOrdersByIndex(gi){
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
-  const _gs = document.getElementById('hkGlobalMode');
-  if(_gs) _gs.value = hkGlobalMode();
+  renderHKGlobalModeBtn();
   const _st = orderFilterState();
   const groups = {};
   const _custOrders = customerOrders();   // 港澳客户订单镜像，只用于列表/合计
