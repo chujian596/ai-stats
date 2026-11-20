@@ -73,11 +73,20 @@
   .rank-bar i{display:block;height:100%;background:var(--red)}
   .rank-hot{color:var(--red);font-weight:700}
   .cum-toggle{padding:11px 14px;font-size:12.5px;color:var(--blue);font-weight:600;cursor:pointer;border-top:1px solid var(--line)}
+  .hidden{display:none}
+  .review-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px;padding:0 2px}
+  .review-head .rh-title{font-size:13px;font-weight:700;color:var(--sub)}
+  .review-head button{padding:6px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12.5px;font-weight:600;color:var(--blue);cursor:pointer}
   /* 待开逐站表：窄屏不横向滚动，站名与杀肖紧挨 */
   .pend-table{min-width:auto;width:100%}
   .pend-table td{padding:8px 12px;vertical-align:middle}
   .pend-table td.pend-site{width:42%;font-weight:700;white-space:nowrap}
   .pend-table td.pend-z{width:58%}
+  .pend-hist{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.5;white-space:normal}
+  .pend-hist .hl-l2{color:var(--yellow);font-weight:700}
+  .pend-hist .hl-l3{color:var(--red);font-weight:800}
+  .pend-table .trail{margin-top:5px}
+  tr.pend-alert{background:#fff7f6}
 </style>
 </head>
 <body>
@@ -94,10 +103,6 @@
     <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
     <div class="stat" id="summary"></div>
   </div>
-  <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 所杀三肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
-  <div class="meta" id="snapNote" style="margin:-4px 0 10px;color:#b8860b;display:none"></div>
-  <div class="meta" id="gapNote" style="margin:-4px 0 10px;color:#6b6b6b;display:none"></div>
-  <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#c8322b"></div>
 
   <div class="card" id="pendCard" style="display:none;border-color:#f3c9c6;background:#fffafa">
     <div class="rc-title" id="pendTitle"></div>
@@ -110,6 +115,16 @@
       </table>
     </div>
   </div>
+
+  <div id="reviewSection" class="hidden">
+  <div class="review-head">
+    <span class="rh-title">往期复盘台账（已开奖期）</span>
+    <button id="btnCollapse" type="button">收起 ▴</button>
+  </div>
+  <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 所杀三肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
+  <div class="meta" id="snapNote" style="margin:-4px 0 10px;color:#b8860b;display:none"></div>
+  <div class="meta" id="gapNote" style="margin:-4px 0 10px;color:#6b6b6b;display:none"></div>
+  <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#c8322b"></div>
 
   <div class="alertbox a2" id="missAlert" style="display:none"></div>
 
@@ -139,6 +154,7 @@
   </div>
 
   <div class="note" id="ruleNote"></div>
+  </div>
 </div>
 
 <script>
@@ -271,6 +287,27 @@ function toggleCum(){
   t.textContent=open?'历史累计参考 ▾':'历史累计参考 ▴';
 }
 
+function pendHist(s){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  if(!issues.length) return {has:false};
+  var last=issues[issues.length-1];
+  var per=LG.periods[last];
+  var key=s.siteKey;
+  if(!per.stations[key]){
+    for(var k in per.stations){ if(per.stations[k].siteKey===s.siteKey){ key=k; break; } }
+  }
+  if(!per.stations[key]) return {has:false};
+  var st=streakOf(key,last), cs=curStreak(key,last);
+  var hist=historyOf(key,last).slice(-7);
+  var trail=hist.map(function(h){
+    var rr=h.rec, cls,tx;
+    if(rr.hit===null||rr.hit===undefined){cls='n';tx='·';}
+    else if(rr.hit){cls='w';tx='中';} else {cls='l';tx='错';}
+    return {cls:cls,tx:tx};
+  });
+  return {has:true,w:cs.w,l:cs.l,win:st.win,lose:st.lose,trail:trail};
+}
+
 function renderPendingKill(){
   var card=document.getElementById('pendCard');
   if(!PEND || PEND.status!=='pending'){ card.style.display='none'; return; }
@@ -296,9 +333,20 @@ function renderPendingKill(){
   killSites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
   tb.innerHTML='';
   killSites.forEach(function(s){
+    var h=pendHist(s), histHtml, trailHtml='', alertCls='';
+    if(h.has){
+      var lCls=h.l>=3?'hl-l3':(h.l===2?'hl-l2':'');
+      var lTxt=h.l>0?('<span class="'+lCls+'">连错'+h.l+'</span>'):('<span>连对'+h.w+'</span>');
+      histHtml='<div class="pend-hist">'+lTxt+' · 中'+h.win+' 错'+h.lose+'</div>';
+      trailHtml='<div class="trail">'+h.trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div>';
+      if(h.l>=2) alertCls=' pend-alert';
+    } else {
+      histHtml='<div class="pend-hist empty">无历史记录</div>';
+    }
     var tr=document.createElement('tr');
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
-      '<td class="pend-z">'+zsHtml(s.killZodiacs)+'</td>';
+    tr.className='rowlink'+alertCls;
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
+      '<td class="pend-z">'+zsHtml(s.killZodiacs)+trailHtml+'</td>';
     tb.appendChild(tr);
   });
   wrap.style.display=killSites.length?'block':'none';
@@ -319,13 +367,39 @@ function jumpSite(key){
   }
 }
 
+function buildSelect(){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var sel=document.getElementById('periodSel');
+  sel.innerHTML='';
+  if(PEND){
+    var op=document.createElement('option');
+    op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
+    sel.appendChild(op);
+  }
+  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+  return issues;
+}
+
+function enterPending(){
+  var sel=document.getElementById('periodSel');
+  sel.value='pending';
+  document.getElementById('reviewSection').classList.add('hidden');
+  document.getElementById('summary').innerHTML='';
+  var mb=document.getElementById('btnMiss2'); if(mb) mb.style.display='none';
+}
+
+function enterReview(cur){
+  var sel=document.getElementById('periodSel');
+  sel.value=cur;
+  document.getElementById('reviewSection').classList.remove('hidden');
+  var mb=document.getElementById('btnMiss2'); if(mb) mb.style.display='';
+  render();
+}
+
 function render(){
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var sel=document.getElementById('periodSel');
-  if(!sel.options.length){
-    issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
-    sel.value=issues[issues.length-1];
-  }
+  if(sel.value==='pending'){ document.getElementById('reviewSection').classList.add('hidden'); return; }
   var cur=sel.value||issues[issues.length-1];
   var per=LG.periods[cur];
   var keys=Object.keys(per.stations);
@@ -463,7 +537,13 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   var pPend=fetchJson('data/current-recommend.json').then(function(p){PEND=p;}).catch(function(){PEND=null;});
   return Promise.all([pAlias,pRank,pPend]);
 }).then(function(){
-  document.getElementById('periodSel').addEventListener('change',render);
+  var issues=buildSelect();
+  var sel=document.getElementById('periodSel');
+  sel.addEventListener('change',function(){
+    if(sel.value==='pending'){ enterPending(); } else { enterReview(sel.value); }
+  });
+  var cb=document.getElementById('btnCollapse');
+  if(cb) cb.addEventListener('click',enterPending);
   var mb=document.getElementById('btnMiss2');
   if(mb) mb.addEventListener('click',function(){
     MISS2=!MISS2;
@@ -473,6 +553,7 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   });
   var rb=document.getElementById('btnRefresh');
   if(rb) rb.addEventListener('click',function(){
+    var keep=sel.value;
     rb.textContent='刷新中…';
     fetchJson('data/kill3-ledger.json?v='+Date.now()).then(function(d){
       LG=d;
@@ -480,9 +561,13 @@ fetchJson('data/kill3-ledger.json').then(function(d){
       var pRank=fetchJson('data/kill-rank-stats.json?v='+Date.now()).then(function(k){KR=k;}).catch(function(){});
       var pPend=fetchJson('data/current-recommend.json?v='+Date.now()).then(function(p){PEND=p;}).catch(function(){PEND=null;});
       return Promise.all([pAlias,pRank,pPend]);
-    }).then(function(){render();renderPendingKill();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
+    }).then(function(){
+      buildSelect();
+      if(keep!=='pending' && issues.indexOf(keep)>=0){ enterReview(keep); } else { enterPending(); }
+      renderPendingKill(); rb.textContent='立即刷新';
+    }).catch(function(){rb.textContent='刷新失败';});
   });
-  render();
+  if(PEND && PEND.status==='pending'){ enterPending(); } else { enterReview(issues[issues.length-1]); }
   renderPendingKill();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';

@@ -84,10 +84,19 @@
   .cum-toggle{padding:11px 14px;font-size:12.5px;color:var(--blue);font-weight:600;cursor:pointer;border-top:1px solid var(--line)}
   .pending-card{border-color:#c9dcf2;background:#f7faff}
   .pending-card .rc-title{color:var(--blue)}
+  .hidden{display:none}
+  .review-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px;padding:0 2px}
+  .review-head .rh-title{font-size:13px;font-weight:700;color:var(--sub)}
+  .review-head button{padding:6px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12.5px;font-weight:600;color:var(--blue);cursor:pointer}
   #pendTableWrap table{min-width:0;width:100%}
   #pendTableWrap td{vertical-align:middle}
   #pendTableWrap td.pend-site{width:42%;font-weight:700;white-space:nowrap}
   #pendTableWrap td.pend-z{width:58%}
+  .pend-hist{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.5;white-space:normal}
+  .pend-hist .hl-l2{color:var(--yellow);font-weight:700}
+  .pend-hist .hl-l3{color:var(--red);font-weight:800}
+  #pendTableWrap .trail{margin-top:5px}
+  tr.pend-alert{background:#fff7f6}
 </style>
 </head>
 <body>
@@ -96,6 +105,13 @@
     <h1>每站九肖台账</h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
+
+  <div class="bar-row">
+    <label for="periodSel" class="stat">期号</label>
+    <select id="periodSel"></select>
+    <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
+    <div class="stat" id="summary"></div>
+  </div>
 
   <div class="card pending-card" id="pendingCard" style="display:none">
     <div class="rc-title" id="pendTitle"></div>
@@ -108,12 +124,10 @@
       </table>
     </div>
   </div>
-
-  <div class="bar-row">
-    <label for="periodSel" class="stat">期号</label>
-    <select id="periodSel"></select>
-    <button id="btnRefresh" style="padding:8px 14px;border:1px solid #222;border-radius:10px;background:#fff;font-size:13px;font-weight:600">立即刷新</button>
-    <div class="stat" id="summary"></div>
+  <div id="reviewSection" class="hidden">
+  <div class="review-head">
+    <span class="rh-title">往期复盘台账（已开奖期）</span>
+    <button id="btnCollapse" type="button">收起 ▴</button>
   </div>
   <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 推荐九肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
   <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#2456a6"></div>
@@ -150,6 +164,7 @@
   </div>
 
   <div class="note" id="ruleNote"></div>
+  </div>
 </div>
 
 <script>
@@ -255,6 +270,27 @@ function renderRankList(container, rows, total, titleFn){
   });
 }
 
+function pendHist(s){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  if(!issues.length) return {has:false};
+  var last=issues[issues.length-1];
+  var per=LG.periods[last];
+  var key=s.system+':'+s.siteKey;
+  if(!per.stations[key]){
+    for(var k in per.stations){ if(per.stations[k].siteKey===s.siteKey){ key=k; break; } }
+  }
+  if(!per.stations[key]) return {has:false};
+  var st=streakOf(key,last), cs=curStreak(key,last);
+  var hist=historyOf(key,last).slice(-7);
+  var trail=hist.map(function(h){
+    var rr=h.rec, cls,tx;
+    if(rr.hit===null||rr.hit===undefined){cls='n';tx='·';}
+    else if(rr.hit){cls='w';tx='中';} else {cls='l';tx='错';}
+    return {cls:cls,tx:tx};
+  });
+  return {has:true,w:cs.w,l:cs.l,win:st.win,lose:st.lose,trail:trail};
+}
+
 function renderPending(){
   var card=document.getElementById('pendingCard');
   if(!PEND){card.style.display='none';return;}
@@ -291,9 +327,20 @@ function renderPending(){
     if(s.status==='还没更新'){ zcell='<span class="empty">还没更新</span>'; }
     else if(s.status==='无九肖栏目'){ zcell='<span class="empty">无九肖栏目</span>'; }
     else { zcell=zsHtml(s.zodiacs); }
+    var h=pendHist(s), histHtml, trailHtml='', alertCls='';
+    if(h.has){
+      var lCls=h.l>=3?'hl-l3':(h.l===2?'hl-l2':'');
+      var lTxt=h.l>0?('<span class="'+lCls+'">连错'+h.l+'</span>'):('<span>连对'+h.w+'</span>');
+      histHtml='<div class="pend-hist">'+lTxt+' · 中'+h.win+' 错'+h.lose+'</div>';
+      trailHtml='<div class="trail">'+h.trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div>';
+      if(h.l>=2) alertCls=' pend-alert';
+    } else {
+      histHtml='<div class="pend-hist empty">无历史记录</div>';
+    }
     var tr=document.createElement('tr');
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
-      '<td class="pend-z">'+zcell+'</td>';
+    tr.className='rowlink'+alertCls;
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
+      '<td class="pend-z">'+zcell+trailHtml+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -350,13 +397,37 @@ function renderSpecialNine(cur){
   el.innerHTML=html;
 }
 
+function buildSelect(){
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var sel=document.getElementById('periodSel');
+  sel.innerHTML='';
+  if(PEND){
+    var op=document.createElement('option');
+    op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
+    sel.appendChild(op);
+  }
+  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+  return issues;
+}
+
+function enterPending(){
+  var sel=document.getElementById('periodSel');
+  sel.value='pending';
+  document.getElementById('reviewSection').classList.add('hidden');
+  document.getElementById('summary').innerHTML='';
+}
+
+function enterReview(cur){
+  var sel=document.getElementById('periodSel');
+  sel.value=cur;
+  document.getElementById('reviewSection').classList.remove('hidden');
+  render();
+}
+
 function render(){
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var sel=document.getElementById('periodSel');
-  if(!sel.options.length){
-    issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
-    sel.value=issues[issues.length-1];
-  }
+  if(sel.value==='pending'){ document.getElementById('reviewSection').classList.add('hidden'); return; }
   var cur=sel.value||issues[issues.length-1];
   var per=LG.periods[cur];
   var keys=Object.keys(per.stations);
@@ -465,13 +536,24 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   var p2=fetchJson('data/zodiac-position-stats.json').then(function(p){POS=p;}).catch(function(){});
   return Promise.all([p1,p2]);
 }).then(loadPend).then(function(){
-  document.getElementById('periodSel').addEventListener('change',render);
+  var issues=buildSelect();
+  var sel=document.getElementById('periodSel');
+  sel.addEventListener('change',function(){
+    if(sel.value==='pending'){ enterPending(); } else { enterReview(sel.value); }
+  });
+  var cb=document.getElementById('btnCollapse');
+  if(cb) cb.addEventListener('click',enterPending);
   var rb=document.getElementById('btnRefresh');
   if(rb) rb.addEventListener('click',function(){
+    var keep=sel.value;
     rb.textContent='刷新中…';
-    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(loadPend).then(function(){render();renderPending();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
+    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(loadPend).then(function(){
+      buildSelect();
+      if(keep!=='pending' && issues.indexOf(keep)>=0){ enterReview(keep); } else { enterPending(); }
+      renderPending(); rb.textContent='立即刷新';
+    }).catch(function(){rb.textContent='刷新失败';});
   });
-  render();
+  if(PEND && PEND.status==='pending'){ enterPending(); } else { enterReview(issues[issues.length-1]); }
   renderPending();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
