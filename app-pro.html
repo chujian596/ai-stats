@@ -652,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.51-Pro';
+var APP_VER = 'v59.52-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -11232,10 +11232,12 @@ function billSetBookDate(d){ try { localStorage.setItem(BOOK_KEY, d); } catch(e)
 function billSaveArchive(){ try { localStorage.setItem(BILL_KEY, JSON.stringify(billArchive)); } catch(e){} }
 
 /* 历史归档自检：只读，不改账。
-   检查每天的 sum 与 orders/pays 实际合计是否一致，并标出同客户同原文同金额的疑似重复。 */
+   检查每天的 sum 与 orders/pays 实际合计是否一致；
+   重复只查“同一天 + 同客户 + 同原文 + 同金额 + 3 分钟内”，
+   同客户隔一段时间再下同样的单属于正常两注，不报。 */
 function auditBillArchive(writeLog){
   var keys = Object.keys(billArchive || {}).sort();
-  var issues = [], dayRows = [], missing = [];
+  var issues = [], review = [], dayRows = [], missing = [];
   var totalN = 0, totalAmt = 0, totalPay = 0;
   keys.forEach(function(k){
     var a = billArchive[k] || {};
@@ -11261,17 +11263,20 @@ function auditBillArchive(writeLog){
       var v = Number((o && o.amount) || 0);
       if(!isFinite(v) || v < 0) dayIssues.push('第' + (i+1) + '单金额异常：' + String((o && o.amount)));
     });
-    var seen = {}, dups = {};
+    var seen = {};
     os.forEach(function(o){
       var key = [String((o && o.customer) || '散客'), String((o && o.raw) || ''), Number((o && o.amount) || 0).toFixed(2)].join('|');
-      seen[key] = (seen[key] || 0) + 1;
+      (seen[key] = seen[key] || []).push(_orderTs(o));
     });
     Object.keys(seen).forEach(function(key){
-      if(seen[key] > 1){
-        var parts = key.split('|');
-        dups[key] = seen[key];
-        dayIssues.push('疑似重复 ' + seen[key] + ' 笔：' + parts[0] + ' / ' + String(parts[1]).slice(0,40) + ' / ' + parts[2] + '元');
-      }
+      var times = seen[key];
+      if(times.length < 2) return;
+      var known = times.filter(function(t){ return t > 0; }).sort(function(a,b){ return a - b; });
+      /* 时间缺失或首尾超过 3 分钟：按两注处理，不报“重复”。 */
+      if(known.length < 2) return;
+      if(known[known.length-1] - known[0] > 180000) return;
+      var parts = key.split('|');
+      review.push({day:k, type:'dup_review', msg:'3 分钟内同内容 ' + times.length + ' 笔：' + parts[0] + ' / ' + String(parts[1]).slice(0,40) + ' / ' + parts[2] + '元'});
     });
     totalN += n; totalAmt += amt; totalPay += pay;
     dayRows.push({day:k, n:n, amt:amt, pay:pay, net:net, issues:dayIssues});
@@ -11291,15 +11296,19 @@ function auditBillArchive(writeLog){
   var res = {
     days: keys.length,
     issues: issues,
+    review: review,
     daysDetail: dayRows,
     missing: missing.slice(0, 30),
     missingTotal: missing.length,
     totals: {n: totalN, amt: totalAmt, pay: totalPay, net: totalAmt - totalPay},
     ok: issues.length === 0
   };
-  if(writeLog && issues.length){
+  if(writeLog){
     issues.slice(0, 5).forEach(function(it){
       logErr('archive_audit', it.day + ' ' + it.msg, {day: it.day});
+    });
+    review.slice(0, 5).forEach(function(it){
+      logErr('archive_dup_review', it.day + ' ' + it.msg, {day: it.day});
     });
   }
   return res;
@@ -11309,15 +11318,25 @@ function billAuditText(){
   var a = auditBillArchive(false);
   var h = '';
   if(!a.days){ return '还没有历史归档。'; }
-  if(a.ok){
+  var _hard = a.issues.length, _warn = (a.review || []).length;
+  if(!_hard && !_warn){
     h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#166534;line-height:1.6">'
       + '<b>历史归档自检通过</b>：' + a.days + ' 天 · ' + a.totals.n + ' 单 · 收 ' + a.totals.amt.toFixed(2) + ' · 净 ' + a.totals.net.toFixed(2)
       + '<div style="color:#666;margin-top:3px">每天的归档汇总与实际订单/赔付逐日一致。</div></div>';
   } else {
-    h += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#a8071a;line-height:1.6">'
-      + '<b>历史归档自检发现 ' + a.issues.length + ' 项差异</b>'
-      + '<div style="color:#666;margin-top:3px">' + a.issues.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (a.issues.length > 5 ? '<br>…还有 ' + (a.issues.length-5) + ' 项' : '') + '</div>'
-      + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+    if(_hard){
+      h += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#a8071a;line-height:1.6">'
+        + '<b>历史归档自检发现 ' + _hard + ' 项账务差异</b>'
+        + '<div style="color:#666;margin-top:3px">' + a.issues.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (_hard > 5 ? '<br>…还有 ' + (_hard-5) + ' 项' : '') + '</div>'
+        + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+    }
+    if(_warn){
+      h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+        + '<b>有 ' + _warn + ' 组 3 分钟内同内容，建议核对</b>'
+        + '<div style="color:#666;margin-top:3px">' + a.review.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (_warn > 5 ? '<br>…还有 ' + (_warn-5) + ' 项' : '') + '</div>'
+        + '<div style="color:#888;margin-top:3px">同一客户隔几分钟后又下同样的单，按两注处理，不会报在这里。</div>'
+        + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+    }
   }
   if(a.missing.length){
     h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'

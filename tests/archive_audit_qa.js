@@ -14,10 +14,10 @@ ck('归档汇总一致', a.ok===true && a.days===1 && a.issues.length===0, {ok:a
 
 // 2. 差额 + 重复 + 断档
 billArchive={'2026-11-18':{orders:[{customer:'甲',raw:'特01 100',amount:100}],pays:[],sum:{n:1,amt:100,pay:0,net:100},savedAt:'x'},
- '2026-11-20':{orders:[{customer:'乙',raw:'特02 100',amount:100},{customer:'乙',raw:'特02 100',amount:100}],pays:[],sum:{n:2,amt:100,pay:0,net:100},savedAt:'x'}};
+ '2026-11-20':{orders:[{customer:'乙',raw:'特02 100',amount:100,createdAt:'2026/11/20 12:00:03'},{customer:'乙',raw:'特02 100',amount:100,createdAt:'2026/11/20 12:00:08'}],pays:[],sum:{n:2,amt:100,pay:0,net:100},savedAt:'x'}};
 a=auditBillArchive(false);
 ck('归档差额识别', a.issues.some(x=>/收单/.test(x.msg)) && a.issues.some(x=>/净额/.test(x.msg)), a.issues);
-ck('归档重复识别', a.issues.some(x=>/疑似重复/.test(x.msg)), a.issues);
+ck('3分钟内同内容标待核对', a.review.some(x=>/3 分钟内/.test(x.msg)), a.review);
 ck('无归档日识别', a.missing.indexOf('2026-11-19')>=0, a.missing);
 
 // 2b. 作废其中一笔：汇总重算 + 留 voided
@@ -26,6 +26,17 @@ const before180=(billArchive['2026-11-20']||{}).sum;
 billVoidOrder('2026-11-20',0);
 const after180=(billArchive['2026-11-20']||{});
 ck('作废后重算', after180.orders.length===1 && after180.sum.n===1 && Math.abs(after180.sum.amt-100)<0.01 && (after180.voided||[]).length===1, {sum:after180.sum,voided:(after180.voided||[]).length,before:before180});
+
+// 2c. 日期/时间边界：跨天不合并；同天间隔久按两注；3 分钟内才提示
+billArchive={
+ '2026-11-15':{orders:[{customer:'叶',raw:'蛇数各10',amount:40,createdAt:'2026/11/15 10:00:01'},{customer:'叶',raw:'蛇数各10',amount:40,createdAt:'2026/11/15 10:00:30'}],pays:[],sum:{n:2,amt:80,pay:0,net:80}},
+ '2026-11-16':{orders:[{customer:'叶',raw:'蛇数各10',amount:40,createdAt:'2026/11/16 10:00:01'}],pays:[],sum:{n:1,amt:40,pay:0,net:40}},
+ '2026-11-17':{orders:[{customer:'叶',raw:'虎平500',amount:500,createdAt:'2026/11/17 09:00:00'},{customer:'叶',raw:'虎平500',amount:500,createdAt:'2026/11/17 21:00:00'}],pays:[],sum:{n:2,amt:1000,pay:0,net:1000}}
+};
+a=auditBillArchive(false);
+ck('3分钟内同内容提示', a.review.some(x=>x.day==='2026-11-15'), a.review);
+ck('同天隔久不判重', !a.review.some(x=>x.day==='2026-11-17'), a.review);
+ck('跨天同内容不合并判重', !a.review.some(x=>x.day==='2026-11-16'), a.review);
 
 // 3. 解析失败写日志：带原文 + 账本日（doSave 的失败路径就是写这条记录）
 clearErrLog();
