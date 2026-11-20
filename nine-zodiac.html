@@ -113,6 +113,7 @@
     <div class="stat" id="summary"></div>
   </div>
   <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 推荐九肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
+  <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#2456a6"></div>
 
   <div class="layout">
     <div>
@@ -279,13 +280,17 @@ function renderPending(){
     function(row){ return row.z+' 被 '+row.list.length+' 站放在第一位'; });
   wrap.style.display='block';
   var tb=document.getElementById('pendRows'); tb.innerHTML='';
-  sites.slice().sort(function(a,b){
+  PEND.sites.slice().sort(function(a,b){
     return (ALIAS[a.siteKey]||a.siteKey).localeCompare(ALIAS[b.siteKey]||b.siteKey,'zh');
   }).forEach(function(s){
     var nm=ALIAS[s.siteKey]||s.siteKey;
+    var zcell;
+    if(s.status==='还没更新'){ zcell='<span class="empty">还没更新</span>'; }
+    else if(s.status==='无九肖栏目'){ zcell='<span class="empty">无九肖栏目</span>'; }
+    else { zcell=zsHtml(s.zodiacs); }
     var tr=document.createElement('tr');
     tr.innerHTML='<td><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
-      '<td>'+zsHtml(s.zodiacs)+'</td>';
+      '<td>'+zcell+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -441,6 +446,9 @@ function render(){
   }
 
   document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
+  var lastIssue=issues[issues.length-1];
+  var nextIssue=PEND?PEND.period:(parseInt(lastIssue,10)+1);
+  document.getElementById('issueNote').textContent='台账/快照期号 '+lastIssue+' · 待开 '+nextIssue;
   renderRank(cur);
 }
 

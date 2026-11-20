@@ -96,6 +96,7 @@ def main():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
             pick = pick_column(sd.get("columns", {}))
+            cols = sd.get("columns") or {}
             if pick:
                 title, zs = pick
                 sites.append({
@@ -104,6 +105,15 @@ def main():
                     "column": title,
                     "zodiacs": zs,
                     "status": "有九肖",
+                })
+            elif sd.get("error") or not cols:
+                # 站点本期还没放出有效栏目：标注还没更新，区别于“有栏目但非九肖”
+                sites.append({
+                    "system": system,
+                    "siteKey": site_key,
+                    "column": None,
+                    "zodiacs": [],
+                    "status": "还没更新",
                 })
             else:
                 sites.append({

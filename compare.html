@@ -59,6 +59,7 @@
     <button onclick="refreshAll()">刷新数据</button>
     <span class="hint">九肖仅 316 期起有记录；切换期号两侧排行与下方台账同步。</span>
   </div>
+  <div class="hint" id="issueNote" style="margin:2px 0 8px;color:#222"></div>
 
   <div class="cmp">
     <div class="rcard left">
@@ -77,11 +78,11 @@
   <div class="ledger">
     <div class="col">
       <div class="col-head left">九肖台账</div>
-      <iframe id="frameNine" src="nine-zodiac.html?v=10"></iframe>
+      <iframe id="frameNine" src="nine-zodiac.html?v=11"></iframe>
     </div>
     <div class="col">
       <div class="col-head right">杀三肖台账</div>
-      <iframe id="frameKill" src="kill3-ledger.html?v=9"></iframe>
+      <iframe id="frameKill" src="kill3-ledger.html?v=10"></iframe>
     </div>
   </div>
 </div>
@@ -91,7 +92,7 @@ var ZOD=['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'
 var LG=null, KR=null, CUR=null;
 var fNine=document.getElementById('frameNine');
 var fKill=document.getElementById('frameKill');
-var BASE={nine:'nine-zodiac.html?v=10', kill:'kill3-ledger.html?v=9'};
+var BASE={nine:'nine-zodiac.html?v=11', kill:'kill3-ledger.html?v=10'};
 
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
@@ -143,6 +144,9 @@ function render(cur){
   renderNine(cur);
   renderKill(cur);
   syncFrames(cur);
+  var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
+  var last=issues[issues.length-1];
+  document.getElementById('issueNote').textContent='台账/快照期号 '+last+' · 待开 '+(parseInt(last,10)+1);
 }
 
 /* 下方 iframe 期号同步 */
