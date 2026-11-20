@@ -128,6 +128,40 @@ def main():
             if ar.get("err") or ar.get("fails"):
                 errors.append("archive_audit: %s" % json.dumps(ar, ensure_ascii=False))
 
+            # 开奖按钮不能卡死：本期已结算 / 服务器给旧期，都必须把按钮解锁
+            fresh()
+            drawbtn = page.evaluate(
+                '''async () => {
+                const btn=document.getElementById('drawFetchBtn');
+                const wait=ms=>new Promise(r=>setTimeout(r,ms));
+                const mk=draw=>({macao:{draw:String(draw),numbers:['08','02','09','15','41','47','33']},hongkong:null});
+                window.__mockDraw=323;
+                window.fetch=async function(u){
+                    if(String(u).indexOf('/api/draw')>=0){
+                        return {ok:true,json:async()=>mk(window.__mockDraw)};
+                    }
+                    return {ok:false,json:async()=>({})};
+                };
+                localStorage.setItem(sk('lastDrawPeriod'),'323');
+                autoFetchDraw();
+                for(let i=0;i<40 && _drawFetchBusy;i++) await wait(25);
+                const same={busy:_drawFetchBusy,disabled:btn.disabled,text:btn.textContent};
+                window.__mockDraw=322;
+                autoFetchDraw();
+                for(let i=0;i<40 && _drawFetchBusy;i++) await wait(25);
+                const older={busy:_drawFetchBusy,disabled:btn.disabled,text:btn.textContent};
+                return {same:same,older:older};
+            }'''
+            )
+            checks["draw_button"] = {
+                "tested": 2,
+                "pass": len([1 for k in ("same", "older") if not drawbtn[k]["busy"] and not drawbtn[k]["disabled"] and drawbtn[k]["text"] == "自动获取开奖"]),
+                "fail": len([1 for k in ("same", "older") if drawbtn[k]["busy"] or drawbtn[k]["disabled"] or drawbtn[k]["text"] != "自动获取开奖"]),
+                "detail": drawbtn,
+            }
+            if checks["draw_button"]["fail"]:
+                errors.append("draw_button: %s" % json.dumps(drawbtn, ensure_ascii=False))
+
             browser.close()
     finally:
         httpd.shutdown()
@@ -138,7 +172,7 @@ def main():
         for e in errors:
             print(" - " + e)
         return 1
-    print("\n浏览器门禁通过：QA 116/116、词库 143/143、混搭 4/4、选择对账 55/55、归档/日志 18/18")
+    print("\n浏览器门禁通过：QA 116/116、词库 143/143、混搭 4/4、选择对账 55/55、归档/日志 18/18、开奖按钮 2/2，共 338/338")
     return 0
 
 

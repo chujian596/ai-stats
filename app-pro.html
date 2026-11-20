@@ -653,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.55-Pro';
+var APP_VER = 'v59.56-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6097,21 +6097,62 @@ function renderBallsForStore(){
     renderLiveBalls([]);
   }
 }
-function autoFetchDraw(retry){
-  try { fetchHKDrawNow(); } catch(e){}
+var _drawFetchBusy = false;
+var _drawFetchSeq = 0;
+var _drawFetchWatch = null;
+function _drawFetchIdle(){
   var btn = document.getElementById('drawFetchBtn');
   if(!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = '自动获取开奖';
+}
+function autoFetchDraw(){
+  var btn = document.getElementById('drawFetchBtn');
+  if(!btn) return;
+  if(_drawFetchBusy) return;                 // 正在取就别叠请求，按钮也已经是禁用态
+  _drawFetchBusy = true;
+  var seq = ++_drawFetchSeq;
   btn.textContent = '获取中...';
   btn.disabled = true;
-  function done(){ btn.textContent = '自动获取开奖'; btn.disabled = false; }
+  btn.style.opacity = '.65';
+  try { fetchHKDrawNow(); } catch(e){}
+  var finished = false;
+  function done(){
+    if(seq !== _drawFetchSeq) return;
+    if(finished) return;
+    finished = true;
+    _drawFetchBusy = false;
+    if(_drawFetchWatch){ clearTimeout(_drawFetchWatch); _drawFetchWatch = null; }
+    _drawFetchIdle();
+  }
+  function fail(msg){
+    if(seq !== _drawFetchSeq) return;
+    done();
+    myAlert(msg);
+  }
+  // 兜底：不管请求卡在哪，15 秒后一定把按钮放开，不能让它一直“正在获取”
+  _drawFetchWatch = setTimeout(function(){
+    if(seq !== _drawFetchSeq) return;
+    _drawFetchSeq++;                        // 让还在路上的旧请求结果作废
+    _drawFetchBusy = false;
+    _drawFetchWatch = null;
+    _drawFetchIdle();
+    myAlert('获取开奖超时，请再点一次；急的话用「手动录入」。');
+  }, 15000);
+
   function applyMacao(m){
     if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
-      myAlert('未获取到开奖数据');
+      fail('未获取到开奖数据');
       return;
     }
     var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
     var settled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
     var incoming = parseInt(m.draw);
+    if(isNaN(incoming)){
+      fail('开奖期号不完整，请稍后再点一次。');
+      return;
+    }
     // 源头没更新：返回的是往日开奖，不能当今天这期
     var _dd = drawDayOf(m);
     if(_dd && _dd !== todayStr()){
@@ -6122,23 +6163,25 @@ function autoFetchDraw(retry){
     }
     // 服务器给的是更旧的期：不覆盖、不结算，避免把上一天的开奖当成当期
     if(incoming < settled){
+      done();
       myAlert('已结算到 ' + settled + ' 期。\n服务器这次返回的是旧数据（' + incoming + ' 期），请过一两分钟再点一次。');
       return;
     }
     renderLiveBalls(m.winner_numbers, true);
     if(incoming === settled){
-      // 同一期重复获取：只刷新显示，不重复结算
+      // 同一期重复获取：只刷新显示，不重复结算；这里必须解锁按钮
       lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
       updateDrawInfoBar();
       if(typeof renderOrdersList==='function') renderOrdersList();
+      done();
       return;
     }
     var drawStr = '开' + m.draw + ' ' + nums.join('.');
     document.getElementById('input').value = drawStr;
     localStorage.setItem(sk('lastDrawPeriod'), String(incoming));
-    autoPayout();
+    try { autoPayout(); } finally { done(); }
   }
-  var tries = retry || 0;
+
   // 依次尝试：同源快照 → 主站远程 → 备用站远程（离线 APK 靠后两个拿开奖）
   // 首选同域接口：Cloudflare 边缘实时抓，数据总是最新；后面几个是离线/备网兜底
   var sources = ['/api/draw',
@@ -6147,26 +6190,34 @@ function autoFetchDraw(retry){
                  'https://chujian596.github.io/ai-stats/draw-latest.json',
                  'https://chujian596.github.io/ai-luandan/draw-latest.json'];
   var idx = 0;
-  function tryNext(){
+  function tryNext(tries){
+    if(seq !== _drawFetchSeq || !_drawFetchBusy) return;
     if(idx >= sources.length){
       if(tries < 2){
         idx = 0;
-        setTimeout(function(){ autoFetchDraw(tries + 1); }, 1500);
+        setTimeout(function(){
+          if(seq !== _drawFetchSeq || !_drawFetchBusy) return;
+          tryNext(tries + 1);
+        }, 1500);
         return;
       }
-      done();
-      myAlert('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，也可以手动粘贴。\n\n写法：开 期号 六个平号 + 特号\n例子：开318 10.36.02.09.26.37 + 38\n（最后一个数字就是特号）');
+      fail('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，也可以手动粘贴。\n\n写法：开 期号 六个平号 + 特号\n例子：开318 10.36.02.09.26.37 + 38\n（最后一个数字就是特号）');
       return;
     }
     var u = sources[idx++];
     var sep = u.indexOf('?') >= 0 ? '&' : '?';
     fetch(u + sep + 't=' + Date.now(), {cache: 'no-store'})
-      .then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
+      .then(function(r){
+        if(seq !== _drawFetchSeq) return null;
+        if(!r.ok) throw new Error('x');
+        return r.json();
+      })
       .then(function(d){
+        if(seq !== _drawFetchSeq || !d) return;
         var _isHKshop = (typeof shop !== 'undefined' && shop === 'B');
         var snap = d && (_isHKshop ? d.hongkong : d.macao);
         if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('empty');
-        done();
+        done();                            // 数据到手先解锁，后面的弹窗/结算不再卡按钮
         if(_isHKshop){
           // 香港店：只更新香港开奖与显示，不走澳门结算
           try { hkSetDrawCache({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' }); } catch(e){}
@@ -6188,9 +6239,12 @@ function autoFetchDraw(retry){
         }
         applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
       })
-      .catch(function(){ tryNext(); });
+      .catch(function(){
+        if(seq !== _drawFetchSeq) return;
+        tryNext(tries);
+      });
   }
-  tryNext();
+  tryNext(0);
 }
 // 号码颜色：红/蓝/绿
 function ballColor(n){
@@ -6309,7 +6363,7 @@ setInterval(function(){
   var h = now.getHours(), m = now.getMinutes();
   var btn = document.getElementById('drawFetchBtn');
   var isDrawTime = (h === 21 && m >= 33 && m <= 35);
-  if(btn){
+  if(btn && !_drawFetchBusy){
     if(isDrawTime){
       btn.textContent = '正在获取开奖数据...';
       btn.style.opacity = '0.6';
