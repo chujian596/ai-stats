@@ -59,6 +59,27 @@ export CLOUDFLARE_API_TOKEN="$TOKEN"
 export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
 export WRANGLER_SEND_METRICS=false
 
+# ===== 提交范围预检：只允许自动提交页面/版本/发布函数，其它改动一律中止 =====
+# 避免旧版 `git add -A` 把台账、脚本、临时文件等无关改动一起提交。
+if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
+  cd "$SRC" || exit 1
+  UNEXPECTED=()
+  while IFS= read -r -d '' p; do
+    case "$p" in
+      app-pro.html|app-pro-backup.html|app.html|version.txt|version-client.txt|sw.js|manifest.json) ;;
+      versions/*|functions/*) ;;
+      .wrangler/*|node_modules/*|__pycache__/*|tools/__pycache__/*) ;;
+      *) UNEXPECTED+=("$p") ;;
+    esac
+  done < <( { git diff --name-only -z; git diff --cached --name-only -z; git ls-files --others --exclude-standard -z; } )
+  if [ ${#UNEXPECTED[@]} -gt 0 ]; then
+    echo "发现不在自动提交白名单的改动，已中止部署：" >&2
+    printf '  %s\n' "${UNEXPECTED[@]}" >&2
+    echo "请先手动提交/移走这些文件，或把确需随页面发布的文件加入白名单。" >&2
+    exit 3
+  fi
+fi
+
 if OUT=$(cd "$DEPLOY" && timeout 180 npx --yes wrangler@3.114.0 pages deploy "$DEPLOY" --project-name="$PROJECT" --branch=main --commit-dirty=true 2>&1); then
   echo "$(date '+%F %T') Cloudflare 已同步 $(python3 -c 'import json;d=json.load(open("draw-latest.json"));print(d.get("macao",{}).get("draw"))' 2>/dev/null) 期" >> "$LOG"
 else
@@ -71,8 +92,8 @@ fi
 # 只推 Cloudflare 的话，安卓端一直看到旧代码。这里补上同步。
 if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   cd "$SRC" || exit 1
-  if ! git diff --quiet || ! git diff --cached --quiet; then
-    git add -A >/dev/null 2>&1
+  git add -A -- app-pro.html app-pro-backup.html app.html version.txt version-client.txt sw.js manifest.json versions functions >/dev/null 2>&1
+  if ! git diff --cached --quiet; then
     git commit -q -m "sync: $(date '+%F %T') 推送同步" >/dev/null 2>&1
   fi
   if git push -q origin HEAD 2>>"$LOG"; then

@@ -148,6 +148,7 @@ try{
 const _helpTxt=String((document.getElementById('helpModal')||{}).textContent||'');
 ck('说明书香港章节已同步', _helpTxt.indexOf('香港飞单默认（所有客户）')>=0 && _helpTxt.indexOf('香港工作台')>=0 && _helpTxt.indexOf('连/二/三')>=0, _helpTxt.length);
 ck('说明书无旧香港飞单说法', _helpTxt.indexOf('没有整店飞黄框')<0 && _helpTxt.indexOf('也没有香港单自动飞')<0, _helpTxt.indexOf('没有整店飞黄框'));
+ck('说明书保存后行为已同步', _helpTxt.indexOf('保存后不再自动跳到')>=0 && _helpTxt.indexOf('保存后自动跳到')<0, _helpTxt.indexOf('保存后自动跳到'));
 
 window.__archiveQA=out;
 })();

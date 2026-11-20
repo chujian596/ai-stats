@@ -379,16 +379,19 @@ def cmd_qa(args):
     proc = subprocess.run(["bash", "tests/release_check.sh"], cwd=str(ROOT), capture_output=True, text=True)
     text = (proc.stdout or "") + "\n" + (proc.stderr or "")
     log_path.write_text(text, encoding="utf-8")
+    gate_match = re.search(r"浏览器门禁通过：.*?共\s*(\d+)/(\d+)", text)
+    gate_pass = int(gate_match.group(1)) if gate_match else 0
+    gate_total = int(gate_match.group(2)) if gate_match else 0
     checks = {
         "exit": proc.returncode,
         "matrixPro": "失败 0" in text and "app-pro.html" in text,
         "matrixClient": "失败 0" in text and "app.html" in text,
         "browserGate": "浏览器门禁通过" in text,
-        "gate348": "348/348" in text,
+        "gate": {"pass": gate_pass, "total": gate_total},
         "flySettle": "混搭 4/4" in text,
         "hardCheck": "全部通过，可以打包推送" in text,
     }
-    ok = proc.returncode == 0 and checks["browserGate"] and checks["gate348"] and checks["flySettle"] and checks["hardCheck"]
+    ok = proc.returncode == 0 and checks["browserGate"] and gate_total > 0 and gate_pass == gate_total and checks["flySettle"] and checks["hardCheck"]
     data = {
         "version": version,
         "at": now_text(),
@@ -444,6 +447,31 @@ def cmd_close(args):
     if not args.deployed:
         print("还没标记已部署；确认线上版本后再加 --deployed。", file=sys.stderr)
         return 2
+    if not args.regression:
+        print("缺少回归结果：先跑失败用例，再用 --regression 指向结果 JSON。", file=sys.stderr)
+        return 2
+    rpath = Path(args.regression).expanduser()
+    if not rpath.exists():
+        print("找不到回归结果：%s" % rpath, file=sys.stderr)
+        return 2
+    try:
+        regression = json.loads(rpath.read_text(encoding="utf-8"))
+    except Exception as e:
+        print("回归结果不是合法 JSON：%s" % e, file=sys.stderr)
+        return 2
+    if not regression.get("ok"):
+        print("回归结果未通过，不能关单：%s" % rpath, file=sys.stderr)
+        return 2
+    if str(regression.get("ticket") or "") != args.ticket:
+        print("回归结果工单不匹配：%s != %s" % (regression.get("ticket"), args.ticket), file=sys.stderr)
+        return 2
+    if str(regression.get("version") or "") != version:
+        print("回归结果版本不匹配：%s != %s" % (regression.get("version"), version), file=sys.stderr)
+        return 2
+    rcases = regression.get("cases") or []
+    if not rcases or not all(c.get("pass") is True for c in rcases):
+        print("回归用例必须非空且全部 pass=true：%s" % rpath, file=sys.stderr)
+        return 2
     main_v = online_version("https://chujian596.github.io/ai-stats/app-pro.html")
     backup_v = online_version("https://chujian596.github.io/ai-stats/app-pro-backup.html")
     if main_v != version or backup_v != version:
@@ -456,6 +484,8 @@ def cmd_close(args):
     t["fixVersion"] = version
     t["commit"] = args.commit or ""
     t["qaPass"] = True
+    t["regression"] = str(rpath)
+    t["regressionAt"] = now_text()
     t["closedAt"] = now_text()
     (outdir / "tickets.json").write_text(json.dumps(tickets, ensure_ascii=False, indent=2), encoding="utf-8")
     report = [
@@ -489,6 +519,8 @@ def cmd_close(args):
         "",
         "## 5. 回归用例",
         "",
+        "- 结果：通过（%d 个用例）" % len(rcases),
+        "- 结果文件：`%s`" % rpath,
         "- `D-%s`" % t["id"].replace("T-", ""),
         "",
     ]
@@ -566,6 +598,7 @@ def main():
     p.add_argument("--fix", help="怎么修的")
     p.add_argument("--result", help="修后结果")
     p.add_argument("--commit", help="提交号")
+    p.add_argument("--regression", required=True, help="失败用例回归结果 JSON，必须 ok=true、工单/版本匹配、cases 全部 pass")
     p.add_argument("--deployed", action="store_true", help="确认已部署并核对线上版本")
     p.set_defaults(func=cmd_close)
 

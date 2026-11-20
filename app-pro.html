@@ -389,7 +389,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         2.1 设置 → 录入 → <b style="color:var(--modalText,#fff)">保存前预览</b> 可开关；默认开，关掉后保存直接入账<br>
         3. 一笔一行，可多行一次保存<br>
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
-        4.1 保存后自动跳到「订单记录」并高亮本次订单；订单页顶部「本次订单」可随时重新定位<br>
+        4.1 保存后不再自动跳到「订单记录」；需要核对时点「查看本次订单」按钮，页面会定位并高亮本次订单<br>
         4.2 订单页可搜客户/号码/金额，并按「全部日期 / 今天 / 只看香港」筛选<br>
         4.3 「今日对账」把返水、飞后净、含返水到手、上家结算分开列；返水默认不计，需在飞单卡片勾选并设比例<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
@@ -669,7 +669,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.61-Pro';
+var APP_VER = 'v59.62-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
