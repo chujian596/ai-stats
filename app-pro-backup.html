@@ -652,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.49-Pro';
+var APP_VER = 'v59.50-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -673,6 +673,7 @@ function logErr(type, msg, meta){
       at: Date.now(),
       ver: (typeof APP_VER !== 'undefined' ? APP_VER : ''),
       shop: (typeof shop !== 'undefined' ? shop : ''),
+      day: (typeof billBookDate === 'function' ? (billBookDate() || (typeof billToday === 'function' ? billToday() : '')) : ''),
       type: String(type || 'error'),
       msg: String(msg || '').slice(0, 300)
     };
@@ -753,7 +754,9 @@ function showErrLog(){
   ov.className = 'ai-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   var rows = logs.slice(-60).reverse().map(function(r){
-    return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + '</div></div>';
+    var raw = '';
+    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,120) : ''; } catch(e){}
+    return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + (r.day ? ' · 账本日 ' + esc(r.day) : '') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + (raw ? '<div style="font-size:11px;color:#b45309;margin-top:3px;white-space:pre-wrap">原文：' + esc(raw) + '</div>' : '') + '</div></div>';
   }).join('');
   if(!rows) rows = '<div style="padding:24px 0;text-align:center;font-size:13px;color:#999">暂无错误记录</div>';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;flex-direction:column">'
@@ -6370,6 +6373,7 @@ function handleSave(){
         window.__dupConfirmed = true;
         try { handleSave(); } finally { window.__dupConfirmed = false; }
       });
+      try { logErr('dup_order', _sem ? '疑似重复：今天已有同内容订单' : '疑似重复：3 分钟内同内容', {raw: String(raw0).slice(0,120), customer: _who, day: (billBookDate() || billToday())}); } catch(e){}
       return;
     }
     window.__lastInputFp = _fp;
@@ -7649,8 +7653,8 @@ renderAll();
     if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
     var _fail = (window.__failedLines || [])[0];
     window.__failedLines = [];
-    if(_fail) logErr('parse', _fail.msg || '未知解析错误', {line: _fail.idx || 0, rawLen: String(_fail.raw || '').length});
-    else logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length});
+    if(_fail) logErr('parse', _fail.msg || '未知解析错误', {line: _fail.idx || 0, rawLen: String(_fail.raw || '').length, raw: String(_fail.raw || '').slice(0,120), day: (billBookDate() || billToday())});
+    else logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,120), day: (billBookDate() || billToday())});
     if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
     myAlert('无法识别：' + errors[0]);
     return;
@@ -11227,6 +11231,101 @@ function billBookDate(){ try { return localStorage.getItem(BOOK_KEY) || ''; } ca
 function billSetBookDate(d){ try { localStorage.setItem(BOOK_KEY, d); } catch(e){} }
 function billSaveArchive(){ try { localStorage.setItem(BILL_KEY, JSON.stringify(billArchive)); } catch(e){} }
 
+/* 历史归档自检：只读，不改账。
+   检查每天的 sum 与 orders/pays 实际合计是否一致，并标出同客户同原文同金额的疑似重复。 */
+function auditBillArchive(writeLog){
+  var keys = Object.keys(billArchive || {}).sort();
+  var issues = [], dayRows = [], missing = [];
+  var totalN = 0, totalAmt = 0, totalPay = 0;
+  keys.forEach(function(k){
+    var a = billArchive[k] || {};
+    var os = Array.isArray(a.orders) ? a.orders : [];
+    var ps = Array.isArray(a.pays) ? a.pays : [];
+    var n = os.length;
+    var amt = 0, pay = 0;
+    os.forEach(function(o){ amt += Number((o && o.amount) || 0); });
+    ps.forEach(function(p){ pay += Number((p && p.amount) || 0); });
+    var net = amt - pay;
+    var sm = a.sum || {};
+    var dayIssues = [];
+    function chk(label, got, exp){
+      if(Math.abs(Number(got || 0) - Number(exp || 0)) > 0.01){
+        dayIssues.push(label + ' 记 ' + Number(got || 0).toFixed(2) + ' / 实际 ' + Number(exp || 0).toFixed(2));
+      }
+    }
+    chk('单数', sm.n, n);
+    chk('收单', sm.amt, amt);
+    chk('赔付', sm.pay, pay);
+    chk('净额', sm.net, net);
+    os.forEach(function(o, i){
+      var v = Number((o && o.amount) || 0);
+      if(!isFinite(v) || v < 0) dayIssues.push('第' + (i+1) + '单金额异常：' + String((o && o.amount)));
+    });
+    var seen = {}, dups = {};
+    os.forEach(function(o){
+      var key = [String((o && o.customer) || '散客'), String((o && o.raw) || ''), Number((o && o.amount) || 0).toFixed(2)].join('|');
+      seen[key] = (seen[key] || 0) + 1;
+    });
+    Object.keys(seen).forEach(function(key){
+      if(seen[key] > 1){
+        var parts = key.split('|');
+        dups[key] = seen[key];
+        dayIssues.push('疑似重复 ' + seen[key] + ' 笔：' + parts[0] + ' / ' + String(parts[1]).slice(0,40) + ' / ' + parts[2] + '元');
+      }
+    });
+    totalN += n; totalAmt += amt; totalPay += pay;
+    dayRows.push({day:k, n:n, amt:amt, pay:pay, net:net, issues:dayIssues});
+    dayIssues.forEach(function(msg){ issues.push({day:k, type:'archive', msg:msg}); });
+  });
+  if(keys.length){
+    var first = keys[0], last = keys[keys.length - 1], today = billToday();
+    var d = new Date(first + 'T12:00:00');
+    var guard = 0;
+    while(guard++ < 800){
+      var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      if(ds > last) break;
+      if(ds !== today && !billArchive[ds]) missing.push(ds);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  var res = {
+    days: keys.length,
+    issues: issues,
+    daysDetail: dayRows,
+    missing: missing.slice(0, 30),
+    missingTotal: missing.length,
+    totals: {n: totalN, amt: totalAmt, pay: totalPay, net: totalAmt - totalPay},
+    ok: issues.length === 0
+  };
+  if(writeLog && issues.length){
+    issues.slice(0, 5).forEach(function(it){
+      logErr('archive_audit', it.day + ' ' + it.msg, {day: it.day});
+    });
+  }
+  return res;
+}
+
+function billAuditText(){
+  var a = auditBillArchive(false);
+  var h = '';
+  if(!a.days){ return '还没有历史归档。'; }
+  if(a.ok){
+    h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#166534;line-height:1.6">'
+      + '<b>历史归档自检通过</b>：' + a.days + ' 天 · ' + a.totals.n + ' 单 · 收 ' + a.totals.amt.toFixed(2) + ' · 净 ' + a.totals.net.toFixed(2)
+      + '<div style="color:#666;margin-top:3px">每天的归档汇总与实际订单/赔付逐日一致。</div></div>';
+  } else {
+    h += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#a8071a;line-height:1.6">'
+      + '<b>历史归档自检发现 ' + a.issues.length + ' 项差异</b>'
+      + '<div style="color:#666;margin-top:3px">' + a.issues.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (a.issues.length > 5 ? '<br>…还有 ' + (a.issues.length-5) + ' 项' : '') + '</div>'
+      + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+  }
+  if(a.missing.length){
+    h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '<b>无归档日 ' + a.missingTotal + ' 天</b>（可能是没录单，也可能只是没归档）<div style="color:#666;margin-top:2px">' + a.missing.slice(0,8).join('、') + (a.missingTotal > 8 ? '…' : '') + '</div></div>';
+  }
+  return h;
+}
+
 function billSum(){
   const list = activeOrders();
   const amt = list.reduce((s,o) => s + Number(o.amount||0), 0);
@@ -11305,6 +11404,7 @@ function billOpenHistory(){
         + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,560px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:16px">历史账单</b>'
         + '<button type="button" onclick="billCloseHistory()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>';
+  h += billAuditText();
   if(s.n || pays.length){
     h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
       + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#333;font-weight:700">净 ' + s.net.toFixed(2) + '</span></div>'
