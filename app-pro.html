@@ -652,7 +652,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.48-Pro';
+var APP_VER = 'v59.49-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7838,7 +7838,7 @@ renderAll();
   switchTab('orders');
   window.__bareNumsChoice = {};
   setTimeout(() => { try{ autoStableAfterSave(); }catch(e){} }, 350);
-  setTimeout(() => { try{ focusOrderById(window.__lastSavedOrderId); }catch(e){} }, 80);
+  // 保存后不再自动滚动到新订单：连续录单时页面会跳走；需要查看时点「查看本次订单」
   // 保存后自动展开平特肖列表
   setTimeout(() => {
     const sl = document.getElementById('singlesList');
