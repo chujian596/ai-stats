@@ -73,5 +73,14 @@ ck('失败弹窗有一键复制', !!document.getElementById('pfCopy'), !!documen
 ck('复制诊断入口存在', typeof copyDiagnostics==='function', typeof copyDiagnostics);
 const _pfClose=document.getElementById('pfClose'); if(_pfClose)_pfClose.click();
 
+// 6. 平龙10 与三中三同行：各自计价，不能把 10 当号码、把组5 套给平龙
+orders=[]; hkOrders=[];
+window.__previewConfirmed=true;
+inp.value='平龙10三中三11.22.33组5';
+try{ doSave(); }catch(e){}
+const _mixOrder=(orders||[])[0]||{};
+ck('平龙10按10计价', (orders||[]).length===1 && Math.abs(_mixOrder.amount-15)<0.01 && _mixOrder.codeAmts && _mixOrder.codeAmts['平特龙']===10 && _mixOrder.codeAmts['三中三:11,22,33']===5 && (_mixOrder.codes||[]).indexOf('10')<0, {amount:_mixOrder.amount,amts:_mixOrder.codeAmts,codes:_mixOrder.codes});
+window.__previewConfirmed=false;
+
 window.__archiveQA=out;
 })();
