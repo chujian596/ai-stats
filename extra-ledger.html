@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>扩展维度台账 · 平特/波色/尾数/头数</title>
+<style>
+  :root{
+    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
+    --line:#e3e3e3; --bg:#f6f6f6; --yellow:#b8860b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
+  .wrap{max-width:680px;margin:0 auto}
+  header{margin-bottom:16px}
+  h1{margin:0 0 6px;font-size:21px;font-weight:700}
+  .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--sub)}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .bar-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
+  .stat{font-size:13px;color:var(--ink)}
+  .stat b{font-variant-numeric:tabular-nums}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;min-width:640px;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+  th{color:var(--sub);font-weight:600;font-size:11.5px;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .site{font-weight:700;white-space:nowrap}
+  .sys{color:var(--sub);font-size:11px}
+  .zs{display:flex;flex-wrap:wrap;gap:4px}
+  .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
+  .hit{color:var(--green);font-weight:700;white-space:nowrap}
+  .miss{color:var(--red);font-weight:700;white-space:nowrap}
+  .trail{display:flex;gap:3px;flex-wrap:wrap}
+  .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
+  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
+  .rowlink{cursor:pointer}
+  .rowlink:hover{background:#fafafa}
+  .detail td{background:#fafbfc;padding:12px 14px}
+  .det-title{font-size:12px;color:var(--sub);margin-bottom:8px}
+  .det-table{width:100%;border-collapse:collapse;font-size:12px}
+  .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
+  .det-table tr:last-child td{border-bottom:none}
+  .raw{font-size:10px;color:var(--sub);margin-top:3px;white-space:normal;word-break:break-all}
+  .rc-title{font-weight:700;font-size:15px;padding:14px 14px 4px}
+  .rc-sub{font-size:11.5px;color:var(--sub);padding:0 14px 8px;line-height:1.6}
+  .rank-row{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--line)}
+  .rank-no{width:22px;height:22px;border-radius:7px;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#666;flex:none}
+  .rank-z{flex:1;font-weight:700}
+  .rank-c{font-variant-numeric:tabular-nums;color:var(--sub);font-size:12px;text-align:right;white-space:nowrap}
+  .rank-bar{flex:none;width:64px;height:6px;border-radius:4px;background:#f0f2f5;overflow:hidden}
+  .rank-bar i{display:block;height:100%;background:var(--blue)}
+  .rank-hot{color:var(--red);font-weight:700}
+  .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
+  .hidden{display:none}
+  .warn{margin:8px 2px 0;font-size:11.5px;color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>扩展维度台账</h1>
+    <div class="meta">在九肖 / 杀三肖之外，逐站逐期登记各站推荐并复盘命中。<br>
+      <b>平特一肖</b>：推肖落在当期 6 平码生肖 ∪ 特肖（七肖）内记中；<b>波色</b>：特码波色落在推双色内记中；<b>尾数</b>：特码个位落在推尾集合内记中；<b>头数</b>：特码头位落在推头集合内记中。<br>
+      样本偏小，只记录不定论；早期无快照期（仅平特历史库）留存不全，命中率不与快照期并列对比。</div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="bar-row">
+    <label class="stat">期号</label>
+    <select id="periodSel"></select>
+    <div class="stat" id="summary"></div>
+  </div>
+  <div class="warn" id="snapNote"></div>
+
+  <div class="card">
+    <div class="rc-title" id="rankTitle"></div>
+    <div class="rc-sub" id="rankSub"></div>
+    <div id="rankList"></div>
+  </div>
+
+  <div class="card">
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>期号</th><th>站名</th><th>推荐</th><th>结果</th><th>近 7 期轨迹</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="note" id="ruleNote"></div>
+</div>
+
+<script>
+var DIMS = {
+  pingte: {title:'平特一肖', file:'pingte-ledger.json', unit:'肖', hot:'actual'},
+  wave:   {title:'波色',     file:'wave-ledger.json',   unit:'色', hot:'actualWave'},
+  tail:   {title:'尾数',     file:'tail-ledger.json',   unit:'尾', hot:'actualTail'},
+  head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead'}
+};
+var dim='pingte', LG=null, ALIAS={};
+
+function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+function nameOf(r,key){ return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
+
+function issues(){ return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}); }
+
+function loadDim(){
+  document.getElementById('tabs').innerHTML=Object.keys(DIMS).map(function(k){
+    return '<button class="tab'+(k===dim?' on':'')+'" data-dim="'+k+'">'+DIMS[k].title+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){
+    b.addEventListener('click',function(){ dim=b.dataset.dim; loadDim(); });
+  });
+  return fetchJson('data/'+DIMS[dim].file).then(function(d){ LG=d; })
+    .then(function(){ return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){}); })
+    .then(function(){ buildSelect(); render(); });
+}
+
+function buildSelect(){
+  var sel=document.getElementById('periodSel');
+  sel.innerHTML='';
+  issues().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
+  sel.onchange=render;
+  if(issues().length) sel.value=issues()[issues().length-1];
+}
+
+function trailOf(key,cur){
+  var hist=issues().filter(function(i){return +i<=+cur;}).slice(-7);
+  return hist.map(function(i){
+    var r=LG.periods[i].stations[key];
+    if(!r||r.hit===null||r.hit===undefined) return {cls:'n',tx:'·'};
+    return r.hit?{cls:'w',tx:'中'}:{cls:'l',tx:'错'};
+  });
+}
+
+function render(){
+  if(!LG){return;}
+  var cur=document.getElementById('periodSel').value||issues()[issues().length-1];
+  var per=LG.periods[cur];
+  if(!per){document.getElementById('rows').innerHTML='';return;}
+  var keys=Object.keys(per.stations);
+  var wins=keys.filter(function(k){return per.stations[k].hit;}).length;
+  var rate=keys.length?Math.round(wins/keys.length*100):0;
+  document.getElementById('summary').innerHTML=
+    '第 <b>'+cur+'</b> 期　有推荐 <b>'+keys.length+'</b> 站 · 中 <b>'+wins+'</b> 错 <b>'+(keys.length-wins)+'</b>（命中率 '+rate+'%）';
+  document.getElementById('snapNote').textContent = per.source==='history'
+    ? '本期为早期历史库留存，站点不全，命中率不参与快照期对比。' : '';
+
+  renderRank(per);
+  renderRows(per,cur);
+}
+
+function renderRank(per){
+  var cfg=DIMS[dim], cnt={};
+  Object.keys(per.stations).forEach(function(k){
+    (per.stations[k].picks||[]).forEach(function(p){ cnt[p]=(cnt[p]||0)+1; });
+  });
+  var rows=Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]};}).sort(function(a,b){return b.n-a.n;});
+  var hot=per[cfg.hot];
+  document.getElementById('rankTitle').textContent=cfg.title+' · 本期推荐排行';
+  document.getElementById('rankSub').textContent='按各站推荐票数汇总；标红为当期开出项。';
+  var max=rows.length?rows[0].n:1;
+  document.getElementById('rankList').innerHTML=rows.map(function(r){
+    var hotCls=r.p===String(hot)?' rank-hot':'';
+    var bar=Math.round(r.n/max*100);
+    return '<div class="rank-row"><div class="rank-no">'+(rows.indexOf(r)+1)+'</div>'+
+      '<div class="rank-z'+hotCls+'">'+r.p+(r.p===String(hot)?'（开出）':'')+'</div>'+
+      '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
+      '<div class="rank-c">'+r.n+' 票</div></div>';
+  }).join('') || '<div class="rc-sub">本期无推荐数据</div>';
+}
+
+function renderRows(per,cur){
+  var tb=document.getElementById('rows');
+  tb.innerHTML='';
+  var keys=Object.keys(per.stations).sort(function(a,b){
+    var ra=per.stations[a],rb=per.stations[b];
+    return ra.siteKey<rb.siteKey?-1:1;
+  });
+  keys.forEach(function(k){
+    var r=per.stations[k];
+    var tr=document.createElement('tr');
+    tr.className='rowlink'; tr.dataset.key=k;
+    var trail=trailOf(k,cur).map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('');
+    var hitTx=r.hit?'中':'错', hitCls=r.hit?'hit':'miss';
+    var picks=(r.picks||[]).map(function(p){return '<span class="z">'+p+'</span>';}).join('');
+    tr.innerHTML='<td class="tot na">'+cur+'期</td>'+
+      '<td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
+      '<td><div class="zs">'+picks+'</div></td>'+
+      '<td><span class="'+hitCls+'">'+hitTx+'</span></td>'+
+      '<td><div class="trail">'+trail+'</div></td>';
+    tr.addEventListener('click',function(){ toggleDetail(k,tr,cur); });
+    tb.appendChild(tr);
+  });
+}
+
+function detailHtml(key,cur){
+  var hist=issues().filter(function(i){return +i<=+cur;}).reverse();
+  var rows=hist.map(function(h){
+    var rr=LG.periods[h].stations[key], actual=LG.periods[h].actual;
+    if(!rr) return '';
+    var hitTx=rr.hit?'中':'错', hitCls=rr.hit?'hit':'miss';
+    var picks=(rr.picks||[]).map(function(p){return '<span class="z">'+p+'</span>';}).join('');
+    var raw=rr.raw?'<div class="raw">原话：'+rr.raw+'</div>':'';
+    return '<tr><td>'+h+'期</td><td>开'+actual+'</td><td><div class="zs">'+picks+'</div>'+raw+'</td>'+
+      '<td><span class="'+hitCls+'">'+hitTx+'</span></td></tr>';
+  }).join('');
+  var r=LG.periods[cur].stations[key];
+  return '<div class="det-title">'+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
+    '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function toggleDetail(key,tr,cur){
+  var det=tr.nextElementSibling;
+  if(det&&det.classList.contains('detail')){ det.style.display=det.style.display==='none'?'':'none'; return; }
+  det=document.createElement('tr'); det.className='detail';
+  det.innerHTML='<td colspan="5">'+detailHtml(key,cur)+'</td>';
+  tr.parentNode.insertBefore(det,tr.nextSibling);
+}
+
+loadDim();
+</script>
+</body>
+</html>

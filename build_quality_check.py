@@ -44,7 +44,18 @@ for k, v in load(DRAW).items():
         continue
     sp = v.get('special') or v.get('t') or v.get('code')
     if sp:
-        draws[int(k)] = {'special': int(sp), 'zod': v.get('special_zodiac') or zchar_of(int(sp))}
+        sp = int(sp)
+        meta = {m['n']: m for m in v.get('meta', [])}
+        plains = v.get('plains', [])
+        seven = {meta[n]['zodiac'] for n in plains if n in meta}
+        if sp in meta:
+            seven.add(meta[sp]['zodiac'])
+        draws[int(k)] = {
+            'special': sp, 'zod': v.get('special_zodiac') or zchar_of(sp),
+            'seven': seven,
+            'wave': meta[sp]['wave'] if sp in meta else None,
+            'tail': sp % 10, 'head': sp // 10,
+        }
 
 # ---- 快照归集：早 18* / 晚 20* ----
 def pick_nine(columns):
@@ -160,6 +171,58 @@ def check_ledger(fn, ledger, expect, hit_rule):
 
 check_ledger('max-zodiac-ledger.json', '九肖', 9, 'in')
 check_ledger('kill3-ledger.json', '杀三肖', 3, 'not_in')
+
+
+WAVE_C = '红蓝绿'
+
+def extra_recompute(dim, picks, dr):
+    if dim == 'pingte':
+        return picks[0] in dr['seven']
+    if dim == 'wave':
+        return dr['wave'] in picks
+    if dim == 'tail':
+        return str(dr['tail']) in picks
+    if dim == 'head':
+        return str(dr['head']) in picks
+    return False
+
+
+def check_extra(fn, ledger, dim):
+    global checked
+    L = load(ROOT / 'data' / fn)
+    for iss, per in L['periods'].items():
+        iss_i = int(iss)
+        dr = draws.get(iss_i)
+        for sid, r in per.get('stations', {}).items():
+            picks = r.get('picks') or []
+            if not picks:
+                continue
+            checked += 1
+            sk = r.get('siteKey') or sid
+            sys = r.get('system', '')
+            raw = r.get('raw') or ''
+            # 原文解析自洽
+            if dim == 'pingte':
+                parsed = zchars(raw)
+            elif dim == 'wave':
+                parsed = [c for c in raw if c in WAVE_C]
+            else:
+                parsed = [c for c in raw if c.isdigit()]
+            if raw and set(parsed) != set(picks):
+                add(iss, ledger, sk, sys, 'RAW_PARSE',
+                    f"原文「{raw}」解析 {parsed} 与入账 {picks} 不符", picks, per.get('actual'))
+            # 命中复算
+            if dr and r.get('hit') is not None:
+                recompute = extra_recompute(dim, picks, dr)
+                if bool(r['hit']) != recompute:
+                    add(iss, ledger, sk, sys, 'HIT_RECOMPUTE',
+                        f"台账 hit={r['hit']} 复算应为 {recompute}", picks, per.get('actual'))
+
+
+check_extra('pingte-ledger.json', '平特一肖', 'pingte')
+check_extra('wave-ledger.json', '波色', 'wave')
+check_extra('tail-ledger.json', '尾数', 'tail')
+check_extra('head-ledger.json', '头数', 'head')
 
 report = {
     'generated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
