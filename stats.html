@@ -284,7 +284,8 @@ function num(n){ return Number(n||0); }
 function fetchJson(path, timeout){
   var ms=timeout||9000;
   var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
-  var p=fetch(path,{cache:'no-cache',signal:ctl?ctl.signal:undefined}).then(function(r){
+  var url=path+(path.indexOf('?')>=0?'&':'?')+'v='+Date.now();
+  var p=fetch(url,{cache:'no-cache',signal:ctl?ctl.signal:undefined}).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
   });
