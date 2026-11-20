@@ -59,3 +59,8 @@ bash tests/release_check.sh
 1. `Wait 85` 秒等 Pages 部署
 2. `curl "...app-pro.html?t=$RANDOM" | grep APP_VER` 核对版本
 3. 生成快照：`bash versions/snapshot.sh vXX.XX-Pro "说明"`，更新 `versions/index.html`
+
+### F. 需确认项：真实选择 + 落单对账（23 项 / 55 分支）
+浏览器执行 `tests/choice_settle_qa.js`，等待 `window.__choiceQA` 生成。
+判定：`tested=55 / pass=55 / fail=0`；每个分支都要核对「选项标注总额 = 落单金额合计 = 保存消息合计」。
+覆盖：特肖各、平特肖各、多肖、裸肖、中文/大写金额、波色、波色单/大/小单/单大、合数单、裸单、裸双、大、号码+生肖两行、三行混合、特肖各/每歧义。
