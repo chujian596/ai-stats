@@ -1,5 +1,5 @@
 /* 离线缓存：有网时强制取最新（绕过浏览器强缓存），没网时用上一次缓存，保证断网也能打开 */
-var CACHE_NAME = 'aistats-shell-v4';
+var CACHE_NAME = 'aistats-shell-v5';
 var SHELL = ['/app', '/app.html', '/app-pro', '/app-pro.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', function (e) {

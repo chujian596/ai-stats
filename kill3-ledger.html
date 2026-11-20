@@ -96,6 +96,18 @@
   .pm-chip.l3{border-color:#f3c9c6;background:#fff7f6;color:var(--red)}
   .pm-chip .pm-n{font-variant-numeric:tabular-nums}
   tr.pend-flash{background:#fff6df !important}
+  .cmp-link{float:right;font-size:11px;font-weight:600;color:var(--blue);text-decoration:none}
+  .cmp2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 14px 0}
+  .cmp2-col{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .cmp2-h{font-size:12px;font-weight:700;padding:8px 10px 4px}
+  .cmp2-col.left .cmp2-h{color:var(--blue)} .cmp2-col.right .cmp2-h{color:var(--red)}
+  .mrow{display:flex;align-items:center;gap:5px;padding:5px 10px}
+  .mno{width:16px;height:16px;border-radius:5px;background:#f0f2f5;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#666;flex:none}
+  .mz{flex:1;font-weight:700;font-size:12px}
+  .mbar{flex:none;width:30px;height:5px;border-radius:3px;background:#f0f2f5;overflow:hidden}
+  .mbar i{display:block;height:100%}
+  .cmp2-col.left .mbar i{background:var(--blue)} .cmp2-col.right .mbar i{background:var(--red)}
+  .mc{font-size:10px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -114,8 +126,12 @@
   </div>
 
   <div class="card" id="pendCard" style="display:none;border-color:#f3c9c6;background:#fffafa">
-    <div class="rc-title" id="pendTitle"></div>
+    <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html">完整对比 ↗</a></div>
     <div class="rc-sub" id="pendSub"></div>
+    <div class="cmp2">
+      <div class="cmp2-col left"><div class="cmp2-h">九肖首肖 · Top</div><div id="miniNine"></div></div>
+      <div class="cmp2-col right"><div class="cmp2-h">被杀三肖 · Top</div><div id="miniKill"></div></div>
+    </div>
     <div id="pendRank"></div>
     <div id="pendMiss"></div>
     <div class="table-scroll" id="pendTableWrap" style="display:none">
@@ -318,6 +334,17 @@ function pendHist(s){
   return {has:true,w:cs.w,l:cs.l,win:st.win,lose:st.lose,trail:trail};
 }
 
+function miniRows(agg, total, unit){
+  var rows=Object.keys(agg).map(function(z){return {z:z,n:agg[z]};}).sort(function(a,b){return b.n-a.n||a.z.localeCompare(b.z,'zh');}).slice(0,8);
+  if(!rows.length) return '<div class="rc-sub">暂无</div>';
+  var max=rows[0].n||1;
+  return rows.map(function(r,i){
+    var num=unit==='站'?r.n+'站':r.n+'票';
+    return '<div class="mrow"><span class="mno">'+(i+1)+'</span><span class="mz">'+r.z+'</span>'+
+      '<span class="mbar"><i style="width:'+Math.round(r.n/max*100)+'%"></i></span><span class="mc">'+num+'</span></div>';
+  }).join('');
+}
+
 function renderPendingMiss(){
   var box=document.getElementById('pendMiss');
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
@@ -372,6 +399,11 @@ function renderPendingKill(){
         '<div class="rank-c">'+r.kill+' 票</div></div>';
     }).join('');
   } else { rankEl.innerHTML=''; }
+  var nagg={}, ntot=0;
+  (PEND.sites||[]).forEach(function(s){ if(s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length){ nagg[s.zodiacs[0]]=(nagg[s.zodiacs[0]]||0)+1; ntot++; }});
+  var kagg={}; rows.forEach(function(r){kagg[r.z]=r.kill;});
+  document.getElementById('miniNine').innerHTML=miniRows(nagg, ntot, '站');
+  document.getElementById('miniKill').innerHTML=miniRows(kagg, PEND.killSites, '票');
   renderPendingMiss();
   var wrap=document.getElementById('pendTableWrap');
   var tb=document.getElementById('pendRows');
