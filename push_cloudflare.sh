@@ -66,7 +66,7 @@ if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   UNEXPECTED=()
   while IFS= read -r -d '' p; do
     case "$p" in
-      app-pro.html|app-pro-backup.html|app.html|version.txt|version-client.txt|sw.js|manifest.json) ;;
+      app-pro.html|app-pro-backup.html|app.html|app-client-backup.html|version.txt|version-client.txt|sw.js|manifest.json) ;;
       versions/*|functions/*) ;;
       .wrangler/*|node_modules/*|__pycache__/*|*/__pycache__/*|*.pyc|*.pyo) ;;
       # 运行时产物：抓板缓存/故障登记/日志，从不进部署包，出现改动不阻断部署
@@ -96,7 +96,7 @@ fi
 # 只推 Cloudflare 的话，安卓端一直看到旧代码。这里补上同步。
 if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   cd "$SRC" || exit 1
-  SYNC_PATHS=(app-pro.html app-pro-backup.html app.html version.txt version-client.txt sw.js manifest.json versions functions)
+  SYNC_PATHS=(app-pro.html app-pro-backup.html app.html app-client-backup.html version.txt version-client.txt sw.js manifest.json versions functions)
   git add -- "${SYNC_PATHS[@]}" >/dev/null 2>&1
   # 只提交白名单路径：即使别的进程往暂存区放了无关改动（含删除），也不会被本脚本带走。
   if ! git diff --cached --quiet -- "${SYNC_PATHS[@]}"; then

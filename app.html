@@ -150,7 +150,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px" onclick="clearInput()">清空</button>
+        <button class="btn" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
@@ -231,7 +231,21 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <option value="hk">只看香港</option>
       </select>
     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:0 0 8px;padding:6px 8px;border:1px solid #f0c36d;background:#fffbe6;border-radius:8px;font-size:12px;color:#b45309">
+      <span style="white-space:nowrap">香港飞单默认（所有客户）</span>
+      <button type="button" id="hkGlobalModeBtn" onclick="openHKModeSheet()" style="flex:1;max-width:190px;padding:5px 8px;border:1px solid #e8c574;border-radius:5px;background:#fff;color:#b45309;font-size:12px;font-weight:600;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">全飞 ▾</button>
+    </div>
     <div id="ordersList"></div>
+    <div id="hkFlyBox" style="margin-top:8px"></div>
+    <div id="hkModeSheet" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeHKModeSheet()">
+      <div style="background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:14px 16px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;box-shadow:0 -8px 30px rgba(0,0,0,.18)">
+        <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 12px"></div>
+        <div style="font-size:18px;font-weight:700;color:#1f2329">香港飞单默认</div>
+        <div style="font-size:12px;color:#888;line-height:1.5;margin-top:3px">所有客户统一生效；改这里，全部客户一起改。</div>
+        <div id="hkModeSheetBody" style="margin-top:10px"></div>
+        <button type="button" onclick="closeHKModeSheet()" style="width:100%;margin-top:12px;padding:11px;border:1px solid #ddd;border-radius:10px;background:#f7f7f7;color:#666;font-size:15px;font-weight:600">取消</button>
+      </div>
+    </div>
   </section>
 
   <section id="tab-pay" class="card tab-panel" style="display:none">
@@ -330,7 +344,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
-      <button class="btn" onclick="showErrLog()">错误日志</button>
+      <button class="btn" onclick="showErrLog()">错误日志<span id="errBadge" style="display:none;margin-left:4px;background:#cf1322;color:#fff;border-radius:9px;padding:0 5px;font-size:11px;font-weight:700"></span></button>
+      <button class="btn" onclick="copyDiagnostics()">复制诊断</button>
       <button class="btn" onclick="exportDiagnostics()">诊断导出</button>
       <button class="btn" onclick="openPasteImport()">粘贴导入</button>
       <button class="btn" style="color:#16a34a" onclick="restoreLastBackup()">一键恢复上次备份</button>
@@ -374,7 +389,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         2.1 设置 → 录入 → <b style="color:var(--modalText,#fff)">保存前预览</b> 可开关；默认开，关掉后保存直接入账<br>
         3. 一笔一行，可多行一次保存<br>
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
-        4.1 保存后自动跳到「订单记录」并高亮本次订单；订单页顶部「本次订单」可随时重新定位<br>
+        4.1 保存后不再自动跳到「订单记录」；需要核对时点「查看本次订单」按钮，页面会定位并高亮本次订单<br>
         4.2 订单页可搜客户/号码/金额，并按「全部日期 / 今天 / 只看香港」筛选<br>
         4.3 「今日对账」把返水、飞后净、含返水到手、上家结算分开列；返水默认不计，需在飞单卡片勾选并设比例<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
@@ -523,38 +538,54 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         3. <b style="color:var(--modalText,#fff)">恢复默认</b>：外观和产品设置还原
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港分店（与澳门店同一套功能）</div>
+            <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港单与飞单（港澳分开算）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         <b style="color:var(--modalText,#fff)">1. 怎么录</b><br>
         &nbsp;&nbsp;顶部切到「<b style="color:var(--modalText,#fff)">香港</b>」可以录；在澳门店也能直接录香港单<br>
         &nbsp;&nbsp;单独一行「<b style="color:var(--modalText,#fff)">香港：</b>」→ 后面整段进香港；「<b style="color:var(--modalText,#fff)">澳门：</b>」→ 后面整段切回澳门<br>
         &nbsp;&nbsp;单行写「香港牛50」也会把后续未标注行带入香港段；行尾写「…澳门」只把该行算澳门<br>
-        &nbsp;&nbsp;同一客户的澳门单和香港单在同一张客户卡合并算下注/中奖，明细仍分「澳门单目录 / 香港单目录」<br><br>
+        &nbsp;&nbsp;同一客户的澳门单和香港单在同一张客户卡合并算下注/中奖，明细仍分「澳门单目录 / 香港单目录」，每笔前面还有「澳门」或「香港」小标<br><br>
 
         <b style="color:var(--modalText,#fff)">2. 独立一池</b><br>
-        &nbsp;&nbsp;订单池、开奖、赔付、飞单、统计、归档仍按港澳分开存，互不串号<br>
-        &nbsp;&nbsp;客户汇总可以合并看，但每笔明细只用自己盘口的开奖计算<br><br>
+        &nbsp;&nbsp;香港单进全局香港池，澳门店和香港店都能看到；订单、开奖、赔付、飞单、结算仍按港澳分开存，互不串号<br>
+        &nbsp;&nbsp;澳门削峰和澳门上家飞单不把香港单算进去；香港单也不套用澳门开奖<br><br>
 
-        <b style="color:var(--modalText,#fff)">3. 香港飞单</b><br>
-        &nbsp;&nbsp;和澳门<b style="color:var(--modalText,#fff)">一模一样</b>：特号 / 平特 / 连肖 / 二中二三中三逐号台账、阈值、档位、削峰、凑整、已飞、复制、确认飞单<br>
-        &nbsp;&nbsp;没有整店飞黄框，也没有香港单自动飞；全部按本店每个号/生肖/组合单独飞<br>
+        <b style="color:var(--modalText,#fff)">3. 香港工作台</b><br>
+        &nbsp;&nbsp;有香港单才出现，默认收起；标题显示香港单数、已飞/待飞/记录金额和凑整档<br>
+        &nbsp;&nbsp;展开后按「待飞目录 / 部分已飞 / 已飞目录 / 只记录」四段分开，每段带项数和合计<br>
+        &nbsp;&nbsp;已飞明细可上下滑动；「复制香港单」只复制本批要飞的内容<br><br>
 
-        <b style="color:var(--modalText,#fff)">4. 香港凑整</b><br>
-        &nbsp;&nbsp;跟澳门同一套 5/10 档凑整，按本店独立保存，互不影响<br><br>
+        <b style="color:var(--modalText,#fff)">4. 飞单默认总开关</b><br>
+        &nbsp;&nbsp;顶部「<b style="color:var(--modalText,#fff)">香港飞单默认（所有客户）</b>」一个开关管所有客户：<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">全飞</b> = 所有香港单都飞给上家<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">只飞组合</b> = 只飞连肖/二中二/三中二/三中三，单号和平特只记录<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">只记录</b> = 全部不飞，只记客户账<br>
+        &nbsp;&nbsp;改档后本批自动回到待确认，不会沿用旧档位；不再需要逐客设置<br><br>
 
-        <b style="color:var(--modalText,#fff)">5. 香港开奖</b><br>
-        &nbsp;&nbsp;有香港单才出现香港开奖条（没单不占位置），读的是香港开奖结果<br>
-        &nbsp;&nbsp;香港不是每天开，看到期号比澳门旧是正常的<br><br>
+        <b style="color:var(--modalText,#fff)">5. 连/二/三自动飞</b><br>
+        &nbsp;&nbsp;勾选「<b style="color:var(--modalText,#fff)">（连/二/三）自动飞</b>」后，连肖/二中二/三中二/三中三直接算已飞，不再进待飞<br>
+        &nbsp;&nbsp;单号、平特仍按手动确认；新增香港单只把新增部分回待确认，已经飞过的金额保留，不会清零<br>
+        &nbsp;&nbsp;自动飞项会计入「已飞」，复制香港单时不再重复复制这些组合项<br><br>
 
-        <b style="color:var(--modalText,#fff)">6. 香港赔付</b><br>
-        &nbsp;&nbsp;开奖到手后自动算「收多少 / 赔多少 / 净多少」，中奖号码单列<br>
+        <b style="color:var(--modalText,#fff)">6. 凑整与香港实际</b><br>
+        &nbsp;&nbsp;点标题里的「凑整关 / 凑整5 / 凑整10」循环切换；订单行显示凑整后的飞额，「收」仍按客户原单额<br>
+        &nbsp;&nbsp;「应飞」显示原额和凑整后目标（如 507 → 515）；「已飞」按凑整后实付记账<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">香港实际 = 收 − 赔 − 已飞 + 上家赔回</b>；凑整差单独标出，正数表示多飞自己多付，负数表示少飞自己留<br><br>
+
+        <b style="color:var(--modalText,#fff)">7. 确认与结算</b><br>
+        &nbsp;&nbsp;工作台右上角「确认」或底部「确认已飞」只记香港飞单账，不写澳门上家；澳门的「确认本轮飞单」是另一本账，两个入口分开<br>
+        &nbsp;&nbsp;「结算香港本批」独立写香港赔付，不写澳门结算；「港澳合计」只做只读核对<br><br>
+
+        <b style="color:var(--modalText,#fff)">8. 香港开奖/赔付</b><br>
+        &nbsp;&nbsp;有香港单才出现香港开奖条；澳门店里的香港单也按香港开奖算，不再显示“香港开奖未录入”<br>
+        &nbsp;&nbsp;香港不是每天开，期号比澳门旧是正常的；没拉到香港开奖时显示待开奖，拉到后自动算收/赔/净<br>
         &nbsp;&nbsp;赔率和澳门同一套（特码 47 倍、平特 1 赔 2），不用另设<br><br>
 
-        <b style="color:var(--modalText,#fff)">7. 删香港单</b><br>
+        <b style="color:var(--modalText,#fff)">9. 删香港单</b><br>
         &nbsp;&nbsp;每笔旁边有删除；客户撤单会连香港单一起删，并提示删了几笔
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
+<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 点右上角「<b style="color:var(--modalText,#fff)">澳门🇲🇴▾</b>」→ 选「香港🇭🇰」，页面自动重载<br>
         2. <b style="color:var(--modalText,#fff)">A 店＝澳门</b>：默认收澳门单，带「香港」标注的行自动进香港账<br>
@@ -638,7 +669,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.39';
+var APP_VER = 'v59.63';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -659,6 +690,7 @@ function logErr(type, msg, meta){
       at: Date.now(),
       ver: (typeof APP_VER !== 'undefined' ? APP_VER : ''),
       shop: (typeof shop !== 'undefined' ? shop : ''),
+      day: (typeof billBookDate === 'function' ? (billBookDate() || (typeof billToday === 'function' ? billToday() : '')) : ''),
       type: String(type || 'error'),
       msg: String(msg || '').slice(0, 300)
     };
@@ -672,6 +704,309 @@ function logErr(type, msg, meta){
 }
 function readErrLog(){ try{ return _errLoad().slice(); }catch(e){ return []; } }
 function clearErrLog(){ _errMem = []; try{ localStorage.removeItem(ERR_KEY); }catch(e){} }
+
+/* ===== 录入失败诊断：本机批次队列 + 私有 Cloudflare 通道 ===== */
+var DIAG_ENDPOINT = 'https://aistats-9uo.pages.dev/api/diag';
+var DIAG_INGEST_KEY = '4453d49edec35fc5033022fd2a6318483fe56eb014575f94';
+var DIAG_QUEUE_KEY = 'ai_diag_queue_v1';
+var DIAG_STATUS_KEY = 'ai_diag_status_v1';
+var DIAG_MAX_QUEUE = 50;
+var DIAG_MAX_FAILS = 200;
+var DIAG_TIMEOUT_MS = 8000;
+
+function diagEnabled(){
+  try{ if(new URLSearchParams(location.search).get('nock')==='1') return false; }catch(e){}
+  return true;
+}
+function diagDeviceHash(){
+  var s = String(typeof DEVICE_ID !== 'undefined' ? DEVICE_ID : '');
+  var h = 2166136261;
+  for(var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ('00000000' + (h >>> 0).toString(16)).slice(-8);
+}
+function diagMaskText(txt){
+  var t = String(txt == null ? '' : txt);
+  function escRe(x){ return String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  try{
+    (roster || []).slice().sort(function(a,b){ return String(b).length - String(a).length; }).forEach(function(n){
+      n = String(n || '').trim();
+      if(!n || n === '散客') return;
+      if(n.length >= 2){
+        if(t.indexOf(n) >= 0) t = t.split(n).join('[客户]');
+      } else {
+        // 单字客户名：只抹行首，或分隔符后且后面紧跟分隔符/金额/行尾；
+        // 这样“龙 30”“龙30”“张三 龙 30”会抹，“平特龙10”不会误伤。
+        var re = new RegExp('(^|[\\s,，、:：])' + escRe(n) + '(?=[\\s,，、:：]|（|\\(|\\d|$)', 'gm');
+        t = t.replace(re, function(m, pre){ return pre + '[客户]'; });
+      }
+    });
+  }catch(e){}
+  t = t.replace(/^\s*\[客户\]\s*/, '[客户] ');
+  t = t.replace(/\[客户\](?:\s*\[客户\])+/g, '[客户]');
+  t = t.replace(/\b\d{17}[\dXx]\b/g, '[证件]');
+  t = t.replace(/1[3-9]\d{9}/g, '[手机]');
+  return t;
+}
+function diagBatchId(){
+  return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,6) + (typeof shop !== 'undefined' ? shop : '');
+}
+function diagBuildBatch(fails, errors, rawIn){
+  var list = (fails || []).slice(0, DIAG_MAX_FAILS).map(function(f){
+    return {lineNo: Number(f.idx || 0), raw: diagMaskText(String(f.raw || '').slice(0,500)), msg: diagMaskText(String(f.msg || '未知解析错误').slice(0,300))};
+  });
+  if(!list.length){
+    list.push({lineNo: 0, raw: diagMaskText(String(rawIn || '').slice(0,500)), msg: String((errors && errors[0]) || '未知解析错误').slice(0,300)});
+  }
+  var b = {
+    batchId: diagBatchId(),
+    appVersion: String(typeof APP_VER !== 'undefined' ? APP_VER : ''),
+    shop: String(typeof shop !== 'undefined' ? shop : ''),
+    day: String((typeof billBookDate === 'function' ? (billBookDate() || '') : '') || (typeof billToday === 'function' ? billToday() : '')),
+    deviceHash: diagDeviceHash(),
+    inputMode: 'batch',
+    totalLines: Math.max(Number((window.__lastParseTotal || 0)), list.length),
+    failCount: Math.max(Number((errors && errors.length) || 0), list.length),
+    rawInput: diagMaskText(String(rawIn || '').slice(0, 2000)),
+    failures: list
+  };
+  return b;
+}
+function diagQueueRead(){
+  try{ var q = JSON.parse(localStorage.getItem(DIAG_QUEUE_KEY) || '[]'); return Array.isArray(q) ? q.slice(-DIAG_MAX_QUEUE) : []; }catch(e){ return []; }
+}
+function diagQueueWrite(q){
+  try{ localStorage.setItem(DIAG_QUEUE_KEY, JSON.stringify((q || []).slice(-DIAG_MAX_QUEUE))); }catch(e){}
+  renderDiagBadge();
+}
+function diagSaveStatus(txt, at, retryAt){
+  try{ localStorage.setItem(DIAG_STATUS_KEY, JSON.stringify({txt:String(txt||''), at: at || Date.now(), retryAt: Number(retryAt) || 0})); }catch(e){}
+}
+function diagReadStatus(){
+  try{ return JSON.parse(localStorage.getItem(DIAG_STATUS_KEY) || '{}') || {}; }catch(e){ return {}; }
+}
+function diagEnqueue(batch){
+  if(!batch || !batch.batchId) return;
+  var q = diagQueueRead();
+  if(q.some(function(x){ return x && x.batchId === batch.batchId; })) return;
+  q.push(batch);
+  diagQueueWrite(q);
+  diagSaveStatus('已记录，等待上报', Date.now());
+  if(diagEnabled()) diagFlush();
+}
+function renderDiagBadge(){
+  try{
+    var b = document.getElementById('errBadge');
+    if(!b) return;
+    var n = diagQueueRead().length;
+    b.textContent = n ? String(n) : '';
+    b.style.display = n ? 'inline-block' : 'none';
+  }catch(e){}
+}
+function diagPostBatch(b){
+  var opts = {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-diag-key':DIAG_INGEST_KEY},
+    body: JSON.stringify(b),
+    keepalive: true
+  };
+  var ctrl = null, timer = null;
+  try{
+    if(typeof AbortController !== 'undefined'){
+      ctrl = new AbortController();
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, DIAG_TIMEOUT_MS);
+    }
+  }catch(e){}
+  return fetch(DIAG_ENDPOINT, opts).then(function(r){
+    if(timer) clearTimeout(timer);
+    return r;
+  }, function(e){
+    if(timer) clearTimeout(timer);
+    throw e;
+  });
+}
+function diagFlush(manual){
+  if(!diagEnabled()){ if(manual) myAlert('测试模式不上报。'); return Promise.resolve(); }
+  if(typeof navigator !== 'undefined' && navigator.onLine === false){ if(manual) myAlert('当前离线，已保留在本机，联网后自动上报。'); return Promise.resolve(); }
+  var q = diagQueueRead();
+  if(!q.length){ if(manual) myAlert('没有待上报的失败批次。'); return Promise.resolve(); }
+  var st = diagReadStatus();
+  if(!manual && st.retryAt && Date.now() < st.retryAt){
+    return Promise.resolve(); // 上次超时/额度满，等退避时间到了再试
+  }
+  var sent = 0, failed = '', stopped = false, retryAt = 0;
+  function done(msg){
+    diagQueueWrite(q);
+    diagSaveStatus(msg, Date.now(), retryAt);
+    if(manual) myAlert(msg);
+  }
+  function step(i){
+    if(stopped || i >= q.length || sent >= 5){
+      if(sent){ retryAt = 0; done('已上报 ' + sent + ' 批'); }
+      else { retryAt = retryAt || (Date.now() + 60000); done('上报失败：' + (failed || '网络问题') + '。已保留在本机，稍后自动重试。'); }
+      return;
+    }
+    var b = q[i];
+    diagPostBatch(b).then(function(r){
+      if(r.ok){ sent++; q.splice(i,1); diagQueueWrite(q); return step(i); }
+      if(r.status === 429){
+        var sec = parseInt((r.headers && r.headers.get && r.headers.get('Retry-After')) || '86400', 10);
+        if(!(sec > 0)) sec = 86400;
+        retryAt = Date.now() + sec * 1000;
+        stopped = true;
+        return done('今日诊断额度已满，已保留本机，明日自动补传。');
+      }
+      return r.text().then(function(t){ failed = 'HTTP ' + r.status; return step(i+1); });
+    }).catch(function(e){
+      failed = (e && e.name === 'AbortError') ? '超时' : ((e && e.message) || '网络错误');
+      retryAt = Date.now() + 60000;
+      stopped = true;
+      return done('上报' + failed + '，已保留在本机，稍后自动重试。');
+    });
+  }
+  step(0);
+  return Promise.resolve();
+}
+try{ window.addEventListener('online', function(){ setTimeout(function(){ diagFlush(); }, 1200); }); }catch(e){}
+setTimeout(function(){ try{ renderDiagBadge(); diagFlush(); }catch(e){} }, 1800);
+
+/* 失败行拆行入口：只放回输入框/复制，不自动保存，不产生半批账 */
+function diagPutLine(i){
+  var f = (window.__pfFails || [])[i];
+  if(!f || !f.raw){ myAlert('这一行没有原文，无法放回。'); return; }
+  var inp = document.getElementById('input');
+  if(!inp) return;
+  var doIt = function(){
+    inp.value = String(f.raw || '');
+    try{ var ov=document.getElementById('pfMask'); if(ov) ov.remove(); }catch(e){}
+    inp.focus();
+    try{ inp.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+  };
+  var cur = String(inp.value || '').trim();
+  if(cur && cur !== String(f.raw || '').trim()){
+    myConfirm('把这一行放回输入框？当前输入会被替换；原批次仍未入账。', doIt);
+  } else doIt();
+}
+function diagCopyLine(i){
+  var f = (window.__pfFails || [])[i];
+  if(!f || !f.raw){ myAlert('这一行没有原文，无法复制。'); return; }
+  _copyText(String(f.raw || ''), function(){ myAlert('已复制这一行。'); }, function(){ myAlert('复制失败，请长按原文手动复制。'); });
+}
+function diagCopyAllFails(){
+  var list = window.__pfFails || [];
+  var txt = list.map(function(f){ return String((f && f.raw) || ''); }).filter(Boolean).join('\n');
+  if(!txt){ myAlert('没有可复制的失败原文。'); return; }
+  _copyText(txt, function(){ myAlert('已复制 ' + list.length + ' 行失败原文。'); }, function(){ myAlert('复制失败，请逐行复制。'); });
+}
+function diagCopyFailList(){
+  var list = window.__pfFails || [];
+  if(!list.length){ myAlert('没有可复制的失败清单。'); return; }
+  var txt = '本批录入失败（整批未入账）\n' + list.map(function(f, i){
+    return '第 ' + String(f.idx || (i+1)) + ' 行：' + String((f && f.raw) || '') + '\n原因：' + String((f && f.msg) || '未知');
+  }).join('\n\n');
+  _copyText(txt, function(){ myAlert('已复制失败清单，含行号、原文和原因。'); }, function(){ myAlert('复制失败，请逐行复制。'); });
+}
+
+/* 统一复制入口：优先 Clipboard API，失败则退回 textarea + execCommand。 */
+function _copyText(txt, ok, fail){
+  function fb(){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      if(ok) ok();
+    }catch(e){ if(fail) fail(); }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ if(ok) ok(); }).catch(fb);
+  } else fb();
+}
+
+/* 无法识别清单：把 parse 日志按“原文 + 错误”归并，便于看出到底哪些词录不进。 */
+function parseFailGroups(){
+  var logs = readErrLog().filter(function(r){ return r && r.type === 'parse'; });
+  var map = {}, withRaw = 0;
+  logs.forEach(function(r){
+    var raw = '';
+    try{ raw = (r.meta && r.meta.raw) ? String(r.meta.raw) : ''; }catch(e){}
+    if(!raw) return;
+    withRaw++;
+    var key = raw + '\n' + String(r.msg || '');
+    if(!map[key]) map[key] = {raw:raw, msg:String(r.msg || ''), count:0, lastDay:'', lastAt:0};
+    map[key].count++;
+    if(r.day) map[key].lastDay = String(r.day);
+    map[key].lastAt = Math.max(map[key].lastAt, Number(r.at || 0));
+  });
+  var groups = Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return b.lastAt - a.lastAt; });
+  return {total:withRaw, legacy:logs.length - withRaw, groups:groups};
+}
+function parseFailText(){
+  var pf = parseFailGroups();
+  if(!pf.total) return '';
+  var h = '港澳双盘口 ' + (typeof APP_VER !== 'undefined' ? APP_VER : '') + ' 无法识别清单\n'
+    + '导出时间：' + new Date().toLocaleString('zh-CN', {hour12:false}) + '\n'
+    + '共 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种\n\n';
+  pf.groups.forEach(function(g, i){
+    h += (i+1) + '. [' + g.count + '次]' + (g.lastDay ? ' ' + g.lastDay : '') + '\n'
+      + '原文：' + g.raw + '\n'
+      + '错误：' + g.msg + '\n\n';
+  });
+  return h;
+}
+function copyParseFails(){
+  var txt = parseFailText();
+  if(!txt){ myAlert('还没有无法识别记录。'); return; }
+  _copyText(txt, function(){
+    var b = document.getElementById('elCopyFails');
+    if(b) b.textContent = '已复制';
+    myAlert('已复制无法识别清单，可直接发给我。');
+  }, function(){ myAlert('复制失败，请点“导出诊断”发我 JSON。'); });
+}
+function copyDiagnostics(){
+  try{
+    var d = buildDiagnostics();
+    var pf = parseFailGroups();
+    var txt = '港澳双盘口 ' + (d.appVersion || '') + ' 诊断摘要\n'
+      + '店铺：' + (d.shopName || d.shop || '') + '\n'
+      + '生成：' + (d.generatedAt || '') + '\n'
+      + '订单：' + ((d.counts && d.counts.orders) || 0) + ' / 香港：' + ((d.counts && d.counts.hkOrders) || 0) + ' / 待补：' + ((d.counts && d.counts.pending) || 0) + '\n'
+      + '存储：' + ((d.storage && d.storage.bytes) || 0) + ' 字节 / ' + ((d.storage && d.storage.keys) || 0) + ' 键\n'
+      + '错误：' + ((d.errors && d.errors.length) || 0) + ' 条；无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种'
+      + (pf.legacy ? '（旧日志无原文 ' + pf.legacy + ' 条）' : '') + '\n\n'
+      + (pf.total ? parseFailText() : '无法识别：暂无记录\n');
+    _copyText(txt, function(){ myAlert('已复制诊断摘要，直接粘贴发给我。'); }, function(){ myAlert('复制失败，请点“诊断导出”发 JSON。'); });
+  }catch(e){ myAlert('复制诊断失败：' + (e.message || e)); }
+}
+function showParseFailDialog(fails, errors){
+  var list = (fails || []).slice(0, 200);
+  window.__pfFails = list;
+  var n = Math.max((errors && errors.length) || 0, list.length);
+  var ov = document.createElement('div');
+  ov.id = 'pfMask';
+  ov.className = 'ai-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  var rows = list.length ? list.map(function(f, i){
+    return '<div style="padding:8px 0;border-bottom:1px solid #eee">'
+      + '<div style="font-size:11px;color:#999">第 ' + esc(String(f.idx || (i+1))) + ' 行</div>'
+      + '<div style="font-size:13px;color:#333;word-break:break-all;line-height:1.5;margin-top:2px"><b>' + esc(String(f.raw || '').slice(0,200)) + '</b></div>'
+      + '<div style="font-size:12px;color:#b45309;word-break:break-all;margin-top:2px">' + esc(String(f.msg || '未知')) + '</div>'
+      + '<div style="display:flex;gap:6px;margin-top:6px">'
+      + '<button type="button" onclick="diagPutLine(' + i + ')" style="border:1px solid #1677ff;background:#fff;color:#1677ff;border-radius:6px;padding:4px 9px;font-size:12px">放回输入框</button>'
+      + '<button type="button" onclick="diagCopyLine(' + i + ')" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:4px 9px;font-size:12px">复制这一行</button>'
+      + '</div></div>';
+  }).join('') : ('<div style="padding:18px 0;color:#999;text-align:center">' + esc((errors||[]).join('\n')) + '</div>');
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:430px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
+    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。</div>'
+    + '<div style="max-height:48vh;overflow:auto;background:#fafafa;padding:0 12px 6px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">' + rows + '</div>'
+    + (list.length >= 200 ? '<div style="padding:6px 16px;font-size:11px;color:#999;text-align:center">只显示前 200 行；完整失败批次已另存并上报。</div>' : '')
+    + '<div style="border-top:1px solid #eee;display:flex;flex-wrap:wrap">'
+    + '<button id="pfCopyAll" onclick="diagCopyAllFails()" style="flex:1;min-width:45%;padding:12px;border:none;background:#fff;color:#1677ff;font-size:13px;font-weight:600;border-right:1px solid #eee;border-bottom:1px solid #eee">复制全部失败行</button>'
+    + '<button id="pfCopy" onclick="diagCopyFailList()" style="flex:1;min-width:45%;padding:12px;border:none;background:#fff;color:#ad6800;font-size:13px;font-weight:600;border-bottom:1px solid #eee">复制失败清单</button>'
+    + '<button id="pfClose" style="flex:1;min-width:100%;padding:12px;border:none;background:#fff;color:#666;font-size:14px">关闭</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#pfClose').onclick = function(){ ov.remove(); };
+}
 function _storageStats(){
   var keys = [], bytes = 0;
   try{
@@ -738,12 +1073,31 @@ function showErrLog(){
   var ov = document.createElement('div');
   ov.className = 'ai-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var pf = parseFailGroups();
+  var pfHtml = '';
+  if(pf.total){
+    pfHtml = '<div style="margin:10px 16px 0;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:9px 10px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '<b>无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种</b>' + (pf.legacy ? ' <span style="color:#888">（另有 ' + pf.legacy + ' 条旧日志无原文）</span>' : '') + '<div style="color:#666;margin-top:3px">' + pf.groups.slice(0,6).map(function(g){
+          return esc(String(g.raw).slice(0,50)) + ' <span style="color:#999">×' + g.count + (g.lastDay ? ' · ' + esc(g.lastDay) : '') + '</span>';
+        }).join('<br>') + (pf.groups.length > 6 ? '<br>…还有 ' + (pf.groups.length-6) + ' 种' : '') + '</div>'
+      + '<button id="elCopyFails" onclick="copyParseFails()" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">复制失败清单</button></div>';
+  }
+  var _dq = diagQueueRead();
+  var _ds = diagReadStatus();
+  var diagHtml = '<div style="margin:10px 16px 0;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 10px;font-size:12px;color:#1d4ed8;line-height:1.6">'
+    + '<b>失败诊断上报：待上报 ' + _dq.length + ' 批</b>'
+    + (_ds.txt ? '<div style="color:#666;margin-top:2px">最近：' + esc(_ds.txt) + ( _ds.at ? ' · ' + esc(new Date(_ds.at).toLocaleString('zh-CN',{hour12:false})) : '') + '</div>' : '')
+    + '<button onclick="diagFlush(true)" style="margin-top:6px;border:1px solid #1677ff;background:#fff;color:#1677ff;border-radius:6px;padding:5px 10px;font-size:12px">立即上报失败批次</button></div>';
   var rows = logs.slice(-60).reverse().map(function(r){
-    return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + '</div></div>';
+    var raw = '';
+    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,500) : ''; } catch(e){}
+    return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + (r.day ? ' · 账本日 ' + esc(r.day) : '') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + (raw ? '<div style="font-size:11px;color:#b45309;margin-top:3px;white-space:pre-wrap">原文：' + esc(raw) + '</div>' : '') + '</div></div>';
   }).join('');
   if(!rows) rows = '<div style="padding:24px 0;text-align:center;font-size:13px;color:#999">暂无错误记录</div>';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;flex-direction:column">'
     + '<div style="padding:14px 16px;font-size:16px;font-weight:700;color:#333;border-bottom:1px solid #eee">错误日志（' + logs.length + ' 条，最多保留 200 条）</div>'
+    + pfHtml
+    + diagHtml
     + '<div style="padding:2px 16px 8px;overflow-y:auto;flex:1">' + rows + '</div>'
     + '<div style="display:flex;border-top:1px solid #eee">'
     + '<button id="elClear" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#cf1322;border-right:1px solid #eee">清空</button>'
@@ -951,6 +1305,8 @@ var NUM2ZODIAC_REV = {'马':[1,13,25,37,49],'蛇':[2,14,26,38],'龙':[3,15,27,39
 
 // 自动结算：解析开奖结果，自动计算所有命中赔付
 function autoPayout(){
+  // 结算账本按当前店铺：A=澳门单，B=香港单，不能拿 orders 去算港单
+  var ledger = (typeof shop !== 'undefined' && shop === 'B') ? hkOrders : orders;
   var raw = document.getElementById('input').value.trim();
   if(!raw){ myAlert('请输入开奖结果'); return; }
   // 提取所有数字
@@ -1006,8 +1362,12 @@ function autoPayout(){
   allZodiacs.forEach(function(z){ hitZodiacSet[z] = true; });
   lastDraw = { specialNum, regularNums: [...regularNums], period };
   saveLastDraw();
+  // 香港店手动录入开奖时，同步写香港开奖缓存，香港飞单/独立结算才有开奖可用
+  if(typeof shop !== 'undefined' && shop === 'B'){
+    try{ hkSetDrawCache({ draw: period || (hkDrawObj() && hkDrawObj().draw) || '', nums: [...regularNums, specialNum].map(Number) }); }catch(e){}
+  }
 
-  var allOrders = JSON.parse(localStorage.getItem(KEY) || '[]').filter(function(o){ return shop === 'B' ? !!o.hk : !o.hk; });
+  var allOrders = ledger.slice();
   var results = [];
   var totalPayout = 0;
 
@@ -1061,7 +1421,7 @@ function autoPayout(){
     results.push(label + ' 下注' + r.bet.toFixed(2) + ' ×' + r.mult + ' = ' + payout.toFixed(2));
   });
 
-  var totalSales = orders.reduce(function(s,o){ return s + Number(o.amount||0); }, 0);
+  var totalSales = ledger.reduce(function(s,o){ return s + Number(o.amount||0); }, 0);
   var net = totalSales - totalPayout;
 
   var msg = '';
@@ -1081,7 +1441,12 @@ function autoPayout(){
     msg += (net >= 0 ? '毛盈利：' : '毛亏损：') + Math.abs(net).toFixed(2);
     // 计算飞单后实际盈亏
     let flyOutAmt = 0, flyBackAmt = 0;
-    try {
+    if(typeof shop !== 'undefined' && shop === 'B'){
+      // 香港店只认香港自己的逐号飞单账，不读澳门 flownPerPos
+      var _hfi = hkFlyInfo();
+      flyOutAmt = _hfi.flyOut;
+      flyBackAmt = _hfi.flyBack;
+    } else try {
       const sales0 = getSplitSales();
       // 特号走「实际已飞」口径（含早前确认过的），和飞单明细、自留现金同一个数
       let specFlyReal0 = 0;
@@ -1089,7 +1454,7 @@ function autoPayout(){
       flyOutAmt += specFlyReal0;
       flyBackAmt += flownRealOf(String(specialNum).padStart(2,'0')) * payMult;
       const pteAgg0 = {};
-      orders.forEach(o => { (o.codes||[]).forEach(c => {
+      ledger.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && c.startsWith('平特')){
           const z = c.replace('平特','');
           pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
@@ -1104,7 +1469,7 @@ function autoPayout(){
       });
       if(lxFlyAmt > 0){ const _lxFlown = autoFlyOn ? lxFlyAmt : Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')] || 0); flyOutAmt += _lxFlown; const drawZ2 = new Set([...regularNums, specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)); const lz = (lxFlyName||'').replace(/[0-9连]+$/,''); if(_lxFlown > 0 && lz.split('').every(z => drawZ2.has(z))) flyBackAmt += _lxFlown * lxOddsOf(lz); }
       let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-      if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
+      if(emOn){ const allN = new Set(regularNums); ledger.forEach(o => { (o.codes||[]).forEach(c => {
         if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
           const amt = codeSalesForOrder(o, c); flyOutAmt += amt;
           const mult = codeWinMult(c, {specialNum:specialNum, regularNums:regularNums});
@@ -1133,8 +1498,11 @@ function autoPayout(){
     ov.querySelector('#mcCancel').onclick = () => ov.remove();
     ov.querySelector('#mcOk').onclick = () => {
       ov.remove();
+      // 香港店结算只进香港独立账，不能写入澳门 pays / upCum 口径
+      if(typeof shop !== 'undefined' && shop === 'B'){ hkSettleCurrent(); return; }
       pays.unshift({ product: '自动结算', amount: totalPayout, note: period ? '期' + period + ' ' : '' + '特' + specialNum, time: new Date().toLocaleString('zh-CN'), _upBefore: parseFloat(localStorage.getItem('upCum') || '0') });
       savePays();
+      if(period) localStorage.setItem(sk('lastDrawPeriod'), String(period));
       // 累计上家盈亏
       try {
         let upCum = parseFloat(localStorage.getItem('upCum') || '0');
@@ -1157,7 +1525,7 @@ function autoPayout(){
         Object.keys(sales0).forEach(k => { flyOut0 += Math.max(0, sales0[k] - splitTakeAll); });
         flyBack0 += Math.max(0, (sales0[specialNum]||0) - splitTakeAll) * 47;
         const pteAgg0 = {};
-        orders.forEach(o => { (o.codes||[]).forEach(c => {
+        ledger.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && c.startsWith('平特')){
             const z = c.replace('平特','');
             pteAgg0[z] = (pteAgg0[z]||0) + codeSalesForOrder(o, c);
@@ -1181,7 +1549,7 @@ function autoPayout(){
           }
         }
         let emOn = true; try { emOn = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
-        if(emOn){ const allN = new Set(regularNums); orders.forEach(o => { (o.codes||[]).forEach(c => {
+        if(emOn){ const allN = new Set(regularNums); ledger.forEach(o => { (o.codes||[]).forEach(c => {
           if(typeof c === 'string' && (c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0)){
             const amt = codeSalesForOrder(o, c); flyOut0 += amt;
             const mult = codeWinMult(c, {specialNum:specialNum, regularNums:regularNums});
@@ -1537,26 +1905,72 @@ try {
   }
 } catch(e){}
 const KEY = sk('product_stats_orders_v1');
+// 港澳共享层：只给客户名单、客户订单镜像、香港单和香港飞单/结算用。
+// 澳门 orders 和香港 hkOrders 各自的风控账本仍按当前店铺读取，不能把共享层塞进 activeOrders。
+const HK_GLOBAL_KEY = 'product_stats_hk_orders_global_v1';
+const HK_GLOBAL_PAY_KEY = 'product_stats_hk_pays_global_v1';
+const HK_GLOBAL_FLY_KEY = 'product_stats_hk_fly_global_v1';
+const MAC_GLOBAL_KEY = 'product_stats_macau_orders_global_v1';
+const ROSTER_GLOBAL_KEY = 'product_stats_customers_global_v1';
+const MAC_DRAW_GLOBAL_KEY = 'mac_draw_cache_global';
+function _readJSONArr(key){
+  try{ var a = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function _writeJSONArr(key, arr){
+  try{ localStorage.setItem(key, JSON.stringify(arr || [])); return true; }
+  catch(e){ return false; }
+}
+function _mergeOrderList(base, add, originShop){
+  var out = base.slice(), seen = {}, seenSig = {};
+  out.forEach(function(o){
+    if(!o) return;
+    if(o.id) seen[o.id] = 1;
+    else seenSig[[o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|')] = 1;
+  });
+  (add || []).forEach(function(raw){
+    var o = normalizeOrder(raw);
+    if(!o) return;
+    if(originShop && !o.originShop) o.originShop = originShop;
+    if(o.id && seen[o.id]) return;
+    if(!o.id){
+      var sig = [o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|');
+      if(seenSig[sig]) return;
+      seenSig[sig] = 1;
+    }
+    if(o.id) seen[o.id] = 1;
+    out.push(o);
+  });
+  return out;
+}
+function saveHKGlobalOrders(){
+  if(typeof hkOrders === 'undefined') return false;
+  hkOrders.forEach(function(o){ if(o && !o.originShop) o.originShop = shop; });
+  return _writeJSONArr(HK_GLOBAL_KEY, hkOrders);
+}
+function saveMacauGlobalOrders(){
+  var list = _readJSONArr(MAC_GLOBAL_KEY);
+  list = _mergeOrderList(list, orders, shop);
+  return _writeJSONArr(MAC_GLOBAL_KEY, list);
+}
 let storageOK = true;
 let orders = loadOrders();  // 两店都加载各自账本；港单再单独进 hkOrders
 let hkOrders = loadHKOrders();  // 两店都加载港单：澳门店也能录港单，客户明细要合在一起看
 function activeOrders(){
-  // 香港店 orders 与 hkOrders 指向同一批港单，合并时必须去重，避免对账/盈亏双计
-  var seenIds = {}, seenSigs = {}, out = [];
-  orders.concat(hkOrders).forEach(function(o){
-    if(!o) return;
-    if(o.id){
-      if(seenIds[o.id]) return;
-      seenIds[o.id] = 1;
-    } else {
-      var sig = [o.createdAt || o.ts || '', o.customer || '', Number(o.amount) || 0, (o.codes || []).join(',')].join('|');
-      if(seenSigs[sig]) return;
-      seenSigs[sig] = 1;
-    }
-    out.push(o);
-  });
-  return out;
-}  // 本店活动单池：A=澳单，B=港单
+  // 当前店铺自己的账：A 店只算澳门单，B 店只算香港单。
+  // 客户明细要合并时由 renderOrdersList 直接读 orders + hkOrders，不能把两本账塞进这里，
+  // 否则赔付/飞单/统计会拿澳门开奖去算香港单。
+  return (typeof shop !== 'undefined' && shop === 'B') ? hkOrders.slice() : orders.slice();
+}
+function allActiveOrders(){ return customerOrders(); }  // 全量活动单：港澳两本账合并去重，只用于客户汇总/订单列表
+function customerOrders(){
+  // 客户名单和订单记录要跨店看：澳门单有全局镜像，香港单本身就是全局池。
+  // 这个函数只做展示/客户合计，绝不参与 activeOrders()、cutBets()、getSplitSales() 等风控口径。
+  var list = orders.slice();
+  list = _mergeOrderList(list, _readJSONArr(MAC_GLOBAL_KEY), 'A');
+  list = _mergeOrderList(list, hkOrders || [], shop);
+  return list;
+}
 
 function updateOrderSummary(){
   var el = document.getElementById('orderSummary');
@@ -1581,19 +1995,40 @@ function updateOrderSummary(){
     lx += lxAmt;
     spec += amt - emAmt - pteAmt - lxAmt;
   });
-  el.innerHTML = '订单累计：<b>特'+spec+'</b>　平/连:'+pte+'/'+lx+'　二/三:'+em;
+  var _shopLabel = (typeof shop !== 'undefined' && shop === 'B') ? '香港' : '澳门';
+  el.innerHTML = _shopLabel + '订单累计：<b>特'+spec+'</b>　平/连:'+pte+'/'+lx+'　二/三:'+em;
 }
 function loadOrders(){
   try {
     const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder).filter(o => o && !o.hk);
+    var local = arr.map(normalizeOrder).filter(o => o && !o.hk);
+    // 首次升级：A/B 澳门单合并成全局客户镜像；只给客户列表看，不进风控
+    var global = _readJSONArr(MAC_GLOBAL_KEY);
+    if(!global.length){
+      ['A','B'].forEach(function(s){
+        var old = _readJSONArr('product_stats_orders_v1_shop' + s).filter(function(o){ return o && !o.hk; });
+        global = _mergeOrderList(global, old, s);
+      });
+    }
+    global = _mergeOrderList(global, local, shop);
+    try{ localStorage.setItem(MAC_GLOBAL_KEY, JSON.stringify(global)); }catch(e){}
+    return local;
   }
   catch(e){ storageOK = false; return []; }
 }
 function loadHKOrders(){
   try {
-    const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return arr.map(normalizeOrder).filter(o => o && o.hk);
+    // 首次升级：把 A/B 两店旧的港单合并进全局池，避免切店后老港单消失。
+    // 全局池一旦存在就以它为准，不再回读各店旧键，否则 A 店删掉的港单会被 B 店旧键复活。
+    var global = _readJSONArr(HK_GLOBAL_KEY);
+    if(!global.length){
+      ['A','B'].forEach(function(s){
+        var old = _readJSONArr('product_stats_orders_v1_shop' + s).filter(function(o){ return o && o.hk; });
+        global = _mergeOrderList(global, old, s);
+      });
+      try{ localStorage.setItem(HK_GLOBAL_KEY, JSON.stringify(global)); }catch(e){}
+    }
+    return global.map(normalizeOrder).filter(o => o && o.hk);
   }
   catch(e){ return []; }
 }
@@ -1621,10 +2056,13 @@ function resolveCode(token){
 function saveOrders(){
   invalidateStats();
   try {
-    // 两本账都从内存写：澳门单 orders、香港单 hkOrders，互不覆盖
-    var _hkKeep = hkOrders;
-    var _macKeep = orders;
-    localStorage.setItem(KEY, JSON.stringify(_macKeep.concat(_hkKeep)));
+    // 本店键只写本店账：澳门 orders + 本店录的港单；港单全局池单独写一份。
+    // 这样 A 店删港单不会在 B 店旧键里复活，B 店也不会把澳门单写进自己的账。
+    var _hkLocal = (hkOrders || []).filter(function(o){ return o && (!o.originShop || o.originShop === shop); });
+    hkOrders.forEach(function(o){ if(o && !o.originShop) o.originShop = shop; });
+    localStorage.setItem(KEY, JSON.stringify((orders || []).concat(_hkLocal)));
+    saveHKGlobalOrders();
+    saveMacauGlobalOrders();
     return true;
   }
   catch(e){ storageOK = false; logErr('save_orders', e && e.message ? e.message : String(e)); return false; }
@@ -1668,8 +2106,8 @@ function flushPendingOrders(){
     var o = normalizeOrder(raw);
     if(!o || !o.id || seen[o.id]) return;
     if(o.hk){
+      o.originShop = o.originShop || shop;
       hkOrders.push(o);
-      if(typeof shop !== 'undefined' && shop === 'B') orders.push(o);
     } else orders.push(o);
     seen[o.id] = 1; added++;
   });
@@ -1700,18 +2138,43 @@ function renderPendingOrdersBar(){
 }
 
 
+function _removeOrderFromGlobals(id){
+  if(!id) return;
+  try{
+    var gm = _readJSONArr(MAC_GLOBAL_KEY).filter(function(o){ return !(o && o.id === id); });
+    _writeJSONArr(MAC_GLOBAL_KEY, gm);
+  }catch(e){}
+}
+function delOrderById(id){
+  if(!id){ myAlert('这笔订单没有编号，无法跨店删除'); return; }
+  var o = (orders || []).filter(function(x){ return x && x.id === id; })[0]
+       || (hkOrders || []).filter(function(x){ return x && x.id === id; })[0];
+  if(!o){ myAlert('订单已不存在，请刷新后重试'); return; }
+  myConfirm('删除这笔订单？金额会同步扣减\n' + (o.raw || '') + ' 金额:' + (o.amount || ''), function(){
+    orders = (orders || []).filter(function(x){ return !(x && x.id === id); });
+    hkOrders = (hkOrders || []).filter(function(x){ return !(x && x.id === id); });
+    _removeOrderFromGlobals(id);
+    saveOrders();
+    renderAll();
+    try { renderHKFlyBox(); } catch(e){}
+  });
+}
 function delOrder(idx){
+  var o = orders[idx];
+  if(!o){ myAlert('订单已不存在，请刷新后重试'); return; }
+  if(o.id){ delOrderById(o.id); return; }
   myConfirm('删除这笔订单？金额会同步扣减', function(){
-  orders.splice(idx, 1);
-  saveOrders();
-  restoreIfNeeded();
-renderAll();
+    orders.splice(idx, 1);
+    saveOrders();
+    restoreIfNeeded();
+    renderAll();
   });
 }
 // 香港单删除/撤销：客户撤单时用
 function delHKOrder(idx){
   var o = hkOrders[idx];
   if(!o) return;
+  if(o.id){ delOrderById(o.id); return; }
   myConfirm('删除这笔香港单？\n' + (o.raw || '') + ' 金额:' + (o.amount || ''), function(){
     hkOrders.splice(idx, 1);
     saveOrders();
@@ -2659,7 +3122,7 @@ function getSplitSales(){
 // 香港单的号码销量（港澳分开算，港澳赔率相同，赔付公式通用）
 function getHKSales(){
   const sales = {};
-  orders.forEach(o => {
+  hkOrders.forEach(o => {
     if(!o.hk) return;
     const seen = {};
     (o.codes||[]).forEach(c => {
@@ -3170,7 +3633,7 @@ function hkSummaryLine(){
   if(!hkOrders.length) return '';
   return '<div style="padding-top:2px;color:#b45309">香港 <b>' + hkOrders.length + '</b> 单 ｜ 合计 <b>' + hkTotalAmount().toFixed(0) + '</b></div>';
 }
-// 香港单分组：号码同金额并成一行；平特/连肖/组合这类玩法各占一行，不再被过滤掉
+// 香港单分组：号码同金额并成一行；同时标出 待飞 / 已飞 / 只记录，供目录分栏
 function hkGroups(){
   var nums = {};    // 号码 code -> 金额
   var other = {};   // 其它玩法 code -> 金额
@@ -3184,22 +3647,190 @@ function hkGroups(){
       else other[c] = (other[c]||0) + amt;
     });
   });
-  var by = {};      // 号码金额 -> [code]
-  Object.keys(nums).forEach(function(c){
-    var a = hkRoundOn() ? flyShowAmt(nums[c], parseFloat(hkRoundSel()) || 5) : Math.round(nums[c]);
-    (by[a] = by[a] || []).push(c);
-  });
-  var out = Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).map(function(a){
-    return { amt: a, codes: by[a].sort() };
-  });
-  Object.keys(other).sort().forEach(function(c){
-    out.push({ amt: Math.round(other[c]), codes: [c] });
-  });
+  var all = hkPlanAll(), flown = hkFlownPlan();
+  function _st(c){
+    var sent = Number(flown[c] || 0);
+    if(sent > 0.01){
+      if(!(c in all)) return 'flown';                      // 之前飞过、现在模式不飞，也要留在已飞目录
+      var target = Number(hkFlyAmt(all[c]) || 0);
+      return (sent + 0.01 >= target) ? 'flown' : 'partial';
+    }
+    if(!(c in all)) return 'record';                       // 飞单模式不飞这类，只记录
+    return 'pending';
+  }
+  function _bucket(src, numeric){
+    var by = {};
+    Object.keys(src).forEach(function(c){
+      var a = numeric && hkRoundOn() ? hkFlyAmt(src[c]) : Math.round(src[c]);
+      var s = _st(c), key = String(a) + '|' + s;
+      if(!by[key]) by[key] = { amt: a, codes: [], status: s };
+      by[key].codes.push(c);
+    });
+    return Object.keys(by).map(function(k){ return by[k]; });
+  }
+  var out = _bucket(nums, true).concat(_bucket(other, false));
+  var _ord = { pending:0, partial:1, flown:2, record:3 };
+  out.sort(function(a,b){ return (_ord[a.status]-_ord[b.status]) || (b.amt-a.amt); });
+  out.forEach(function(g){ g.codes.sort(); });
   return out;
+}
+
+// 客户级香港飞单默认：all=全飞，none=只记录不飞，rule=只飞连肖/二中二/三中二/三中三
+// 全局默认一个框管所有客户；客户卡上的下拉只做单客覆盖（选“跟随全部”即删除覆盖）
+const HK_MODE_KEY = 'product_stats_hk_fly_modes_v1';
+const HK_GLOBAL_MODE_KEY = 'product_stats_hk_fly_mode_global_v1';
+function hkGlobalMode(){
+  try{
+    var v = localStorage.getItem(HK_GLOBAL_MODE_KEY);
+    return (v === 'none' || v === 'rule' || v === 'all') ? v : 'all';
+  }catch(e){ return 'all'; }
+}
+function hkModeMap(){
+  try{
+    var m = JSON.parse(localStorage.getItem(HK_MODE_KEY) || '{}');
+    return (m && typeof m === 'object') ? m : {};
+  }catch(e){ return {}; }
+}
+function hkModeOf(name){
+  // 只认顶部一个总开关，不再按客户分别设置
+  return hkGlobalMode();
+}
+function setHKGlobalMode(mode){
+  var m = (mode === 'none' || mode === 'rule') ? mode : 'all';
+  try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, m); }catch(e){}
+  // 全局框就是“所有客户”：清掉旧的单客覆盖，避免看起来改了全部、实际被老设置挡住
+  try{ localStorage.removeItem(HK_MODE_KEY); }catch(e){}
+  renderHKGlobalModeBtn();
+  var st = hkFlyState();
+  st.perPos = {}; st.real = {}; st.done = false; st.at = '';
+  saveHKFlyState(st);
+  renderHKFlyBox();
+  myAlert('所有客户香港飞单默认已设为：' + hkModeLabel(m) + '\n本批回到待确认。');
+}
+function hkModeLabel(v){
+  return v === 'none' ? '只记录' : (v === 'rule' ? '只飞组合' : '全飞');
+}
+function hkModeDesc(v){
+  if(v === 'rule') return '只飞连肖 / 二中二 / 三中二 / 三中三；单号、平特只记录，不飞。';
+  if(v === 'none') return '所有香港单都不飞给上家，只记客户账。';
+  return '所有香港单都飞给上家。';
+}
+function renderHKGlobalModeBtn(){
+  var b = document.getElementById('hkGlobalModeBtn');
+  if(b) b.textContent = hkModeLabel(hkGlobalMode()) + ' ▾';
+}
+function renderHKModeSheet(){
+  var body = document.getElementById('hkModeSheetBody');
+  if(!body) return;
+  var cur = hkGlobalMode();
+  var opts = [
+    { v:'all', t:'全飞', d:hkModeDesc('all') },
+    { v:'rule', t:'只飞组合', d:hkModeDesc('rule') },
+    { v:'none', t:'只记录', d:hkModeDesc('none') }
+  ];
+  body.innerHTML = opts.map(function(o){
+    var on = cur === o.v;
+    return '<button type="button" onclick="pickHKGlobalMode(\'' + o.v + '\')" style="width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;margin-bottom:8px;padding:11px 10px;border:1px solid ' + (on?'#16a34a':'#e5e7eb') + ';border-radius:11px;background:' + (on?'#f0fdf4':'#fff') + '">'
+      + '<span style="flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid ' + (on?'#16a34a':'#c9ced6') + ';margin-top:2px;display:flex;align-items:center;justify-content:center">'
+      + (on?'<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:block"></span>':'') + '</span>'
+      + '<span style="flex:1;min-width:0"><b style="display:block;font-size:15px;color:#1f2329;line-height:1.3">' + o.t + '</b>'
+      + '<span style="display:block;font-size:12px;color:#888;line-height:1.45;margin-top:2px">' + o.d + '</span></span></button>';
+  }).join('');
+}
+function openHKModeSheet(){
+  renderHKModeSheet();
+  var el = document.getElementById('hkModeSheet');
+  if(el) el.style.display = 'flex';
+}
+function closeHKModeSheet(){
+  var el = document.getElementById('hkModeSheet');
+  if(el) el.style.display = 'none';
+}
+function pickHKGlobalMode(v){
+  closeHKModeSheet();
+  setHKGlobalMode(v);
+}
+function hkCodeSends(c, mode){
+  if(mode === 'none') return false;
+  if(mode === 'rule') return /^(连肖|二中二:|三中二:|三中三:)/.test(String(c || ''));
+  return true;
+}
+// 按客户设置汇总“应飞”逐号金额：只记录客户不进飞单账，规则客户只飞组合
+function hkIsAutoCode(c){
+  return /^(连肖|二中二:|三中二:|三中三:)/.test(String(c || ''));
+}
+// 全部应飞（含自动飞项），只用于对总账
+function hkPlanAll(){
+  var plan = {};
+  (hkOrders || []).forEach(function(o){
+    var mode = hkModeOf(o.customer || '散客');
+    var seen = {};
+    (o.codes || []).forEach(function(c){
+      if(seen[c]) return; seen[c] = true;
+      var amt = Number(codeSalesForOrder(o, c) || 0);
+      if(amt > 0.01 && hkCodeSends(c, mode)) plan[c] = (plan[c] || 0) + amt;
+    });
+  });
+  return plan;
+}
+// 手动待确认清单：勾了「连/二/三自动飞」时，连肖/二中二/三中二/三中三不再进待飞
+function hkFlyPlan(){
+  var all = hkPlanAll();
+  if(!autoFlyOn) return all;
+  var out = {};
+  Object.keys(all).forEach(function(c){ if(!hkIsAutoCode(c)) out[c] = all[c]; });
+  return out;
+}
+function hkAutoFlyTotal(){
+  if(!autoFlyOn) return 0;
+  var all = hkPlanAll(), tot = 0;
+  Object.keys(all).forEach(function(c){
+    if(hkIsAutoCode(c)) tot += Number(hkFlyAmt(all[c]) || 0);   // 自动飞也按凑整后的实付算
+  });
+  return tot;
+}
+// 已飞逐号：确认过的 + 自动飞项（两者不重复计）
+function hkFlownPlan(){
+  var st = hkFlyState(), out = {};
+  Object.keys(st.real || {}).forEach(function(c){ out[c] = Number(st.real[c] || 0); });
+  if(autoFlyOn){
+    var all = hkPlanAll();
+    Object.keys(all).forEach(function(c){
+      if(hkIsAutoCode(c) && !(c in out)) out[c] = Number(hkFlyAmt(all[c]) || 0);
+    });
+  }
+  return out;
+}
+function setCustHKMode(name, mode){
+  var _n = String(name || '散客');
+  var _label = '';
+  try{
+    var m = hkModeMap();
+    if(mode === 'follow'){
+      delete m[_n];
+      _label = '跟随全部（' + hkModeLabel(hkGlobalMode()) + '）';
+    } else {
+      var _m = (mode === 'none' || mode === 'rule') ? mode : 'all';
+      m[_n] = _m;
+      _label = hkModeLabel(_m);
+    }
+    localStorage.setItem(HK_MODE_KEY, JSON.stringify(m));
+  }catch(e){}
+  var st = hkFlyState();
+  st.perPos = {}; st.real = {}; st.done = false; st.at = '';
+  saveHKFlyState(st);
+  renderHKFlyBox();
+  myAlert('「' + _n + '」香港飞单默认已设为：' + (_label || hkModeLabel(hkModeOf(_n))) + '\n本批如已确认过，会回到待确认，重新点一次即可。');
 }
 
 function hkRoundOn(){ try{ return localStorage.getItem('hk_round_on') === '1'; }catch(e){ return false; } }
 function hkRoundSel(){ try{ return localStorage.getItem('hk_round_sel') || '5'; }catch(e){ return '5'; } }
+function hkFlyAmt(amt){
+  if(!hkRoundOn()) return Number(amt) || 0;
+  var m = parseFloat(hkRoundSel()) || 5;
+  if(m <= 0) return Number(amt) || 0;
+  return Math.max(m, Math.round((Number(amt) || 0) / m) * m);
+}
 function setHKRoundOn(v){ try{ localStorage.setItem('hk_round_on', v ? '1' : '0'); }catch(e){} renderHKFlyBox(); }
 function setHKRoundSel(v){ try{ localStorage.setItem('hk_round_sel', String(v)); }catch(e){} renderHKFlyBox(); }
 // 香港凑整三态循环：关 → 5档 → 10档 → 关
@@ -3238,21 +3869,97 @@ function hkPayoutInfo(){
   });
   return { draw: d.draw, sp: sp, sales: sales, pay: pay, net: sales - pay, hits: hits };
 }
-function hkFlyDone(){
-  try{
-    var g = localStorage.getItem('hk_fly_done_global');
-    if(g !== null) return g === '1';
-    return localStorage.getItem(sk('hk_fly_done')) === '1';
-  }catch(e){ return false; }
+function hkFlyState(){
+  var s = {};
+  try{ s = JSON.parse(localStorage.getItem(HK_GLOBAL_FLY_KEY) || '{}') || {}; }catch(e){ s = {}; }
+  if(!s.perPos || typeof s.perPos !== 'object') s.perPos = {};
+  if(!s.real || typeof s.real !== 'object') s.real = {};
+  if(typeof s.done === 'undefined'){
+    try{ s.done = localStorage.getItem('hk_fly_done_global') === '1'; }catch(e){ s.done = false; }
+  }
+  return s;
 }
+function saveHKFlyState(s){
+  try{ localStorage.setItem(HK_GLOBAL_FLY_KEY, JSON.stringify(s || {})); return true; }catch(e){ return false; }
+}
+function hkFlyDone(){ return !!hkFlyState().done; }
 function setHKFlyDone(v){
+  var s = hkFlyState();
+  s.done = !!v;
+  if(!v){ s.perPos = {}; s.real = {}; }
+  saveHKFlyState(s);
   try{ localStorage.setItem('hk_fly_done_global', v ? '1' : '0'); }catch(e){}
-  try{ localStorage.setItem(sk('hk_fly_done'), v ? '1' : '0'); }catch(e){}
+}
+// 香港单逐号金额：按订单 codeAmts 汇总，供确认已飞/结算/复制共用
+function hkCodeAmounts(){
+  var m = {};
+  (hkOrders || []).forEach(function(o){
+    var seen = {};
+    (o.codes||[]).forEach(function(c){
+      if(seen[c]) return; seen[c] = true;
+      var amt = Number(codeSalesForOrder(o, c) || 0);
+      if(amt > 0.01) m[c] = (m[c]||0) + amt;
+    });
+  });
+  return m;
+}
+function hkFlyInfo(){
+  var st = hkFlyState();
+  var plan = hkFlyPlan();          // 手动待确认
+  var all = hkPlanAll();           // 全部应飞（含自动飞）
+  var full = 0, fullFly = 0, auto = 0, pending = 0, flyOut = 0, flyBack = 0, lines = [];
+  Object.keys(all).forEach(function(k){
+    var raw = Number(all[k] || 0), act = Number(hkFlyAmt(raw) || 0);
+    full += raw; fullFly += act;
+    if(autoFlyOn && hkIsAutoCode(k)) auto += act;
+  });
+  Object.keys(plan).forEach(function(k){
+    var target = Number(hkFlyAmt(plan[k]) || 0);   // 已飞按实际凑整额扣，避免尾差反复飞
+    var left = target - Number((st.real || {})[k] || 0);
+    if(left > 0.01) pending += left;
+  });
+  var flown = hkFlownPlan(), rawFlown = 0;
+  Object.keys(flown).forEach(function(k){
+    flyOut += Number(flown[k] || 0);
+    rawFlown += Number(all[k] || flown[k] || 0);   // 对照原始应飞，算凑整差
+  });
+  var roundGap = flyOut - rawFlown;                // 正=多飞自己多付，负=少飞自己留
+  var d = hkDrawObj();
+  if(d){
+    Object.keys(flown).forEach(function(k){
+      var sent = Number(flown[k] || 0);
+      if(sent <= 0) return;
+      var mult = codeWinMult(k, d);
+      if(mult > 0){
+        var w = sent * mult;
+        flyBack += w;
+        lines.push(_hitLabel(k) + '  ' + _fmtAmt(sent) + ' ×' + mult + ' = ' + _fmtAmt(w));
+      }
+    });
+  }
+  return { done: !!st.done, planned: pending, full: full, fullFly: fullFly, pending: pending, flyOut: flyOut, auto: auto, roundGap: roundGap, flyBack: flyBack, net: flyBack - flyOut, lines: lines, at: st.at || '', flown: flown };
+}
+// 香港实际净额 = 收单 − 赔付 − 实际已飞 + 上家赔回；不能只拿「赔回−飞走」冒充实际
+function hkActualNet(fi){
+  var hp = hkPayoutInfo();
+  var sales = hp ? hp.sales : hkTotalAmount();
+  var pay = hp ? hp.pay : 0;
+  return sales - pay - Number((fi||{}).flyOut || 0) + Number((fi||{}).flyBack || 0);
 }
 function hkCopyText(){
-  var gs = hkGroups();
-  var lines = gs.map(function(g){ return '香港 ' + g.codes.join(' ').replace(/:/g,'') + ' 各' + g.amt.toFixed(0); });
-  var tot = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
+  var am = hkCodeAmounts();
+  var by = {};
+  Object.keys(am).forEach(function(c){
+    if(autoFlyOn && hkIsAutoCode(c)) return;   // 连/二/三勾了自动飞，不再复制进上家单
+    var a = hkRoundOn() ? hkFlyAmt(am[c]) : Math.round(am[c]);
+    if(a > 0) (by[a] = by[a] || []).push(c);
+  });
+  var lines = [];
+  Object.keys(by).map(Number).sort(function(a,b){ return b-a; }).forEach(function(a){
+    lines.push('香港 ' + by[a].sort().join(' ').replace(/:/g,'') + ' 各' + a.toFixed(0));
+  });
+  if(!lines.length) return '本批连/二/三已自动飞，没有手动待飞项';
+  var tot = lines.length ? Object.keys(by).reduce(function(s,a){ return s + Number(a) * by[a].length; }, 0) : 0;
   lines.push('合计 ' + tot.toFixed(0));
   return lines.join('\n');
 }
@@ -3262,46 +3969,194 @@ function copyHKFly(){
   else { var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
   myAlert('已复制香港单\n' + txt);
 }
-function confirmHKFly(){ setHKFlyDone(true); renderHKFlyBox(); myAlert('香港单已标记已飞'); }
-function resetHKFly(){ setHKFlyDone(false); renderHKFlyBox(); myAlert('香港单已重置为待飞'); }
+function confirmHKFly(){
+  var am = hkFlyPlan();
+  var keys = Object.keys(am);
+  var autoTot = hkAutoFlyTotal();
+  if(!keys.length && autoTot <= 0.01){
+    var _allModes = (hkOrders||[]).map(function(o){ return hkModeOf(o.customer||'散客'); });
+    myAlert(_allModes.length && _allModes.every(function(m){ return m === 'none'; })
+      ? '这批香港单的客户都设为「只记录」，不进飞单账。\n如需飞，先在顶部「香港飞单默认（所有客户）」改成「全飞」或「只飞组合」。'
+      : '这批没有可飞的项。');
+    return;
+  }
+  var st = hkFlyState(), per = {}, real = {};
+  keys.forEach(function(c){
+    per[c] = am[c];
+    real[c] = hkRoundOn() ? hkFlyAmt(am[c]) : am[c];
+  });
+  st.perPos = per; st.real = real; st.done = true; st.at = new Date().toLocaleString('zh-CN');
+  saveHKFlyState(st);
+  renderHKFlyBox();
+  var out = 0; Object.keys(real).forEach(function(k){ out += real[k]; });
+  out += autoTot;
+  myAlert('香港单已按 ' + (keys.length + (autoTot>0?1:0)) + ' 类记账\n已飞合计 ' + out.toFixed(0) + ' 元'
+    + (autoTot>0 ? '\n其中连/二/三自动飞 ' + autoTot.toFixed(0) + ' 元' : '')
+    + '\n只进香港飞单账，不影响澳门削峰');
+}
+function resetHKFly(){
+  var st = hkFlyState(); st.done = false; st.perPos = {}; st.real = {}; st.at = '';
+  saveHKFlyState(st);
+  renderHKFlyBox(); myAlert('香港单已重置为待飞');
+}
+// 香港结算：独立全局台账，不写澳门 pays / 不占澳门结算账单
+function hkSettleRecords(){
+  var a = _readJSONArr(HK_GLOBAL_PAY_KEY);
+  return Array.isArray(a) ? a : [];
+}
+function hkSettleCurrent(){
+  var hp = hkPayoutInfo();
+  if(!hp){ myAlert('香港开奖未录入，不能结算香港单'); return; }
+  if(!hkOrders.length){ myAlert('没有香港单'); return; }
+  var ids = hkOrders.map(function(o){ return o.id; }).filter(Boolean).sort();
+  var key = String(hp.draw) + '|' + ids.join(',');
+  var recs = hkSettleRecords();
+  if(recs.some(function(r){ return r && r.key === key; })){
+    myAlert('香港 ' + hp.draw + ' 期已经结算过了，不重复记账'); return;
+  }
+  var fi = hkFlyInfo();
+  var net = hp.sales - hp.pay - fi.flyOut + fi.flyBack;
+  var rec = {
+    key: key, draw: hp.draw, period: hp.draw,
+    sales: hp.sales, pay: hp.pay, flyOut: fi.flyOut, flyBack: fi.flyBack,
+    net: net, customerNet: hp.sales - hp.pay,
+    at: new Date().toLocaleString('zh-CN'), byShop: shop
+  };
+  recs.unshift(rec);
+  _writeJSONArr(HK_GLOBAL_PAY_KEY, recs);
+  renderHKFlyBox();
+  myAlert('香港 ' + hp.draw + ' 期已结算\n收 ' + hp.sales.toFixed(0) + '　赔 ' + hp.pay.toFixed(0)
+    + '\n飞走 ' + fi.flyOut.toFixed(0) + '　上家赔回 ' + fi.flyBack.toFixed(0)
+    + '\n香港实际 ' + (net>=0?'+':'') + net.toFixed(0)
+    + '\n只进香港账，不进澳门结算');
+}
+// 港澳合计核对：只显示，不写账。正式结算仍由澳门 autoPayout / 香港 hkSettleCurrent 分开记。
+function hkCombinedPreview(){
+  var macSales = (orders || []).reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
+  var macPay = 0;
+  if(lastDraw){ (orders || []).forEach(function(o){ macPay += calcOrderWinDetail(o, lastDraw).total; }); }
+  var hp = hkPayoutInfo();
+  var hkSales = hp ? hp.sales : hkOrders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
+  var hkPay = hp ? hp.pay : 0;
+  var hkNet = hp ? hp.net : 0;
+  var fi = hkFlyInfo();
+  var macNet = macSales - macPay;
+  var allBet = macSales + hkSales;
+  var allPay = macPay + hkPay;
+  var allNet = allBet - allPay;
+  myAlert('港澳合计（只核对，不合并记账）\n\n'
+    + '澳门本店：收 ' + macSales.toFixed(0) + '　赔 ' + macPay.toFixed(0) + '　净 ' + (macNet>=0?'+':'') + macNet.toFixed(0)
+    + (lastDraw ? '（澳 ' + (lastDraw.period||'') + ' 期）' : '（澳门未开奖）')
+    + '\n香港本店：收 ' + hkSales.toFixed(0) + '　赔 ' + hkPay.toFixed(0) + '　净 ' + (hkNet>=0?'+':'') + hkNet.toFixed(0)
+    + (hp ? '（港 ' + hp.draw + ' 期）' : '（香港未开奖）')
+    + '\n香港飞单：飞走 ' + fi.flyOut.toFixed(0) + '　上家赔回 ' + fi.flyBack.toFixed(0)
+    + '\n\n客户合计：下注 ' + allBet.toFixed(0) + '　中奖 ' + allPay.toFixed(0)
+    + '　客户盈亏 ' + (allNet>=0?'+':'') + allNet.toFixed(0)
+    + '\n\n正式结算仍是澳门、香港两本账分开记。');
+}
+function toggleHKFlyBox(){
+  window.__hkFlyOpen = !window.__hkFlyOpen;
+  renderHKFlyBox();
+}
 function renderHKFlyBox(){
   var box = document.getElementById('hkFlyBox');
   if(!box) return;
   try { renderHKDraw(); } catch(e){}
   if(!hkOrders.length){ box.innerHTML = ''; return; }   // 没香港单就整块不显示
   var gs = hkGroups();
-  var total = gs.reduce(function(s,g){ return s + g.amt * g.codes.length; }, 0);
+  var total = hkOrders.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
   var done = hkFlyDone();
+  var fi = hkFlyInfo();
+  var st = hkFlyState();
+  var open = !!window.__hkFlyOpen;   // 默认收起，只显示标题行
+  var planTotal = fi.planned;
+  var _recTotal = total - fi.full;   // 飞单模式不覆盖、只记录的部分
+  var _hdr = [];
+  if(fi.flyOut > 0.01) _hdr.push('已飞' + fi.flyOut.toFixed(0));
+  if(planTotal > 0.01) _hdr.push('待飞' + planTotal.toFixed(0));
+  if(_recTotal > 0.01) _hdr.push('记录' + _recTotal.toFixed(0));
+  if(!_hdr.length) _hdr.push('已飞0');
   var h = '<div style="border:1px solid #f0c36d;border-radius:6px;overflow:hidden">';
-  h += '<div style="background:#fffbe6;padding:3px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;border-bottom:1px solid #f7e3b5">'
-     + '<span>香港单 · ' + hkOrders.length + ' 单'
-     + ' <a href="javascript:cycleHKRound()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:4px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
-     + '<span>' + (done ? '已飞' : '待飞') + ' ' + total.toFixed(0) + '</span></div>';
-  h += '<div style="max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">';
-  gs.forEach(function(g){
-    h += '<div style="padding:2px 6px;border-bottom:1px solid #f8f8f8;display:flex;justify-content:space-between;gap:4px">'
-       + '<span style="font-size:12px;color:#333;word-break:break-all">香港 ' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
-       + '<span style="font-size:12px;color:#b45309;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+  h += '<div onclick="toggleHKFlyBox()" style="background:#fffbe6;padding:5px 6px;font-size:11px;color:#b45309;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer">'
+     + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">香港单 · ' + hkOrders.length + ' 单 <span style="color:#999;font-weight:400">（港澳共享）</span>'
+     + ' <a href="javascript:cycleHKRound()" onclick="event.stopPropagation()" style="color:#999;font-weight:400;text-decoration:underline;margin-left:2px">凑整' + (hkRoundOn() ? hkRoundSel() : '关') + '</a></span>'
+     + '<span style="display:flex;align-items:center;gap:5px;white-space:nowrap">'
+     + '<span>' + _hdr.join(' ') + '</span>'
+     + (done ? '' : '<button onclick="event.stopPropagation();confirmHKFly()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">确认</button>')
+     + '<span style="color:#999;font-weight:400">' + (open ? '收起 ▲' : '展开 ▼') + '</span></span></div>';
+  h += '<div style="display:' + (open ? 'block' : 'none') + '">';
+  h += '<div style="max-height:250px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fff">';
+  var _secs = [
+    ['pending', '待飞目录', '#cf1322'],
+    ['partial', '部分已飞', '#d97706'],
+    ['flown', '已飞目录', '#b45309'],
+    ['record', '只记录', '#999']
+  ];
+  _secs.forEach(function(sd){
+    var arr = gs.filter(function(g){ return g.status === sd[0]; });
+    if(!arr.length) return;
+    var cnt = arr.reduce(function(n,g){ return n + g.codes.length; }, 0);
+    var sum = arr.reduce(function(n,g){ return n + g.amt * g.codes.length; }, 0);
+    h += '<div style="display:flex;justify-content:space-between;gap:6px;padding:3px 6px;background:#faf7ef;border-bottom:1px solid #f3e8d2;font-size:11px;color:' + sd[2] + ';font-weight:700">'
+       + '<span>' + sd[1] + '（' + cnt + '项）</span><span>合计 ' + sum.toFixed(0) + '</span></div>';
+    arr.forEach(function(g){
+      h += '<div style="padding:2px 6px;border-bottom:1px solid #f8f8f8;display:flex;justify-content:space-between;gap:4px">'
+         + '<span style="font-size:12px;color:#333;word-break:break-all">香港 ' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
+         + '<span style="font-size:12px;color:#b45309;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+    });
   });
   h += '</div>';
-  // 香港赔付速算：香港开奖结果到了才算，没到提示去拉
   var _hp = hkPayoutInfo();
   if(_hp){
     h += '<div style="padding:3px 6px;background:#fff;border-top:1px solid #f7e3b5;font-size:11px;color:#666;line-height:1.6">'
        + '期<b>' + (_hp.draw||'') + '</b> 开 <b>' + _hp.sp + '</b>（特）　'
-       + '收 <b>' + _hp.sales.toFixed(0) + '</b>　赔 <b style="color:#cf1322">' + _hp.pay.toFixed(0) + '</b>　净 '
+       + '收 <b>' + _hp.sales.toFixed(0) + '</b>　赔 <b style="color:#cf1322">' + _hp.pay.toFixed(0) + '</b>　客户净 '
        + '<b style="color:' + (_hp.net>=0?'#16a34a':'#cf1322') + '">' + _hp.net.toFixed(0) + '</b>'
        + (_hp.hits.length ? '<br>中奖：' + _hp.hits.join('、') : '<br><span style="color:#999">本期无中奖项</span>')
        + '</div>';
   } else {
     h += '<div style="padding:3px 4px;background:#fff;border-top:1px solid #f7e3b5;font-size:10px;color:#bbb">香港开奖未到，拉了开奖结果后自动算赔付</div>';
   }
-  h += '<div style="display:flex;gap:3px;padding:4px 5px;background:#fff">'
-     + '<button onclick="copyHKFly()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:5px;padding:5px;font-size:12px">复制香港单</button>'
+  // 香港飞单独立账：只显示香港口径，不碰澳门上家/削峰
+  var _hkSales = _hp ? _hp.sales : hkTotalAmount();
+  var _hkPay = _hp ? _hp.pay : 0;
+  var _hkActual = hkActualNet(fi);
+  h += '<div style="padding:3px 6px;background:#fff;border-top:1px solid #f7e3b5;font-size:11px;color:#666;line-height:1.6">'
+     + '应飞 <b>' + fi.full.toFixed(0) + '</b>'
+     + (Math.abs(fi.fullFly - fi.full) > 0.01 ? '（凑整后 <b style="color:#b45309">' + fi.fullFly.toFixed(0) + '</b>）' : '')
+     + '　待确认 <b style="color:#cf1322">' + fi.pending.toFixed(0) + '</b>　'
+     + '已飞 <b style="color:#b45309">' + fi.flyOut.toFixed(0) + '</b>'
+     + (fi.auto > 0.01 ? '<span style="color:#999;font-weight:400">（含自动飞' + fi.auto.toFixed(0) + '）</span>' : '')
+     + '　上家赔回 <b style="color:#16a34a">' + fi.flyBack.toFixed(0) + '</b>'
+     + '<br>香港实际 <b style="color:' + (_hkActual>=0?'#16a34a':'#cf1322') + '">' + (_hkActual>=0?'+':'') + _hkActual.toFixed(0) + '</b>'
+     + '<span style="color:#999;font-weight:400">（收' + _hkSales.toFixed(0) + ' − 赔' + _hkPay.toFixed(0) + ' − 已飞' + fi.flyOut.toFixed(0) + ' + 赔回' + fi.flyBack.toFixed(0) + '）</span>'
+     + (Math.abs(fi.roundGap) > 0.01 ? '<br><span style="color:#b45309">凑整差 ' + (fi.roundGap>0?'+':'') + fi.roundGap.toFixed(0) + '（' + (fi.roundGap>0?'多飞自己多付，已计入已飞':'少飞自己留，已计入香港实际') + '）</span>' : '')
+     + (hkGlobalMode() !== 'all' ? '<br><span style="color:#999">飞单模式：' + hkModeLabel(hkGlobalMode()) + (hkGlobalMode() === 'rule' ? '（单号只记录，不进飞单账）' : '（本批只记录）') + '</span>' : '')
+     + (hkRoundOn() ? '<br><span style="color:#999">订单行显示凑整后飞额；「收」按客户原单额。</span>' : '')
+     + (st.at ? '<br><span style="color:#999">确认时间 ' + st.at + ' · 只记香港飞单账</span>' : '<br><span style="color:#999">点“确认已飞”按号记账，不写澳门飞单</span>')
+     + '</div>';
+  var _flKeys = Object.keys(fi.flown || {}).filter(function(k){ return Number(fi.flown[k]) > 0.01; });
+  if(_flKeys.length){
+    _flKeys.sort(function(a,b){ return a.localeCompare(b, 'zh-Hans-CN', {numeric:true}); });
+    h += '<div style="padding:4px 6px;background:#fffbe6;border-top:1px dashed #f0d9a8;font-size:10px;color:#8a6d3b">'
+       + '<div style="display:flex;justify-content:space-between;gap:6px;line-height:1.6"><b>已飞明细（' + _flKeys.length + '项）</b><span style="color:#a58b5e">合计 ' + fi.flyOut.toFixed(0) + ' ｜ 上下滑动</span></div>'
+       + '<div style="max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;margin-top:3px;padding-right:2px">'
+       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px 10px">'
+       + _flKeys.map(function(k){
+            return '<div style="display:flex;justify-content:space-between;gap:5px;min-width:0;padding:2px 0;border-bottom:1px dotted #f0e0bd;line-height:1.5">'
+                 + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">香港 ' + esc(k.replace(/:/g,' ')) + '</span>'
+                 + '<b style="white-space:nowrap;color:#7a5a1e">各' + Number(fi.flown[k]).toFixed(0) + '</b></div>';
+          }).join('')
+       + '</div></div></div>';
+  }
+  h += '<div style="display:flex;gap:3px;padding:4px 5px;background:#fff;flex-wrap:wrap">'
+     + '<button onclick="copyHKFly()" style="flex:1;min-width:80px;border:1px solid #ccc;background:#fff;color:#333;border-radius:5px;padding:5px;font-size:12px">复制香港单</button>'
      + (done
-        ? '<button onclick="resetHKFly()" style="flex:1;border:1px solid #ccc;background:#fff;color:#999;border-radius:5px;padding:5px;font-size:12px">重置</button>'
-        : '<button onclick="confirmHKFly()" style="flex:1;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;padding:5px;font-size:12px;font-weight:600">确认已飞</button>')
-     + '</div></div>';
+        ? '<button onclick="resetHKFly()" style="flex:1;min-width:64px;border:1px solid #ccc;background:#fff;color:#999;border-radius:5px;padding:5px;font-size:12px">重置</button>'
+        : '<button onclick="confirmHKFly()" style="flex:1;min-width:80px;border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:5px;padding:5px;font-size:12px;font-weight:600">确认已飞</button>')
+     + '<button onclick="hkSettleCurrent()" style="flex:1;min-width:88px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:5px;padding:5px;font-size:12px;font-weight:600">结算香港本批</button>'
+     + '<button onclick="hkCombinedPreview()" style="flex:1;min-width:72px;border:1px solid #ccc;background:#fff;color:#666;border-radius:5px;padding:5px;font-size:12px">港澳合计</button>'
+     + '</div></div></div>';
   box.innerHTML = h;
 }
 
@@ -4448,13 +5303,26 @@ const RKEY = sk('product_stats_customers_v1');
 let roster = loadRoster();
 function loadRoster(){
   try {
-    const a = JSON.parse(localStorage.getItem(RKEY) || '[]');
-    return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.trim()) : [];
+    var names = _readJSONArr(ROSTER_GLOBAL_KEY).map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+    // 首次升级：A/B 两店旧名单合并，之后以全局名单为准
+    if(!names.length){
+      ['A','B'].forEach(function(s){
+        _readJSONArr('product_stats_customers_v1_shop' + s).forEach(function(x){
+          var n = String(x || '').trim();
+          if(n && names.indexOf(n) < 0) names.push(n);
+        });
+      });
+      try{ localStorage.setItem(ROSTER_GLOBAL_KEY, JSON.stringify(names)); }catch(e){}
+    }
+    try{ localStorage.setItem(RKEY, JSON.stringify(names)); }catch(e){}
+    return names;
   } catch(e){ return []; }
 }
 function saveRoster(){
-  try { localStorage.setItem(RKEY, JSON.stringify(roster)); }
-  catch(e){}
+  try{
+    localStorage.setItem(ROSTER_GLOBAL_KEY, JSON.stringify(roster || []));
+    localStorage.setItem(RKEY, JSON.stringify(roster || []));
+  }catch(e){}
 }
 
 const PKEY = sk('product_stats_products_v1');
@@ -5076,6 +5944,20 @@ function parseLine(text){
 
   // 数字简写：3中3→三中三，2中2→二中二，3中2→三中二
   text = text.replace(/3中3/g, '三中三').replace(/2中2/g, '二中二').replace(/3中2/g, '三中二');
+  // 组合「号码在前」写法：42 40 44三中三 5 / 42,40,44三中三5（空格和逗号都认）
+  text = text.replace(/^(\d{2}(?:[\s,，、]*\d{2}){1,2})\s*(二中二|三中二|三中三)\s*(?=\S)/, function(m, nums, prod){
+    const arr = nums.split(/[^0-9]+/).filter(Boolean);
+    const want = prod === '二中二' ? 2 : 3;
+    if(arr.length !== want) return m;
+    return prod + ':' + arr.join(',') + ' ';
+  });
+  // 组合「产品在前、号码用空格」写法：三中三 42 40 44 5
+  text = text.replace(/^(二中二|三中二|三中三)\s*(\d{2}(?:[\s,，、]*\d{2}){1,2})\s*(?=\S)/, function(m, prod, nums){
+    const arr = nums.split(/[^0-9]+/).filter(Boolean);
+    const want = prod === '二中二' ? 2 : 3;
+    if(arr.length !== want) return m;
+    return prod + ':' + arr.join(',') + ' ';
+  });
   // 斜杠当价格分隔符
   text = text.replace(/\//g, ' ');
   // 横杠写法：三种组合各自按号数转，谁的产品名就归谁（三中二/三中三=3个号，二中二=2个号）
@@ -5451,21 +6333,62 @@ function renderBallsForStore(){
     renderLiveBalls([]);
   }
 }
-function autoFetchDraw(retry){
-  try { fetchHKDrawNow(); } catch(e){}
+var _drawFetchBusy = false;
+var _drawFetchSeq = 0;
+var _drawFetchWatch = null;
+function _drawFetchIdle(){
   var btn = document.getElementById('drawFetchBtn');
   if(!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = '自动获取开奖';
+}
+function autoFetchDraw(){
+  var btn = document.getElementById('drawFetchBtn');
+  if(!btn) return;
+  if(_drawFetchBusy) return;                 // 正在取就别叠请求，按钮也已经是禁用态
+  _drawFetchBusy = true;
+  var seq = ++_drawFetchSeq;
   btn.textContent = '获取中...';
   btn.disabled = true;
-  function done(){ btn.textContent = '自动获取开奖'; btn.disabled = false; }
+  btn.style.opacity = '.65';
+  try { fetchHKDrawNow(); } catch(e){}
+  var finished = false;
+  function done(){
+    if(seq !== _drawFetchSeq) return;
+    if(finished) return;
+    finished = true;
+    _drawFetchBusy = false;
+    if(_drawFetchWatch){ clearTimeout(_drawFetchWatch); _drawFetchWatch = null; }
+    _drawFetchIdle();
+  }
+  function fail(msg){
+    if(seq !== _drawFetchSeq) return;
+    done();
+    myAlert(msg);
+  }
+  // 兜底：不管请求卡在哪，15 秒后一定把按钮放开，不能让它一直“正在获取”
+  _drawFetchWatch = setTimeout(function(){
+    if(seq !== _drawFetchSeq) return;
+    _drawFetchSeq++;                        // 让还在路上的旧请求结果作废
+    _drawFetchBusy = false;
+    _drawFetchWatch = null;
+    _drawFetchIdle();
+    myAlert('获取开奖超时，请再点一次；急的话用「手动录入」。');
+  }, 15000);
+
   function applyMacao(m){
     if(!m || !m.winner_numbers || m.winner_numbers.length < 7){
-      myAlert('未获取到开奖数据');
+      fail('未获取到开奖数据');
       return;
     }
     var nums = m.winner_numbers.map(function(n){ return String(n).padStart(2,'0'); });
     var settled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
     var incoming = parseInt(m.draw);
+    if(isNaN(incoming)){
+      fail('开奖期号不完整，请稍后再点一次。');
+      return;
+    }
     // 源头没更新：返回的是往日开奖，不能当今天这期
     var _dd = drawDayOf(m);
     if(_dd && _dd !== todayStr()){
@@ -5476,23 +6399,25 @@ function autoFetchDraw(retry){
     }
     // 服务器给的是更旧的期：不覆盖、不结算，避免把上一天的开奖当成当期
     if(incoming < settled){
+      done();
       myAlert('已结算到 ' + settled + ' 期。\n服务器这次返回的是旧数据（' + incoming + ' 期），请过一两分钟再点一次。');
       return;
     }
     renderLiveBalls(m.winner_numbers, true);
     if(incoming === settled){
-      // 同一期重复获取：只刷新显示，不重复结算
+      // 同一期重复获取：只刷新显示，不重复结算；这里必须解锁按钮
       lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
       updateDrawInfoBar();
       if(typeof renderOrdersList==='function') renderOrdersList();
+      done();
       return;
     }
     var drawStr = '开' + m.draw + ' ' + nums.join('.');
     document.getElementById('input').value = drawStr;
     localStorage.setItem(sk('lastDrawPeriod'), String(incoming));
-    autoPayout();
+    try { autoPayout(); } finally { done(); }
   }
-  var tries = retry || 0;
+
   // 依次尝试：同源快照 → 主站远程 → 备用站远程（离线 APK 靠后两个拿开奖）
   // 首选同域接口：Cloudflare 边缘实时抓，数据总是最新；后面几个是离线/备网兜底
   var sources = ['/api/draw',
@@ -5501,26 +6426,34 @@ function autoFetchDraw(retry){
                  'https://chujian596.github.io/ai-stats/draw-latest.json',
                  'https://chujian596.github.io/ai-luandan/draw-latest.json'];
   var idx = 0;
-  function tryNext(){
+  function tryNext(tries){
+    if(seq !== _drawFetchSeq || !_drawFetchBusy) return;
     if(idx >= sources.length){
       if(tries < 2){
         idx = 0;
-        setTimeout(function(){ autoFetchDraw(tries + 1); }, 1500);
+        setTimeout(function(){
+          if(seq !== _drawFetchSeq || !_drawFetchBusy) return;
+          tryNext(tries + 1);
+        }, 1500);
         return;
       }
-      done();
-      myAlert('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，也可以手动粘贴。\n\n写法：开 期号 六个平号 + 特号\n例子：开318 10.36.02.09.26.37 + 38\n（最后一个数字就是特号）');
+      fail('暂时取不到开奖数据（服务器正在同步，通常一两分钟）。\n请稍后再点一次，也可以手动粘贴。\n\n写法：开 期号 六个平号 + 特号\n例子：开318 10.36.02.09.26.37 + 38\n（最后一个数字就是特号）');
       return;
     }
     var u = sources[idx++];
     var sep = u.indexOf('?') >= 0 ? '&' : '?';
     fetch(u + sep + 't=' + Date.now(), {cache: 'no-store'})
-      .then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
+      .then(function(r){
+        if(seq !== _drawFetchSeq) return null;
+        if(!r.ok) throw new Error('x');
+        return r.json();
+      })
       .then(function(d){
+        if(seq !== _drawFetchSeq || !d) return;
         var _isHKshop = (typeof shop !== 'undefined' && shop === 'B');
         var snap = d && (_isHKshop ? d.hongkong : d.macao);
         if(!snap || !snap.numbers || snap.numbers.length < 7) throw new Error('empty');
-        done();
+        done();                            // 数据到手先解锁，后面的弹窗/结算不再卡按钮
         if(_isHKshop){
           // 香港店：只更新香港开奖与显示，不走澳门结算
           try { hkSetDrawCache({ draw: snap.draw, nums: snap.numbers, nextDraw: (d.next && d.next.hongkong && d.next.hongkong.draw) || '', nextAt: (d.next && d.next.hongkong && d.next.hongkong.draw_at) || '' }); } catch(e){}
@@ -5528,14 +6461,26 @@ function autoFetchDraw(retry){
           try { renderHKDraw(); } catch(e){}
           renderLiveBalls(snap.numbers.map(Number), true);
           updateDrawInfoBar();
-          myAlert('香港 ' + snap.draw + ' 期开奖已更新。');
+          var _hkLine = '开' + snap.draw + ' ' + snap.numbers.map(function(n){ return String(n).padStart(2,'0'); }).join('.');
+          var _hkSettled = parseInt(localStorage.getItem(sk('lastDrawPeriod')) || '0');
+          var _hkDrawNo = parseInt(snap.draw) || 0;
+          if(_hkDrawNo > _hkSettled){
+            // 香港店拉到新一期：自动进入同一套结算确认，确认后才写赔付台账
+            document.getElementById('input').value = _hkLine;
+            try { autoPayout(); } catch(e){ myAlert('香港开奖已更新，自动结算失败：' + e.message); }
+          } else {
+            myAlert('香港 ' + snap.draw + ' 期开奖已更新（该期已结算过）。');
+          }
           return;
         }
         applyMacao({ draw: snap.draw, winner_numbers: snap.numbers });
       })
-      .catch(function(){ tryNext(); });
+      .catch(function(){
+        if(seq !== _drawFetchSeq) return;
+        tryNext(tries);
+      });
   }
-  tryNext();
+  tryNext(0);
 }
 // 号码颜色：红/蓝/绿
 function ballColor(n){
@@ -5654,7 +6599,7 @@ setInterval(function(){
   var h = now.getHours(), m = now.getMinutes();
   var btn = document.getElementById('drawFetchBtn');
   var isDrawTime = (h === 21 && m >= 33 && m <= 35);
-  if(btn){
+  if(btn && !_drawFetchBusy){
     if(isDrawTime){
       btn.textContent = '正在获取开奖数据...';
       btn.style.opacity = '0.6';
@@ -5819,6 +6764,7 @@ function handleSave(){
         window.__dupConfirmed = true;
         try { handleSave(); } finally { window.__dupConfirmed = false; }
       });
+      try { logErr('dup_order', _sem ? '疑似重复：今天已有同内容订单' : '疑似重复：3 分钟内同内容', {raw: String(raw0).slice(0,120), customer: _who, day: (billBookDate() || billToday())}); } catch(e){}
       return;
     }
     window.__lastInputFp = _fp;
@@ -5885,9 +6831,13 @@ function showFixDialog(rawLine, msg){
     + '<div style="border-top:1px solid #eee">'
     + '<button id="fxTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#c0392b;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
     + '<button id="fxPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#2471a3;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
+    + '<button id="fxCopy" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#ad6800;font-weight:600;border-bottom:1px solid #eee">复制这行</button>'
     + '<button id="fxCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
     + '</div></div>';
   document.body.appendChild(ov);
+  ov.querySelector('#fxCopy').onclick = function(){
+    _copyText(src, function(){ myAlert('已复制这行原文。'); }, function(){ myAlert('复制失败，请截图这行。'); });
+  };
   function apply(line){
     ov.remove();
     var box = document.getElementById('input');
@@ -6444,6 +7394,9 @@ function doSave(overrideText){
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 混搭/多类：分号先拆行；同一行不同玩法前缀前也拆行，避免组合词互相吞并
   text = text.replace(/[；;]/g, '\n');
+  // 同一行「平龙10三中三11.22.33组5」：平龙10 是独立一笔，不能把 10 当号码、再把末尾组5 套给平龙。
+  // 只在平特单肖带价后面紧跟组合玩法时拆行，拆完各自按自己的价算。
+  text = text.replace(/(平(?:特)?[马蛇龙兔虎牛鼠猪狗鸡猴羊]\s*(?:各\s*)?[0-9]+(?:\.[0-9]+)?)\s*(?=(?:三中三|三中二|二中二))/g, '$1\n');
   text = text.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
   text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))/g, '\n');
   // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
@@ -6837,6 +7790,8 @@ function doSave(overrideText){
 
   // 自动合并：如果一行是"各X"价格，上一行没有价格，合并成一行
   const mergedLines = [];
+  const _dropLines = [];
+  const _noteLines = [];
   for(let i = 0; i < lines.length; i++){
     let ln = lines[i];
     // 尾数/头数语序统一：头0 100 / 尾0 100 → 0头100 / 0尾100，避免中间空格被当成两行
@@ -6853,7 +7808,22 @@ function doSave(overrideText){
     if(/^(共|合计)/.test(ln)) continue;
     // 分段标题不是号码行，但它决定后面整段的盘口，必须保留到 workLines
     var _isSecHeadLine = /^(香港|港|澳门|澳)\s*[:：]?\s*$/.test(ln);
-    if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)) continue;
+    // 纯标题行（如「澳特：」「香港：」）不参与解析，也不能当失败行
+    var _isTitleLine = /^[\u4e00-\u9fa5A-Za-z]{1,12}[:：]$/.test(ln);
+    if(_isTitleLine && !_isSecHeadLine) continue;
+    if(!_isSecHeadLine && !/\d/.test(ln) && !/[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(ln) && !/三中三|二中二|三中二/.test(ln)){
+      // 备注/说明行本来就没有号码，不能因为里面提到“平特”就把整批判失败。
+      // 只在这种“本来就会被丢弃”的情况下豁免；备注里真带号码/生肖的仍走正常解析。
+      if(/^(备注|说明|注|提示|温馨提示|注意|附注|补充)\s*[:：]?/.test(ln)){
+        _noteLines.push({idx:i+1, raw:String(lines[i]||'').slice(0,200)});
+        continue;
+      }
+      // 含玩法关键词却没有数字/生肖/组合，旧逻辑会静默丢掉；现在要留下证据，整批按失败处理
+      if(/[尾头波单双大小合肖特平连组各每号码生肖注]/.test(ln)){
+        _dropLines.push({idx:i+1, raw:String(lines[i]||'').slice(0,500), msg:'这一行没有识别到号码/生肖/玩法'});
+      }
+      continue;
+    }
     // 混合订单拆分：金额(>49)后面紧跟生肖时，自动断行
     ln = ln.replace(/(\d{2,}(?:\.\d+)?)\s*(?=[马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, function(m, num){
       return parseFloat(num) > 49 ? num + '\n' : m;
@@ -6872,6 +7842,8 @@ function doSave(overrideText){
 
 
 // 股东分账格式：每行 "编号 金额"，如 "02 10.00"
+  window.__lastParseTotal = mergedLines.length;
+  window.__lastNoteLines = _noteLines.slice();
   const splitFormat = mergedLines.filter(l => !/^合计/.test(l));
   if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
     var custName = document.getElementById('customerName').value.trim() || '散客';
@@ -6931,6 +7903,7 @@ renderAll();
   }
   let _secHK = (typeof shop !== 'undefined' && shop === 'B');  // 「香港：」标题后，后续行默认进香港，直到出现「澳门：」
   workLines.forEach((line, i) => {
+    const _origLine = line;
     // 前一行已经弹了待确认框：先停住，等用户选完由回调重新 doSave 再继续，
     // 避免一张单里同时弹出多个选择框，用户不知道该先答哪个。
     if(window.__ambigAbort) return;
@@ -6963,8 +7936,9 @@ renderAll();
     if(_leadMac) _secHK = false;
     const _hadMacTag = _leadMac;
     try {
-      // 分段标题优先，其次看本行港澳标注；澳门店里没标注的行默认算澳门单
-      const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK)) || (typeof shop !== 'undefined' && shop === 'B' && !_hadMacTag);
+      // 分段标题优先，其次看本行港澳标注；_secHK 已按当前店铺初始化，
+      // 所以「澳门：」切回后不会再被香港店默认值拉回香港。
+      const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK));
       if(!_isHK){
         line = line.trim().replace(/^(澳门|澳)\s*/, '').replace(/[\s:：]*(澳门|澳)\s*$/, '').trim();
       }
@@ -7081,11 +8055,25 @@ renderAll();
       }
       errors.push(`第${i+1}行：${e.message}`);
       if(!window.__failedLines) window.__failedLines = [];
-      window.__failedLines.push({ idx: i+1, raw: line, msg: e.message });
+      window.__failedLines.push({ idx: i+1, raw: _origLine, msg: e.message });
     }
   });
 
   if(window.__ambigAbort){ window.__ambigAbort = false; return; }
+  // 没有抛错但被静默丢掉的行，也要算失败，不能让它悄悄消失
+  if(_dropLines.length){
+    _dropLines.forEach(function(d){
+      errors.push('第' + d.idx + '行：' + d.msg);
+      if(!window.__failedLines) window.__failedLines = [];
+      window.__failedLines.push(d);
+    });
+  }
+  // 一行都没识别出来（例如整段乱码）：不能再显示“合计 0.00”让用户以为保存成功
+  if(parsed.length === 0 && errors.length === 0 && mergedLines.length){
+    errors.push('整批没有识别到任何项目');
+    if(!window.__failedLines) window.__failedLines = [];
+    window.__failedLines.push({idx:1, raw:String(_rawIn || '').slice(0,500), msg:'整批没有识别到任何项目'});
+  }
   if(errors.length > 0){
     // 报错后复位：一次识别失败不再拖累下一次
     _texiaoChoice = null;
@@ -7095,12 +8083,25 @@ renderAll();
     window._waveLastPerNum = false;
     var _inp = document.getElementById('input');
     if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
-    var _fail = (window.__failedLines || [])[0];
+    // 整批原子：一行失败，整批不落账；但失败原文要全量留存，不能只留前10行
+    var _allFails = (window.__failedLines || []).slice(0, 200);
     window.__failedLines = [];
-    if(_fail) logErr('parse', _fail.msg || '未知解析错误', {line: _fail.idx || 0, rawLen: String(_fail.raw || '').length});
-    else logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length});
-    if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
-    myAlert('无法识别：' + errors[0]);
+    var _logFails = _allFails.slice(0, 10);
+    if(_allFails.length){
+      _logFails.forEach(function(f){
+        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,500), day: (billBookDate() || billToday()), failedTotal: errors.length});
+      });
+      if(_allFails.length > _logFails.length){
+        logErr('parse', '本批共 ' + _allFails.length + ' 行无法识别，错误日志仅列前 ' + _logFails.length + ' 行；完整原文见失败批次上报', {day: (billBookDate() || billToday()), failedTotal: errors.length});
+      }
+    } else {
+      logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,500), day: (billBookDate() || billToday())});
+    }
+    try{
+      var _diagBatch = diagBuildBatch(_allFails, errors, _rawIn);
+      diagEnqueue(_diagBatch);
+    }catch(e){}
+    showParseFailDialog(_allFails, errors);
     return;
   }
   window.__failedLines = [];
@@ -7235,8 +8236,15 @@ renderAll();
         codes: hkCodes,
         codeAmts: hkAmts,
         createdAt: created,
-        hk: true
+        hk: true,
+        originShop: shop,
+        flyMode: (typeof hkModeOf === 'function' ? hkModeOf(customer) : 'all')
       });
+      // 新港单进来：本批回到待确认，但保留旧已飞金额，只让新增部分进待确认
+      if(typeof hkFlyState === 'function'){
+        var _st0 = hkFlyState(); _st0.done = false; _st0.at = '';
+        saveHKFlyState(_st0);
+      }
     }
   }
 
@@ -7269,6 +8277,9 @@ renderAll();
     msg += '\n⚠ 当前浏览器不允许本地保存，刷新后数据会丢失，已自动下载备份JSON，请收好！';
     try { exportBackup(); } catch(e){}
   }
+  if(_noteLines.length){
+    msg += '<br><span style="color:#888;font-size:13px">已跳过说明行 ' + _noteLines.length + ' 行</span>';
+  }
   if(window.__lastSavedOrderId){
     msg += '<br><button onclick="showLastOrder()" style="margin-top:8px;padding:8px 14px;border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:8px;font-size:14px;font-weight:600">查看本次订单</button>';
   }
@@ -7279,7 +8290,7 @@ renderAll();
   switchTab('orders');
   window.__bareNumsChoice = {};
   setTimeout(() => { try{ autoStableAfterSave(); }catch(e){} }, 350);
-  setTimeout(() => { try{ focusOrderById(window.__lastSavedOrderId); }catch(e){} }, 80);
+  // 保存后不再自动滚动到新订单：连续录单时页面会跳走；需要查看时点「查看本次订单」
   // 保存后自动展开平特肖列表
   setTimeout(() => {
     const sl = document.getElementById('singlesList');
@@ -7469,7 +8480,28 @@ function hideSub(code){
   renderAll();
   });
 }
-function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
+function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); if(lastDraw && typeof shop !== 'undefined' && shop === 'A') localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(lastDraw)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
+function macDrawGlobal(){
+  try{
+    var d = JSON.parse(localStorage.getItem(MAC_DRAW_GLOBAL_KEY) || 'null');
+    if(d && d.regularNums) return d;
+    // 首次升级：只认 A 店旧澳门开奖，绝不拿 B 店香港开奖冒充澳奖
+    var _oldA = localStorage.getItem('lastDraw_shopA');
+    if(!_oldA && typeof shop !== 'undefined' && shop === 'A') _oldA = localStorage.getItem('lastDraw');
+    var old = JSON.parse(_oldA || 'null');
+    if(old && old.regularNums){
+      try{ localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(old)); }catch(e){}
+      return old;
+    }
+    return null;
+  }catch(e){ return null; }
+}
+// 订单/复制/列表统一用这份澳门开奖：A 店以当前 lastDraw 为准，撤销后不能拿旧缓存继续算中奖；
+// B 店展示澳门单时才读跨店全局缓存，但港单必须用香港开奖，绝不互相顶替。
+function macDrawForOrders(){
+  if(typeof shop !== 'undefined' && shop === 'B') return macDrawGlobal();
+  return lastDraw || null;
+}
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
 
 // 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
@@ -7725,28 +8757,29 @@ function loadMoreCustOrdersByIndex(gi){
 function renderOrdersList(){
   const box = document.getElementById('ordersList');
   if(!box) return;
+  renderHKGlobalModeBtn();
   const _st = orderFilterState();
   const groups = {};
-  const _dupA = duplicateOrderIds(orders);
-  const _dupHK = (typeof hkOrders !== 'undefined') ? duplicateOrderIds(hkOrders) : {};
-  const _dupMap = Object.assign({}, _dupA, _dupHK);
+  const _custOrders = customerOrders();   // 港澳客户订单镜像，只用于列表/合计
+  const _dupA = duplicateOrderIds(_custOrders);
+  const _dupMap = _dupA;
   const _hkD = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+  const _macD = (typeof macDrawForOrders === 'function') ? macDrawForOrders() : lastDraw;
   const _add = (o, idx, isHK) => {
     const c = o.customer || '散客';
     if(!groups[c]) groups[c] = { orders: [], totalBet: 0, totalWin: 0, hkCnt: 0 };
     groups[c].orders.push({ o, idx, hk: isHK });
     groups[c].totalBet += Number(o.amount) || 0;
-    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWin(o);
+    groups[c].totalWin += isHK ? calcOrderWinDetail(o, _hkD).total : calcOrderWinDetail(o, _macD).total;
     if(isHK) groups[c].hkCnt++;
   };
-  orders.forEach((o, idx) => { if(orderMatches(o, false, _st)) _add(o, idx, false); });
-  if(typeof hkOrders !== 'undefined') hkOrders.forEach((o, idx) => { if(orderMatches(o, true, _st)) _add(o, idx, true); });
+  _custOrders.forEach((o, idx) => { if(orderMatches(o, !!o.hk, _st)) _add(o, idx, !!o.hk); });
   const custNames = Object.keys(groups).sort((a,b) => groups[b].totalBet - groups[a].totalBet);
   const shownNames = custNames.slice(0, _ordersGroupLimit);
   // 本次保存的客户即使不在当前分页内，也要提上来，保证保存后能定位
   var _focusCust = null;
   if(window.__lastSavedOrderId){
-    var _allForFocus = orders.concat(hkOrders || []);
+    var _allForFocus = customerOrders();
     for(var _fi = 0; _fi < _allForFocus.length; _fi++){
       var _fo = _allForFocus[_fi];
       if(_fo && _fo.id === window.__lastSavedOrderId){ _focusCust = _fo.customer || '散客'; break; }
@@ -7813,7 +8846,7 @@ function renderOrdersList(){
         h += `<div style="font-size:11px;font-weight:700;color:${hk?'#b45309':'#666'};margin:6px 0 2px;padding-top:3px;border-top:1px dashed #eee">${hk?'香港单目录':'澳门单目录'}（${_cntDir}）</div>`;
         _ordLastHk = hk;
       }
-      const wd = calcOrderWinDetail(o, hk ? _hkD : undefined);
+      const wd = calcOrderWinDetail(o, hk ? _hkD : _macD);
       const isFocus = !!(o.id && o.id === window.__lastSavedOrderId);
       const isDup = !!(o.id && _dupMap[o.id]);
       h += `<div data-order-id="${esc(o.id||'')}" style="font-size:12px;padding:4px 0;border-bottom:1px solid #f5f5f5${hk ? ';background:#fffbe6' : ''}${isDup ? ';box-shadow:inset 3px 0 0 #faad14' : ''}${isFocus ? ';background:#fff7e6;box-shadow:inset 3px 0 0 #fa8c16;padding-left:6px' : ''}">`;
@@ -7823,24 +8856,22 @@ function renderOrdersList(){
       if(isDup){
         h += `<div style="font-size:10px;color:#b45309;font-weight:700;margin-bottom:2px">疑似重复 · 同客户同内容30分钟内</div>`;
       }
-      if(hk && !(g.hkCnt > 0 && g.orders.length > g.hkCnt)){
-        h += `<div style="font-size:10px;color:#b45309;font-weight:700;margin-bottom:2px">香港单</div>`;
-      }
+      const _badge = `<span style="display:inline-block;font-size:10px;line-height:14px;padding:0 4px;border-radius:3px;margin-right:4px;border:1px solid ${hk?'#f5d27a':'#d9e2ec'};background:${hk?'#fffbe6':'#f1f5f9'};color:${hk?'#b45309':'#475569'};font-weight:700;vertical-align:1px">${hk?'香港':'澳门'}</span>`;
       // Show original lines
       const rawLines = (o.raw||'').split('; ').filter(Boolean);
       if(rawLines.length){
-        rawLines.forEach(rl => {
-          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${esc(rl)}</div>`;
+        rawLines.forEach((rl, ri) => {
+          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${ri===0?_badge:''}${esc(rl)}</div>`;
         });
       } else {
-        h += `<div style="color:#333;font-size:13px">${esc((o.codes||[]).join(' '))}</div>`;
+        h += `<div style="color:#333;font-size:13px">${_badge}${esc((o.codes||[]).join(' '))}</div>`;
       }
       if(wd.lines.length){
         wd.lines.forEach(l => {
           h += `<div style="font-size:11px;color:#cf1322;margin-top:1px">命中: ${esc(l)}</div>`;
         });
       }
-      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="${hk ? 'delHKOrder' : 'delOrder'}(${idx})" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #f5f5f5"><span style="font-size:11px;color:#999">${esc((o.createdAt||'').substring(5))}</span><span style="font-size:11px;font-weight:600;color:#333">合计 ${Number(o.amount).toFixed(2)}</span><button onclick="${o.id ? "delOrderById('"+esc(o.id)+"')" : (hk ? 'delHKOrder' : 'delOrder')+'('+idx+')'}" style="border:1px solid #ccc;background:#f5f5f5;color:#666;border-radius:4px;padding:4px 10px;font-size:12px">删除</button></div>`;
       h += `</div>`;
     });
     if(_hiddenOrders > 0){
@@ -8032,7 +9063,10 @@ function renderOrdersList(){
   h += `<div onclick="toggleOd('upDetail',this)" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-weight:700;font-size:14px;color:#333">上家 <span style="font-size:11px;color:#999;font-weight:400">(飞单对账)</span></span>`;
+  h += `<div style="display:flex;gap:4px">`;
   h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
+  h += `<button onclick="event.stopPropagation();confirmThisRoundFly()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:4px 8px;font-size:12px;font-weight:600;white-space:nowrap">确认本轮飞单</button>`;
+  h += `</div>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
   h += `<span>飞走(已实付) <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
@@ -8057,6 +9091,7 @@ function renderOrdersList(){
   h += `<div style="display:flex;justify-content:space-between;font-size:10px;padding-top:2px"><span style="color:#bbb">历史累计</span><b style="color:#bbb">${_sg(upCum)}</b></div>`;
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
+  h += `<div style="font-size:10px;color:#999;line-height:1.5;margin-bottom:4px">带「待飞」= 应飞但还没确认实付；点右上角「确认本轮飞单」后转为已实付。</div>`;
   // 三栏：左特码 中肖 右二中二三中三
   let upL = '', upM = '', upR = '';
   try {
@@ -8069,7 +9104,7 @@ function renderOrdersList(){
       const showK = paidK > 0 ? paidK : due;
       if(due > 0 || paidK > 0){
         const hit = _drawO && Number(k) === _drawO.specialNum;
-        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
+        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(!upL) upL = '<div style="color:#bbb">—</div>';
@@ -8086,7 +9121,7 @@ function renderOrdersList(){
       const showP = paidP > 0 ? paidP : dueP;
       if(dueP > 0 || paidP > 0){
         const hit = drawZodsD.has(z);
-        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(未付)'}${hit?' ←命中':''}</div>`;
+        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
       }
     });
     if(lxFlyAmt > 0){
@@ -8277,14 +9312,15 @@ function custDetailBlock(list, dr, title){
 }
 
 function buildCustOrdersText(cust){
-  var macList = orders.filter(function(o){ return (o.customer || '散客') === cust; });
+  var macList = customerOrders().filter(function(o){ return !o.hk && (o.customer || '散客') === cust; });
   var hkList = hkOrders.filter(function(o){ return (o.customer || '散客') === cust; });
   if(!macList.length && !hkList.length) return '';
   var text = (cust || '散客') + '\n';
   var b1 = 0, w1 = 0, b2 = 0, w2 = 0;
   if(macList.length){
-    var _mNums = lastDraw ? (lastDraw.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(lastDraw.specialNum).padStart(2,'0')) : '';
-    var m = custDetailBlock(macList, lastDraw, lastDraw ? ('澳 ' + (lastDraw.period || '') + ' 期　' + _mNums) : '澳 未开奖');
+    var _md = (typeof macDrawForOrders === 'function') ? macDrawForOrders() : lastDraw;
+    var _mNums = _md ? (_md.regularNums.map(function(n){ return String(n).padStart(2,'0'); }).join(' ') + ' 特 ' + String(_md.specialNum).padStart(2,'0')) : '';
+    var m = custDetailBlock(macList, _md, _md ? ('澳 ' + (_md.period || '') + ' 期　' + _mNums) : '澳 未开奖');
     text += m.text;
     b1 = m.bet; w1 = m.win;
   }
@@ -8313,14 +9349,19 @@ function copyCustOrders(cust){
 }
 
 function deleteCustOrders(cust){
-  const cntMac = orders.filter(o => (o.customer||'散客') === cust).length;
-  const cntHK = hkOrders.filter(o => (o.customer||'散客') === cust).length;
+  const _allC = customerOrders().filter(function(o){ return (o.customer||'散客') === cust; });
+  const cntMac = _allC.filter(function(o){ return !o.hk; }).length;
+  const cntHK = _allC.filter(function(o){ return !!o.hk; }).length;
   if(!cntMac && !cntHK){ myAlert('该客户无订单'); return; }
   var msg = '确定删除「' + cust + '」的全部' + (cntMac + cntHK) + '笔订单？'
     + (cntHK ? '\n其中香港单 ' + cntHK + ' 笔' : '') + '\n此操作不可撤销！';
   myConfirm(msg, function(){
   orders = orders.filter(o => (o.customer||'散客') !== cust);
   hkOrders = hkOrders.filter(o => (o.customer||'散客') !== cust);
+  try{
+    _writeJSONArr(MAC_GLOBAL_KEY, _readJSONArr(MAC_GLOBAL_KEY).filter(function(o){ return (o.customer||'散客') !== cust; }));
+    _writeJSONArr(HK_GLOBAL_KEY, _readJSONArr(HK_GLOBAL_KEY).filter(function(o){ return (o.customer||'散客') !== cust; }));
+  }catch(e){}
   saveOrders(); renderAll();
   try { renderHKFlyBox(); } catch(e){}
   myAlert('已删除' + (cntMac + cntHK) + '笔订单');
@@ -9650,6 +10691,7 @@ function renderAll(){
   }
 
   renderOrdersList();
+  try { renderHKFlyBox(); } catch(e){}
   renderPays();
   renderSplit();
   updateOrderSummary();
@@ -9736,13 +10778,13 @@ function exportCSV(){
 }
 
 function exportBackup(){
-  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products });
+  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() });
   // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
   try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
     download('订单备份_' + dateStr() + '.json',
-      JSON.stringify({ version: 3, orders, hkOrders, roster, products }, null, 2),
+      JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() }, null, 2),
       'application/json');
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
@@ -9760,7 +10802,7 @@ function exportBackup(){
 }
 
 function applyBackup(data){
-  let newOrders, newHKOrders = null, newRoster = null, newProducts = null;
+  let newOrders, newHKOrders = null, newRoster = null, newProducts = null, newHKModes = null, newHKGlobalMode = null;
   if(Array.isArray(data)){
     newOrders = data;
   } else if(data && Array.isArray(data.orders)){
@@ -9768,6 +10810,8 @@ function applyBackup(data){
     if(Array.isArray(data.hkOrders)) newHKOrders = data.hkOrders;
     if(Array.isArray(data.roster)) newRoster = data.roster.filter(x => typeof x === 'string' && x.trim());
     if(Array.isArray(data.products)) newProducts = data.products;
+    if(data.hkModes && typeof data.hkModes === 'object') newHKModes = data.hkModes;
+    if(data.hkGlobalMode === 'all' || data.hkGlobalMode === 'rule' || data.hkGlobalMode === 'none') newHKGlobalMode = data.hkGlobalMode;
   } else {
     throw new Error('备份格式不正确');
   }
@@ -9777,6 +10821,8 @@ function applyBackup(data){
   if(newHKOrders) hkOrders = newHKOrders.map(normalizeOrder);
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
+  if(newHKModes){ try{ localStorage.setItem(HK_MODE_KEY, JSON.stringify(newHKModes)); }catch(e){} }
+  if(newHKGlobalMode){ try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, newHKGlobalMode); }catch(e){} }
   saveOrders();
   restoreIfNeeded();
   renderAll();
@@ -10262,18 +11308,28 @@ function myChoice(title, msg, opts, cb){
 }
 
 function clearOrders(){
-  myConfirm('确定清除所有订单和赔付记录？<br>客户名单保留。', () => {
+  myConfirm('确定清除所有订单和赔付记录？<br>澳门 + 香港两个店铺都会清，客户名单保留。', () => {
   orders = [];
   hkOrders = [];
   invalidateStats();
   pays = [];
   custpays = [];
-  try { localStorage.setItem(sk('product_stats_orders_v1'), '[]'); } catch(e){}
-  try { localStorage.setItem(PAY_KEY, '[]'); } catch(e){}
-  try { localStorage.setItem(CP_KEY, '[]'); } catch(e){}
+  // 订单记录列表是“本店账 + 跨店客户镜像 + 香港全局池”合并出来的。
+  // 只清本店数组不够：镜像不清，renderOrdersList 会立刻把旧单合并回来。
+  try { _writeJSONArr(MAC_GLOBAL_KEY, []); } catch(e){}
+  try { _writeJSONArr(HK_GLOBAL_KEY, []); } catch(e){}
+  try { _writeJSONArr(HK_GLOBAL_PAY_KEY, []); } catch(e){}
+  try { localStorage.setItem(HK_GLOBAL_FLY_KEY, '{}'); } catch(e){}
+  ['A','B'].forEach(function(s){
+    try { localStorage.setItem('product_stats_orders_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('product_stats_pay_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('product_stats_custpay_v1_shop' + s, '[]'); } catch(e){}
+    try { localStorage.setItem('flownPerPos_shop' + s, '{}'); } catch(e){}
+    try { localStorage.setItem('flownReal_shop' + s, '{}'); } catch(e){}
+    try { localStorage.removeItem('order_pending_v1_shop' + s); } catch(e){}
+  });
   flownPerPos = {}; flownReal = {};
-  try { localStorage.setItem(sk('flownPerPos'), '{}'); } catch(e){}
-  try { localStorage.setItem(sk('flownReal'), '{}'); } catch(e){}
+  try { saveOrders(); } catch(e){}
   restoreIfNeeded();
 renderAll();
   });
@@ -10556,6 +11612,7 @@ function clearDrawRecord(){
   myConfirm('撤销当前开奖记录' + (sp ? '（特' + sp + '）' : '') + '？\n\n订单不会被删除，只是把这一期开奖结果去掉。', function(){
   localStorage.removeItem(sk('lastDraw'));
   localStorage.removeItem(sk('lastDrawPeriod'));
+  try { localStorage.removeItem(MAC_DRAW_GLOBAL_KEY); } catch(e){}
   lastDraw = null;
   renderLiveBalls([]);
   updateDrawInfoBar();
@@ -10603,9 +11660,11 @@ function clearAll(){
   // 保留会员锁和客户名单
   var lockBackup = localStorage.getItem(LOCK_KEY);
   var rosterBackup = localStorage.getItem(RKEY);
+  var rosterGlobalBackup = localStorage.getItem(ROSTER_GLOBAL_KEY);
   localStorage.clear();
   if(lockBackup) localStorage.setItem(LOCK_KEY, lockBackup);
   if(rosterBackup) localStorage.setItem(RKEY, rosterBackup);
+  if(rosterGlobalBackup) localStorage.setItem(ROSTER_GLOBAL_KEY, rosterGlobalBackup);
   location.reload();
   });
 }
@@ -10637,6 +11696,121 @@ function billBookDate(){ try { return localStorage.getItem(BOOK_KEY) || ''; } ca
 function billSetBookDate(d){ try { localStorage.setItem(BOOK_KEY, d); } catch(e){} }
 function billSaveArchive(){ try { localStorage.setItem(BILL_KEY, JSON.stringify(billArchive)); } catch(e){} }
 
+/* 历史归档自检：只读，不改账。
+   检查每天的 sum 与 orders/pays 实际合计是否一致；
+   重复只查“同一天 + 同客户 + 同原文 + 同金额 + 3 分钟内”，
+   同客户隔一段时间再下同样的单属于正常两注，不报。 */
+function auditBillArchive(writeLog){
+  var keys = Object.keys(billArchive || {}).sort();
+  var issues = [], review = [], dayRows = [], missing = [];
+  var totalN = 0, totalAmt = 0, totalPay = 0;
+  keys.forEach(function(k){
+    var a = billArchive[k] || {};
+    var os = Array.isArray(a.orders) ? a.orders : [];
+    var ps = Array.isArray(a.pays) ? a.pays : [];
+    var n = os.length;
+    var amt = 0, pay = 0;
+    os.forEach(function(o){ amt += Number((o && o.amount) || 0); });
+    ps.forEach(function(p){ pay += Number((p && p.amount) || 0); });
+    var net = amt - pay;
+    var sm = a.sum || {};
+    var dayIssues = [];
+    function chk(label, got, exp){
+      if(Math.abs(Number(got || 0) - Number(exp || 0)) > 0.01){
+        dayIssues.push(label + ' 记 ' + Number(got || 0).toFixed(2) + ' / 实际 ' + Number(exp || 0).toFixed(2));
+      }
+    }
+    chk('单数', sm.n, n);
+    chk('收单', sm.amt, amt);
+    chk('赔付', sm.pay, pay);
+    chk('净额', sm.net, net);
+    os.forEach(function(o, i){
+      var v = Number((o && o.amount) || 0);
+      if(!isFinite(v) || v < 0) dayIssues.push('第' + (i+1) + '单金额异常：' + String((o && o.amount)));
+    });
+    var seen = {};
+    os.forEach(function(o){
+      var key = [String((o && o.customer) || '散客'), String((o && o.raw) || ''), Number((o && o.amount) || 0).toFixed(2)].join('|');
+      (seen[key] = seen[key] || []).push(_orderTs(o));
+    });
+    Object.keys(seen).forEach(function(key){
+      var times = seen[key];
+      if(times.length < 2) return;
+      var known = times.filter(function(t){ return t > 0; }).sort(function(a,b){ return a - b; });
+      /* 时间缺失或首尾超过 3 分钟：按两注处理，不报“重复”。 */
+      if(known.length < 2) return;
+      if(known[known.length-1] - known[0] > 180000) return;
+      var parts = key.split('|');
+      review.push({day:k, type:'dup_review', msg:'3 分钟内同内容 ' + times.length + ' 笔：' + parts[0] + ' / ' + String(parts[1]).slice(0,40) + ' / ' + parts[2] + '元'});
+    });
+    totalN += n; totalAmt += amt; totalPay += pay;
+    dayRows.push({day:k, n:n, amt:amt, pay:pay, net:net, issues:dayIssues});
+    dayIssues.forEach(function(msg){ issues.push({day:k, type:'archive', msg:msg}); });
+  });
+  if(keys.length){
+    var first = keys[0], last = keys[keys.length - 1], today = billToday();
+    var d = new Date(first + 'T12:00:00');
+    var guard = 0;
+    while(guard++ < 800){
+      var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      if(ds > last) break;
+      if(ds !== today && !billArchive[ds]) missing.push(ds);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  var res = {
+    days: keys.length,
+    issues: issues,
+    review: review,
+    daysDetail: dayRows,
+    missing: missing.slice(0, 30),
+    missingTotal: missing.length,
+    totals: {n: totalN, amt: totalAmt, pay: totalPay, net: totalAmt - totalPay},
+    ok: issues.length === 0
+  };
+  if(writeLog){
+    issues.slice(0, 5).forEach(function(it){
+      logErr('archive_audit', it.day + ' ' + it.msg, {day: it.day});
+    });
+    review.slice(0, 5).forEach(function(it){
+      logErr('archive_dup_review', it.day + ' ' + it.msg, {day: it.day});
+    });
+  }
+  return res;
+}
+
+function billAuditText(){
+  var a = auditBillArchive(false);
+  var h = '';
+  if(!a.days){ return '还没有历史归档。'; }
+  var _hard = a.issues.length, _warn = (a.review || []).length;
+  if(!_hard && !_warn){
+    h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#166534;line-height:1.6">'
+      + '<b>历史归档自检通过</b>：' + a.days + ' 天 · ' + a.totals.n + ' 单 · 收 ' + a.totals.amt.toFixed(2) + ' · 总盘净 ' + a.totals.net.toFixed(2)
+      + '<div style="color:#666;margin-top:3px">每天的归档汇总与实际订单/赔付逐日一致。</div>'
+      + '<div style="color:#888;margin-top:3px">总盘=全部订单收单−客户赔付；自留=再扣飞出去、加上家赔回。旧账没存飞单记录时不显示自留。</div></div>';
+  } else {
+    if(_hard){
+      h += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#a8071a;line-height:1.6">'
+        + '<b>历史归档自检发现 ' + _hard + ' 项账务差异</b>'
+        + '<div style="color:#666;margin-top:3px">' + a.issues.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (_hard > 5 ? '<br>…还有 ' + (_hard-5) + ' 项' : '') + '</div>'
+        + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+    }
+    if(_warn){
+      h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+        + '<b>有 ' + _warn + ' 组 3 分钟内同内容，建议核对</b>'
+        + '<div style="color:#666;margin-top:3px">' + a.review.slice(0,5).map(function(x){ return esc(x.day + '：' + x.msg); }).join('<br>') + (_warn > 5 ? '<br>…还有 ' + (_warn-5) + ' 项' : '') + '</div>'
+        + '<div style="color:#888;margin-top:3px">同一客户隔几分钟后又下同样的单，按两注处理，不会报在这里。</div>'
+        + '<button onclick="auditBillArchive(true);myAlert(\'已写入错误日志，可在设置→错误日志查看\')" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">写入错误日志</button></div>';
+    }
+  }
+  if(a.missing.length){
+    h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '<b>无归档日 ' + a.missingTotal + ' 天</b>（可能是没录单，也可能只是没归档）<div style="color:#666;margin-top:2px">' + a.missing.slice(0,8).join('、') + (a.missingTotal > 8 ? '…' : '') + '</div></div>';
+  }
+  return h;
+}
+
 function billSum(){
   const list = activeOrders();
   const amt = list.reduce((s,o) => s + Number(o.amount||0), 0);
@@ -10655,6 +11829,43 @@ function billRefreshBar(){
   }
 }
 
+// 历史账单双口径：
+// 总盘 = 全部订单收单 - 全部客户赔付；自留盘 = 总盘 - 飞出去实付 + 上家赔回（+返水）
+function billOwnSnapshot(){
+  try{
+    if(typeof shop !== 'undefined' && shop === 'B'){
+      var hp = (typeof hkPayoutInfo === 'function') ? hkPayoutInfo() : null;
+      var fi = (typeof hkFlyInfo === 'function') ? hkFlyInfo() : null;
+      if(!fi) return null;
+      return { flyOut: Number(fi.flyOut) || 0, flyBack: Number(fi.flyBack) || 0, rebate: 0, rebateRate: 0 };
+    }
+    var ap = (typeof actualPnL === 'function') ? actualPnL() : null;
+    if(!ap) return null;
+    return {
+      flyOut: Number(ap.flyOut) || 0,
+      flyBack: Number(ap.flyBack) || 0,
+      rebate: Number(ap.rebate) || 0,
+      rebateRate: Number(ap.rebateRate) || 0
+    };
+  }catch(e){ return null; }
+}
+function billOwnFigures(sm, own){
+  if(!own) return null;
+  var sales = Number((sm && sm.amt) || 0);
+  var payout = Number((sm && sm.pay) || 0);
+  var flyOut = Number(own.flyOut) || 0;
+  var flyBack = Number(own.flyBack) || 0;
+  var ownSales = sales - flyOut;
+  var ownPay = payout - flyBack;
+  var ownNet = ownSales - ownPay;
+  var rebate = Number(own.rebate) || 0;
+  return {
+    sales: ownSales, payout: ownPay, net: ownNet,
+    flyOut: flyOut, flyBack: flyBack,
+    rebate: rebate, netWithRebate: ownNet + rebate
+  };
+}
+
 function billArchiveNow(silent){
   const d = billBookDate() || billToday();
   const s = billSum();
@@ -10669,7 +11880,8 @@ function billArchiveNow(silent){
     custpays: JSON.parse(JSON.stringify(custpays || [])),
     draw: (typeof curShopDraw === 'function') ? curShopDraw() : null,
     savedAt: new Date().toISOString(),
-    sum: s
+    sum: s,
+    own: billOwnSnapshot()
   };
   billSaveArchive();
   orders = []; hkOrders = [];
@@ -10715,10 +11927,17 @@ function billOpenHistory(){
         + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,560px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:16px">历史账单</b>'
         + '<button type="button" onclick="billCloseHistory()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>';
+  h += billAuditText();
   if(s.n || pays.length){
+    const _todayOwn = billOwnFigures(s, billOwnSnapshot());
     h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
-      + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#333;font-weight:700">净 ' + s.net.toFixed(2) + '</span></div>'
-      + '<div style="font-size:12px;color:#888;margin-top:4px">' + s.n + ' 单 · 收 ' + s.amt.toFixed(2) + ' · 赔付 ' + s.pay.toFixed(2) + '</div></div>';
+      + '<div style="display:flex;justify-content:space-between"><b>' + today + '（今天·未归档）</b><span style="color:#333;font-weight:700">总盘净 ' + s.net.toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#333;margin-top:5px">总盘　收 ' + s.amt.toFixed(2) + ' · 赔 ' + s.pay.toFixed(2) + ' · 净 ' + s.net.toFixed(2) + '</div>'
+      + (_todayOwn ? '<div style="font-size:12px;color:#7c3aed;margin-top:3px;font-weight:600">自留　收 ' + _todayOwn.sales.toFixed(2) + ' · 赔 ' + _todayOwn.payout.toFixed(2) + ' · 净 ' + _todayOwn.net.toFixed(2)
+          + '<span style="color:#888;font-weight:400">　飞走 ' + _todayOwn.flyOut.toFixed(2) + ' · 上家赔回 ' + _todayOwn.flyBack.toFixed(2)
+          + (_todayOwn.rebate > 0.001 ? ' · 返水 ' + _todayOwn.rebate.toFixed(2) : '') + '</span></div>'
+        : '<div style="font-size:12px;color:#999;margin-top:3px">自留：未记录飞单，无法计算</div>')
+      + '<div style="font-size:11px;color:#aaa;margin-top:3px">' + s.n + ' 单</div></div>';
   }
   const keys = Object.keys(billArchive).sort().reverse();
   if(!keys.length && !(s.n || pays.length)){
@@ -10727,10 +11946,21 @@ function billOpenHistory(){
   keys.forEach(k => {
     const a = billArchive[k] || {};
     const sm = a.sum || { n: (a.orders||[]).length, amt: 0, pay: 0, net: 0 };
+    const ownF = billOwnFigures(sm, a.own);
+    let ownLine = '';
+    if(ownF){
+      ownLine = '<div style="font-size:12px;color:#7c3aed;margin-top:3px;font-weight:600">自留　收 ' + ownF.sales.toFixed(2) + ' · 赔 ' + ownF.payout.toFixed(2) + ' · 净 ' + ownF.net.toFixed(2)
+        + '<span style="color:#888;font-weight:400">　飞走 ' + ownF.flyOut.toFixed(2) + ' · 上家赔回 ' + ownF.flyBack.toFixed(2)
+        + (ownF.rebate > 0.001 ? ' · 返水 ' + ownF.rebate.toFixed(2) : '') + '</span></div>';
+    } else {
+      ownLine = '<div style="font-size:12px;color:#999;margin-top:3px">自留：' + (a.ownStale ? '作废过订单，需重新核算' : '旧账未记录飞单，无法还原') + '</div>';
+    }
     h += '<div style="border:1px solid #e5e5e5;border-radius:8px;padding:10px;margin-bottom:8px">'
       + '<div onclick="billView(\'' + k + '\')" style="cursor:pointer">'
-      + '<div style="display:flex;justify-content:space-between"><b>' + k + '</b><span style="color:#666">' + (sm.n||0) + ' 单 · 净 ' + Number(sm.net||0).toFixed(2) + '</span></div>'
-      + '<div style="font-size:12px;color:#888;margin-top:4px">收 ' + Number(sm.amt||0).toFixed(2) + ' · 赔付 ' + Number(sm.pay||0).toFixed(2) + '　<span style="color:#333">查看明细 →</span></div></div>'
+      + '<div style="display:flex;justify-content:space-between"><b>' + k + '</b><span style="color:#666">' + (sm.n||0) + ' 单 · 总盘净 ' + Number(sm.net||0).toFixed(2) + '</span></div>'
+      + '<div style="font-size:12px;color:#333;margin-top:5px">总盘　收 ' + Number(sm.amt||0).toFixed(2) + ' · 赔 ' + Number(sm.pay||0).toFixed(2) + ' · 净 ' + Number(sm.net||0).toFixed(2) + '</div>'
+      + ownLine
+      + '<div style="font-size:12px;color:#888;margin-top:4px"><span style="color:#333">查看明细 →</span></div></div>'
       + '<button onclick="billDelete(\'' + k + '\')" style="margin-top:6px;border:1px solid #ddd;background:#fff;color:#999;border-radius:6px;padding:4px 12px;font-size:12px">删除此日</button>'
       + '</div>';
   });
@@ -10761,22 +11991,43 @@ function billView(k){
   if(!a) return;
   const list = a.orders || [];
   const sm = a.sum || { n: list.length, amt: 0, pay: 0, net: 0 };
+  const dupCounts = {};
+  list.forEach(function(o){
+    const key = [String((o && o.customer) || '散客'), String((o && o.raw) || ''), Number((o && o.amount) || 0).toFixed(2)].join('|');
+    dupCounts[key] = (dupCounts[key] || 0) + 1;
+  });
   let h = '<div style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1001" onclick="if(event.target===this)billCloseView()">'
         + '<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,600px);max-height:84vh;overflow:auto;background:#fff;border-radius:12px;padding:14px;color:#333;font-size:14px">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>' + k + '　' + (sm.n||0) + ' 单</b>'
         + '<button type="button" onclick="billCloseView()" style="border:none;background:#f2f2f2;border-radius:6px;padding:6px 12px;font-size:13px">关闭</button></div>'
-        + '<div style="display:flex;gap:12px;font-size:12px;color:#666;background:#fafafa;border-radius:8px;padding:8px;margin-bottom:10px">'
-        + '<span>收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b></span>'
-        + '<span>赔付 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b></span>'
-        + '<span>净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></span></div>';
+        + (function(){
+            const ownF = billOwnFigures(sm, a.own);
+            let box = '<div style="font-size:12px;color:#666;background:#fafafa;border-radius:8px;padding:8px;margin-bottom:10px;line-height:1.8">'
+              + '<div>总盘　收 <b style="color:#333">' + Number(sm.amt||0).toFixed(2) + '</b>　赔 <b style="color:#333">' + Number(sm.pay||0).toFixed(2) + '</b>　净 <b style="color:#7c3aed">' + Number(sm.net||0).toFixed(2) + '</b></div>';
+            if(ownF){
+              box += '<div>自留　收 <b style="color:#333">' + ownF.sales.toFixed(2) + '</b>　赔 <b style="color:#333">' + ownF.payout.toFixed(2) + '</b>　净 <b style="color:#7c3aed">' + ownF.net.toFixed(2) + '</b>'
+                + '<span style="color:#888">　飞走 ' + ownF.flyOut.toFixed(2) + ' · 上家赔回 ' + ownF.flyBack.toFixed(2) + '</span></div>';
+            } else {
+              box += '<div style="color:#999">自留：' + (a.ownStale ? '作废过订单，需重新核算' : '旧账未记录飞单，无法还原') + '</div>';
+            }
+            return box + '</div>';
+          })();
+  if(list.some(function(o){ const key=[String((o&&o.customer)||'散客'),String((o&&o.raw)||''),Number((o&&o.amount)||0).toFixed(2)].join('|'); return dupCounts[key] > 1; })){
+    h += '<div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#ad6800;line-height:1.6">'
+      + '同客户、同原文、同金额出现多笔。先看右侧时间：同一秒/同一分钟多为重复点；间隔很久可能是两注。确认是重复再点「作废这一笔」，会重算当天汇总并留记录。</div>';
+  }
   if(!list.length){
     h += '<div style="color:#999;padding:18px;text-align:center;font-size:13px">这天没有订单</div>';
   }
-  list.forEach(o => {
+  list.forEach((o, idx) => {
     const t = String(o.ts || o.createdAt || '').replace('T',' ').slice(5,16);
-    h += '<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;padding:7px 0;font-size:13px;color:#333">'
+    const key = [String(o.customer || '散客'), String(o.raw || ''), Number(o.amount || 0).toFixed(2)].join('|');
+    const dup = dupCounts[key] > 1;
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0f0;padding:7px 0;font-size:13px;color:#333;gap:6px">'
       + '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis"><b>' + (o.customer || '散客') + '</b>　<span style="color:#888">' + (o.codes||[]).join(' ') + '</span></div>'
-      + '<div style="text-align:right;white-space:nowrap;margin-left:8px">' + Number(o.amount||0).toFixed(2) + ' <span style="color:#aaa;font-size:11px">' + t + '</span></div></div>';
+      + '<div style="text-align:right;white-space:nowrap;margin-left:8px">' + Number(o.amount||0).toFixed(2) + ' <span style="color:#aaa;font-size:11px">' + t + '</span>'
+      + (dup ? '<button type="button" onclick="billVoidOrder(\'' + k + '\',' + idx + ')" style="margin-left:6px;border:1px solid #ffccc7;background:#fff;color:#cf1322;border-radius:5px;padding:3px 7px;font-size:11px">作废这一笔</button>' : '')
+      + '</div></div>';
   });
   h += '<button type="button" onclick="billRestore(\'' + k + '\')" style="width:100%;margin-top:12px;border:1px solid #ddd;background:#fafafa;border-radius:8px;padding:10px;font-size:13px">把这天恢复为当前账本</button>';
   h += '</div></div>';
@@ -10784,6 +12035,32 @@ function billView(k){
   el.id = 'billViewMask';
   el.innerHTML = h;
   document.body.appendChild(el);
+}
+
+/* 作废历史归档中的一笔：不静默删除，先确认；保留 voided 记录，重算当天汇总。 */
+function billVoidOrder(k, idx){
+  const a = billArchive[k];
+  if(!a || !a.orders || !a.orders[idx]) return;
+  const o = a.orders[idx];
+  const desc = String(o.raw || o.customer || '') + ' / ' + Number(o.amount || 0).toFixed(2) + '元';
+  myConfirm('作废 ' + k + ' 这一笔？\n' + desc + '\n\n只在历史归档里删这一笔，重算当天汇总；会留作废记录和错误日志。', function(){
+    a.voided = a.voided || [];
+    const copy = JSON.parse(JSON.stringify(o));
+    copy.voidedAt = new Date().toISOString();
+    a.voided.push(copy);
+    a.orders.splice(idx, 1);
+    const amt = a.orders.reduce(function(s,x){ return s + Number((x && x.amount) || 0); }, 0);
+    const pay = (a.pays || []).reduce(function(s,p){ return s + Number((p && p.amount) || 0); }, 0);
+    a.sum = { n: a.orders.length, amt: amt, pay: pay, net: amt - pay };
+    // 作废一笔后无法从历史里还原当天飞单分摊，自留盘标为待重算，不能继续显示旧数
+    a.own = null;
+    a.ownStale = true;
+    billSaveArchive();
+    logErr('bill_void', '作废历史归档一笔', {day:k, raw:String(o.raw||'').slice(0,120), amount:Number(o.amount||0)});
+    billCloseView();
+    billOpenHistory();
+    myAlert('已作废这一笔，' + k + ' 已重算：' + a.sum.n + ' 单，收 ' + amt.toFixed(2) + '，净 ' + (amt-pay).toFixed(2) + '。');
+  });
 }
 
 function billOldDayCount(){

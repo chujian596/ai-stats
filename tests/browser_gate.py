@@ -13,6 +13,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROME = os.environ.get("CHROME_BIN", "/usr/local/bin/chromium")
+PAGE_NAME = os.environ.get("APP_PAGE", "app-pro.html")
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -33,7 +34,7 @@ def main():
     from playwright.sync_api import sync_playwright
 
     httpd, port = start_server()
-    base = "http://127.0.0.1:%d/app-pro.html?nock=1&t=%d" % (port, int(time.time()))
+    base = "http://127.0.0.1:%d/%s?nock=1&t=%d" % (port, PAGE_NAME, int(time.time()))
     checks = {}
     errors = []
     try:
