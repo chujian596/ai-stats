@@ -152,6 +152,65 @@ for idx, iss in enumerate(issue_list):
     nxt = set(out_periods[issue_list[idx + 1]]['stations']) if idx < len(issue_list) - 1 else set()
     out_periods[iss]['gaps'] = sorted((prev & nxt) - cur)
 
+# ---- 站档位（只新增观察用字段，不改任何中/错判定）----
+WIN = 20
+TIER_ORDER = ['S', 'A', 'B', 'C', 'D']
+
+
+def _profiles(out_periods):
+    keys = sorted(out_periods, key=int)
+    res = {}
+    for iss in keys:
+        st = out_periods[iss]['stations']
+        n_all = len(st)
+        wins_all = sum(1 for v in st.values() if v['hit'])
+        maj = (wins_all / n_all) if n_all else 0
+        for sid, v in st.items():
+            r = res.setdefault(sid, {'seq': []})
+            r['seq'].append((iss, bool(v['hit']), maj))
+    prof = {}
+    for sid, r in res.items():
+        seq = r['seq'][-WIN:]
+        n = len(seq)
+        win = sum(1 for _, h, _ in seq if h)
+        acc = (win / n) if n else 0
+        max_loss = cur = 0
+        for _, h, _ in seq:
+            cur = 0 if h else cur + 1
+            max_loss = max(max_loss, cur)
+        lone = sum(1 for _, h, m in seq if (not h) and m >= 0.75)
+        coll = sum(1 for _, h, m in seq if not h) - lone
+        tail = ''.join('W' if h else 'L' for _, h, _ in seq[-10:])
+        if n < 8:
+            tier = 'OBS'
+        elif acc >= 0.90 and max_loss <= 1:
+            tier = 'S'
+        elif acc >= 0.80 and max_loss <= 2:
+            tier = 'A'
+        elif acc >= 0.65:
+            tier = 'B'
+        elif acc >= 0.55:
+            tier = 'C'
+        else:
+            tier = 'D'
+        if tier != 'OBS' and lone >= 3:
+            tier = TIER_ORDER[min(TIER_ORDER.index(tier) + 1, 4)]
+        prof[sid] = {
+            'tier': tier,
+            'n': n,
+            'win': win,
+            'loss': n - win,
+            'acc': round(acc, 3),
+            'maxLoss': max_loss,
+            'loneErr': lone,
+            'collectErr': coll,
+            'tail': tail,
+            'window': WIN,
+            'sampleWarn': n < 15,
+        }
+    return prof
+
+
 latest_snap_at = ''
 for sp in glob.glob(os.path.join(PARENT, 'snapshots', 'snapshot-*.json')):
     try:
@@ -162,6 +221,8 @@ out = {
     'updated_at': latest_snap_at or sc.get('updatedAt', ''),
     'rule': '杀特3肖：当期特肖不在所杀3肖内记为「中」；连对/连错按逐期尾段推导；只收本站固定杀三肖栏，跳转外站的链接不计；有本地快照的期以快照留存为准，历史库仅补早期无快照期；raw 为网站原始文本，changed 为早/晚两份快照肖组不一致（改料）',
     'periods': out_periods,
+    'profiles': _profiles(out_periods),
+    'profile_rule': '档位仅为观察标记，不参与中/错判定。取最近20个有记录的期：S=准确率≥90%且最长连错≤1；A=≥80%且连错≤2；B=≥65%；C=≥55%；D=<55%；样本<8期记OBS(观察)，<15期标样本偏小。个性错(同期≥75%的站都对而它错)累计≥3次自动降一档。',
 }
 (ROOT / 'data' / 'kill3-ledger.json').write_text(
     json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
