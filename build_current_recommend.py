@@ -126,9 +126,11 @@ def main():
     issues = [int(i) for i in ledger.get("periods", {}).keys() if str(i).isdigit()]
     max_issue = max(issues) if issues else 0
 
-    # 收集所有快照，按 issue 分组，issue > max_issue 的为待开期
+    # 收集所有待开期快照（排除 -raw 原始留档），按 issue 分组、文件名时间升序
     pending = {}
     for sp in sorted(glob.glob(os.path.join(SNAP_DIR, "snapshot-*.json"))):
+        if "-raw" in os.path.basename(sp):
+            continue
         try:
             snap = load_json(sp)
         except Exception:
@@ -142,8 +144,9 @@ def main():
             continue
         if issue <= max_issue:
             continue
-        # 同一期取时间戳最新的一份（文件名 HHMM 越靠后越新）
-        pending[issue] = (sp, snap)
+        pending.setdefault(issue, []).append((sp, snap))
+    for _issue in pending:
+        pending[_issue].sort(key=lambda x: os.path.basename(x[0]))
 
     if not pending:
         out = {
@@ -159,10 +162,17 @@ def main():
             "pendingTail": [],
             "pendingHead": [],
             "extraSites": {},
+            "prevSnapshot": {"file": None, "updatedAt": None, "nine": 0},
+            "missingStations": [],
+            "missingCount": 0,
+            "prevFirstMap": {},
         }
     else:
         issue = max(pending.keys())
-        sp, snap = pending[issue]
+        seq = pending[issue]
+        sp, snap = seq[-1]
+        prev = seq[-2][1] if len(seq) >= 2 else None
+        prev_sp = os.path.basename(seq[-2][0]) if len(seq) >= 2 else None
         sites = []
         kill_agg = {}
         kill_sites = 0
@@ -187,6 +197,7 @@ def main():
             base = {
                 "system": system,
                 "siteKey": site_key,
+                "fresh": True,
                 "killZodiacs": kill,
                 "pingte": extra['pingte'] or {},
                 "wave": extra['wave'] or {},
@@ -205,6 +216,31 @@ def main():
                 base.update({"column": None, "zodiacs": [], "status": "无九肖栏目"})
                 sites.append(base)
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
+
+        # 上一份快照参照：识别本轮未纳入的站（不计入本轮票数，仅作缺站对照，避免票数被静默稀释）
+        prev_sites = (prev or {}).get("sites") or {}
+        cur_keys = {f"{s['system']}-{s['siteKey']}" for s in sites}
+        missing = []
+        prev_first_map = {}
+        prev_nine = 0
+        for pk, ps in prev_sites.items():
+            pcol = ps.get("columns") or {}
+            pz = pick_column(pcol)
+            pfirst = pz[1][0] if pz else None
+            if pz:
+                prev_nine += 1
+            prev_first_map[pk] = pfirst
+            if pk in cur_keys:
+                continue
+            missing.append({
+                "system": ps.get("system", ""),
+                "siteKey": ps.get("siteKey", pk),
+                "key": pk,
+                "prevZodiacs": pz[1] if pz else [],
+                "prevFirst": pfirst,
+            })
+        missing.sort(key=lambda x: x["key"])
+
         pending_kill = [{"z": z, "kill": kill_agg[z]} for z in Z if kill_agg.get(z)]
         pending_kill.sort(key=lambda x: (-x["kill"], Z.index(x["z"])))
 
@@ -227,6 +263,10 @@ def main():
             "pendingTail": agg_list('tail'),
             "pendingHead": agg_list('head'),
             "extraSites": extra_sites,
+            "prevSnapshot": {"file": prev_sp, "updatedAt": (prev or {}).get("generated_at"), "nine": prev_nine},
+            "missingStations": missing,
+            "missingCount": len(missing),
+            "prevFirstMap": prev_first_map,
         }
 
     with open(OUT, "w", encoding="utf-8") as f:

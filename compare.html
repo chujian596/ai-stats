@@ -139,14 +139,16 @@ function renderNinePending(){
   var rows=ZOD.map(function(z){return {z:z,n:agg[z]||0,total:total};})
     .sort(function(a,b){return b.n-a.n||a.z.localeCompare(b.z,'zh');});
   document.getElementById('nineTitle').textContent='待开首肖排行 · 第'+PEND.period+'期';
-  document.getElementById('nineSub').textContent='本期 '+total+' 站把哪个肖放在第一位；待开推荐 · 未对账。';
+  var missTxt=(PEND.missingCount||0)?('；本轮未纳入 '+(PEND.missingCount||0)+' 站（不计入票数，非改料）'):'';
+  document.getElementById('nineSub').textContent='本期 '+total+' 站把哪个肖放在第一位；待开推荐 · 未对账'+missTxt+'。';
   document.getElementById('nineRank').innerHTML=rowsHtml(rows, null, '站', 'left');
 }
 
 function renderKillPending(){
   var rows=(PEND.pendingKill||[]).map(function(r){return {z:r.z,n:r.kill};});
   document.getElementById('killTitle').textContent='待开被杀排行 · 第'+PEND.period+'期';
-  document.getElementById('killSub').textContent='第 '+PEND.period+' 期 · '+PEND.killSites+' 站有杀三肖；待开推荐 · 未对账。';
+  var missTxt=(PEND.missingCount||0)?('；本轮未纳入 '+(PEND.missingCount||0)+' 站（不计入票数，非改料）'):'';
+  document.getElementById('killSub').textContent='第 '+PEND.period+' 期 · '+PEND.killSites+' 站有杀三肖；待开推荐 · 未对账'+missTxt+'。';
   document.getElementById('killRank').innerHTML=rowsHtml(rows, null, '票', 'right');
 }
 

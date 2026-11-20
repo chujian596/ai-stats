@@ -14,7 +14,7 @@
 产出: data/quality-report.json；无异常时 anomalies 为空。
 口径：样本与台账一致；质检只做一致性核对，不修改台账成绩。
 """
-import json, glob, os, re, datetime
+import json, glob, os, re, datetime, collections
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -106,10 +106,11 @@ checked = 0
 by_type = {}
 
 
-def add(issue, ledger, siteKey, system, typ, detail, zodiacs=None, actual=None):
+def add(issue, ledger, siteKey, system, typ, detail, zodiacs=None, actual=None, level='error'):
     anomalies.append({
         'issue': str(issue), 'ledger': ledger, 'siteKey': siteKey, 'system': system,
         'type': typ, 'detail': detail, 'zodiacs': zodiacs or [], 'actual': actual,
+        'level': level,
     })
     by_type[typ] = by_type.get(typ, 0) + 1
 
@@ -224,12 +225,28 @@ check_extra('wave-ledger.json', '波色', 'wave')
 check_extra('tail-ledger.json', '尾数', 'tail')
 check_extra('head-ledger.json', '头数', 'head')
 
+
+# 待开期快照掉站预警：本轮未纳入站对照上一份快照，体系性整批缺失需复核是否补齐
+try:
+    pend = load(ROOT / 'data' / 'current-recommend.json')
+    if pend.get('status') == 'pending' and pend.get('missingStations'):
+        miss = pend['missingStations']
+        by_sys = collections.Counter(m.get('system', '') for m in miss)
+        for sysname, n in by_sys.items():
+            if n >= 5:
+                add(pend['period'], '待开推荐', '-', sysname, 'SNAP_DROP',
+                    f"本轮快照较上版缺失 {n} 站（{sysname}），未计入本轮票数；下一轮快照需复核是否补齐",
+                    actual=None, level='warn')
+except Exception:
+    pass
+
 report = {
     'generated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     'rule': '质检仅做一致性核对，不修改台账成绩；无快照期跳过 SNAP_MISMATCH/CHANGED_FLAG；样本不足不下结论。',
     'summary': {
         'stations_checked': checked,
-        'anomalies': len(anomalies),
+        'anomalies': sum(1 for a in anomalies if a.get('level', 'error') == 'error'),
+        'warnings': sum(1 for a in anomalies if a.get('level') == 'warn'),
         'by_type': by_type,
     },
     'anomalies': anomalies,
@@ -237,8 +254,11 @@ report = {
 (ROOT / 'data' / 'quality-report.json').write_text(
     json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
 
-print(f"质检完成：核对 {checked} 站次，异常 {len(anomalies)} 项")
+hard = [a for a in anomalies if a.get('level', 'error') == 'error']
+warns = [a for a in anomalies if a.get('level') == 'warn']
+print(f"质检完成：核对 {checked} 站次，硬异常 {len(hard)} 项，预警 {len(warns)} 项")
 for a in anomalies[:20]:
-    print(f"  [{a['type']}] {a['issue']}期 {a['ledger']} {a['siteKey']} {a['detail']}")
+    lvl = '预警' if a.get('level') == 'warn' else '异常'
+    print(f"  [{lvl}][{a['type']}] {a['issue']}期 {a['ledger']} {a['siteKey']} {a['detail']}")
 if by_type:
     print('分类:', by_type)

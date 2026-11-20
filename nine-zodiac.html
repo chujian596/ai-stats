@@ -104,6 +104,8 @@
   .pend-miss{padding:12px 14px 4px}
   .pend-miss .pm-title{font-weight:700;font-size:13px;margin-bottom:4px}
   .pend-miss .pm-sub{font-size:11.5px;color:var(--sub);margin-bottom:8px;line-height:1.6}
+  .pend-miss .pm-sys{font-size:11px;color:var(--sub);margin:6px 0 2px}
+  .pend-miss .pm-chips{margin-bottom:6px}
   .pm-chip{display:inline-block;margin:2px 6px 2px 0;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
   .pm-chip.l1{color:var(--sub);font-weight:500}
   .pm-chip.l2{border-color:#ecd9a8;background:#fffaf0;color:#8a6500}
@@ -161,6 +163,7 @@
     </div>
     <div id="pendRank"></div>
     <div id="pendMiss"></div>
+    <div id="pendMissing"></div>
     <div class="table-scroll" id="pendTableWrap" style="display:none">
       <table>
         <thead><tr><th>站名</th><th>本期九肖（原序）</th></tr></thead>
@@ -407,6 +410,28 @@ function renderPendingMiss(){
   });
 }
 
+function renderMissing(){
+  var box=document.getElementById('pendMissing');
+  var miss=PEND.missingStations||[];
+  if(!box) return;
+  if(!miss.length){ box.innerHTML=''; box.style.display='none'; return; }
+  var prev=PEND.prevSnapshot||{};
+  var bySys={};
+  miss.forEach(function(m){ (bySys[m.system]=bySys[m.system]||[]).push(m); });
+  var html='<div class="pend-miss"><div class="pm-title">本轮未纳入站点（'+miss.length+' 站 · 上版 '+(prev.updatedAt||'—')+'）</div>'+
+    '<div class="pm-sub">这些站本轮快照未抓到/未回传，未计入本轮首肖票数；列出上一版首肖仅供对照，不代表本轮改料，下一轮快照补齐后自动回到榜单。</div>';
+  Object.keys(bySys).forEach(function(sys){
+    html+='<div class="pm-sys">'+sys+'</div><div class="pm-chips">';
+    bySys[sys].forEach(function(m){
+      var nm=ALIAS[m.siteKey]||m.siteKey;
+      html+='<span class="pm-chip l1">'+nm+'<span class="pm-n">（上版首肖 '+(m.prevFirst||'—')+'）</span></span>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  box.innerHTML=html; box.style.display='block';
+}
+
 function jumpPendSite(sk){
   var tb=document.getElementById('pendRows');
   var tr=tb.querySelector('tr[data-sk="'+sk+'"]');
@@ -432,7 +457,13 @@ function renderPending(){
   }
   var sites=(PEND.sites||[]).filter(function(s){return s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length;});
   title.textContent='待开期推荐 · 第'+PEND.period+'期（待开奖 · 未对账）';
-  sub.textContent='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+sites.length+' 站有九肖；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
+  var prev=PEND.prevSnapshot||{};
+  var miss=PEND.missingStations||[];
+  var subTxt='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+sites.length+' 站有九肖';
+  if(prev.nine){ subTxt+=' · 上版 '+prev.nine+' 站'; }
+  if(miss.length){ subTxt+=' · 本轮未纳入 '+miss.length+' 站（不计入本轮票数，非改料，见下方清单）'; }
+  subTxt+='；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
+  sub.textContent=subTxt;
   var agg={};
   var picks=sites.map(function(s){
     var name=ALIAS[s.siteKey]||s.siteKey;
@@ -447,6 +478,7 @@ function renderPending(){
   document.getElementById('miniNine').innerHTML=miniRows(nagg, picks.length, '站');
   document.getElementById('miniKill').innerHTML=miniRows(kagg, PEND.killSites, '票');
   renderPendingMiss();
+  renderMissing();
   wrap.style.display='block';
   var tb=document.getElementById('pendRows'); tb.innerHTML='';
   PEND.sites.slice().sort(function(a,b){
@@ -467,10 +499,16 @@ function renderPending(){
     } else {
       histHtml='<div class="pend-hist empty">无历史记录</div>';
     }
+    var pk=s.system+'-'+s.siteKey;
+    var prevFirst=(PEND.prevFirstMap||{})[pk];
+    var changeTag='';
+    if(prevFirst && s.zodiacs && s.zodiacs.length && s.zodiacs[0]!==prevFirst){
+      changeTag='<div class="pend-hist"><span class="hl-l2">较上版换首肖 '+prevFirst+'→'+s.zodiacs[0]+'</span></div>';
+    }
     var tr=document.createElement('tr');
     tr.className='rowlink'+alertCls;
     tr.dataset.sk=s.siteKey;
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nm+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+changeTag+'</td>'+
       '<td class="pend-z">'+zcell+trailHtml+'</td>';
     tb.appendChild(tr);
   });
