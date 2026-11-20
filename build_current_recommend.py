@@ -226,7 +226,9 @@ def main():
             continue
         pending.setdefault(issue, []).append((sp, snap))
     for _issue in pending:
-        pending[_issue].sort(key=lambda x: os.path.basename(x[0]))
+        # 同一期可能跨午夜；文件名只有 HHMM，必须按 generated_at 真实时间排序，
+        # 否则 00:05 会排到 23:31 前面，旧数据反覆盖新数据。
+        pending[_issue].sort(key=lambda x: (str(x[1].get("generated_at") or ""), os.path.basename(x[0])))
 
     if not pending:
         out = {
