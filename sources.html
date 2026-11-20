@@ -148,7 +148,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 <div class="wrap">
   <header>
     <div>
-      <h1>来源名单<span class="ver" id="ver">v1.02</span></h1>
+      <h1>来源名单<span class="ver" id="ver">v1.03</span></h1>
       <div class="sub">站点固定 · 论坛轮换 · 316后成绩<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a>　<a href="engine.html" style="color:#6d28d9;text-decoration:none;font-weight:700">研判引擎</a></div>
     </div>
     <div class="top-actions">
@@ -168,7 +168,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
   <div id="notice" class="notice hidden"></div>
   <div id="content"></div>
-  <footer id="pageFoot">来源名单 v1.02 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
+  <footer id="pageFoot">来源名单 v1.03 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
 </div>
 
 <div class="badge" id="draftBadge">
@@ -253,7 +253,7 @@ function load(){
     return r.json();
   }).then(function(d){
     state.base=d;
-    document.getElementById('ver').textContent='v1.02';
+    document.getElementById('ver').textContent='v1.03';
     PATCH=readDraft(); render(); renderBadge();
   }).catch(function(e){
     notice('读取 data/source-registry.json 失败：'+e.message,true);
@@ -305,7 +305,7 @@ function render(){
   else if(state.view==='forum') renderForum();
   else if(state.view==='scores') renderScores();
   else renderChain();
-  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.02 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
+  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.03 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
   renderBadge();
 }
 
