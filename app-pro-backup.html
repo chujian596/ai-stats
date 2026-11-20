@@ -344,7 +344,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportCSV()">导出统计CSV</button>
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
-      <button class="btn" onclick="showErrLog()">错误日志</button>
+      <button class="btn" onclick="showErrLog()">错误日志<span id="errBadge" style="display:none;margin-left:4px;background:#cf1322;color:#fff;border-radius:9px;padding:0 5px;font-size:11px;font-weight:700"></span></button>
       <button class="btn" onclick="copyDiagnostics()">复制诊断</button>
       <button class="btn" onclick="exportDiagnostics()">诊断导出</button>
       <button class="btn" onclick="openPasteImport()">粘贴导入</button>
@@ -653,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.58-Pro';
+var APP_VER = 'v59.59-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -688,6 +688,160 @@ function logErr(type, msg, meta){
 }
 function readErrLog(){ try{ return _errLoad().slice(); }catch(e){ return []; } }
 function clearErrLog(){ _errMem = []; try{ localStorage.removeItem(ERR_KEY); }catch(e){} }
+
+/* ===== 录入失败诊断：本机批次队列 + 私有 Cloudflare 通道 ===== */
+var DIAG_ENDPOINT = 'https://aistats-9uo.pages.dev/api/diag';
+var DIAG_INGEST_KEY = '4453d49edec35fc5033022fd2a6318483fe56eb014575f94';
+var DIAG_QUEUE_KEY = 'ai_diag_queue_v1';
+var DIAG_STATUS_KEY = 'ai_diag_status_v1';
+var DIAG_MAX_QUEUE = 50;
+var DIAG_MAX_FAILS = 200;
+
+function diagEnabled(){
+  try{ if(new URLSearchParams(location.search).get('nock')==='1') return false; }catch(e){}
+  return true;
+}
+function diagDeviceHash(){
+  var s = String(typeof DEVICE_ID !== 'undefined' ? DEVICE_ID : '');
+  var h = 2166136261;
+  for(var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ('00000000' + (h >>> 0).toString(16)).slice(-8);
+}
+function diagMaskText(txt){
+  var t = String(txt == null ? '' : txt);
+  function escRe(x){ return String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  try{
+    (roster || []).slice().sort(function(a,b){ return String(b).length - String(a).length; }).forEach(function(n){
+      n = String(n || '').trim();
+      if(!n || n === '散客') return;
+      if(n.length >= 2){
+        if(t.indexOf(n) >= 0) t = t.split(n).join('[客户]');
+      } else {
+        // 单字客户名只抹行首，避免把“平特龙”里的“龙”也抹掉
+        t = t.replace(new RegExp('^\\s*' + escRe(n) + '(?=\\s|（|\\(|$)'), '[客户]');
+      }
+    });
+  }catch(e){}
+  t = t.replace(/^\s*\[客户\]\s*/, '[客户] ');
+  t = t.replace(/1[3-9]\d{9}/g, '[手机]');
+  return t;
+}
+function diagBatchId(){
+  return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,6) + (typeof shop !== 'undefined' ? shop : '');
+}
+function diagBuildBatch(fails, errors, rawIn){
+  var list = (fails || []).slice(0, DIAG_MAX_FAILS).map(function(f){
+    return {lineNo: Number(f.idx || 0), raw: diagMaskText(String(f.raw || '').slice(0,500)), msg: diagMaskText(String(f.msg || '未知解析错误').slice(0,300))};
+  });
+  if(!list.length){
+    list.push({lineNo: 0, raw: diagMaskText(String(rawIn || '').slice(0,500)), msg: String((errors && errors[0]) || '未知解析错误').slice(0,300)});
+  }
+  var b = {
+    batchId: diagBatchId(),
+    appVersion: String(typeof APP_VER !== 'undefined' ? APP_VER : ''),
+    shop: String(typeof shop !== 'undefined' ? shop : ''),
+    day: String((typeof billBookDate === 'function' ? (billBookDate() || '') : '') || (typeof billToday === 'function' ? billToday() : '')),
+    deviceHash: diagDeviceHash(),
+    inputMode: 'batch',
+    totalLines: Math.max(Number((window.__lastParseTotal || 0)), list.length),
+    failCount: Math.max(Number((errors && errors.length) || 0), list.length),
+    rawInput: diagMaskText(String(rawIn || '').slice(0, 2000)),
+    failures: list
+  };
+  return b;
+}
+function diagQueueRead(){
+  try{ var q = JSON.parse(localStorage.getItem(DIAG_QUEUE_KEY) || '[]'); return Array.isArray(q) ? q.slice(-DIAG_MAX_QUEUE) : []; }catch(e){ return []; }
+}
+function diagQueueWrite(q){
+  try{ localStorage.setItem(DIAG_QUEUE_KEY, JSON.stringify((q || []).slice(-DIAG_MAX_QUEUE))); }catch(e){}
+  renderDiagBadge();
+}
+function diagSaveStatus(txt, at){
+  try{ localStorage.setItem(DIAG_STATUS_KEY, JSON.stringify({txt:String(txt||''), at: at || Date.now()})); }catch(e){}
+}
+function diagReadStatus(){
+  try{ return JSON.parse(localStorage.getItem(DIAG_STATUS_KEY) || '{}') || {}; }catch(e){ return {}; }
+}
+function diagEnqueue(batch){
+  if(!batch || !batch.batchId) return;
+  var q = diagQueueRead();
+  if(q.some(function(x){ return x && x.batchId === batch.batchId; })) return;
+  q.push(batch);
+  diagQueueWrite(q);
+  diagSaveStatus('已记录，等待上报', Date.now());
+  if(diagEnabled()) diagFlush();
+}
+function renderDiagBadge(){
+  try{
+    var b = document.getElementById('errBadge');
+    if(!b) return;
+    var n = diagQueueRead().length;
+    b.textContent = n ? String(n) : '';
+    b.style.display = n ? 'inline-block' : 'none';
+  }catch(e){}
+}
+function diagFlush(manual){
+  if(!diagEnabled()){ if(manual) myAlert('测试模式不上报。'); return Promise.resolve(); }
+  if(typeof navigator !== 'undefined' && navigator.onLine === false){ if(manual) myAlert('当前离线，已保留在本机，联网后自动上报。'); return Promise.resolve(); }
+  var q = diagQueueRead();
+  if(!q.length){ if(manual) myAlert('没有待上报的失败批次。'); return Promise.resolve(); }
+  var sent = 0, failed = '';
+  function step(i){
+    if(i >= q.length || sent >= 5){ diagQueueWrite(q); if(sent) diagSaveStatus('已上报 ' + sent + ' 批', Date.now()); else diagSaveStatus('上报失败，已保留在本机', Date.now()); if(manual) myAlert(sent ? ('已上报 ' + sent + ' 批。') : ('上报失败：' + (failed || '网络问题') + '。已保留在本机。')); return; }
+    var b = q[i];
+    fetch(DIAG_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-diag-key':DIAG_INGEST_KEY},
+      body: JSON.stringify(b),
+      keepalive: true
+    }).then(function(r){
+      if(r.ok){ sent++; q.splice(i,1); diagQueueWrite(q); diagSaveStatus('已上报 ' + sent + ' 批', Date.now()); return step(i); }
+      return r.text().then(function(t){ failed = 'HTTP ' + r.status; return step(i+1); });
+    }).catch(function(e){ failed = (e && e.message) || '网络错误'; return step(i+1); });
+  }
+  step(0);
+  return Promise.resolve();
+}
+try{ window.addEventListener('online', function(){ setTimeout(function(){ diagFlush(); }, 1200); }); }catch(e){}
+setTimeout(function(){ try{ renderDiagBadge(); diagFlush(); }catch(e){} }, 1800);
+
+/* 失败行拆行入口：只放回输入框/复制，不自动保存，不产生半批账 */
+function diagPutLine(i){
+  var f = (window.__pfFails || [])[i];
+  if(!f || !f.raw){ myAlert('这一行没有原文，无法放回。'); return; }
+  var inp = document.getElementById('input');
+  if(!inp) return;
+  var doIt = function(){
+    inp.value = String(f.raw || '');
+    try{ var ov=document.getElementById('pfMask'); if(ov) ov.remove(); }catch(e){}
+    inp.focus();
+    try{ inp.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+  };
+  var cur = String(inp.value || '').trim();
+  if(cur && cur !== String(f.raw || '').trim()){
+    myConfirm('把这一行放回输入框？当前输入会被替换；原批次仍未入账。', doIt);
+  } else doIt();
+}
+function diagCopyLine(i){
+  var f = (window.__pfFails || [])[i];
+  if(!f || !f.raw){ myAlert('这一行没有原文，无法复制。'); return; }
+  _copyText(String(f.raw || ''), function(){ myAlert('已复制这一行。'); }, function(){ myAlert('复制失败，请长按原文手动复制。'); });
+}
+function diagCopyAllFails(){
+  var list = window.__pfFails || [];
+  var txt = list.map(function(f){ return String((f && f.raw) || ''); }).filter(Boolean).join('\n');
+  if(!txt){ myAlert('没有可复制的失败原文。'); return; }
+  _copyText(txt, function(){ myAlert('已复制 ' + list.length + ' 行失败原文。'); }, function(){ myAlert('复制失败，请逐行复制。'); });
+}
+function diagCopyFailList(){
+  var list = window.__pfFails || [];
+  if(!list.length){ myAlert('没有可复制的失败清单。'); return; }
+  var txt = '本批录入失败（整批未入账）\n' + list.map(function(f, i){
+    return '第 ' + String(f.idx || (i+1)) + ' 行：' + String((f && f.raw) || '') + '\n原因：' + String((f && f.msg) || '未知');
+  }).join('\n\n');
+  _copyText(txt, function(){ myAlert('已复制失败清单，含行号、原文和原因。'); }, function(){ myAlert('复制失败，请逐行复制。'); });
+}
 
 /* 统一复制入口：优先 Clipboard API，失败则退回 textarea + execCommand。 */
 function _copyText(txt, ok, fail){
@@ -759,25 +913,36 @@ function copyDiagnostics(){
   }catch(e){ myAlert('复制诊断失败：' + (e.message || e)); }
 }
 function showParseFailDialog(fails, errors){
-  var list = (fails || []).slice(0, 6);
-  var n = (errors && errors.length) || list.length;
+  var list = (fails || []).slice(0, 200);
+  window.__pfFails = list;
+  var n = Math.max((errors && errors.length) || 0, list.length);
   var ov = document.createElement('div');
+  ov.id = 'pfMask';
   ov.className = 'ai-ov';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px';
-  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:390px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:16px 18px 6px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
-    + '<div style="padding:0 18px 12px;font-size:12px;color:#888;text-align:center">原文已写进错误日志；点下面复制，直接发给我。</div>'
-    + '<div style="max-height:36vh;overflow:auto;background:#fafafa;padding:8px 12px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">'
-    + (list.length ? list.map(function(f){ return '<div style="padding:4px 0;border-bottom:1px solid #eee"><b>' + esc(String(f.raw||'').slice(0,120)) + '</b><div style="color:#b45309">' + esc(String(f.msg||'未知')) + '</div></div>'; }).join('') : esc((errors||[]).join('\n')))
-    + '</div>'
-    + '<div style="border-top:1px solid #eee;display:flex">'
-    + '<button id="pfCopy" onclick="copyParseFails()" style="flex:1;padding:13px;border:none;background:#fff;color:#ad6800;font-size:14px;font-weight:600;border-right:1px solid #eee">复制失败清单</button>'
-    + '<button id="pfClose" style="flex:1;padding:13px;border:none;background:#fff;color:#666;font-size:14px">关闭</button>'
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  var rows = list.length ? list.map(function(f, i){
+    return '<div style="padding:8px 0;border-bottom:1px solid #eee">'
+      + '<div style="font-size:11px;color:#999">第 ' + esc(String(f.idx || (i+1))) + ' 行</div>'
+      + '<div style="font-size:13px;color:#333;word-break:break-all;line-height:1.5;margin-top:2px"><b>' + esc(String(f.raw || '').slice(0,200)) + '</b></div>'
+      + '<div style="font-size:12px;color:#b45309;word-break:break-all;margin-top:2px">' + esc(String(f.msg || '未知')) + '</div>'
+      + '<div style="display:flex;gap:6px;margin-top:6px">'
+      + '<button type="button" onclick="diagPutLine(' + i + ')" style="border:1px solid #1677ff;background:#fff;color:#1677ff;border-radius:6px;padding:4px 9px;font-size:12px">放回输入框</button>'
+      + '<button type="button" onclick="diagCopyLine(' + i + ')" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:4px 9px;font-size:12px">复制这一行</button>'
+      + '</div></div>';
+  }).join('') : ('<div style="padding:18px 0;color:#999;text-align:center">' + esc((errors||[]).join('\n')) + '</div>');
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:430px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
+    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。</div>'
+    + '<div style="max-height:48vh;overflow:auto;background:#fafafa;padding:0 12px 6px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">' + rows + '</div>'
+    + (list.length >= 200 ? '<div style="padding:6px 16px;font-size:11px;color:#999;text-align:center">只显示前 200 行；完整失败批次已另存并上报。</div>' : '')
+    + '<div style="border-top:1px solid #eee;display:flex;flex-wrap:wrap">'
+    + '<button id="pfCopyAll" onclick="diagCopyAllFails()" style="flex:1;min-width:45%;padding:12px;border:none;background:#fff;color:#1677ff;font-size:13px;font-weight:600;border-right:1px solid #eee;border-bottom:1px solid #eee">复制全部失败行</button>'
+    + '<button id="pfCopy" onclick="diagCopyFailList()" style="flex:1;min-width:45%;padding:12px;border:none;background:#fff;color:#ad6800;font-size:13px;font-weight:600;border-bottom:1px solid #eee">复制失败清单</button>'
+    + '<button id="pfClose" style="flex:1;min-width:100%;padding:12px;border:none;background:#fff;color:#666;font-size:14px">关闭</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   ov.querySelector('#pfClose').onclick = function(){ ov.remove(); };
 }
-
 function _storageStats(){
   var keys = [], bytes = 0;
   try{
@@ -853,15 +1018,22 @@ function showErrLog(){
         }).join('<br>') + (pf.groups.length > 6 ? '<br>…还有 ' + (pf.groups.length-6) + ' 种' : '') + '</div>'
       + '<button id="elCopyFails" onclick="copyParseFails()" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">复制失败清单</button></div>';
   }
+  var _dq = diagQueueRead();
+  var _ds = diagReadStatus();
+  var diagHtml = '<div style="margin:10px 16px 0;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 10px;font-size:12px;color:#1d4ed8;line-height:1.6">'
+    + '<b>失败诊断上报：待上报 ' + _dq.length + ' 批</b>'
+    + (_ds.txt ? '<div style="color:#666;margin-top:2px">最近：' + esc(_ds.txt) + ( _ds.at ? ' · ' + esc(new Date(_ds.at).toLocaleString('zh-CN',{hour12:false})) : '') + '</div>' : '')
+    + '<button onclick="diagFlush(true)" style="margin-top:6px;border:1px solid #1677ff;background:#fff;color:#1677ff;border-radius:6px;padding:5px 10px;font-size:12px">立即上报失败批次</button></div>';
   var rows = logs.slice(-60).reverse().map(function(r){
     var raw = '';
-    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,200) : ''; } catch(e){}
+    try { raw = (r.meta && typeof r.meta === 'object' && r.meta.raw) ? String(r.meta.raw).slice(0,500) : ''; } catch(e){}
     return '<div style="padding:7px 0;border-bottom:1px solid #f0f0f0"><div style="font-size:11px;color:#999">' + esc(new Date(r.at || Date.parse(r.ts) || Date.now()).toLocaleString('zh-CN',{hour12:false})) + ' · ' + esc(r.type) + ' · ' + esc(r.ver||'') + (r.day ? ' · 账本日 ' + esc(r.day) : '') + '</div><div style="font-size:12px;color:#333;word-break:break-all;white-space:pre-wrap">' + esc(r.msg||'') + (raw ? '<div style="font-size:11px;color:#b45309;margin-top:3px;white-space:pre-wrap">原文：' + esc(raw) + '</div>' : '') + '</div></div>';
   }).join('');
   if(!rows) rows = '<div style="padding:24px 0;text-align:center;font-size:13px;color:#999">暂无错误记录</div>';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;flex-direction:column">'
     + '<div style="padding:14px 16px;font-size:16px;font-weight:700;color:#333;border-bottom:1px solid #eee">错误日志（' + logs.length + ' 条，最多保留 200 条）</div>'
     + pfHtml
+    + diagHtml
     + '<div style="padding:2px 16px 8px;overflow-y:auto;flex:1">' + rows + '</div>'
     + '<div style="display:flex;border-top:1px solid #eee">'
     + '<button id="elClear" style="flex:1;padding:13px;border:none;background:#fff;font-size:13px;color:#cf1322;border-right:1px solid #eee">清空</button>'
@@ -7589,6 +7761,7 @@ function doSave(overrideText){
 
 
 // 股东分账格式：每行 "编号 金额"，如 "02 10.00"
+  window.__lastParseTotal = mergedLines.length;
   const splitFormat = mergedLines.filter(l => !/^合计/.test(l));
   if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
     var custName = document.getElementById('customerName').value.trim() || '散客';
@@ -7648,6 +7821,7 @@ renderAll();
   }
   let _secHK = (typeof shop !== 'undefined' && shop === 'B');  // 「香港：」标题后，后续行默认进香港，直到出现「澳门：」
   workLines.forEach((line, i) => {
+    const _origLine = line;
     // 前一行已经弹了待确认框：先停住，等用户选完由回调重新 doSave 再继续，
     // 避免一张单里同时弹出多个选择框，用户不知道该先答哪个。
     if(window.__ambigAbort) return;
@@ -7799,7 +7973,7 @@ renderAll();
       }
       errors.push(`第${i+1}行：${e.message}`);
       if(!window.__failedLines) window.__failedLines = [];
-      window.__failedLines.push({ idx: i+1, raw: line, msg: e.message });
+      window.__failedLines.push({ idx: i+1, raw: _origLine, msg: e.message });
     }
   });
 
@@ -7813,21 +7987,25 @@ renderAll();
     window._waveLastPerNum = false;
     var _inp = document.getElementById('input');
     if(_inp && !_isOverride && _rawIn) _inp.value = _rawIn;
-    var _fails = (window.__failedLines || []).slice(0, 10);
+    // 整批原子：一行失败，整批不落账；但失败原文要全量留存，不能只留前10行
+    var _allFails = (window.__failedLines || []).slice(0, 200);
     window.__failedLines = [];
-    if(_fails.length){
-      _fails.forEach(function(f){
-        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,200), day: (billBookDate() || billToday()), failedTotal: errors.length});
+    var _logFails = _allFails.slice(0, 10);
+    if(_allFails.length){
+      _logFails.forEach(function(f){
+        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,500), day: (billBookDate() || billToday()), failedTotal: errors.length});
       });
-      if(errors.length > _fails.length){
-        logErr('parse', '本批还有 ' + (errors.length - _fails.length) + ' 行无法识别，仅记前 ' + _fails.length + ' 行原文', {day: (billBookDate() || billToday()), failedTotal: errors.length});
+      if(_allFails.length > _logFails.length){
+        logErr('parse', '本批共 ' + _allFails.length + ' 行无法识别，错误日志仅列前 ' + _logFails.length + ' 行；完整原文见失败批次上报', {day: (billBookDate() || billToday()), failedTotal: errors.length});
       }
     } else {
-      logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,200), day: (billBookDate() || billToday())});
+      logErr('parse', errors[0] || '未知解析错误', {rawLen: String(typeof _rawIn !== 'undefined' ? _rawIn : '').length, raw: String(typeof _rawIn !== 'undefined' ? _rawIn : '').slice(0,500), day: (billBookDate() || billToday())});
     }
-    var _fail = _fails[0];
-    if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
-    showParseFailDialog(_fails, errors);
+    try{
+      var _diagBatch = diagBuildBatch(_allFails, errors, _rawIn);
+      diagEnqueue(_diagBatch);
+    }catch(e){}
+    showParseFailDialog(_allFails, errors);
     return;
   }
   window.__failedLines = [];

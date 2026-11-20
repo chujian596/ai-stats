@@ -133,5 +133,16 @@ const _histTxt=(document.getElementById('billHistMask')||{}).innerText||'';
 ck('历史账单显示总盘与自留', _histTxt.indexOf('总盘')>=0 && _histTxt.indexOf('自留')>=0 && _histTxt.indexOf('上家赔回')>=0, _histTxt.slice(0,180));
 billCloseHistory();
 
+// 12. 失败诊断：脱敏、原文、完整输入
+const _oldRoster=(typeof roster!=='undefined'&&Array.isArray(roster))?roster.slice():[];
+try{
+  roster=['张三','叶','龙'];
+  ck('诊断脱敏-两字客户名', diagMaskText('张三 平特龙10')==='[客户] 平特龙10', diagMaskText('张三 平特龙10'));
+  ck('诊断脱敏-单字不误抹平特龙', diagMaskText('叶 香港 平特龙 20')==='[客户] 香港 平特龙 20', diagMaskText('叶 香港 平特龙 20'));
+  ck('诊断脱敏-手机号', diagMaskText('张三 13800138000')==='[客户] [手机]', diagMaskText('张三 13800138000'));
+  const _db=diagBuildBatch([{idx:1,raw:'张三 各10 尾数a',msg:'无法识别：「张三」'}],[],'张三 各10 尾数a');
+  ck('诊断批次含脱敏完整输入', _db.failures[0].raw.indexOf('张三')<0 && _db.failures[0].msg.indexOf('张三')<0 && _db.rawInput.indexOf('张三')<0 && _db.rawInput.indexOf('尾数a')>=0, _db);
+}finally{ roster=_oldRoster; }
+
 window.__archiveQA=out;
 })();
