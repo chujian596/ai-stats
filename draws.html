@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最近30期开奖记录</title>
+<style>
+  :root{
+    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
+    --line:#e3e3e3; --bg:#f6f6f6;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
+  .wrap{max-width:680px;margin:0 auto}
+  header{margin-bottom:16px}
+  h1{margin:0 0 6px;font-size:21px;font-weight:700}
+  .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
+  .legend{display:flex;gap:14px;margin:10px 2px;font-size:12px;color:var(--sub);flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .dot.red{background:var(--red)} .dot.blue{background:var(--blue)} .dot.green{background:var(--green)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:12px}
+  .draw-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .issue{font-weight:700;font-size:15px}
+  .sp-tag{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .sp-tag b{color:var(--ink)}
+  .balls{display:flex;flex-wrap:wrap;gap:10px}
+  .ball{width:52px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .num{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;border:2px solid transparent}
+  .ball.special .num{border-color:#b8860b;box-shadow:0 0 0 2px #fff,0 0 0 4px #b8860b}
+  .zod{font-size:11px;color:var(--sub);text-align:center;line-height:1.3}
+  .zod .w{font-weight:600}
+  .wave-red .num{background:var(--red)}
+  .wave-blue .num{background:var(--blue)}
+  .wave-green .num{background:var(--green)}
+  .wave-red .zod .w{color:var(--red)}
+  .wave-blue .zod .w{color:var(--blue)}
+  .wave-green .zod .w{color:var(--green)}
+  .empty{color:var(--sub);font-style:italic;padding:20px 0;text-align:center}
+  .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>最近 30 期开奖记录</h1>
+    <div class="meta">每期 6 个平码 + 1 个特码，号码、生肖、波色与开奖源一一对应；金色描边为特码。按期号倒序，最新一期在最上。</div>
+    <div class="legend">
+      <span><i class="dot red"></i>红波</span>
+      <span><i class="dot blue"></i>蓝波</span>
+      <span><i class="dot green"></i>绿波</span>
+    </div>
+  </header>
+  <div id="list"></div>
+  <div class="note" id="ruleNote"></div>
+</div>
+
+<script>
+function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+var WAVE_CLS={'红':'wave-red','蓝':'wave-blue','绿':'wave-green'};
+
+function ballHtml(n){
+  var cls=WAVE_CLS[n.wave]||'wave-blue';
+  var zod=n.zodiac?('<div class="zod">'+n.zodiac+'<span class="w"> · '+(n.wave||'—')+'</span></div>')
+                  :'<div class="zod">—</div>';
+  return '<div class="ball'+(n.special?' special':'')+'">'+
+    '<div class="num '+cls+'">'+(n.n!=null?n.n:'—')+'</div>'+zod+'</div>';
+}
+
+function render(d){
+  var list=document.getElementById('list');
+  if(!d||!d.periods||!d.periods.length){ list.innerHTML='<div class="empty">暂无开奖记录</div>'; return; }
+  list.innerHTML=d.periods.map(function(p){
+    var sp=p.special, spZ=p.specialZodiac||'—', spW=p.specialWave||'—';
+    var balls=(p.numbers||[]).map(ballHtml).join('');
+    return '<div class="card">'+
+      '<div class="draw-head"><span class="issue">'+p.issue+' 期</span>'+
+      '<span class="sp-tag">特码 <b>'+sp+'</b> · '+spZ+' · '+spW+' 波</span></div>'+
+      '<div class="balls">'+balls+'</div></div>';
+  }).join('');
+  document.getElementById('ruleNote').textContent='更新时间：'+(d.updated_at||'—')+'　口径：'+(d.rule||'—');
+}
+
+fetchJson('data/draws-recent.json').then(render).catch(function(e){
+  document.getElementById('list').innerHTML='<div class="empty">开奖数据加载失败：'+e+'</div>';
+});
+</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>

@@ -40,6 +40,7 @@
     <div class="ttab" id="tabThree" onclick="switchTop('three')">三肖共识</div>
     <div class="ttab" id="tabKill3" onclick="switchTop('kill3')">杀三肖台账</div>
     <div class="ttab" id="tabExtra" onclick="switchTop('extra')">扩展台账</div>
+    <div class="ttab" id="tabDraws" onclick="switchTop('draws')">开奖记录</div>
     <div class="ttab" id="tabReg" onclick="switchTop('reg')">站点清单</div>
   </div>
 
@@ -54,6 +55,7 @@
     <iframe id="frameThree" src="stats.html?v=2#kill" class="hidden"></iframe>
     <iframe id="frameKill3" src="kill3-ledger.html?v=20" class="hidden"></iframe>
     <iframe id="frameExtra" src="extra-ledger.html?v=2" class="hidden"></iframe>
+    <iframe id="frameDraws" src="draws.html?v=1" class="hidden"></iframe>
   <iframe id="frameReg" src="site-registry.html?v=1" class="hidden"></iframe>
   </div>
 </div>
@@ -62,7 +64,7 @@
 var top='nine', threeK='kill';
 function switchTop(t){
   top=t;
-  var on={'nine':'tabNine','three':'tabThree','kill3':'tabKill3','extra':'tabExtra','reg':'tabReg'};
+  var on={'nine':'tabNine','three':'tabThree','kill3':'tabKill3','extra':'tabExtra','draws':'tabDraws','reg':'tabReg'};
   Object.keys(on).forEach(function(k){
     document.getElementById(on[k]).className='ttab'+(k===t?' on':'');
   });
@@ -71,11 +73,12 @@ function switchTop(t){
   document.getElementById('frameThree').classList.toggle('hidden',t!=='three');
   document.getElementById('frameKill3').classList.toggle('hidden',t!=='kill3');
   document.getElementById('frameExtra').classList.toggle('hidden',t!=='extra');
+  document.getElementById('frameDraws').classList.toggle('hidden',t!=='draws');
   document.getElementById('frameReg').classList.toggle('hidden',t!=='reg');
   if(t==='three') switchThree(threeK,true);
 }
 function refreshAll(){
-  ['frameNine','frameThree','frameKill3','frameExtra','frameReg'].forEach(function(id){
+  ['frameNine','frameThree','frameKill3','frameExtra','frameDraws','frameReg'].forEach(function(id){
     var f=document.getElementById(id);
     var base=f.getAttribute('data-base')||f.src.split('?')[0].split('#')[0];
     f.setAttribute('data-base',base);
