@@ -148,7 +148,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 <div class="wrap">
   <header>
     <div>
-      <h1>来源名单<span class="ver" id="ver">v1.03</span></h1>
+      <h1>来源名单<span class="ver" id="ver">v1.04</span></h1>
       <div class="sub">站点固定 · 论坛轮换 · 316后成绩<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a>　<a href="engine.html" style="color:#6d28d9;text-decoration:none;font-weight:700">研判引擎</a></div>
     </div>
     <div class="top-actions">
@@ -160,7 +160,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
   <div class="tabs" id="tabs">
     <button data-view="home" class="on">概览</button>
-    <button data-view="sites">站点 81</button>
+    <button data-view="sites">站点 104</button>
     <button data-view="forum">论坛池 811</button>
     <button data-view="scores">成绩</button>
     <button data-view="chain">数据链</button>
@@ -168,7 +168,7 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
   <div id="notice" class="notice hidden"></div>
   <div id="content"></div>
-  <footer id="pageFoot">来源名单 v1.03 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
+  <footer id="pageFoot">来源名单 v1.04 · 只做来源治理与成绩统计，不改历史 ratio/core 数字</footer>
 </div>
 
 <div class="badge" id="draftBadge">
@@ -253,7 +253,7 @@ function load(){
     return r.json();
   }).then(function(d){
     state.base=d;
-    document.getElementById('ver').textContent='v1.03';
+    document.getElementById('ver').textContent='v1.04';
     PATCH=readDraft(); render(); renderBadge();
   }).catch(function(e){
     notice('读取 data/source-registry.json 失败：'+e.message,true);
@@ -305,7 +305,7 @@ function render(){
   else if(state.view==='forum') renderForum();
   else if(state.view==='scores') renderScores();
   else renderChain();
-  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.03 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
+  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.04 · 只做来源治理与成绩统计，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
   renderBadge();
 }
 
@@ -316,23 +316,23 @@ function renderHome(){
   var maxSite=Math.max.apply(null,Object.keys(perSite).map(function(p){return perSite[p];}).concat([1]));
   var html='';
   html+='<section class="card"><div class="eyebrow">来源总账 · 第 '+state.base.dataThrough+' 期</div><h2>不是随机抽样，是固定池 + 当期可用集合</h2>'+
-    '<p class="lead">站点侧从 323 期起固定 <b>77 站</b>；论坛侧不是固定 '+s.forumCurrent+' 人，而是 <b>'+s.forumUnique+' 个发帖化名</b>的轮换池。每期变化来自抓取时间窗、有效帖、站点连通性，不是代码随机抽人。</p>'+
+    '<p class="lead">站点侧 325 期起启用 <b>'+s.siteActive+' 站</b>（'+s.siteFixed+' 固定 + '+(s.siteActive-s.siteFixed)+' 新增观察）；论坛侧不是固定 '+s.forumCurrent+' 人，而是 <b>'+s.forumUnique+' 个发帖化名</b>的轮换池。每期变化来自抓取时间窗、有效帖、站点连通性，不是代码随机抽人。</p>'+
     '<div class="kpis">'+kpi(s.siteActive+'/'+s.siteRegistered,'站点启用 / 登记',s.siteFixed+' 个固定')+kpi(s.forumUnique,'论坛发帖名',s.forumCore+' 常驻 · '+s.forumOneoff+' 一次性')+kpi(s.forumCurrent,CUR()+' 期有效名',s.forumRepeatFromPrev+' 留存 · '+s.forumNewThisPeriod+' 新出现')+kpi(s.effectiveEndpoints,'有效抓取点',s.siteActive+' 站 + '+s.forumPages+' 页')+'</div>'+
-    '<div class="chip-row"><span class="chip green">固定站点 77</span><span class="chip amber">空站 '+s.siteEmpty+'</span><span class="chip blue">论坛常驻覆盖 '+s.forumCoreVoteCoverage+'% 票</span><span class="chip">核心杀计入 '+s.coreKillSites+' 站</span></div>'+
+    '<div class="chip-row"><span class="chip green">启用站点 '+s.siteActive+'</span><span class="chip amber">空站 '+s.siteEmpty+'</span><span class="chip blue">论坛常驻覆盖 '+s.forumCoreVoteCoverage+'% 票</span><span class="chip">核心杀基线 '+s.coreKillSites+' 站</span></div>'+
     '<div class="tip">'+esc(state.base.notes[0]||'')+'<br>'+esc(state.base.notes[1]||'')+'</div></section>';
-  html+='<section class="card"><div class="eyebrow">站点稳定性 · '+state.base.periods.sites[0]+'–'+CUR()+'</div><h2>323 期扩到 77 站后，连续三期没有换人</h2><p class="lead">322 期只有 <b>42</b> 站，是 9 个站连接失败，不是随机抽走；4 个空站一直失败，已从统计分母排除。</p><div class="chart">';
+  html+='<section class="card"><div class="eyebrow">站点稳定性 · '+state.base.periods.sites[0]+'–'+CUR()+'</div><h2>325 期扩到 100 站后，开始新的连续观察</h2><p class="lead">322 期只有 <b>42</b> 站，是 9 个站连接失败；4 个空站一直失败，已从统计分母排除。325 起新增 23 个 h1/h3/h5/h6/h8 源，先按观察站计。</p><div class="chart">';
   Object.keys(perSite).sort(function(a,b){return a-b;}).forEach(function(p){
     var n=perSite[p],w=Math.round(n/maxSite*100);
-    html+='<div class="chart-row"><span>'+p+'</span><div class="chart-bar"><i class="'+(n>=77?'fix':'')+'" style="width:'+w+'%"></i></div><b>'+n+'</b></div>';
+    html+='<div class="chart-row"><span>'+p+'</span><div class="chart-bar"><i class="'+(n>=s.siteFixed?'fix':'')+'" style="width:'+w+'%"></i></div><b>'+n+'</b></div>';
   });
-  html+='</div><div class="tip">77 站是固定名单；4 个空站（13685 / 13783 / 145345 / 49084）未产出数据，不计入成功率。</div></section>';
+  html+='</div><div class="tip">'+s.siteActive+' 站是本期有效名单（'+s.siteFixed+' 固定 + '+(s.siteActive-s.siteFixed)+' 新增观察）；4 个空站（13685 / 13783 / 145345 / 49084）未产出数据，不计入成功率。</div></section>';
   html+='<section class="card"><div class="eyebrow">论坛轮换 · '+state.base.periods.forum[0]+'–'+CUR()+'</div><h2>'+s.forumCurrent+' 个名字里，'+s.forumCurrentCore+' 个是历史常驻</h2><p class="lead">'+CUR()+' 期 '+s.forumCurrent+' 个发帖名中，<b>'+s.forumRepeatFromPrev+' 个</b>与 '+PREV()+' 期同名，<b>'+s.forumNewThisPeriod+' 个</b>新出现；按“'+state.base.periods.forum[0]+'–'+CUR()+' 出现≥2期”定义常驻，共 <b>'+s.forumCore+'</b> 个，覆盖 '+CUR()+' 期 <b>'+s.forumCoreVoteCoverage+'%</b> 的生肖票。</p><div class="chart">';
   Object.keys(perForum).sort(function(a,b){return a-b;}).forEach(function(p){
     var n=perForum[p],w=Math.round(n/314*100);
     html+='<div class="chart-row"><span>'+p+'</span><div class="chart-bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>';
   });
   html+='</div><div class="tip">319 期起论坛扩量到 600 条抓取；317–318 只有 33 / 31 个名字，属于早期小样本，不纳入常驻判定。</div></section>';
-  html+='<section class="card"><div class="eyebrow">口径</div><h2>三个数字别混</h2><p class="lead">77 = 本期成功站；81 = 登记站（含 4 个空站）；46 = 有核心杀栏目并计入分母的站。论坛 204 = 本期有效帖，811 = 近七期化名池，604 = 常驻池。</p><div class="tip">这套名单只做来源治理；启停、改名、主池标记不会倒改历史 ratio/core 数字。</div></section>';
+  html+='<section class="card"><div class="eyebrow">口径</div><h2>三个数字别混</h2><p class="lead">'+s.siteActive+' = 本期成功站；'+s.siteRegistered+' = 登记站（含 '+s.siteEmpty+' 个空站）；'+(s.coreColumnSites||s.coreKillSites)+' = 当期有核心栏目的站；'+s.coreKillSites+' = 核心杀历史基线。论坛 '+s.forumCurrent+' = 本期有效帖，'+s.forumUnique+' = 近七期化名池，'+s.forumCore+' = 常驻池。</p><div class="tip">这套名单只做来源治理；启停、改名、主池标记不会倒改历史 ratio/core 数字。</div></section>';
   document.getElementById('content').innerHTML=html;
 }
 
@@ -406,7 +406,7 @@ function renderScores(){
   var pt=p.dimensions.pingte;
   var ptRate=pt&&pt.overall?pct(pt.overall.rate):'—',ptBase=pt&&pt.baseline?pct(pt.baseline):'—';
   html+='<section class="card"><div class="eyebrow">阶段目标</div><h2>不设“命中率必须 80%”的假目标</h2><ul class="note-list">'+
-    '<li><b>330 期（15 期）：</b>站点 77/77 成功、缺站 0；上榜站 n≥15。</li>'+
+    '<li><b>330 期（15 期）：</b>站点 100/100 成功、缺站 0；新增 23 站纳入观察，上榜站 n≥15。</li>'+
     '<li><b>335 期（20 期）：</b>第一次长期榜；只有 95% 下限高于随机基线才进候选。</li>'+
     '<li><b>现在：</b>按 n≥9 与 95% 门槛，<b>'+qualified+' 站</b>达标；9 期只筛异常，不评“神站”。</li>'+
     '<li><b>平特：</b>当前 '+ptRate+' vs 基线 '+ptBase+'；先查 316–320 与 323–324 的波动，不先定性。</li>'+
@@ -429,7 +429,7 @@ function renderSites(){
   var chips=[
     ['all','全部 '+all.length],['active','启用 '+s.siteActive],['empty','空站 '+s.siteEmpty],['disabled','停用 '+s.siteDisabled],['core','核心杀 '+s.coreKillSites],['wanpz-h2','h2'],['wanpz-h9','h9'],['bdmijg','聚合']
   ].map(function(x){return '<button class="chip '+(state.siteFilter===x[0]?'on':'')+'" data-act="site-filter" data-v="'+x[0]+'">'+esc(x[1])+'</button>';}).join('');
-  var html='<section class="card"><div class="eyebrow">站点名单 · '+all.length+' 登记</div><h2>固定 ID，不随期号换对象</h2><p class="lead">77 个启用站从 323 期起连续固定；4 个空站只登记、不参与分母。开关只改名单启用状态，改名只影响名单显示。</p>'+
+  var html='<section class="card"><div class="eyebrow">站点名单 · '+all.length+' 登记</div><h2>固定 ID，不随期号换对象</h2><p class="lead">'+s.siteActive+' 个启用站（'+s.siteFixed+' 个固定 + '+(s.siteActive-s.siteFixed)+' 个新增观察）；4 个空站只登记、不参与分母。开关只改名单启用状态，改名只影响名单显示。</p>'+
     '<div class="chip-row">'+chips+'</div><div class="toolbar" style="margin-top:9px"><input type="search" id="siteSearch" class="search" placeholder="搜站名 / 站号 / 路径，回车" value="'+esc(state.siteQuery)+'"><span class="sum-line" style="margin:0">显示 '+list.length+' / '+all.length+'</span></div>'+
     '<div id="siteList">'+list.map(siteRow).join('')+'</div></section>';
   document.getElementById('content').innerHTML=html;

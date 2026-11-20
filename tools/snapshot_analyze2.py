@@ -75,8 +75,8 @@ else:
     # 与累积库中同期刊值比对（若已有本期记录）
     hist0 = json.load(open(os.path.join(BASE, 'all-sites-kill3.json'), encoding='utf-8'))
     def hkey(key):
-        if key.startswith('wanpz-h2-'): return 'h2-' + key[9:]
-        if key.startswith('wanpz-h9-'): return 'h9-' + key[9:]
+        m = re.match(r'wanpz-(h\d+)-(.+)$', key)
+        if m: return f'{m.group(1)}-{m.group(2)}'
         if key.startswith('bdmijg-js-'): return 'bdmijg-' + key[10:]
         return None
     for key, rec in sites.items():

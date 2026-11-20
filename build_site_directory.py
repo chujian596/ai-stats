@@ -23,12 +23,11 @@ def load(name):
 
 
 def system_of(path):
-    if path.startswith("h2/"):
-        return "wanpz-h2"
-    if path.startswith("h9/"):
-        return "wanpz-h9"
     if path.startswith("bdmijg/"):
         return "bdmijg"
+    m = re.match(r"h(\d+)/", path)
+    if m:
+        return f"wanpz-h{m.group(1)}"
     return path.split("/")[0] or "unknown"
 
 

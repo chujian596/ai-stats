@@ -123,7 +123,7 @@ def main():
             'host': host_of(system),
             'script': f'{host_of(system)}/script/{site_key}/',
             'aggregator': bool(d.get('aggregator') or system == 'bdmijg'),
-            'hasNine': bool(d.get('hasNine') or snap.get('columns', {}).get('9肖中特')),
+            'hasNine': bool(d.get('hasNine') or any(t == '9肖中特' or re.fullmatch(r'9肖加(?:对应)?\d+码中特', t) for t in (snap.get('columns') or {}))),
             'hasKill3': bool(d.get('hasKill3') or any(k in cols for k in ('杀特3肖', '绝杀三肖', '📛绝杀三肖'))),
             'coreKill': bool(core_cols),
             'coreColumns': core_cols,
@@ -230,7 +230,7 @@ def main():
         'forum': {'periods': FORUM_PERIODS, 'raw': fraw, 'totalPosts': total_posts, 'authors': authors},
         'audit': prev_doc.get('audit') or [],
         'notes': [
-            '站点从 323 起固定 %d 站；%d 个空站持续失败，不计入统计。' % (sum(1 for s in sites if s['enabled']), sum(1 for s in sites if not s['enabled'])),
+            '站点登记 %d 个（启用 %d、空 %d）；325 起新接入 h1/h3/h5/h6/h8 共 %d 个源，新增站连续 3 期稳定后才转固定。' % (len(sites), sum(1 for s in sites if s['enabled']), sum(1 for s in sites if not s['enabled']), sum(1 for s in sites if s.get('status') == 'transient')),
             '论坛不是固定 %d 人，而是 %d 个发帖化名的轮换池；%d 个至少出现 2 期，%d 个只出现 1 期。' % (len(current), len(authors), len(core), len(oneoff)),
             '%d 期 %d 个发帖名中，%d 个与上期同名、%d 个新出现；按历史≥2期算常驻 %d 个，覆盖 %s%% 的生肖票。' % (LATEST, len(current), len(repeat_current), len(current)-len(repeat_current), sum(1 for a in current if a['includeCore']), coverage),
             '本名单只做来源治理，不反向修改历史 ratio/core 数字。',

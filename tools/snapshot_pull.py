@@ -181,6 +181,24 @@ def pull_h9(site_key):
     return res
 
 
+def pull_wanpz(system, site_key):
+    """任意 wanpz 子域：h1/h2/h3/h5/h6/h8/h9/h10。"""
+    if system == 'wanpz-h9':
+        return pull_h9(site_key)
+    if system == 'wanpz-h2':
+        return pull_h2(site_key)
+    host = system.replace('wanpz-', '')
+    hh = hourly_hash()
+    url = f"https://{host}.wanpz.com/script/{site_key}/temps_result_1.js?v={hh}"
+    js = fetch_js(url)
+    if not js:
+        return {"system": system, "siteKey": site_key, "error": "no_data"}
+    res = extract_wanpz(system, site_key, js)
+    if not res:
+        return {"system": system, "siteKey": site_key, "error": "empty"}
+    return res
+
+
 def pull_bdmijg(jsid, target_issue=None):
     key = jsid if jsid.startswith('js-') else f"js-{jsid}"
     url = f"https://api.bdmijg.com/{key}-index?v=11122"
@@ -239,10 +257,8 @@ def pull_bdmijg(jsid, target_issue=None):
 
 def repull(system, site_key, issue):
     """对掉站按体系重抓一次，返回站点结果（成功带 columns，失败带 error）"""
-    if system == 'wanpz-h2':
-        return pull_h2(site_key)
-    if system == 'wanpz-h9':
-        return pull_h9(site_key)
+    if system.startswith('wanpz-'):
+        return pull_wanpz(system, site_key)
     if system == 'bdmijg':
         return pull_bdmijg(site_key, issue)
     return {"system": system, "siteKey": site_key, "error": "unknown_system"}
@@ -250,15 +266,14 @@ def repull(system, site_key, issue):
 
 def main():
     sites = json.load(open(os.path.join(BASE, 'all-sites-kill3.json')))
-    h2 = [v['siteKey'] for v in sites.values() if v['system'] == 'wanpz-h2']
-    h9 = [v['siteKey'] for v in sites.values() if v['system'] == 'wanpz-h9']
+    wan = [(v['system'], str(v['siteKey'])) for v in sites.values() if str(v.get('system','')).startswith('wanpz-')]
     bd = [v['siteKey'] for v in sites.values() if v['system'] == 'bdmijg']
-    print(f'h2={len(h2)} h9={len(h9)} bdmijg={len(bd)}')
+    from collections import Counter
+    print('wanpz=' + str(len(wan)) + ' ' + str(dict(Counter(x[0] for x in wan))) + f' bdmijg={len(bd)}')
 
     results = []
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futs = {ex.submit(pull_h2, k): ('h2', k) for k in h2}
-        futs.update({ex.submit(pull_h9, k): ('h9', k) for k in h9})
+    with ThreadPoolExecutor(max_workers=20) as ex:
+        futs = {ex.submit(pull_wanpz, s, k): (s, k) for s, k in wan}
         for f, meta in futs.items():
             try:
                 results.append(f.result())
@@ -278,8 +293,7 @@ def main():
                 results.append({"system": meta[0], "siteKey": meta[1], "error": str(e)})
 
     # 名单内但本轮既未成功也未报错的站，补记为 not_submitted，避免静默丢站
-    listed = {f"wanpz-h2-{k}": ("wanpz-h2", k) for k in h2}
-    listed.update({f"wanpz-h9-{k}": ("wanpz-h9", k) for k in h9})
+    listed = {f"{s}-{k}": (s, k) for s, k in wan}
     listed.update({f"bdmijg-{k}": ("bdmijg", k) for k in bd})
     have = {f"{r['system']}-{r['siteKey']}" for r in results}
     for lk, (sysname, sk) in listed.items():

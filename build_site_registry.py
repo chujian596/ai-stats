@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 由最新快照生成站点清单：站号 / 站名 / 数据路径 / 栏目参数
-import json, glob, os, datetime
+import json, glob, os, datetime, re
 from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PARENT = HERE.parent
@@ -17,7 +17,8 @@ for key, s in d.get('sites', {}).items():
     cols = s.get('columns', {})
     k3 = cols.get('杀特3肖') or cols.get('绝杀三肖') or cols.get('📛绝杀三肖')
     k3_name = '杀特3肖' if '杀特3肖' in cols else ('绝杀三肖' if ('绝杀三肖' in cols or '📛绝杀三肖' in cols) else '')
-    k9 = cols.get('9肖中特')
+    k9 = next((c for c in cols if c == '9肖中特' or re.fullmatch(r'9肖加(?:对应)?\d+码中特', c)), None)
+    k9cd = cols.get(k9) or {}
     i += 1
     rows.append({
         'no': i,
@@ -32,8 +33,8 @@ for key, s in d.get('sites', {}).items():
         'kill3_col': k3_name,
         'aggregator': sysname.startswith('bdmijg'),
         'has_nine': bool(k9),
-        'nine': (k9 or {}).get('value', ''),
-        'nine_rule': str((k9 or {}).get('ruleId', '')),
+        'nine': k9cd.get('value', ''),
+        'nine_rule': str(k9cd.get('ruleId', '')),
     })
 rows.sort(key=lambda r: (0 if r['has_kill3'] else 1, r['path']))
 # 同名站自动编号：铁算盘一 / 铁算盘二
