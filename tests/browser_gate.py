@@ -172,7 +172,21 @@ def main():
         for e in errors:
             print(" - " + e)
         return 1
-    print("\n浏览器门禁通过：QA 116/116、词库 143/143、混搭 4/4、选择对账 55/55、归档/日志/诊断 28/28、开奖按钮 2/2，共 348/348")
+    a = checks["archive_audit"]
+    total = (
+        checks["qa_sim"]["total"] + checks["lexicon"]["total"] +
+        checks["settle_mixed"]["total"] + checks["choice_settle"]["tested"] +
+        a["total"] + checks["draw_button"]["tested"]
+    )
+    print("\n浏览器门禁通过：QA %d/%d、词库 %d/%d、混搭 %d/%d、选择对账 %d/%d、归档/日志/诊断 %d/%d、开奖按钮 %d/%d，共 %d/%d" % (
+        checks["qa_sim"]["pass"], checks["qa_sim"]["total"],
+        checks["lexicon"]["pass"], checks["lexicon"]["total"],
+        checks["settle_mixed"]["pass"], checks["settle_mixed"]["total"],
+        checks["choice_settle"]["pass"], checks["choice_settle"]["tested"],
+        a["pass"], a["total"],
+        checks["draw_button"]["pass"], checks["draw_button"]["tested"],
+        total, total
+    ))
     return 0
 
 

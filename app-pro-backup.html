@@ -538,38 +538,54 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         3. <b style="color:var(--modalText,#fff)">恢复默认</b>：外观和产品设置还原
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港分店（与澳门店同一套功能）</div>
+            <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十一、香港单与飞单（港澳分开算）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         <b style="color:var(--modalText,#fff)">1. 怎么录</b><br>
         &nbsp;&nbsp;顶部切到「<b style="color:var(--modalText,#fff)">香港</b>」可以录；在澳门店也能直接录香港单<br>
         &nbsp;&nbsp;单独一行「<b style="color:var(--modalText,#fff)">香港：</b>」→ 后面整段进香港；「<b style="color:var(--modalText,#fff)">澳门：</b>」→ 后面整段切回澳门<br>
         &nbsp;&nbsp;单行写「香港牛50」也会把后续未标注行带入香港段；行尾写「…澳门」只把该行算澳门<br>
-        &nbsp;&nbsp;同一客户的澳门单和香港单在同一张客户卡合并算下注/中奖，明细仍分「澳门单目录 / 香港单目录」<br><br>
+        &nbsp;&nbsp;同一客户的澳门单和香港单在同一张客户卡合并算下注/中奖，明细仍分「澳门单目录 / 香港单目录」，每笔前面还有「澳门」或「香港」小标<br><br>
 
         <b style="color:var(--modalText,#fff)">2. 独立一池</b><br>
-        &nbsp;&nbsp;订单池、开奖、赔付、飞单、统计、归档仍按港澳分开存，互不串号<br>
-        &nbsp;&nbsp;客户汇总可以合并看，但每笔明细只用自己盘口的开奖计算<br><br>
+        &nbsp;&nbsp;香港单进全局香港池，澳门店和香港店都能看到；订单、开奖、赔付、飞单、结算仍按港澳分开存，互不串号<br>
+        &nbsp;&nbsp;澳门削峰和澳门上家飞单不把香港单算进去；香港单也不套用澳门开奖<br><br>
 
-        <b style="color:var(--modalText,#fff)">3. 香港飞单</b><br>
-        &nbsp;&nbsp;和澳门<b style="color:var(--modalText,#fff)">一模一样</b>：特号 / 平特 / 连肖 / 二中二三中三逐号台账、阈值、档位、削峰、凑整、已飞、复制、确认飞单<br>
-        &nbsp;&nbsp;没有整店飞黄框，也没有香港单自动飞；全部按本店每个号/生肖/组合单独飞<br>
+        <b style="color:var(--modalText,#fff)">3. 香港工作台</b><br>
+        &nbsp;&nbsp;有香港单才出现，默认收起；标题显示香港单数、已飞/待飞/记录金额和凑整档<br>
+        &nbsp;&nbsp;展开后按「待飞目录 / 部分已飞 / 已飞目录 / 只记录」四段分开，每段带项数和合计<br>
+        &nbsp;&nbsp;已飞明细可上下滑动；「复制香港单」只复制本批要飞的内容<br><br>
 
-        <b style="color:var(--modalText,#fff)">4. 香港凑整</b><br>
-        &nbsp;&nbsp;跟澳门同一套 5/10 档凑整，按本店独立保存，互不影响<br><br>
+        <b style="color:var(--modalText,#fff)">4. 飞单默认总开关</b><br>
+        &nbsp;&nbsp;顶部「<b style="color:var(--modalText,#fff)">香港飞单默认（所有客户）</b>」一个开关管所有客户：<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">全飞</b> = 所有香港单都飞给上家<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">只飞组合</b> = 只飞连肖/二中二/三中二/三中三，单号和平特只记录<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">只记录</b> = 全部不飞，只记客户账<br>
+        &nbsp;&nbsp;改档后本批自动回到待确认，不会沿用旧档位；不再需要逐客设置<br><br>
 
-        <b style="color:var(--modalText,#fff)">5. 香港开奖</b><br>
-        &nbsp;&nbsp;有香港单才出现香港开奖条（没单不占位置），读的是香港开奖结果<br>
-        &nbsp;&nbsp;香港不是每天开，看到期号比澳门旧是正常的<br><br>
+        <b style="color:var(--modalText,#fff)">5. 连/二/三自动飞</b><br>
+        &nbsp;&nbsp;勾选「<b style="color:var(--modalText,#fff)">（连/二/三）自动飞</b>」后，连肖/二中二/三中二/三中三直接算已飞，不再进待飞<br>
+        &nbsp;&nbsp;单号、平特仍按手动确认；新增香港单只把新增部分回待确认，已经飞过的金额保留，不会清零<br>
+        &nbsp;&nbsp;自动飞项会计入「已飞」，复制香港单时不再重复复制这些组合项<br><br>
 
-        <b style="color:var(--modalText,#fff)">6. 香港赔付</b><br>
-        &nbsp;&nbsp;开奖到手后自动算「收多少 / 赔多少 / 净多少」，中奖号码单列<br>
+        <b style="color:var(--modalText,#fff)">6. 凑整与香港实际</b><br>
+        &nbsp;&nbsp;点标题里的「凑整关 / 凑整5 / 凑整10」循环切换；订单行显示凑整后的飞额，「收」仍按客户原单额<br>
+        &nbsp;&nbsp;「应飞」显示原额和凑整后目标（如 507 → 515）；「已飞」按凑整后实付记账<br>
+        &nbsp;&nbsp;<b style="color:var(--modalText,#fff)">香港实际 = 收 − 赔 − 已飞 + 上家赔回</b>；凑整差单独标出，正数表示多飞自己多付，负数表示少飞自己留<br><br>
+
+        <b style="color:var(--modalText,#fff)">7. 确认与结算</b><br>
+        &nbsp;&nbsp;工作台右上角「确认」或底部「确认已飞」只记香港飞单账，不写澳门上家；澳门的「确认本轮飞单」是另一本账，两个入口分开<br>
+        &nbsp;&nbsp;「结算香港本批」独立写香港赔付，不写澳门结算；「港澳合计」只做只读核对<br><br>
+
+        <b style="color:var(--modalText,#fff)">8. 香港开奖/赔付</b><br>
+        &nbsp;&nbsp;有香港单才出现香港开奖条；澳门店里的香港单也按香港开奖算，不再显示“香港开奖未录入”<br>
+        &nbsp;&nbsp;香港不是每天开，期号比澳门旧是正常的；没拉到香港开奖时显示待开奖，拉到后自动算收/赔/净<br>
         &nbsp;&nbsp;赔率和澳门同一套（特码 47 倍、平特 1 赔 2），不用另设<br><br>
 
-        <b style="color:var(--modalText,#fff)">7. 删香港单</b><br>
+        <b style="color:var(--modalText,#fff)">9. 删香港单</b><br>
         &nbsp;&nbsp;每笔旁边有删除；客户撤单会连香港单一起删，并提示删了几笔
       </div>
 
-      <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
+<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">十二、分店切换（右上角）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 点右上角「<b style="color:var(--modalText,#fff)">澳门🇲🇴▾</b>」→ 选「香港🇭🇰」，页面自动重载<br>
         2. <b style="color:var(--modalText,#fff)">A 店＝澳门</b>：默认收澳门单，带「香港」标注的行自动进香港账<br>
@@ -653,7 +669,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.60-Pro';
+var APP_VER = 'v59.61-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
