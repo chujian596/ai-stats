@@ -214,7 +214,7 @@
       <div class="sub">多站资料 · 逐站台账 · 开奖对账</div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.02</span>
+      <span class="version">v59.03</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -233,7 +233,7 @@
   <section class="panel" id="panel-draws"></section>
 
   <div class="footer">
-    资料统计只做站方公开资料的记录与对账，不构成开奖预测。开奖为随机事件，历史命中率不代表以后结果。
+    资料统计只做站方公开资料的记录与对账，不构成开奖预测。开奖为随机事件，历史命中率不代表以后结果。<br><a href="sources.html" style="color:#2563eb;text-decoration:none">来源名单 · 站点固定 / 论坛池管理 →</a>
   </div>
 </div>
 
@@ -273,7 +273,7 @@
     </div>
     <div class="doc-section">
       <h3>数据存在哪里</h3>
-      <p>页面本身不存数据，只读同站点的 JSON。本期汇总在 <b>data/current-recommend.json</b>，站点目录在 <b>data/site-directory.json</b>，八本逐站台账在 <b>data/</b> 下的 max-zodiac / kill3 / pingte / wave / tail / head / size / parity 八个 ledger.json；论坛推杀强度在 <b>data/ratio-*.json</b>，站方核心杀在 <b>data/core-*.json</b>；原始抓取快照在仓库 <b>snapshots/</b>，按“期号+时间”命名。页面和这些文件一起放在 <b>chujian596/ai-stats</b> 仓库，GitHub Pages 直接读取同目录的 data/。</p>
+      <p>页面本身不存数据，只读同站点的 JSON。本期汇总在 <b>data/current-recommend.json</b>，站点目录在 <b>data/site-directory.json</b>，八本逐站台账在 <b>data/</b> 下的 max-zodiac / kill3 / pingte / wave / tail / head / size / parity 八个 ledger.json；论坛推杀强度在 <b>data/ratio-*.json</b>，站方核心杀在 <b>data/core-*.json</b>，来源名单在 <b>data/source-registry.json</b>；原始抓取快照在仓库 <b>snapshots/</b>，按“期号+时间”命名。页面和这些文件一起放在 <b>chujian596/ai-stats</b> 仓库，GitHub Pages 直接读取同目录的 data/。</p>
     </div>
     <div class="doc-section">
       <h3>数据来源</h3>

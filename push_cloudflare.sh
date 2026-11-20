@@ -38,7 +38,7 @@ fi
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
-for f in index.html app.html app-pro.html app-pro-backup.html app-client-v59.03-test.html admin.html admin58.html portal.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json version.txt version-client.txt version-client-test.txt system-guide.html 0491.html ai-analysis.html shengxiao.html update-tool.html zhengpiao.html ziliao.html apps.html lab.html issues.html manage.html max-zodiac.html nine-zodiac.html kill3-ledger.html extra-ledger.html site-registry.html; do
+for f in index.html app.html app-pro.html app-pro-backup.html app-client-v59.03-test.html admin.html admin58.html portal.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html forum-picks.html members.json whitelist.json version.txt version-client.txt version-client-test.txt system-guide.html 0491.html ai-analysis.html shengxiao.html update-tool.html zhengpiao.html ziliao.html apps.html lab.html issues.html manage.html max-zodiac.html nine-zodiac.html kill3-ledger.html extra-ledger.html site-registry.html sources.html; do
   [ -f "$f" ] && cp -f "$f" "$DEPLOY/"
 done
 

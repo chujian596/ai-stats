@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>来源名单 · 站点固定 / 论坛轮换</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --line:#e5e8ec; --txt:#1d2129; --sub:#6b7280; --faint:#9aa3ad;
+  --blue:#2563eb; --blue-bg:#eff5ff; --green:#15803d; --green-bg:#ecfdf3;
+  --red:#b42318; --red-bg:#fef3f2; --amber:#9a6700; --amber-bg:#fff8e5; --gray:#f3f4f6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:14px 12px 44px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:2px 2px 10px}
+h1{font-size:20px;line-height:1.2;margin:0;letter-spacing:.2px}
+.ver{font-size:10.5px;font-weight:600;color:var(--blue);background:var(--blue-bg);border:1px solid #dbeafe;border-radius:999px;padding:2px 7px;vertical-align:3px;margin-left:6px}
+.sub{font-size:11.5px;color:var(--sub);margin-top:4px;line-height:1.5}
+.top-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+button{font:inherit;border:1px solid #d7dce2;background:#fff;color:var(--txt);font-size:12px;font-weight:600;border-radius:9px;padding:7px 10px;cursor:pointer;white-space:nowrap}
+button:active{background:#f1f3f5}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.ghost{background:#fff}
+button.danger{color:var(--red);border-color:#f0c8c4}
+button.sm{font-size:11px;padding:5px 8px;border-radius:7px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:3px;background:#e9edf1;border-radius:11px;margin:3px 0 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border:0;background:transparent;color:#5b6470;border-radius:8px;padding:8px 10px;font-size:12px}
+.tabs button.on{background:#fff;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.badge{position:fixed;right:12px;bottom:16px;z-index:10;background:#111827;color:#fff;border-radius:999px;padding:8px 12px;font-size:11px;box-shadow:0 6px 20px rgba(0,0,0,.18);display:none;gap:6px;align-items:center;max-width:calc(100vw - 24px)}
+.badge.show{display:flex}
+.badge b{font-weight:700}
+.badge button{background:#fff;color:#111;border:0;border-radius:6px;padding:3px 7px;font-size:10px}
+.notice{border:1px solid #f0d48b;background:#fff9e8;color:#6b4b00;border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.6;margin-bottom:10px}
+.hidden{display:none!important}
+.err{border-color:#f0c8c4;background:var(--red-bg);color:var(--red)}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.09em;color:var(--blue);text-transform:uppercase}
+h2{font-size:16px;line-height:1.35;margin:5px 0 6px}
+.lead{font-size:12.5px;line-height:1.75;color:#4b5563;margin:0}
+.lead b{color:#111}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px}
+.kpi{background:#fafbfc;border:1px solid #edf0f3;border-radius:9px;padding:9px}
+.kpi b{display:block;font-size:20px;line-height:1.1}
+.kpi span{display:block;font-size:10.5px;color:var(--sub);margin-top:3px;line-height:1.3}
+.kpi em{font-style:normal;font-size:10px;color:var(--faint);display:block;margin-top:2px}
+.tip{font-size:11.5px;color:var(--sub);line-height:1.65;margin-top:9px}
+.chip-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0 0}
+.chip{border:1px solid #dde2e8;background:#fff;border-radius:999px;padding:4px 8px;font-size:10.5px;color:#59616c}
+.chip.on{border-color:#bcd3ff;background:var(--blue-bg);color:#1d4ed8;font-weight:700}
+.chip.green{background:var(--green-bg);border-color:#bbf7d0;color:var(--green)}
+.chip.red{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
+.chip.amber{background:var(--amber-bg);border-color:#fde68a;color:var(--amber)}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input,select{font:inherit;border:1px solid #d7dce2;background:#fff;border-radius:9px;padding:8px 10px;font-size:12.5px;min-width:0}
+input[type=search]{flex:1 1 180px}
+.search{flex:1 1 190px}
+.sum-line{font-size:11.5px;color:var(--sub);line-height:1.6;margin:4px 0 8px}
+.chart{display:grid;gap:3px;margin-top:9px}
+.chart-row{display:grid;grid-template-columns:38px 1fr 34px;gap:6px;align-items:center;font-size:10.5px;color:var(--sub)}
+.chart-bar{height:12px;background:#eef2f7;border-radius:4px;overflow:hidden}
+.chart-bar i{display:block;height:100%;background:#bfd3f7;border-radius:4px}
+.chart-bar i.fix{background:#7ba7e8}
+.chart-row b{text-align:right;color:#374151;font-size:10.5px}
+.site-row{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-top:1px solid #eef1f4}
+.site-row:first-child{border-top:0;padding-top:2px}
+.site-row.off{opacity:.58}
+.site-main{flex:1;min-width:0}
+.site-title{font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}
+.site-sub{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:3px;word-break:break-all}
+.site-meta{font-size:10.5px;color:var(--sub);line-height:1.5;margin-top:3px}
+.tag{display:inline-block;font-size:9.5px;line-height:1.5;border-radius:5px;padding:0 5px;margin-left:3px;vertical-align:1px;border:1px solid #e1e5ea;background:#f6f7f9;color:#69717c;font-weight:600}
+.tag.blue{background:var(--blue-bg);border-color:#dbeafe;color:#1d4ed8}
+.tag.green{background:var(--green-bg);border-color:#bbf7d0;color:var(--green)}
+.tag.red{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
+.tag.amber{background:var(--amber-bg);border-color:#fde68a;color:var(--amber)}
+.switch{position:relative;display:inline-block;width:38px;height:22px;flex:0 0 38px;margin-top:2px}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;background:#d5dbe2;border-radius:999px;transition:.16s;cursor:pointer}
+.switch span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.switch input:checked + span{background:#7aa7e8}
+.switch input:checked + span:before{transform:translateX(16px)}
+.site-editor{background:#f8fafc;border:1px solid #e8edf2;border-radius:9px;padding:9px;margin:4px 0 8px}
+.field{display:block;margin:6px 0}
+.field span{display:block;font-size:10.5px;color:var(--sub);margin-bottom:3px}
+.field input{width:100%}
+.editor-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.forum-row{display:flex;gap:8px;align-items:flex-start;padding:9px 0;border-top:1px solid #eef1f4}
+.forum-row:first-child{border-top:0;padding-top:2px}
+.forum-main{flex:1;min-width:0}
+.forum-title{font-size:12.5px;font-weight:700;line-height:1.4;word-break:break-word}
+.forum-sub{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:2px}
+.switch-label{font-size:9.5px;color:var(--faint);text-align:center;line-height:1.3;margin-top:2px}
+.load-more{width:100%;margin:10px 0 2px}
+.chain{display:grid;gap:8px}
+.source-card{border:1px solid #e8edf2;border-radius:10px;padding:10px 11px;background:#fbfcfd}
+.source-card .k{font-size:10px;font-weight:800;color:var(--blue);letter-spacing:.06em}
+.source-card h3{font-size:13px;margin:4px 0 4px}
+.source-card p{font-size:11.5px;color:var(--sub);line-height:1.65;margin:0}
+.source-card a{display:inline-block;margin-top:6px;font-size:11px;color:#1d4ed8;text-decoration:none;border:1px solid #dbeafe;border-radius:6px;padding:3px 7px;background:#fff}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.note-list{font-size:11.5px;color:var(--sub);line-height:1.75;margin:0;padding-left:16px}
+.note-list li{margin:3px 0}
+footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;line-height:1.7}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:20;display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.modal.hidden{display:none}
+.sheet{background:#fff;border-radius:14px;width:min(520px,100%);max-height:88vh;overflow:auto;padding:14px}
+.sheet h3{font-size:15px;margin:0 0 6px}
+.sheet p{font-size:11.5px;color:var(--sub);line-height:1.65;margin:6px 0}
+.sheet .field input{width:100%}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.status{font-size:11.5px;line-height:1.6;margin-top:8px;white-space:pre-wrap}
+.status.ok{color:var(--green)}
+.status.bad{color:var(--red)}
+.hr{height:1px;background:#eef1f4;margin:12px 0}
+.empty{padding:24px 8px;text-align:center;color:var(--faint);font-size:12px}
+@media(max-width:430px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .site-row .site-main{font-size:12px}
+  header h1{font-size:18px}
+  .top-actions button{padding:6px 8px;font-size:11px}
+  .tabs button{font-size:11px;padding:8px 8px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>来源名单<span class="ver" id="ver">v1.00</span></h1>
+      <div class="sub">站点固定 · 论坛轮换 · 名单治理<br><a href="stats.html" style="color:#2563eb;text-decoration:none">← 资料统计</a>　<a href="site-registry.html" style="color:#2563eb;text-decoration:none">站点总目录</a></div>
+    </div>
+    <div class="top-actions">
+      <button id="btnRefresh">刷新</button>
+      <button id="btnExport">导出</button>
+      <button id="btnCommit" class="primary">提交</button>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button data-view="home" class="on">概览</button>
+    <button data-view="sites">站点 81</button>
+    <button data-view="forum">论坛池 811</button>
+    <button data-view="chain">数据链</button>
+  </div>
+
+  <div id="notice" class="notice hidden"></div>
+  <div id="content"></div>
+  <footer id="pageFoot">来源名单 v1.00 · 只做来源治理，不改历史 ratio/core 数字</footer>
+</div>
+
+<div class="badge" id="draftBadge">
+  <span>草稿 <b id="draftCount">0</b> 项</span>
+  <button id="btnBadgeCommit">提交</button>
+  <button id="btnBadgeReset">撤销</button>
+</div>
+
+<div class="modal hidden" id="commitModal">
+  <div class="sheet">
+    <h3>提交名单到 GitHub</h3>
+    <form id="commitForm" onsubmit="return false">
+    <p>提交 <span class="mono">data/source-registry.json</span> 到公开仓库。需要 fine-grained token 的 <b>Contents: Read and write</b> 权限。</p>
+    <label class="field"><span>仓库</span><input id="ghRepo" value="chujian596/ai-stats" autocomplete="off"></label>
+    <label class="field"><span>GitHub Token（只发往 api.github.com，不经过本站服务器）</span><input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..."></label>
+    <label style="font-size:11.5px;color:#6b7280;display:flex;gap:6px;align-items:center;margin-top:0"><input type="checkbox" id="ghRemember" style="width:auto"> 记住在本机浏览器（公用设备不要勾）</label>
+    <div class="status" id="commitStatus"></div>
+    <div class="modal-actions">
+      <button id="ghClose" type="button">取消</button>
+      <button id="ghSubmit" type="button" class="primary">确认提交</button>
+    </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var KEY='source-registry-draft-v1', TOKEN_KEY='source-registry-gh-token', REPO_KEY='source-registry-gh-repo';
+var state={base:null,view:'home',siteFilter:'all',siteQuery:'',forumFilter:'core',forumQuery:'',forumLimit:80,editSite:null};
+var PATCH=readDraft();
+
+function CUR(){return state.base?state.base.dataThrough:325;}
+function PREV(){return CUR()-1;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pick(a,b){return a===undefined||a===null?b:a;}
+function readDraft(){
+  try{var d=JSON.parse(localStorage.getItem(KEY)||'{}'); return {sites:d.sites||{},forum:d.forum||{},updatedAt:d.updatedAt||''};}
+  catch(e){return {sites:{},forum:{},updatedAt:''};}
+}
+function saveDraft(){
+  try{localStorage.setItem(KEY,JSON.stringify(PATCH));}catch(e){}
+  renderBadge();
+}
+function patchCount(){return Object.keys(PATCH.sites).length+Object.keys(PATCH.forum).length;}
+function patchSite(id){return PATCH.sites[id]||{};}
+function patchForum(name){return PATCH.forum[name]||{};}
+function siteVal(s,k){return pick(patchSite(s.siteId)[k],s[k]);}
+function forumVal(a,k){return pick(patchForum(a.name)[k],a[k]);}
+function setSite(id,k,v){
+  PATCH.sites[id]=PATCH.sites[id]||{};
+  PATCH.sites[id][k]=v;
+  PATCH.updatedAt=new Date().toISOString();
+  saveDraft(); render();
+}
+function setForum(name,k,v){
+  PATCH.forum[name]=PATCH.forum[name]||{};
+  PATCH.forum[name][k]=v;
+  PATCH.updatedAt=new Date().toISOString();
+  saveDraft(); render();
+}
+function clearSitePatch(id){delete PATCH.sites[id];saveDraft();render();}
+function clearForumPatch(name){delete PATCH.forum[name];saveDraft();render();}
+function resetDraft(){
+  if(!patchCount()||confirm('撤销本机全部名单草稿？不会影响线上文件。')){
+    PATCH={sites:{},forum:{},updatedAt:''};saveDraft();render();
+  }
+}
+function renderBadge(){
+  var n=patchCount(),b=document.getElementById('draftBadge');
+  document.getElementById('draftCount').textContent=n;
+  b.className='badge'+(n?' show':'');
+}
+function notice(text,isErr){
+  var n=document.getElementById('notice');
+  if(!text){n.className='notice hidden';n.textContent='';return;}
+  n.className='notice'+(isErr?' err':'');n.textContent=text;
+}
+
+function load(){
+  notice('');
+  fetch('data/source-registry.json?t='+Date.now(),{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    state.base=d;
+    document.getElementById('ver').textContent=d.schema==='source-registry/v1'?'v1.00':'v1.00';
+    PATCH=readDraft(); render(); renderBadge();
+  }).catch(function(e){
+    notice('读取 data/source-registry.json 失败：'+e.message,true);
+    document.getElementById('content').innerHTML='<div class="empty">名单数据未加载</div>';
+  });
+}
+
+function effSites(){
+  if(!state.base) return [];
+  return state.base.sites.map(function(s){
+    var p=patchSite(s.siteId);
+    return Object.assign({},s,{name:pick(p.name,s.name),displayName:pick(p.displayName,s.displayName),enabled:pick(p.enabled,s.enabled),locked:pick(p.locked,s.locked),note:pick(p.note,s.note)});
+  });
+}
+function effAuthors(){
+  if(!state.base) return [];
+  return state.base.forum.authors.map(function(a){
+    var p=patchForum(a.name);
+    return Object.assign({},a,{includeCore:pick(p.includeCore,a.includeCore),enabled:pick(p.enabled,a.enabled)});
+  });
+}
+function effSummary(){
+  var s=state.base?state.base.summary:{},ss=effSites(),aa=effAuthors(),cur=aa.filter(function(a){return a.periods.indexOf(CUR())>=0;});
+  var core=aa.filter(function(a){return a.includeCore;});
+  var one=aa.filter(function(a){return !a.includeCore;});
+  var votes=cur.reduce(function(n,a){return n+a.currentVotes;},0);
+  var cv=cur.filter(function(a){return a.includeCore;}).reduce(function(n,a){return n+a.currentVotes;},0);
+  return Object.assign({},s,{
+    siteRegistered:ss.length, siteActive:ss.filter(function(x){return x.enabled;}).length,
+    siteEmpty:ss.filter(function(x){return !x.enabled&&x.status==='empty';}).length,
+    siteDisabled:ss.filter(function(x){return !x.enabled&&x.status!=='empty';}).length,
+    siteSystems:new Set(ss.map(function(x){return x.system;})).size,
+    forumCore:core.length, forumOneoff:one.length, forumCurrent:cur.length,
+    forumCurrentCore:cur.filter(function(a){return a.includeCore;}).length,
+    forumCurrentOneoff:cur.filter(function(a){return !a.includeCore;}).length,
+    forumCoreVoteCoverage:votes?Math.round(cv/votes*1000)/10:0, forumCurrentVotes:votes
+  });
+}
+function kpi(v,l,e){return '<div class="kpi"><b>'+esc(v)+'</b><span>'+esc(l)+'</span>'+(e?'<em>'+esc(e)+'</em>':'')+'</div>';}
+
+function render(){
+  if(!state.base) return;
+  var ss=effSummary();
+  var tbSite=document.querySelector('#tabs button[data-view=sites]'),tbForum=document.querySelector('#tabs button[data-view=forum]');
+  if(tbSite)tbSite.textContent='站点 '+ss.siteRegistered;if(tbForum)tbForum.textContent='论坛池 '+ss.forumUnique;
+  document.querySelectorAll('#tabs button').forEach(function(b){b.className=b.dataset.view===state.view?'on':'';});
+  if(state.view==='home') renderHome();
+  else if(state.view==='sites') renderSites();
+  else if(state.view==='forum') renderForum();
+  else renderChain();
+  var foot=document.getElementById('pageFoot');if(foot&&state.base)foot.innerHTML='来源名单 v1.00 · 只做来源治理，不改历史 ratio/core 数字<br>站点目录 '+state.base.periods.sites[0]+'–'+CUR()+'、论坛池 '+state.base.periods.forum[0]+'–'+CUR();
+  renderBadge();
+}
+
+function renderHome(){
+  var s=effSummary(),sites=effSites(),authors=effAuthors();
+  var perSite={};sites.forEach(function(x){(x.periods||[]).forEach(function(p){perSite[p]=(perSite[p]||0)+1;});});
+  var perForum={};authors.forEach(function(a){(a.periods||[]).forEach(function(p){perForum[p]=(perForum[p]||0)+1;});});
+  var maxSite=Math.max.apply(null,Object.keys(perSite).map(function(p){return perSite[p];}).concat([1]));
+  var html='';
+  html+='<section class="card"><div class="eyebrow">来源总账 · 第 '+state.base.dataThrough+' 期</div><h2>不是随机抽样，是固定池 + 当期可用集合</h2>'+
+    '<p class="lead">站点侧从 323 期起固定 <b>77 站</b>；论坛侧不是固定 '+s.forumCurrent+' 人，而是 <b>'+s.forumUnique+' 个发帖化名</b>的轮换池。每期变化来自抓取时间窗、有效帖、站点连通性，不是代码随机抽人。</p>'+
+    '<div class="kpis">'+kpi(s.siteActive+'/'+s.siteRegistered,'站点启用 / 登记',s.siteFixed+' 个固定')+kpi(s.forumUnique,'论坛发帖名',s.forumCore+' 常驻 · '+s.forumOneoff+' 一次性')+kpi(s.forumCurrent,CUR()+' 期有效名',s.forumRepeatFromPrev+' 留存 · '+s.forumNewThisPeriod+' 新出现')+kpi(s.effectiveEndpoints,'有效抓取点',s.siteActive+' 站 + '+s.forumPages+' 页')+'</div>'+
+    '<div class="chip-row"><span class="chip green">固定站点 77</span><span class="chip amber">空站 '+s.siteEmpty+'</span><span class="chip blue">论坛常驻覆盖 '+s.forumCoreVoteCoverage+'% 票</span><span class="chip">核心杀计入 '+s.coreKillSites+' 站</span></div>'+
+    '<div class="tip">'+esc(state.base.notes[0]||'')+'<br>'+esc(state.base.notes[1]||'')+'</div></section>';
+  html+='<section class="card"><div class="eyebrow">站点稳定性 · '+state.base.periods.sites[0]+'–'+CUR()+'</div><h2>323 期扩到 77 站后，连续三期没有换人</h2><p class="lead">322 期只有 <b>42</b> 站，是 9 个站连接失败，不是随机抽走；4 个空站一直失败，已从统计分母排除。</p><div class="chart">';
+  Object.keys(perSite).sort(function(a,b){return a-b;}).forEach(function(p){
+    var n=perSite[p],w=Math.round(n/maxSite*100);
+    html+='<div class="chart-row"><span>'+p+'</span><div class="chart-bar"><i class="'+(n>=77?'fix':'')+'" style="width:'+w+'%"></i></div><b>'+n+'</b></div>';
+  });
+  html+='</div><div class="tip">77 站是固定名单；4 个空站（13685 / 13783 / 145345 / 49084）未产出数据，不计入成功率。</div></section>';
+  html+='<section class="card"><div class="eyebrow">论坛轮换 · '+state.base.periods.forum[0]+'–'+CUR()+'</div><h2>'+s.forumCurrent+' 个名字里，'+s.forumCurrentCore+' 个是历史常驻</h2><p class="lead">'+CUR()+' 期 '+s.forumCurrent+' 个发帖名中，<b>'+s.forumRepeatFromPrev+' 个</b>与 '+PREV()+' 期同名，<b>'+s.forumNewThisPeriod+' 个</b>新出现；按“'+state.base.periods.forum[0]+'–'+CUR()+' 出现≥2期”定义常驻，共 <b>'+s.forumCore+'</b> 个，覆盖 '+CUR()+' 期 <b>'+s.forumCoreVoteCoverage+'%</b> 的生肖票。</p><div class="chart">';
+  Object.keys(perForum).sort(function(a,b){return a-b;}).forEach(function(p){
+    var n=perForum[p],w=Math.round(n/314*100);
+    html+='<div class="chart-row"><span>'+p+'</span><div class="chart-bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>';
+  });
+  html+='</div><div class="tip">319 期起论坛扩量到 600 条抓取；317–318 只有 33 / 31 个名字，属于早期小样本，不纳入常驻判定。</div></section>';
+  html+='<section class="card"><div class="eyebrow">口径</div><h2>三个数字别混</h2><p class="lead">77 = 本期成功站；81 = 登记站（含 4 个空站）；46 = 有核心杀栏目并计入分母的站。论坛 204 = 本期有效帖，811 = 近七期化名池，604 = 常驻池。</p><div class="tip">这套名单只做来源治理；启停、改名、主池标记不会倒改历史 ratio/core 数字。</div></section>';
+  document.getElementById('content').innerHTML=html;
+}
+
+function sitePass(s){
+  if(state.siteFilter==='active'&&!s.enabled) return false;
+  if(state.siteFilter==='empty'&&s.status!=='empty') return false;
+  if(state.siteFilter==='disabled'&&(s.enabled||s.status==='empty')) return false;
+  if(state.siteFilter==='core'&&!s.coreKill) return false;
+  if(['wanpz-h2','wanpz-h9','bdmijg'].indexOf(state.siteFilter)>=0&&s.system!==state.siteFilter) return false;
+  if(state.siteQuery){var q=state.siteQuery.toLowerCase();if(((s.name||'')+' '+(s.siteId||'')+' '+(s.siteKey||'')+' '+(s.path||'')).toLowerCase().indexOf(q)<0)return false;}
+  return true;
+}
+function renderSites(){
+  var all=effSites(),list=all.filter(sitePass),s=effSummary();
+  var chips=[
+    ['all','全部 '+all.length],['active','启用 '+s.siteActive],['empty','空站 '+s.siteEmpty],['disabled','停用 '+s.siteDisabled],['core','核心杀 '+s.coreKillSites],['wanpz-h2','h2'],['wanpz-h9','h9'],['bdmijg','聚合']
+  ].map(function(x){return '<button class="chip '+(state.siteFilter===x[0]?'on':'')+'" data-act="site-filter" data-v="'+x[0]+'">'+esc(x[1])+'</button>';}).join('');
+  var html='<section class="card"><div class="eyebrow">站点名单 · '+all.length+' 登记</div><h2>固定 ID，不随期号换对象</h2><p class="lead">77 个启用站从 323 期起连续固定；4 个空站只登记、不参与分母。开关只改名单启用状态，改名只影响名单显示。</p>'+
+    '<div class="chip-row">'+chips+'</div><div class="toolbar" style="margin-top:9px"><input type="search" id="siteSearch" class="search" placeholder="搜站名 / 站号 / 路径，回车" value="'+esc(state.siteQuery)+'"><span class="sum-line" style="margin:0">显示 '+list.length+' / '+all.length+'</span></div>'+
+    '<div id="siteList">'+list.map(siteRow).join('')+'</div></section>';
+  document.getElementById('content').innerHTML=html;
+}
+function siteRow(s){
+  var tags='';
+  if(!s.enabled) tags+=(s.status==='empty'?'<span class="tag red">空站</span>':'<span class="tag amber">已停用</span>');
+  else if(s.status==='fixed') tags+='<span class="tag green">固定</span>';
+  if(s.coreKill) tags+='<span class="tag blue">核心杀</span>';
+  if(s.locked) tags+='<span class="tag">锁定</span>';
+  if(s.aggregator) tags+='<span class="tag amber">聚合</span>';
+  var edit=state.editSite===s.siteId;
+  var ed='';
+  if(edit){
+    ed='<div class="site-editor">'+
+      '<label class="field"><span>名单名称</span><input data-act="site-name" data-id="'+esc(s.siteId)+'" value="'+esc(s.name)+'"></label>'+
+      '<label class="field"><span>备注</span><input data-act="site-note" data-id="'+esc(s.siteId)+'" value="'+esc(s.note||'')+'" placeholder="例如：品牌名待确认 / 已停用"></label>'+
+      '<div class="chip-row"><span class="chip">'+esc(s.system)+'</span><span class="chip mono">'+esc(s.siteId)+'</span><span class="chip">出现 '+s.periodsCount+' 期</span>'+(s.coreColumns.length?'<span class="chip green">'+esc(s.coreColumns.join(' / '))+'</span>':'')+'</div>'+
+      '<div class="editor-actions"><button class="sm" data-act="site-done">完成</button><button class="sm danger" data-act="site-clear" data-id="'+esc(s.siteId)+'">撤销此对象</button></div></div>';
+  }
+  return '<div class="site-row '+(s.enabled?'':'off')+'">'+
+    '<label class="switch" title="启用 / 停用"><input type="checkbox" data-act="site-enabled" data-id="'+esc(s.siteId)+'" '+(s.enabled?'checked':'')+'><span></span></label>'+
+    '<div class="site-main"><div class="site-title">'+esc(s.name)+tags+'</div>'+
+    '<div class="site-sub mono">'+esc(s.siteId)+' · '+esc(s.path)+'</div>'+
+    '<div class="site-meta">出现 '+s.periodsCount+' 期'+(s.firstSeen?' · '+s.firstSeen+'–'+s.lastSeen:'')+(s.note?' · '+esc(s.note):'')+'</div></div>'+
+    '<button class="sm" data-act="site-edit" data-id="'+esc(s.siteId)+'">'+(edit?'收起':'编辑')+'</button></div>'+ed;
+}
+
+function forumPass(a){
+  if(state.forumFilter==='core'&&!a.includeCore) return false;
+  if(state.forumFilter==='oneoff'&&a.includeCore) return false;
+  if(state.forumFilter==='current'&&a.periods.indexOf(CUR())<0) return false;
+  if(state.forumFilter==='repeat'&&!(a.periods.indexOf(CUR())>=0&&a.periods.indexOf(PREV())>=0)) return false;
+  if(state.forumFilter==='new'&&!(a.periods.indexOf(CUR())>=0&&a.periods.indexOf(PREV())<0)) return false;
+  if(state.forumQuery){var q=state.forumQuery.toLowerCase();if(a.name.toLowerCase().indexOf(q)<0)return false;}
+  return true;
+}
+function renderForum(){
+  var all=effAuthors(),list=all.filter(forumPass),s=effSummary();
+  var chips=[
+    ['core','常驻 '+s.forumCore],['oneoff','一次性 '+s.forumOneoff],['current','本期 '+s.forumCurrent],['repeat','本期留存 '+s.forumRepeatFromPrev],['new','本期新出现 '+s.forumNewThisPeriod]
+  ].map(function(x){return '<button class="chip '+(state.forumFilter===x[0]?'on':'')+'" data-act="forum-filter" data-v="'+x[0]+'">'+esc(x[1])+'</button>';}).join('');
+  var limit=Math.min(state.forumLimit,list.length);
+  var html='<section class="card"><div class="eyebrow">论坛池 · '+all.length+' 名</div><h2>发帖名是化名，不是可核实统计员</h2><p class="lead">同一帖可推多个肖；'+s.forumCurrent+' 个发帖名各 1 条。常驻定义：'+state.base.periods.forum[0]+'–'+CUR()+' 出现≥2期，共 '+s.forumCore+' 名，覆盖本期 '+s.forumCoreVoteCoverage+'% 票。开关只改“主池”名单，不改历史强度。</p>'+
+    '<div class="chip-row">'+chips+'</div><div class="toolbar" style="margin-top:9px"><input type="search" id="forumSearch" class="search" placeholder="搜发帖名，回车" value="'+esc(state.forumQuery)+'"><span class="sum-line" style="margin:0">显示 '+limit+' / '+list.length+'</span></div>'+
+    '<div>'+list.slice(0,limit).map(forumRow).join('')+'</div>'+(limit<list.length?'<button class="load-more" data-act="forum-more">继续加载 '+Math.min(80,list.length-limit)+' 个</button>':'')+'</section>';
+  document.getElementById('content').innerHTML=html;
+}
+function forumRow(a){
+  var tags='<span class="tag '+(a.includeCore?'green':'')+'">'+(a.includeCore?'常驻':'一次性')+'</span>';
+  var cur='';
+  if(a.periods.indexOf(CUR())>=0) cur=a.periods.indexOf(PREV())>=0?'<span class="tag blue">本期留存</span>':'<span class="tag amber">本期新出现</span>';
+  return '<div class="forum-row">'+
+    '<label class="switch" title="纳入常驻池"><input type="checkbox" data-act="forum-core" data-name="'+esc(a.name)+'" '+(a.includeCore?'checked':'')+'><span></span></label>'+
+    '<div class="forum-main"><div class="forum-title">'+esc(a.name)+tags+cur+'</div>'+
+    '<div class="forum-sub">'+a.periodCount+' / 7 期 · '+a.posts+' 帖 · '+a.votes+' 票 · 最后 '+a.lastPeriod+(a.currentVotes?' · 本期 '+a.currentVotes+' 票':'')+'</div></div></div>';
+}
+
+function renderChain(){
+  var s=effSummary(),base=state.base;
+  var html='<section class="card"><div class="eyebrow">数据链 · 第 '+base.dataThrough+' 期</div><h2>两套口径，不能相加</h2><p class="lead">论坛推杀和站方核心杀各自独立：一个算“帖子票数强度”，一个算“站点核心栏目覆盖”，最后只做并列展示。</p>'+
+    '<div class="chain">'+
+    '<div class="source-card"><div class="k">01 · 论坛</div><h3>公开论坛文字帖 → 推杀强度</h3><p>1 个接口 / 6 页 / 600 条抓取 → '+s.forumCurrent+' 条当期有效帖（'+s.forumCurrentRec+' 推荐 + '+s.forumCurrentKill+' 杀）→ '+s.forumCurrentPicks+' 个生肖票 → <span class="mono">ratio-'+CUR()+'.json</span>。每肖票数 ÷ 总票数 × 12，1.00=平均。</p><a href="data/forum-'+CUR()+'.json" target="_blank">论坛原始解析</a> <a href="data/ratio-'+CUR()+'.json" target="_blank">推杀强度</a></div>'+
+    '<div class="source-card"><div class="k">02 · 站点</div><h3>站点快照 → 站方核心杀</h3><p>'+s.siteRegistered+' 个登记站 → '+s.siteActive+' 个成功、'+s.siteEmpty+' 个空站 → '+s.coreKillSites+' 个有核心杀栏目并计入分母。核心杀% = 核心杀站并集 ÷ 有核心栏目站数。</p><a href="'+((base.sources||[]).filter(function(x){return x.key==='snapshot';})[0]||{}).url+'" target="_blank">最新快照</a> <a href="data/core-'+CUR()+'.json" target="_blank">核心杀</a></div>'+
+    '<div class="source-card"><div class="k">03 · 使用</div><h3>票数强度与核心杀只做对照</h3><p>论坛侧是“多少人提”，站点侧是“多少站杀”；两边分母不同，不能把 795 推进和 46 核心杀站相加，也不能用一个总数解释另一个。</p></div>'+
+    '</div></section>'+
+    '<section class="card"><div class="eyebrow">口径差</div><h2>为什么看到 43 / 46 / 47 三个数</h2><p class="lead">43 = 严格“杀三肖”栏；46 = 核心杀栏目并集（包含绝杀三肖 / 绝杀专区 / 杀3肖）；47 = 有任何杀肖数据的站。页面推杀强度用 46。</p></section>'+
+    '<section class="card"><div class="eyebrow">名单怎么生效</div><h2>本页改的是来源治理，不是历史账</h2><ul class="note-list"><li>站点开关、改名、备注、锁定：写入名单草稿；提交后成为主名单。</li><li>论坛“主池”开关：标记常驻/一次性；不重算已生成的 ratio，避免倒改历史。</li><li>导出 JSON 可离线保存；提交 GitHub 需要 Contents 写权限 token。</li><li>页面本身不存数据，只读同站 <span class="mono">data/source-registry.json</span>。</li></ul></section>';
+  document.getElementById('content').innerHTML=html;
+}
+
+function buildDoc(action){
+  var doc=JSON.parse(JSON.stringify(state.base));
+  var sites=doc.sites.map(function(s){
+    var p=patchSite(s.siteId);
+    var out=Object.assign({},s);
+    if(p.name!==undefined){out.name=p.name;out.displayName=p.name+'（'+s.siteKey+'）';out.aliases=Array.from(new Set((out.aliases||[]).concat([p.name]))).filter(Boolean);}
+    if(p.enabled!==undefined) out.enabled=p.enabled;
+    if(p.locked!==undefined) out.locked=p.locked;
+    if(p.note!==undefined) out.note=p.note;
+    return out;
+  });
+  var authors=doc.forum.authors.map(function(a){
+    var p=patchForum(a.name),out=Object.assign({},a);
+    if(p.includeCore!==undefined) out.includeCore=p.includeCore;
+    if(p.enabled!==undefined) out.enabled=p.enabled;
+    return out;
+  });
+  doc.sites=sites;doc.forum.authors=authors;
+  var active=sites.filter(function(x){return x.enabled;});
+  var core=authors.filter(function(x){return x.includeCore;});
+  var one=authors.filter(function(x){return !x.includeCore;});
+  var cur=authors.filter(function(x){return x.periods.indexOf(CUR())>=0;});
+  var allv=cur.reduce(function(n,a){return n+a.currentVotes;},0);
+  var cv=cur.filter(function(x){return x.includeCore;}).reduce(function(n,a){return n+a.currentVotes;},0);
+  doc.summary=Object.assign({},doc.summary,{
+    siteRegistered:sites.length,siteActive:active.length,
+    siteEmpty:sites.filter(function(x){return !x.enabled&&x.status==='empty';}).length,
+    siteDisabled:sites.filter(function(x){return !x.enabled&&x.status!=='empty';}).length,
+    siteFixed:sites.filter(function(x){return x.status==='fixed';}).length,
+    siteSystems:new Set(sites.map(function(x){return x.system;})).size,
+    forumCore:core.length,forumOneoff:one.length,forumCurrent:cur.length,
+    forumCurrentCore:cur.filter(function(x){return x.includeCore;}).length,
+    forumCurrentOneoff:cur.filter(function(x){return !x.includeCore;}).length,
+    forumCoreVoteCoverage:allv?Math.round(cv/allv*1000)/10:0,forumCurrentVotes:allv,
+    effectiveEndpoints:active.length+(doc.summary.forumPages||6)
+  });
+  doc.updatedAt=new Date().toISOString().replace('T',' ').slice(0,19);
+  doc.audit=(doc.audit||[]).concat([{at:doc.updatedAt,action:action||'export',changes:patchCount(),by:'source-registry.html'}]);
+  return doc;
+}
+
+function downloadFile(){
+  var doc=buildDoc('export');
+  var blob=new Blob([JSON.stringify(doc,null,1)],{type:'application/json;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='source-registry-'+doc.dataThrough+'.json';a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},3000);
+}
+
+function b64utf8(s){return btoa(unescape(encodeURIComponent(s)));}
+function openCommit(){
+  var repo=localStorage.getItem(REPO_KEY)||'chujian596/ai-stats';
+  document.getElementById('ghRepo').value=repo;
+  var t=localStorage.getItem(TOKEN_KEY)||'';
+  document.getElementById('ghToken').value=t;
+  document.getElementById('ghRemember').checked=!!t;
+  document.getElementById('commitStatus').textContent=patchCount()?('本机有 '+patchCount()+' 个对象改动，确认后提交。'):'本机没有草稿改动；提交会写入当前名单快照。';
+  document.getElementById('commitStatus').className='status';
+  document.getElementById('commitModal').classList.remove('hidden');
+}
+function closeCommit(){document.getElementById('commitModal').classList.add('hidden');}
+async function commitGitHub(){
+  var repo=(document.getElementById('ghRepo').value||'').trim();
+  var token=(document.getElementById('ghToken').value||'').trim();
+  var remember=document.getElementById('ghRemember').checked;
+  if(!/^[^/]+\/[^/]+$/.test(repo)){setCommit('仓库格式应为 owner/repo','bad');return;}
+  if(!token){setCommit('请先填 GitHub Token','bad');return;}
+  if(!confirm('把名单写入 '+repo+' 的 data/source-registry.json？')) return;
+  if(remember){localStorage.setItem(TOKEN_KEY, token);}else{localStorage.removeItem(TOKEN_KEY);}
+  localStorage.setItem(REPO_KEY,repo);
+  var doc=buildDoc('github');
+  setCommit('读取远端文件…','');
+  try{
+    var url='https://api.github.com/repos/'+repo+'/contents/data/source-registry.json?ref=main';
+    var headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+    var get=await fetch(url,{headers:headers,cache:'no-store'});
+    var sha='';
+    if(get.status===200){var meta=await get.json();sha=meta.sha||'';}
+    else if(get.status!==404){throw new Error('读取失败 HTTP '+get.status);}
+    setCommit('写入远端…','');
+    var body={message:'来源名单：更新 '+patchCount()+' 项 ('+doc.updatedAt+')',content:b64utf8(JSON.stringify(doc,null,1)),branch:'main'};
+    if(sha)body.sha=sha;
+    var put=await fetch('https://api.github.com/repos/'+repo+'/contents/data/source-registry.json',{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},headers),body:JSON.stringify(body)});
+    if(!put.ok){var e=await put.text();throw new Error('提交失败 HTTP '+put.status+(e?'：'+e.slice(0,160):''));}
+    var res=await put.json();
+    state.base=doc;PATCH={sites:{},forum:{},updatedAt:''};saveDraft();render();
+    setCommit('已提交：'+(res.commit&&res.commit.sha?res.commit.sha.slice(0,7):'ok')+'。GitHub Pages 约 1 分钟后更新。','ok');
+  }catch(e){setCommit(e.message,'bad');}
+}
+function setCommit(t,cls){var el=document.getElementById('commitStatus');el.textContent=t;el.className='status '+(cls||'');}
+
+document.getElementById('tabs').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-view]');if(!b)return;
+  state.view=b.dataset.view;state.editSite=null;state.forumLimit=80;render();
+});
+document.getElementById('content').addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;
+  var act=b.dataset.act,id=b.dataset.id,v=b.dataset.v;
+  if(act==='site-filter'){state.siteFilter=v;render();}
+  else if(act==='site-edit'){state.editSite=state.editSite===id?null:id;render();}
+  else if(act==='site-done'){state.editSite=null;render();}
+  else if(act==='site-clear'){clearSitePatch(id);state.editSite=null;}
+  else if(act==='forum-filter'){state.forumFilter=v;state.forumLimit=80;render();}
+  else if(act==='forum-more'){state.forumLimit+=80;render();}
+});
+document.getElementById('content').addEventListener('change',function(e){
+  var t=e.target;if(!t.dataset.act)return;
+  if(t.dataset.act==='site-enabled'){setSite(t.dataset.id,'enabled',t.checked);}
+  else if(t.dataset.act==='site-name'){setSite(t.dataset.id,'name',t.value.trim());}
+  else if(t.dataset.act==='site-note'){setSite(t.dataset.id,'note',t.value.trim());}
+  else if(t.dataset.act==='forum-core'){setForum(t.dataset.name,'includeCore',t.checked);}
+});
+document.getElementById('content').addEventListener('keydown',function(e){
+  if(e.key!=='Enter')return;
+  if(e.target.id==='siteSearch'){state.siteQuery=e.target.value.trim();render();}
+  if(e.target.id==='forumSearch'){state.forumQuery=e.target.value.trim();state.forumLimit=80;render();}
+});
+document.getElementById('btnRefresh').addEventListener('click',function(){if(patchCount()&&!confirm('刷新会用线上数据重载，本机草稿保留。继续？'))return;load();});
+document.getElementById('btnExport').addEventListener('click',downloadFile);
+document.getElementById('btnCommit').addEventListener('click',openCommit);
+document.getElementById('btnBadgeCommit').addEventListener('click',openCommit);
+document.getElementById('btnBadgeReset').addEventListener('click',resetDraft);
+document.getElementById('ghClose').addEventListener('click',closeCommit);
+document.getElementById('ghSubmit').addEventListener('click',commitGitHub);
+document.getElementById('commitModal').addEventListener('click',function(e){if(e.target===this)closeCommit();});
+renderBadge();
+load();
+</script>
+</body>
+</html>
