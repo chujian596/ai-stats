@@ -418,7 +418,7 @@ function renderPendingKill(){
   if(!PEND || PEND.status!=='pending'){ card.style.display='none'; return; }
   card.style.display='block';
   document.getElementById('pendTitle').textContent='待开期杀三肖 · 第'+PEND.period+'期（待开奖 · 未对账）';
-  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+(PEND.killSites||0)+' 站有杀三肖；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。';
+  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+(PEND.killSites||0)+' 站有杀三肖；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。<br><b>档位 / 连对连错 / 累计中错 在「往期复盘台账」：把上方期号切到已开奖期（如 323）即可看到。</b>';
   var rankEl=document.getElementById('pendRank');
   var rows=PEND.pendingKill||[];
   if(rows.length){
