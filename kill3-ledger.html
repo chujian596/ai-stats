@@ -94,6 +94,18 @@
   <div class="meta" id="gapNote" style="margin:-4px 0 10px;color:#6b6b6b;display:none"></div>
   <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#c8322b"></div>
 
+  <div class="card" id="pendCard" style="display:none;border-color:#f3c9c6;background:#fffafa">
+    <div class="rc-title" id="pendTitle"></div>
+    <div class="rc-sub" id="pendSub"></div>
+    <div id="pendRank"></div>
+    <div class="table-scroll" id="pendTableWrap" style="display:none">
+      <table>
+        <thead><tr><th>站名</th><th>本期杀三肖（原序）</th></tr></thead>
+        <tbody id="pendRows"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="alertbox a2" id="missAlert" style="display:none"></div>
 
   <div class="card" id="rankCard">
@@ -125,7 +137,7 @@
 </div>
 
 <script>
-var LG=null, KR=null, ALIAS={}, MISS2=false;
+var LG=null, KR=null, ALIAS={}, PEND=null, MISS2=false;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function nameOf(r,key){
@@ -252,6 +264,39 @@ function toggleCum(){
   var open=w.style.display!=='none';
   w.style.display=open?'none':'';
   t.textContent=open?'历史累计参考 ▾':'历史累计参考 ▴';
+}
+
+function renderPendingKill(){
+  var card=document.getElementById('pendCard');
+  if(!PEND || PEND.status!=='pending'){ card.style.display='none'; return; }
+  card.style.display='block';
+  document.getElementById('pendTitle').textContent='待开期杀三肖 · 第'+PEND.period+'期（待开奖 · 未对账）';
+  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+(PEND.killSites||0)+' 站有杀三肖；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。';
+  var rankEl=document.getElementById('pendRank');
+  var rows=PEND.pendingKill||[];
+  if(rows.length){
+    var max=rows[0].kill||1;
+    rankEl.innerHTML=rows.map(function(r,i){
+      var cls=i===0?'t1':i===1?'t2':i===2?'t3':'';
+      var bar=Math.round(r.kill/max*100);
+      return '<div class="rank-row"><div class="rank-no '+cls+'">'+(i+1)+'</div>'+
+        '<div class="rank-z">'+r.z+'</div>'+
+        '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
+        '<div class="rank-c">'+r.kill+' 票</div></div>';
+    }).join('');
+  } else { rankEl.innerHTML=''; }
+  var wrap=document.getElementById('pendTableWrap');
+  var tb=document.getElementById('pendRows');
+  var killSites=(PEND.sites||[]).filter(function(s){return s.killZodiacs&&s.killZodiacs.length;});
+  killSites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
+  tb.innerHTML='';
+  killSites.forEach(function(s){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div></td>'+
+      '<td>'+zsHtml(s.killZodiacs)+'</td>';
+    tb.appendChild(tr);
+  });
+  wrap.style.display=killSites.length?'block':'none';
 }
 
 function jumpSite(key){
@@ -410,7 +455,8 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   LG=d;
   var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
   var pRank=fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;}).catch(function(){});
-  return Promise.all([pAlias,pRank]);
+  var pPend=fetchJson('data/current-recommend.json').then(function(p){PEND=p;}).catch(function(){PEND=null;});
+  return Promise.all([pAlias,pRank,pPend]);
 }).then(function(){
   document.getElementById('periodSel').addEventListener('change',render);
   var mb=document.getElementById('btnMiss2');
@@ -427,13 +473,18 @@ fetchJson('data/kill3-ledger.json').then(function(d){
       LG=d;
       var pAlias=fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
       var pRank=fetchJson('data/kill-rank-stats.json?v='+Date.now()).then(function(k){KR=k;}).catch(function(){});
-      return Promise.all([pAlias,pRank]);
-    }).then(function(){render();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
+      var pPend=fetchJson('data/current-recommend.json?v='+Date.now()).then(function(p){PEND=p;}).catch(function(){PEND=null;});
+      return Promise.all([pAlias,pRank,pPend]);
+    }).then(function(){render();renderPendingKill();rb.textContent='立即刷新';}).catch(function(){rb.textContent='刷新失败';});
   });
   render();
+  renderPendingKill();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
 });
+</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
 </body>
 </html>

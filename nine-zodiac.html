@@ -474,5 +474,8 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">台账数据加载失败：'+e+'</td></tr>';
 });
 </script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
 </body>
 </html>
