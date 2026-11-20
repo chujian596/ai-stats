@@ -345,6 +345,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button class="btn" onclick="exportBackup()">备份JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
       <button class="btn" onclick="showErrLog()">错误日志</button>
+      <button class="btn" onclick="copyDiagnostics()">复制诊断</button>
       <button class="btn" onclick="exportDiagnostics()">诊断导出</button>
       <button class="btn" onclick="openPasteImport()">粘贴导入</button>
       <button class="btn" style="color:#16a34a" onclick="restoreLastBackup()">一键恢复上次备份</button>
@@ -652,7 +653,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.53-Pro';
+var APP_VER = 'v59.54-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -688,14 +689,29 @@ function logErr(type, msg, meta){
 function readErrLog(){ try{ return _errLoad().slice(); }catch(e){ return []; } }
 function clearErrLog(){ _errMem = []; try{ localStorage.removeItem(ERR_KEY); }catch(e){} }
 
+/* 统一复制入口：优先 Clipboard API，失败则退回 textarea + execCommand。 */
+function _copyText(txt, ok, fail){
+  function fb(){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      if(ok) ok();
+    }catch(e){ if(fail) fail(); }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ if(ok) ok(); }).catch(fb);
+  } else fb();
+}
+
 /* 无法识别清单：把 parse 日志按“原文 + 错误”归并，便于看出到底哪些词录不进。 */
 function parseFailGroups(){
   var logs = readErrLog().filter(function(r){ return r && r.type === 'parse'; });
-  var map = {};
+  var map = {}, withRaw = 0;
   logs.forEach(function(r){
     var raw = '';
     try{ raw = (r.meta && r.meta.raw) ? String(r.meta.raw) : ''; }catch(e){}
     if(!raw) return;
+    withRaw++;
     var key = raw + '\n' + String(r.msg || '');
     if(!map[key]) map[key] = {raw:raw, msg:String(r.msg || ''), count:0, lastDay:'', lastAt:0};
     map[key].count++;
@@ -703,7 +719,7 @@ function parseFailGroups(){
     map[key].lastAt = Math.max(map[key].lastAt, Number(r.at || 0));
   });
   var groups = Object.keys(map).map(function(k){ return map[k]; }).sort(function(a,b){ return b.lastAt - a.lastAt; });
-  return {total:logs.length, groups:groups};
+  return {total:withRaw, legacy:logs.length - withRaw, groups:groups};
 }
 function parseFailText(){
   var pf = parseFailGroups();
@@ -721,21 +737,47 @@ function parseFailText(){
 function copyParseFails(){
   var txt = parseFailText();
   if(!txt){ myAlert('还没有无法识别记录。'); return; }
-  function done(){
+  _copyText(txt, function(){
     var b = document.getElementById('elCopyFails');
     if(b) b.textContent = '已复制';
     myAlert('已复制无法识别清单，可直接发给我。');
-  }
-  function fb(){
-    try{
-      var ta = document.createElement('textarea');
-      ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
-    }catch(e){ myAlert('复制失败，请点“导出诊断”发我 JSON。'); }
-  }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(done).catch(fb);
-  } else fb();
+  }, function(){ myAlert('复制失败，请点“导出诊断”发我 JSON。'); });
 }
+function copyDiagnostics(){
+  try{
+    var d = buildDiagnostics();
+    var pf = parseFailGroups();
+    var txt = '港澳双盘口 ' + (d.appVersion || '') + ' 诊断摘要\n'
+      + '店铺：' + (d.shopName || d.shop || '') + '\n'
+      + '生成：' + (d.generatedAt || '') + '\n'
+      + '订单：' + ((d.counts && d.counts.orders) || 0) + ' / 香港：' + ((d.counts && d.counts.hkOrders) || 0) + ' / 待补：' + ((d.counts && d.counts.pending) || 0) + '\n'
+      + '存储：' + ((d.storage && d.storage.bytes) || 0) + ' 字节 / ' + ((d.storage && d.storage.keys) || 0) + ' 键\n'
+      + '错误：' + ((d.errors && d.errors.length) || 0) + ' 条；无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种'
+      + (pf.legacy ? '（旧日志无原文 ' + pf.legacy + ' 条）' : '') + '\n\n'
+      + (pf.total ? parseFailText() : '无法识别：暂无记录\n');
+    _copyText(txt, function(){ myAlert('已复制诊断摘要，直接粘贴发给我。'); }, function(){ myAlert('复制失败，请点“诊断导出”发 JSON。'); });
+  }catch(e){ myAlert('复制诊断失败：' + (e.message || e)); }
+}
+function showParseFailDialog(fails, errors){
+  var list = (fails || []).slice(0, 6);
+  var n = (errors && errors.length) || list.length;
+  var ov = document.createElement('div');
+  ov.className = 'ai-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:390px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="padding:16px 18px 6px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
+    + '<div style="padding:0 18px 12px;font-size:12px;color:#888;text-align:center">原文已写进错误日志；点下面复制，直接发给我。</div>'
+    + '<div style="max-height:36vh;overflow:auto;background:#fafafa;padding:8px 12px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">'
+    + (list.length ? list.map(function(f){ return '<div style="padding:4px 0;border-bottom:1px solid #eee"><b>' + esc(String(f.raw||'').slice(0,120)) + '</b><div style="color:#b45309">' + esc(String(f.msg||'未知')) + '</div></div>'; }).join('') : esc((errors||[]).join('\n')))
+    + '</div>'
+    + '<div style="border-top:1px solid #eee;display:flex">'
+    + '<button id="pfCopy" onclick="copyParseFails()" style="flex:1;padding:13px;border:none;background:#fff;color:#ad6800;font-size:14px;font-weight:600;border-right:1px solid #eee">复制失败清单</button>'
+    + '<button id="pfClose" style="flex:1;padding:13px;border:none;background:#fff;color:#666;font-size:14px">关闭</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#pfClose').onclick = function(){ ov.remove(); };
+}
+
 function _storageStats(){
   var keys = [], bytes = 0;
   try{
@@ -806,7 +848,7 @@ function showErrLog(){
   var pfHtml = '';
   if(pf.total){
     pfHtml = '<div style="margin:10px 16px 0;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:9px 10px;font-size:12px;color:#ad6800;line-height:1.6">'
-      + '<b>无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种</b><div style="color:#666;margin-top:3px">' + pf.groups.slice(0,6).map(function(g){
+      + '<b>无法识别 ' + pf.total + ' 次 / ' + pf.groups.length + ' 种</b>' + (pf.legacy ? ' <span style="color:#888">（另有 ' + pf.legacy + ' 条旧日志无原文）</span>' : '') + '<div style="color:#666;margin-top:3px">' + pf.groups.slice(0,6).map(function(g){
           return esc(String(g.raw).slice(0,50)) + ' <span style="color:#999">×' + g.count + (g.lastDay ? ' · ' + esc(g.lastDay) : '') + '</span>';
         }).join('<br>') + (pf.groups.length > 6 ? '<br>…还有 ' + (pf.groups.length-6) + ' 种' : '') + '</div>'
       + '<button id="elCopyFails" onclick="copyParseFails()" style="margin-top:7px;border:1px solid #d48806;background:#fff;color:#ad6800;border-radius:6px;padding:5px 10px;font-size:12px">复制失败清单</button></div>';
@@ -6499,9 +6541,13 @@ function showFixDialog(rawLine, msg){
     + '<div style="border-top:1px solid #eee">'
     + '<button id="fxTe" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#c0392b;font-weight:700;border-bottom:1px solid #eee">按特码保存</button>'
     + '<button id="fxPing" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#2471a3;font-weight:700;border-bottom:1px solid #eee">按平特保存</button>'
+    + '<button id="fxCopy" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#ad6800;font-weight:600;border-bottom:1px solid #eee">复制这行</button>'
     + '<button id="fxCancel" style="width:100%;padding:14px;border:none;background:#fff;font-size:15px;color:#999">取消</button>'
     + '</div></div>';
   document.body.appendChild(ov);
+  ov.querySelector('#fxCopy').onclick = function(){
+    _copyText(src, function(){ myAlert('已复制这行原文。'); }, function(){ myAlert('复制失败，请截图这行。'); });
+  };
   function apply(line){
     ov.remove();
     var box = document.getElementById('input');
@@ -7724,7 +7770,7 @@ renderAll();
     }
     var _fail = _fails[0];
     if(_fail && showFixDialog(_fail.raw, _fail.msg)) return;
-    myAlert('无法识别：' + errors[0]);
+    showParseFailDialog(_fails, errors);
     return;
   }
   window.__failedLines = [];

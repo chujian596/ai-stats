@@ -69,6 +69,9 @@ const pf=parseFailGroups();
 ck('失败清单按原文汇总', pf.total>=2 && pf.groups.length>=2, {total:pf.total,groups:pf.groups.length});
 const pft=parseFailText();
 ck('失败清单文本含原文', pft.indexOf('特0X')>=0 && pft.indexOf('特0Y')>=0, pft.slice(0,160));
+ck('失败弹窗有一键复制', !!document.getElementById('pfCopy'), !!document.getElementById('pfCopy'));
+ck('复制诊断入口存在', typeof copyDiagnostics==='function', typeof copyDiagnostics);
+const _pfClose=document.getElementById('pfClose'); if(_pfClose)_pfClose.click();
 
 window.__archiveQA=out;
 })();
