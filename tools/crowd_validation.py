@@ -209,6 +209,7 @@ def aggregate():
     doc = {
         'schema': 'crowd-validation/v1',
         'updatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'cohortStart': START,
         'periods': [x['period'] for x in scores],
         'n': n,
         'lastPeriod': scores[-1]['period'] if scores else None,
@@ -234,9 +235,11 @@ def aggregate():
         'meanRank': round(sum(ranks) / len(ranks), 3) if ranks else None,
         'meanPointBiserial': round(sum(pbs) / len(pbs), 4) if pbs else None,
         'milestones': [
-            {'period': 330, 'label': '15期完整性 + 初次信号观察'},
-            {'period': 335, 'label': '20期第一次样本外检验'},
-            {'period': 360, 'label': '45期硬门槛'},
+            {'period': 330, 'label': '6期验证样本 · 完整性检查'},
+            {'period': 335, 'label': '11期验证样本 · 首次样本外观察'},
+            {'period': 344, 'label': '20期验证样本 · 进入 REVIEW'},
+            {'period': 360, 'label': '36期验证样本 · 仍未到45期'},
+            {'period': 369, 'label': '45期验证样本 · 进入 HARD_REVIEW'},
         ],
         'notes': [
             '只统计 325 起、开奖前冻结的期；316–324 是探索样本，不进入验证。',
