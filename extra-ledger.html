@@ -35,6 +35,7 @@
   .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
   .hit{color:var(--green);font-weight:700;white-space:nowrap}
   .miss{color:var(--red);font-weight:700;white-space:nowrap}
+  .na{color:var(--sub);white-space:nowrap}
   .trail{display:flex;gap:3px;flex-wrap:wrap}
   .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
   .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
@@ -59,6 +60,13 @@
   .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
   .hidden{display:none}
   .warn{margin:8px 2px 0;font-size:11.5px;color:var(--yellow)}
+  .pend-card{border-color:#f3c9c6;background:#fffafa}
+  .pend-table{min-width:auto;width:100%}
+  .pend-table td{padding:8px 12px;vertical-align:middle}
+  .pend-table td.pend-site{width:42%;font-weight:700;white-space:nowrap}
+  .pend-table td.pend-z{width:58%}
+  .pend-hist{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.5;white-space:normal}
+  .empty{color:var(--sub);font-style:italic}
 </style>
 </head>
 <body>
@@ -67,7 +75,7 @@
     <h1>扩展维度台账</h1>
     <div class="meta">在九肖 / 杀三肖之外，逐站逐期登记各站推荐并复盘命中。<br>
       <b>平特一肖</b>：推肖落在当期 6 平码生肖 ∪ 特肖（七肖）内记中；<b>波色</b>：特码波色落在推双色内记中；<b>尾数</b>：特码个位落在推尾集合内记中；<b>头数</b>：特码头位落在推头集合内记中。<br>
-      样本偏小，只记录不定论；早期无快照期（仅平特历史库）留存不全，命中率不与快照期并列对比。</div>
+      默认显示<b>待开期</b>各站最新推荐；要看往期成绩，用上方「期号」下拉选已开奖期进入复盘。样本偏小，只记录不定论；早期无快照期（仅平特历史库）留存不全，命中率不与快照期并列对比。</div>
   </header>
 
   <div class="tabs" id="tabs"></div>
@@ -79,18 +87,34 @@
   </div>
   <div class="warn" id="snapNote"></div>
 
-  <div class="card">
-    <div class="rc-title" id="rankTitle"></div>
-    <div class="rc-sub" id="rankSub"></div>
-    <div id="rankList"></div>
+  <!-- 待开期推荐（默认视图） -->
+  <div class="card pend-card" id="pendCard">
+    <div class="rc-title" id="pendTitle"></div>
+    <div class="rc-sub" id="pendSub"></div>
+    <div id="pendRank"></div>
+    <div class="table-scroll" id="pendTableWrap">
+      <table class="pend-table">
+        <thead><tr><th>站名</th><th id="pendColHead">本期推荐</th></tr></thead>
+        <tbody id="pendRows"></tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="table-scroll">
-      <table>
-        <thead><tr><th>期号</th><th>站名</th><th>推荐</th><th>结果</th><th>近 7 期轨迹</th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
+  <!-- 往期复盘（选已开奖期才展开） -->
+  <div id="reviewSection" class="hidden">
+    <div class="card">
+      <div class="rc-title" id="rankTitle"></div>
+      <div class="rc-sub" id="rankSub"></div>
+      <div id="rankList"></div>
+    </div>
+
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>期号</th><th>站名</th><th>推荐</th><th>结果</th><th>近 7 期轨迹</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -99,38 +123,114 @@
 
 <script>
 var DIMS = {
-  pingte: {title:'平特一肖', file:'pingte-ledger.json', unit:'肖', hot:'actual'},
-  wave:   {title:'波色',     file:'wave-ledger.json',   unit:'色', hot:'actualWave'},
-  tail:   {title:'尾数',     file:'tail-ledger.json',   unit:'尾', hot:'actualTail'},
-  head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead'}
+  pingte: {title:'平特一肖', file:'pingte-ledger.json', unit:'肖', hot:'actual', pend:'pendingPingte', ext:'pingte'},
+  wave:   {title:'波色',     file:'wave-ledger.json',   unit:'色', hot:'actualWave', pend:'pendingWave', ext:'wave'},
+  tail:   {title:'尾数',     file:'tail-ledger.json',   unit:'尾', hot:'actualTail', pend:'pendingTail', ext:'tail'},
+  head:   {title:'头数',     file:'head-ledger.json',   unit:'头', hot:'actualHead', pend:'pendingHead', ext:'head'}
 };
-var dim='pingte', LG=null, ALIAS={};
+var dim='pingte', LG=null, ALIAS={}, PEND=null, mode='pending', pendLoaded=false;
 
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 function nameOf(r,key){ return ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
 
 function issues(){ return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}); }
+function lastIssue(){ var i=issues(); return i[i.length-1]; }
 
 function loadDim(){
   document.getElementById('tabs').innerHTML=Object.keys(DIMS).map(function(k){
     return '<button class="tab'+(k===dim?' on':'')+'" data-dim="'+k+'">'+DIMS[k].title+'</button>';
   }).join('');
   Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){
-    b.addEventListener('click',function(){ dim=b.dataset.dim; loadDim(); });
+    b.addEventListener('click',function(){ if(b.dataset.dim!==dim){dim=b.dataset.dim; loadDim();} });
   });
-  return fetchJson('data/'+DIMS[dim].file).then(function(d){ LG=d; })
-    .then(function(){ return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){}); })
-    .then(function(){ buildSelect(); render(); });
+  var pLg=fetchJson('data/'+DIMS[dim].file).then(function(d){ LG=d; });
+  var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
+  var pPend=pendLoaded?Promise.resolve():fetchJson('data/current-recommend.json').then(function(p){PEND=p;pendLoaded=true;}).catch(function(){PEND=null;});
+  Promise.all([pLg,pAlias,pPend]).then(function(){
+    buildSelect();
+    if(mode==='pending' && PEND && PEND.status==='pending'){ enterPending(); }
+    else { enterReview(lastIssue()); }
+  });
 }
 
 function buildSelect(){
   var sel=document.getElementById('periodSel');
   sel.innerHTML='';
+  if(PEND && PEND.status==='pending'){
+    var op=document.createElement('option');
+    op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
+    sel.appendChild(op);
+  }
   issues().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
-  sel.onchange=render;
-  if(issues().length) sel.value=issues()[issues().length-1];
+  sel.onchange=function(){
+    if(sel.value==='pending'){ enterPending(); } else { enterReview(sel.value); }
+  };
 }
 
+function enterPending(){
+  mode='pending';
+  document.getElementById('periodSel').value='pending';
+  document.getElementById('reviewSection').classList.add('hidden');
+  document.getElementById('pendCard').classList.remove('hidden');
+  renderPending();
+}
+
+function enterReview(cur){
+  mode='review';
+  document.getElementById('periodSel').value=cur;
+  document.getElementById('pendCard').classList.add('hidden');
+  document.getElementById('reviewSection').classList.remove('hidden');
+  render();
+}
+
+// ---- 待开视图 ----
+function pendExt(s){ var e=s[DIMS[dim].ext]; return (e&&e.picks&&e.picks.length)?e:null; }
+
+function renderPending(){
+  var cfg=DIMS[dim];
+  var card=document.getElementById('pendCard');
+  if(!PEND || PEND.status!=='pending'){ card.classList.add('hidden'); document.getElementById('reviewSection').classList.remove('hidden'); render(); return; }
+  card.classList.remove('hidden');
+  var sites=(PEND.sites||[]).filter(pendExt);
+  document.getElementById('pendTitle').textContent='待开期 '+cfg.title+' · 第'+PEND.period+'期（待开奖 · 未对账）';
+  document.getElementById('pendSub').innerHTML='快照时间 '+(PEND.updatedAt||'—')+' · 当前快照 '+sites.length+' 站有'+cfg.title+'推荐；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。<br><b>历史中错 / 连对连错 / 近 7 期轨迹，把上方期号切到已开奖期（如 323）即可看到。</b>';
+  document.getElementById('pendColHead').textContent='本期'+cfg.title+'推荐';
+  document.getElementById('summary').innerHTML='待开 <b>第 '+PEND.period+'</b> 期 · '+cfg.title+' 有推荐 <b>'+sites.length+'</b> 站（未对账）';
+  document.getElementById('snapNote').textContent='';
+
+  // 排行
+  var rows=(PEND[cfg.pend]||[]).slice();
+  var max=rows.length?rows[0].n:1;
+  document.getElementById('pendRank').innerHTML=rows.map(function(r,i){
+    var bar=Math.round(r.n/max*100);
+    return '<div class="rank-row"><div class="rank-no">'+(i+1)+'</div>'+
+      '<div class="rank-z">'+r.p+'</div>'+
+      '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
+      '<div class="rank-c">'+r.n+' 票</div></div>';
+  }).join('') || '<div class="rc-sub">本期暂无'+cfg.title+'推荐数据</div>';
+
+  // 逐站表
+  var tb=document.getElementById('pendRows');
+  tb.innerHTML='';
+  sites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
+  var last=lastIssue();
+  sites.forEach(function(s){
+    var e=pendExt(s);
+    var picks=e.picks.map(function(p){return '<span class="z">'+p+'</span>';}).join('');
+    var hist=trailOf(s.siteKey,last);
+    var trail=hist.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('');
+    var histHtml=hist.length?('<div class="trail">'+trail+'</div>'):('<div class="pend-hist empty">无历史记录</div>');
+    var tr=document.createElement('tr');
+    tr.className='rowlink';
+    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
+      '<td class="pend-z"><div class="zs">'+picks+'</div></td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('pendTableWrap').style.display=sites.length?'block':'none';
+  document.getElementById('ruleNote').textContent='更新时间：'+(PEND.updatedAt||'—')+'　口径：'+(LG.rule||'—');
+}
+
+// ---- 复盘视图 ----
 function trailOf(key,cur){
   var hist=issues().filter(function(i){return +i<=+cur;}).slice(-7);
   return hist.map(function(i){
@@ -142,7 +242,9 @@ function trailOf(key,cur){
 
 function render(){
   if(!LG){return;}
-  var cur=document.getElementById('periodSel').value||issues()[issues().length-1];
+  var cur=document.getElementById('periodSel').value;
+  if(cur==='pending'){ return; }
+  if(!cur){ cur=lastIssue(); }
   var per=LG.periods[cur];
   if(!per){document.getElementById('rows').innerHTML='';return;}
   var keys=Object.keys(per.stations);
@@ -155,6 +257,7 @@ function render(){
 
   renderRank(per);
   renderRows(per,cur);
+  document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
 }
 
 function renderRank(per){
@@ -191,7 +294,7 @@ function renderRows(per,cur){
     var trail=trailOf(k,cur).map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('');
     var hitTx=r.hit?'中':'错', hitCls=r.hit?'hit':'miss';
     var picks=(r.picks||[]).map(function(p){return '<span class="z">'+p+'</span>';}).join('');
-    tr.innerHTML='<td class="tot na">'+cur+'期</td>'+
+    tr.innerHTML='<td class="na">'+cur+'期</td>'+
       '<td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
       '<td><div class="zs">'+picks+'</div></td>'+
       '<td><span class="'+hitCls+'">'+hitTx+'</span></td>'+
@@ -226,6 +329,9 @@ function toggleDetail(key,tr,cur){
 }
 
 loadDim();
+</script>
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
 </body>
 </html>

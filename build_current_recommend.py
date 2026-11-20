@@ -20,8 +20,61 @@ LEDGER_PUB = os.path.join(ROOT, "data", "max-zodiac-ledger.json")
 SNAP_DIR = os.path.join(PARENT, "snapshots")
 OUT = os.path.join(ROOT, "data", "current-recommend.json")
 Z = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+WAVE = "红蓝绿"
 # 与 build_kill3_ledger.py 同一杀三肖栏口径
 KILL_COLS = ['杀特3肖', '绝杀三肖', '📛绝杀三肖']
+
+
+# ---- 四维度待开栏目提取（口径与 build_extra_ledgers.py 一致）----
+def _val(cd):
+    v = cd.get('value')
+    return v if isinstance(v, list) else (v or '')
+
+
+def pick_pingte(cols):
+    order = ['平特1肖', '平特一肖', '2期1肖平特', '3期1肖平特', '1肖加对应1码平特']
+    for t in order:
+        cd = cols.get(t)
+        if cd and cd.get('value'):
+            z = [c for c in _val(cd) if c in Z]
+            if len(z) == 1:
+                return {'column': t, 'picks': z, 'raw': _val(cd)}
+    return None
+
+
+def pick_wave(cols):
+    cd = cols.get('2波中特')
+    if cd and cd.get('value'):
+        w = [c for c in _val(cd) if c in WAVE]
+        if w:
+            return {'column': '2波中特', 'picks': w, 'raw': _val(cd)}
+    return None
+
+
+def pick_tail(cols):
+    cands = [(t, cd) for t, cd in cols.items()
+             if '尾中特' in t and '平特' not in t and '头' not in t
+             and '单双' not in t and '各4尾' not in t and '字数字' not in t]
+    cands.sort(key=lambda x: 0 if re.fullmatch(r'\d尾中特', x[0]) else 1)
+    for t, cd in cands:
+        v = _val(cd)
+        ds = sorted(set(c for c in v if c.isdigit()))
+        if ds:
+            return {'column': t, 'picks': ds, 'raw': v}
+    return None
+
+
+def pick_head(cols):
+    cands = [(t, cd) for t, cd in cols.items() if '头中特' in t and '尾' not in t]
+    for t, cd in cands:
+        v = _val(cd)
+        ds = sorted(set(c for c in v if c.isdigit()))
+        if ds:
+            return {'column': t, 'picks': ds, 'raw': v}
+    return None
+
+
+EXTRA_PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail, 'head': pick_head}
 
 
 def pick_kill(columns):
@@ -101,6 +154,11 @@ def main():
             "sites": [],
             "pendingKill": [],
             "killSites": 0,
+            "pendingPingte": [],
+            "pendingWave": [],
+            "pendingTail": [],
+            "pendingHead": [],
+            "extraSites": {},
         }
     else:
         issue = max(pending.keys())
@@ -108,48 +166,54 @@ def main():
         sites = []
         kill_agg = {}
         kill_sites = 0
+        extra_agg = {dim: {} for dim in EXTRA_PICKERS}
+        extra_sites = {dim: 0 for dim in EXTRA_PICKERS}
         for _sk, sd in (snap.get("sites") or {}).items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
-            pick = pick_column(sd.get("columns", {}))
             cols = sd.get("columns") or {}
+            pick = pick_column(cols)
             kill = pick_kill(cols)
+            extra = {dim: pk(cols) for dim, pk in EXTRA_PICKERS.items()}
+            for dim, e in extra.items():
+                if e:
+                    extra_sites[dim] += 1
+                    for p in e['picks']:
+                        extra_agg[dim][p] = extra_agg[dim].get(p, 0) + 1
             if kill:
                 kill_sites += 1
                 for z in kill:
                     kill_agg[z] = kill_agg.get(z, 0) + 1
+            base = {
+                "system": system,
+                "siteKey": site_key,
+                "killZodiacs": kill,
+                "pingte": extra['pingte'] or {},
+                "wave": extra['wave'] or {},
+                "tail": extra['tail'] or {},
+                "head": extra['head'] or {},
+            }
             if pick:
                 title, zs = pick
-                sites.append({
-                    "system": system,
-                    "siteKey": site_key,
-                    "column": title,
-                    "zodiacs": zs,
-                    "killZodiacs": kill,
-                    "status": "有九肖",
-                })
+                base.update({"column": title, "zodiacs": zs, "status": "有九肖"})
+                sites.append(base)
             elif sd.get("error") or not cols:
                 # 站点本期还没放出有效栏目：标注还没更新，区别于“有栏目但非九肖”
-                sites.append({
-                    "system": system,
-                    "siteKey": site_key,
-                    "column": None,
-                    "zodiacs": [],
-                    "killZodiacs": kill,
-                    "status": "还没更新",
-                })
+                base.update({"column": None, "zodiacs": [], "status": "还没更新"})
+                sites.append(base)
             else:
-                sites.append({
-                    "system": system,
-                    "siteKey": site_key,
-                    "column": None,
-                    "zodiacs": [],
-                    "killZodiacs": kill,
-                    "status": "无九肖栏目",
-                })
+                base.update({"column": None, "zodiacs": [], "status": "无九肖栏目"})
+                sites.append(base)
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
         pending_kill = [{"z": z, "kill": kill_agg[z]} for z in Z if kill_agg.get(z)]
         pending_kill.sort(key=lambda x: (-x["kill"], Z.index(x["z"])))
+
+        def agg_list(dim):
+            order = Z if dim == 'pingte' else None
+            rows = [{"p": p, "n": n} for p, n in extra_agg[dim].items()]
+            rows.sort(key=lambda x: -x['n'])
+            return rows
+
         out = {
             "period": issue,
             "status": "pending",
@@ -158,13 +222,21 @@ def main():
             "sites": sites,
             "pendingKill": pending_kill,
             "killSites": kill_sites,
+            "pendingPingte": agg_list('pingte'),
+            "pendingWave": agg_list('wave'),
+            "pendingTail": agg_list('tail'),
+            "pendingHead": agg_list('head'),
+            "extraSites": extra_sites,
         }
 
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     n = sum(1 for s in out["sites"] if s["status"] == "有九肖")
+    es = out.get("extraSites", {})
     print(f"current-recommend.json: status={out['status']} period={out['period']} "
-          f"有九肖 {n}/{len(out['sites'])} 站 杀肖 {out['killSites']} 站 updated={out['updatedAt']}")
+          f"有九肖 {n}/{len(out['sites'])} 站 杀肖 {out['killSites']} 站 "
+          f"平特 {es.get('pingte', 0)} 波色 {es.get('wave', 0)} 尾 {es.get('tail', 0)} 头 {es.get('head', 0)} 站 "
+          f"updated={out['updatedAt']}")
 
 
 if __name__ == "__main__":
