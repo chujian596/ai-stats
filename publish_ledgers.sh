@@ -22,6 +22,14 @@ python3 tools/build_source_registry.py >/dev/null 2>&1 && echo "SOURCES_OK" || e
 python3 tools/build_site_performance.py >/dev/null 2>&1 && echo "PERF_OK" || echo "PERF_SKIP"
 # 研判引擎：316 后拥挤度审计（只做统计分级，不生成方向）
 python3 tools/build_engine.py >/dev/null 2>&1 && echo "ENGINE_OK" || echo "ENGINE_SKIP"
+# 群众走向验证：20:00-21:29 开奖前冻结；开奖后（22:30链）打分
+HH=$(date +%H); MM=$(date +%M)
+if { [ "$HH" -eq 20 ] || { [ "$HH" -eq 21 ] && [ "$MM" -lt 30 ]; }; }; then
+  python3 tools/crowd_validation.py freeze
+else
+  echo "CROWD_FREEZE_SKIP $(date '+%H:%M')"
+fi
+python3 tools/crowd_validation.py score
 
 FILES="data/sites-current.json
 data/kill3-ledger.json
@@ -44,7 +52,10 @@ data/source-registry.json
 data/site-performance.json
 data/engine.json
 $(ls data/engine-*.json 2>/dev/null | tr '\n' ' ')
-$(ls data/core-*.json 2>/dev/null | tr '\n' ' ')"
+$(ls data/core-*.json 2>/dev/null | tr '\n' ' ')
+$(ls data/crowd-freeze-*.json 2>/dev/null | tr '\n' ' ')
+$(ls data/crowd-score-*.json 2>/dev/null | tr '\n' ' ')
+data/crowd-validation.json"
 
 git add $FILES 2>/dev/null
 

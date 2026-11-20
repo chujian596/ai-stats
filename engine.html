@@ -96,6 +96,8 @@ td.actual{color:var(--blue);font-weight:800}
 .net{display:flex;flex-direction:column;gap:7px}
 .net .row{display:flex;gap:8px;align-items:flex-start;background:#f8fafc;border:1px solid #edf1f7;border-radius:9px;padding:7px 9px;font-size:12px}
 .net .row .w{font-weight:800;color:var(--violet);min-width:38px;flex:0 0 38px}
+#validation .row .w{min-width:64px;flex:0 0 64px}
+@media(max-width:480px){#validation .row{flex-wrap:wrap}#validation .row .desc{flex-basis:100%;padding-left:72px}}
 .net .row>span:nth-child(2){flex:1;min-width:0}
 .net .row .desc{color:var(--muted);font-size:11px;white-space:nowrap;flex:0 0 auto}
 
@@ -142,7 +144,7 @@ td.actual{color:var(--blue);font-weight:800}
 <div class="wrap">
   <div class="top">
     <div class="brand">
-      <h1>研判引擎<span class="badge"><i></i>v1.01</span></h1>
+      <h1>研判引擎<span class="badge"><i></i>v1.02</span></h1>
       <p>316 后 · 公众推荐拥挤度审计 · 只筛异常，不输出方向</p>
     </div>
     <div class="links">
@@ -214,6 +216,16 @@ td.actual{color:var(--blue);font-weight:800}
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:12px">
+    <div class="sectionHead">
+      <div><h2>群众走向验证</h2><div class="sub">开奖前冻结，开奖后打分；先定主指标，不事后换区间。</div></div>
+      <div class="tag" id="valStatus">COLLECTING</div>
+    </div>
+    <div class="net" id="validation"></div>
+    <div class="hr"></div>
+    <div class="note" id="valNote">325 起进入验证队列；316–324 只作探索，不进入样本外。</div>
+  </div>
+
   <div class="card">
     <div class="sectionHead">
       <div><h2>引擎规则</h2><div class="sub">可审计，不造神。</div></div>
@@ -222,7 +234,7 @@ td.actual{color:var(--blue);font-weight:800}
   </div>
 
   <div class="foot">
-    数据：<a href="data/engine.json">engine.json</a> · <a href="data/site-performance.json">site-performance.json</a><br>
+    数据：<a href="data/engine.json">engine.json</a> · <a href="data/site-performance.json">site-performance.json</a> · <a href="data/crowd-validation.json">crowd-validation.json</a><br>
     只做历史统计、信号分级与风控研究，不生成投注指令。
   </div>
 </div>
@@ -230,6 +242,7 @@ td.actual{color:var(--blue);font-weight:800}
 <script>
 const ZODIACS=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
 let engine=null;
+let validation=null;
 
 function pct(x){return Math.round((Number(x)||0)*1000)/10+'%'}
 function rankText(r){return '第'+r}
@@ -317,10 +330,43 @@ function renderRules(){
   document.getElementById('rules').innerHTML=rules;
 }
 
-function render(){
-  renderKpis();renderLatest();renderBacktest();renderVerdicts();renderNetwork();renderTargets();renderRules();
+function renderValidation(){
+  const el=document.getElementById('validation');
+  const tag=document.getElementById('valStatus');
+  if(!el) return;
+  if(!validation){
+    tag.textContent='待冻结'; tag.className='tag';
+    el.innerHTML='<div class="row"><span class="w">状态</span><span>等待 325 开奖前冻结</span><span class="desc">20:00 盘前封存后</span></div>';
+    return;
+  }
+  const v=validation;
+  tag.textContent=v.status||'COLLECTING';
+  tag.className='tag';
+  const n=Number(v.n)||0;
+  const row=(w,a,d)=>`<div class="row"><span class="w">${w}</span><span>${a}</span><span class="desc">${d}</span></div>`;
+  const ci=x=>x&&x[0]!=null?`${pct(x[0])}–${pct(x[1])}`:'—';
+  el.innerHTML=[
+    row('样本',`${n} 期`,'开奖前冻结 · 325起'),
+    row('Top3',n?`${v.top3.hits}/${n} · ${pct(v.top3.rate)}`:'待开奖',`随机 25% · 95%CI ${ci(v.top3.ci)}`),
+    row('Top1',n?`${v.top1.hits}/${n} · ${pct(v.top1.rate)}`:'待开奖',`随机 8.33% · 95%CI ${ci(v.top1.ci)}`),
+    row('Bottom3',n?`${v.bottom3.avoids}/${n} · ${pct(v.bottom3.rate)}`:'待开奖',`规避基线 75%`),
+    row('平均名次',v.meanRank!=null?`第 ${v.meanRank}`:'待开奖','随机 6.5'),
+    row('相关',v.meanPointBiserial!=null?`${v.meanPointBiserial}`:'待开奖','>0 同向 / <0 反向'),
+  ].join('');
+  document.getElementById('valNote').textContent=(v.notes&&v.notes[0])||'开奖前冻结，开奖后打分。';
 }
 
+function render(){
+  renderKpis();renderLatest();renderBacktest();renderVerdicts();renderNetwork();renderTargets();renderRules();renderValidation();
+}
+
+async function loadValidation(){
+  try{
+    const res=await fetch('data/crowd-validation.json?ts='+Date.now(),{cache:'no-store'});
+    if(res.ok) validation=await res.json();
+  }catch(e){ validation=null; }
+  renderValidation();
+}
 async function load(){
   try{
     const res=await fetch('data/engine.json?ts='+Date.now(),{cache:'no-store'});
@@ -332,7 +378,7 @@ async function load(){
     document.getElementById('stateText').textContent='引擎数据未加载。';
   }
 }
-load();
+load();loadValidation();
 </script>
 </body>
 </html>

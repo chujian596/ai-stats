@@ -1,0 +1,56 @@
+{
+ "schema": "crowd-validation/v1",
+ "updatedAt": "2026-11-21 03:10:45",
+ "periods": [],
+ "n": 0,
+ "lastPeriod": null,
+ "status": "COLLECTING",
+ "top3": {
+  "hits": 0,
+  "rate": null,
+  "baseline": 0.25,
+  "ci": [
+   null,
+   null
+  ]
+ },
+ "top1": {
+  "hits": 0,
+  "rate": null,
+  "baseline": 0.0833,
+  "ci": [
+   null,
+   null
+  ]
+ },
+ "bottom3": {
+  "avoids": 0,
+  "rate": null,
+  "baseline": 0.75,
+  "ci": [
+   null,
+   null
+  ]
+ },
+ "meanRank": null,
+ "meanPointBiserial": null,
+ "milestones": [
+  {
+   "period": 330,
+   "label": "15期完整性 + 初次信号观察"
+  },
+  {
+   "period": 335,
+   "label": "20期第一次样本外检验"
+  },
+  {
+   "period": 360,
+   "label": "45期硬门槛"
+  }
+ ],
+ "notes": [
+  "只统计 325 起、开奖前冻结的期；316–324 是探索样本，不进入验证。",
+  "top3 随机基线 25%，top1 随机基线 8.33%，bottom3 规避基线 75%。",
+  "先定主指标，再看结果；不按事后最小 p 值换指标。"
+ ]
+}
