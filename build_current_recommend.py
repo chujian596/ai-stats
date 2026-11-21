@@ -256,6 +256,13 @@ def main():
         sp, snap = seq[-1]
         merged_sites, merged_sources = merge_pending(seq)
 
+        # 收集各份快照里没进 sites 的失败站：fetch_error=连接抓取失败；not_updated=站点还没更新
+        fail_map = {}
+        for _sp, _snap in seq:
+            for fr in _snap.get("failedStations", []) or []:
+                fk = f"{fr.get('system')}-{fr.get('siteKey')}"
+                fail_map[fk] = fr
+
         def _ok_n(s):
             return sum(1 for v in (s.get("sites") or {}).values() if "columns" in v)
 
@@ -312,6 +319,20 @@ def main():
             else:
                 base.update({"column": None, "zodiacs": [], "status": "无九肖栏目"})
                 sites.append(base)
+        # 补齐没进 sites 的失败站：区分「抓取失败（连接/抓取问题）」与「还没更新（站点未放料）」
+        have_keys = {f"{s['system']}-{s['siteKey']}" for s in sites}
+        for fk, fr in fail_map.items():
+            if fk in have_keys:
+                continue
+            kind = fr.get("failKind", "fetch_error")
+            status = "抓取失败" if kind == "fetch_error" else "还没更新"
+            sites.append({
+                "system": fr.get("system", ""), "siteKey": str(fr.get("siteKey", "")),
+                "fresh": False, "carried": False, "carryFrom": None,
+                "status": status, "failKind": kind, "error": fr.get("error"),
+                "column": None, "zodiacs": [], "killZodiacs": [],
+                "pingte": {}, "wave": {}, "tail": {}, "head": {}, "size": {}, "parity": {},
+            })
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
         carried_count = sum(1 for s in sites if s.get("carried"))
 
@@ -358,6 +379,9 @@ def main():
             "coverage": {
                 "sites": len(sites),
                 "nine": sum(1 for s in sites if s.get("status") == "有九肖"),
+                "noNine": sum(1 for s in sites if s.get("status") == "无九肖栏目"),
+                "notUpdated": sum(1 for s in sites if s.get("status") == "还没更新"),
+                "fetchFail": sum(1 for s in sites if s.get("status") == "抓取失败"),
                 "kill": kill_sites,
                 "pingte": extra_sites.get("pingte", 0),
                 "wave": extra_sites.get("wave", 0),

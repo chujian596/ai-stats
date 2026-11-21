@@ -63,17 +63,35 @@ def get(url, timeout=25):
         s = requests.Session(); s.trust_env = False
         return s.get(url, timeout=timeout, verify=False, headers=HEAD)
 
+# 失败两分类（口径见用户约定）：
+#   not_updated  = 连接成功，但站点本期还没放出料（empty / 无栏目 / 页面无数据）——不重连，下次再抓
+#   fetch_error  = 连接/抓取失败（断线、超时、HTTP 非 200、解析坏数据）——反复重连到成功为止
+NOT_UPDATED_KINDS = {"empty", "no_cols", "empty_html", "empty_page"}
+
+
+def classify_fail(err):
+    if not err:
+        return None
+    if err in NOT_UPDATED_KINDS:
+        return "not_updated"
+    e = str(err).lower()
+    if any(k in e for k in ("empty", "无料", "未更新", "还没更新")):
+        return "not_updated"
+    return "fetch_error"
+
+
 def fetch_js(url):
     r = get(url)
     if r.status_code != 200:
-        return None
+        return None, f"http{r.status_code}"
     m = re.search(r"atob\('([^']+)'\)", r.text)
     if not m:
-        return None
+        # 页面 200 但本期还没挂出加密料 → 站点未更新，区别于连接失败
+        return None, "empty_page"
     try:
-        return json.loads(base64.b64decode(m.group(1)).decode('utf-8'))
+        return json.loads(base64.b64decode(m.group(1)).decode('utf-8')), None
     except Exception:
-        return None
+        return None, "bad_json"
 
 
 def extract_wanpz(system, site_key, js):
@@ -147,9 +165,9 @@ def extract_wanpz(system, site_key, js):
 def pull_h2(site_key):
     hh = hourly_hash()
     url = f"https://h2.wanpz.com/script/{site_key}/temps_result_1.js?v={hh}"
-    js = fetch_js(url)
+    js, ferr = fetch_js(url)
     if not js:
-        return {"system": "wanpz-h2", "siteKey": site_key, "error": "no_data"}
+        return {"system": "wanpz-h2", "siteKey": site_key, "error": ferr or "no_data"}
     res = extract_wanpz("wanpz-h2", site_key, js)
     if not res:
         return {"system": "wanpz-h2", "siteKey": site_key, "error": "empty"}
@@ -160,15 +178,15 @@ def pull_h2(site_key):
 def pull_h9(site_key):
     hh = hourly_hash()
     url = f"https://h9.wanpz.com/script/{site_key}/temps_result_1.js?v={hh}"
-    js = fetch_js(url)
+    js, ferr = fetch_js(url)
     if not js:
-        return {"system": "wanpz-h9", "siteKey": site_key, "error": "no_data"}
+        return {"system": "wanpz-h9", "siteKey": site_key, "error": ferr or "no_data"}
     res = extract_wanpz("wanpz-h9", site_key, js)
     if not res:
         return {"system": "wanpz-h9", "siteKey": site_key, "error": "empty"}
     # 12460 绝杀三肖在 dynamic_1036811
     if site_key == '12460':
-        dj = fetch_js(f"https://h9.wanpz.com/script/12460/dynamic_1036811_1.js?v={hh}")
+        dj, _ = fetch_js(f"https://h9.wanpz.com/script/12460/dynamic_1036811_1.js?v={hh}")
         if dj:
             txt = dj.get('html') if isinstance(dj, dict) else ''
             txt = re.sub(r'<[^>]+>', '', str(txt)).replace('\n', '')
@@ -190,9 +208,9 @@ def pull_wanpz(system, site_key):
     host = system.replace('wanpz-', '')
     hh = hourly_hash()
     url = f"https://{host}.wanpz.com/script/{site_key}/temps_result_1.js?v={hh}"
-    js = fetch_js(url)
+    js, ferr = fetch_js(url)
     if not js:
-        return {"system": system, "siteKey": site_key, "error": "no_data"}
+        return {"system": system, "siteKey": site_key, "error": ferr or "no_data"}
     res = extract_wanpz(system, site_key, js)
     if not res:
         return {"system": system, "siteKey": site_key, "error": "empty"}
@@ -300,6 +318,41 @@ def main():
         if lk not in have:
             results.append({"system": sysname, "siteKey": sk, "error": "not_submitted"})
 
+    # ===== 失败两分类 + 连接失败重连 =====
+    # fetch_error（断线/超时/HTTP 坏/解析坏）：退避反复重连，直到连上拿到料或转为未更新；
+    # not_updated（连上了但站点本期还没放料）：不重连，记为未更新，等下次抓板。
+    FETCH_RETRY_MAX = 6
+
+    def _rk(r):
+        return f"{r['system']}-{r['siteKey']}"
+
+    by_key = {_rk(r): r for r in results}
+    fetch_fail = [k for k, r in by_key.items() if classify_fail(r.get("error")) == "fetch_error"]
+    fetch_retry_rounds = 0
+    for rnd in range(FETCH_RETRY_MAX):
+        if not fetch_fail:
+            break
+        fetch_retry_rounds += 1
+        still = []
+        for k in fetch_fail:
+            r = by_key[k]
+            sysname, sk = r["system"], str(r["siteKey"])
+            try:
+                res = repull(sysname, sk, main_issue)
+            except Exception as e:
+                res = {"system": sysname, "siteKey": sk, "error": str(e)}
+            if "columns" in res:
+                by_key[k] = res  # 重连成功，拿到料
+            elif classify_fail(res.get("error")) == "not_updated":
+                by_key[k] = res  # 连上了但没料 → 转为未更新，不再重试
+            else:
+                still.append(k)
+                by_key[k] = res
+        fetch_fail = still
+        if fetch_fail:
+            time.sleep(min(5 * (rnd + 1), 20))
+    results = list(by_key.values())
+
     now = datetime.now()
     issue = main_issue or max((r.get('issue', 0) for r in results if 'columns' in r), default=0)
 
@@ -386,11 +439,25 @@ def main():
     for r in ok:
         attach_site_name(r)
     bad = [r for r in results if 'error' in r]
-    print(f'成功 {len(ok)} 站, 失败 {len(bad)} 站, 重试 {retry_rounds} 轮, 沿用兜底 {len(carried)} 站')
     for b in bad:
-        print('  FAIL', b['system'], b['siteKey'], b['error'])
+        b["failKind"] = classify_fail(b.get("error")) or "fetch_error"
+    bad_fetch = [b for b in bad if b["failKind"] == "fetch_error"]
+    bad_update = [b for b in bad if b["failKind"] == "not_updated"]
+    print(f'成功 {len(ok)} 站, 连接失败 {len(bad_fetch)} 站, 站点未更新 {len(bad_update)} 站, '
+          f'掉站重试 {retry_rounds} 轮, 失败重连 {fetch_retry_rounds} 轮, 沿用兜底 {len(carried)} 站')
+    for b in bad_fetch:
+        print('  FETCH-FAIL', b['system'], b['siteKey'], b['error'])
+    for b in bad_update:
+        print('  NOT-UPDATED', b['system'], b['siteKey'], b['error'])
     for k in carried:
         print('  CARRY', k, '<-', os.path.basename(prev_path))
+
+    def _fail_tag(b):
+        return f"{b['system']}-{b['siteKey']}:{b['failKind']}:{b['error']}"
+
+    def _fail_rec(b):
+        return {"system": b["system"], "siteKey": str(b["siteKey"]),
+                "failKind": b["failKind"], "error": b["error"]}
 
     snap = {
         "generated_at": now.strftime('%Y-%m-%d %H:%M:%S'),
@@ -398,12 +465,16 @@ def main():
         "hourly_hash": hourly_hash(),
         "prev_snapshot": os.path.basename(prev_path) if prev_path else None,
         "retry_rounds": retry_rounds,
+        "fetch_retry_rounds": fetch_retry_rounds,
         "carried": carried,
         "carried_count": len(carried),
         "merged_columns": merged_columns,
         "merged_columns_count": len(merged_columns),
         "sites": {f"{r['system']}-{r['siteKey']}": r for r in ok},
-        "failed": [f"{b['system']}-{b['siteKey']}:{b['error']}" for b in bad],
+        "failed": [_fail_tag(b) for b in bad],
+        "failedStations": [_fail_rec(b) for b in bad],
+        "failed_fetch": [_fail_tag(b) for b in bad_fetch],
+        "failed_not_updated": [_fail_tag(b) for b in bad_update],
     }
     os.makedirs(os.path.join(BASE, 'snapshots'), exist_ok=True)
     path = os.path.join(BASE, 'snapshots', f"snapshot-{issue}-{now.strftime('%H%M')}.json")
