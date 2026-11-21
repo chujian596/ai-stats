@@ -134,6 +134,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
   function fetchJson(u){
     function one(url){ return fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}); }
     return one(u)
+      .catch(function(){ return one('https://www.chujian596.dpdns.org/'+u); })
       .catch(function(){ return one('https://aistats-9uo.pages.dev/'+u); })
       .catch(function(){ return one('https://chujian596.github.io/ai-stats/'+u); });
   }
