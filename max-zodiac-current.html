@@ -128,7 +128,10 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
   var state={d:null};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function pct(n,d){return d?Math.round(n/d*1000)/10:0;}
-  function fetchJson(u){return fetch(u,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+  function fetchJson(u){
+    function one(url){ return fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}); }
+    return one(u).catch(function(){ return one('https://chujian596.github.io/ai-stats/'+u); });
+  }
   function render(d){
     state.d=d;
     var sites=(d.sites||[]).filter(function(s){return s && s.zodiacs && s.zodiacs.length;});
