@@ -31,7 +31,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
-<title>AI云统计系统</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>录单Pro · v59.67</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -69,6 +70,84 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 .chip{border:1px solid #ccc;color:#333;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
 .chip.on{background:#333;border-color:#333;color:#fff}
 .chip .cnt{font-size:15px;font-weight:400;opacity:.7;margin-left:4px}
+
+/* ===== PRO PREVIEW SKIN v59.67: record-first ===== */
+:root{--pro-blue:#2457d6;--pro-blue2:#16325c;--pro-ink:#17202b;--pro-muted:#6e7a89;--pro-line:#e4e9f1;--pro-bg:#f4f7fc}
+body{font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;background:linear-gradient(180deg,#edf2fa 0%,#f6f8fc 30%,#eef2f8 100%)!important;color:var(--pro-ink)!important;padding-bottom:150px!important;font-size:var(--pro-fs,15px)!important}
+main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px + env(safe-area-inset-bottom))!important}
+.pro-hero{position:relative;margin:0 -12px 12px;padding:max(env(safe-area-inset-top),18px) 15px 12px;background:
+ radial-gradient(420px 220px at 88% -20%,rgba(120,170,255,.36),rgba(120,170,255,0) 65%),
+ linear-gradient(145deg,#12294d 0%,#1b3f7d 52%,#2457d6 100%);color:#fff;border-radius:0 0 24px 24px;box-shadow:0 10px 28px rgba(18,41,77,.2);overflow:hidden}
+.pro-hero:after{content:"";position:absolute;right:-30px;top:-60px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(120,170,255,.2),rgba(120,170,255,0));pointer-events:none}
+.pro-brand{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:relative;z-index:1}
+.pro-kicker{font-size:9px;font-weight:750;letter-spacing:.18em;color:#bdd3ff;line-height:1.2}
+.pro-h1{font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1.1;margin-top:2px}
+.pro-preview{font-size:9px;font-weight:750;color:#ffe0a3;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:4px 8px;white-space:nowrap}
+#billBar{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:8px 0 0!important;position:relative;z-index:1}
+#billDateTxt{color:#fff!important;font-size:15px!important;font-weight:750!important;letter-spacing:-.01em}
+#billDayStat{color:#cfe0ff!important;font-size:10.5px!important;margin-left:4px}
+#topVer{color:#cfe0ff!important;font-size:9.5px!important;background:rgba(255,255,255,.11)!important;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:3px 7px!important;white-space:nowrap}
+.pro-toolbar{background:transparent!important;border:0!important;border-top:1px solid rgba(255,255,255,.16)!important;border-radius:0!important;margin:9px 0 0!important;padding:9px 0 0!important;position:relative;z-index:1}
+.pro-toolbar>div:first-child{gap:7px!important}
+.pro-toolbar button{background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.22)!important;color:#fff!important;border-radius:9px!important;padding:6px 9px!important;font-size:12px!important;font-weight:650!important}
+.pro-toolbar button:active{background:rgba(255,255,255,.24)!important}
+#liveClock{color:#fff!important;font-size:16px!important;font-weight:800!important;letter-spacing:.01em}
+#shopBox{background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;padding:8px!important}
+#shopBox>div:first-child{color:#e1ebff!important}
+#shopBox button{background:#fff!important;border-color:#fff!important;color:#16325c!important}
+#billRollTip,#storageWarn,#storageQuotaWarn{position:relative;z-index:1}
+.pro-entry{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:18px!important;padding:13px!important;margin:0 0 10px!important;box-shadow:0 4px 14px rgba(16,35,70,.06)!important}
+.pro-input-wrap{background:#f7f9fd!important;border:1px solid #e6ebf3!important;border-radius:14px!important;padding:11px!important}
+.pro-input-wrap>div:first-child span:first-child{font-size:12px!important;font-weight:750!important;color:#334155!important}
+#orderSummary{font-size:10px!important;color:#8b97a6!important}
+#input{min-height:126px!important;border:1px solid #dfe6f0!important;border-radius:11px!important;padding:10px!important;font-size:15px!important;line-height:1.7!important;background:#fff!important;color:#17202b!important;resize:none!important}
+#input:focus{outline:none!important;border-color:#9db8f0!important;box-shadow:0 0 0 3px rgba(36,87,214,.08)!important}
+#drawInfoBar{font-size:10px!important;color:#8b97a6!important;margin:7px 1px 0!important}
+#drawFetchBtn{border:1px solid #dfe6f0!important;background:#fff!important;color:#2457d6!important;border-radius:8px!important;padding:5px 8px!important;font-size:10px!important;font-weight:700}
+.pro-entry .btn-row{display:grid!important;grid-template-columns:1.25fr 1fr 1fr!important;gap:7px!important}
+.pro-entry .btn{min-height:40px!important;border-radius:10px!important;font-size:13px!important;font-weight:750!important;padding:8px 6px!important}
+.pro-save{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important;box-shadow:0 5px 14px rgba(36,87,214,.24)!important}
+.pro-manual{background:#fff!important;border-color:#cfd9ea!important;color:#2457d6!important}
+.pro-clear{background:#f4f6fa!important;border-color:#e3e8f1!important;color:#7b8797!important}
+#saveMsg{font-size:12px!important;line-height:1.6!important;color:#475569!important;margin-top:8px!important}
+#liveBalls{padding:6px 0!important;min-height:54px!important}
+.pro-tabs{display:grid!important;grid-template-columns:1fr 1fr!important;gap:4px!important;background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:14px!important;padding:4px!important;margin:0 0 9px!important;box-shadow:0 2px 8px rgba(16,35,70,.04)!important}
+.pro-tabs .tab{flex:none!important;border:0!important;background:transparent!important;color:#758294!important;border-radius:10px!important;padding:9px 4px!important;font-size:13px!important;font-weight:700!important;min-width:0!important}
+.pro-tabs .tab.active{background:#e9efff!important;color:#2457d6!important;border:0!important}
+.pro-panel{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:16px!important;padding:12px!important;margin-bottom:10px!important;box-shadow:0 4px 14px rgba(16,35,70,.055)!important}
+#tab-rank>div:first-child,#tab-rank>div:nth-child(2){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;margin-bottom:7px!important}
+.rank-btn{display:flex!important;align-items:center!important;justify-content:center!important;background:#f7f9fd!important;border:1px solid #e5eaf2!important;border-radius:10px!important;min-height:38px!important;padding:6px 3px!important;font-size:12px!important;font-weight:700!important;color:#3d4b5e!important;box-shadow:none!important;margin:0!important;line-height:1.2!important}
+.rank-btn:active{background:#e9efff!important;color:#2457d6!important}
+#tab-rank table{font-size:12px!important}
+#tab-rank th,#tab-rank td{padding:5px 3px!important}
+#riskBody,#rank-singles,#rank-split,#rank-pay{font-size:12px!important;line-height:1.6!important}
+#rank-singles:empty,#rank-split:empty,#rank-pay:empty{display:none!important}
+#sidePayResult:empty,#rank-singles:empty,#rank-split:empty,#rank-pay:empty{display:none!important}
+#tab-orders>div:first-child{font-size:14px!important;font-weight:800!important;color:#334155!important}
+#tab-orders>div:first-child button{font-size:10.5px!important;padding:5px 7px!important;border-radius:8px!important;background:#f8fafc!important;font-weight:700!important}
+#orderSearch,#orderDay{border:1px solid #dfe6f0!important;border-radius:9px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;padding:9px 9px!important}
+.order-cust-card{border:1px solid #e5eaf2!important;border-radius:14px!important;margin-bottom:8px!important;background:#fff!important;overflow:hidden!important}
+.order-cust-card>div:first-child{background:#f7f9fd!important;padding:9px!important}
+.order-cust-card>div:first-child span{font-size:12px!important}
+.order-cust-card>div:first-child button{background:#fff!important;border:1px solid #e1e7f0!important;border-radius:8px!important;padding:4px 8px!important;font-size:11px!important}
+#ordersList>div:first-child{border:1px solid #e5eaf2!important;border-radius:12px!important;background:#f8fafc!important;padding:8px 10px!important}
+#ordersList{font-size:12px!important}
+#ordersList .od-toggle-text{color:#2457d6!important;font-weight:650}
+#tab-pay,#tab-split,#tab-settings{font-size:12px!important}
+#tab-pay table,#tab-split pre,#tab-settings table{font-size:12px!important}
+.pro-settings-dock{bottom:calc(76px + env(safe-area-inset-bottom))!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:calc(100% - 24px)!important;max-width:536px!important;z-index:80!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.pro-settings-toggle{display:none!important}
+#bottomBtns{display:none;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;background:#fff!important;border:1px solid #e5eaf2!important;border-radius:16px!important;padding:9px!important;box-shadow:0 12px 30px rgba(16,35,70,.16)!important;margin-bottom:4px!important}
+#bottomBtns .btn{min-height:38px!important;border:1px solid #e5eaf2!important;background:#f8fafc!important;border-radius:9px!important;font-size:11px!important;padding:5px 4px!important;color:#475569!important}
+#bottomBtns .btn:last-child{grid-column:span 3}
+.pro-nav{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 20px);max-width:540px;height:58px;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border:1px solid #e5eaf2;border-radius:18px;box-shadow:0 10px 30px rgba(16,35,70,.13);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding:4px;z-index:100}
+.pro-nav-item{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9.5px;color:#8c98a7;font-weight:650;border-radius:12px;padding:4px 0;height:48px}
+.pro-nav-item .pro-nav-ico{font-size:14px;font-weight:800;line-height:1;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#f0f3f8;color:#7c8998}
+.pro-nav-item.active{color:#2457d6;background:#e9efff}
+.pro-nav-item.active .pro-nav-ico{background:#2457d6;color:#fff}
+@media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
+@media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
+
 </style>
 </head>
 <body>
@@ -95,6 +174,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <div id="memInfo"></div>
 </header>
 <main>
+<div class="pro-hero">
+<div class="pro-brand"><div><div class="pro-kicker">PRO ORDER · RECORD FIRST</div><div class="pro-h1">录单</div></div><span class="pro-preview" style="display:none"></span></div>
 <div id="billBar" style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
   <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap">
     <span id="billDateTxt" style="font-size:15px;font-weight:700;color:#333">--</span>
@@ -105,7 +186,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 <div id="billRollTip" style="display:none;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:13px;line-height:1.5;color:#613400"></div>
   <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
   <div id="storageQuotaWarn" style="display:none;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
-  <div style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
+  <div class="pro-toolbar" style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">客户:<span id="custLabel">散客</span>▾</button>
       <span id="liveClock" style="font-size:16px;font-weight:700;color:#333;font-variant-numeric:tabular-nums"></span>
@@ -120,7 +201,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
     </div>
   </div>
-  <section class="card">
+</div>
+  <section class="card pro-entry">
     <div id="custBox" style="display:none">
     <label class="lbl">客户名称（新客户直接打字；老客户点下面的名字）</label>
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
@@ -132,7 +214,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #7c3aed;background:#7c3aed;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
-    <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
+    <div class="pro-input-wrap" style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
@@ -148,15 +230,15 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span id="hkDrawTxt"></span>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
+        <button class="btn pro-save" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
+        <button class="btn pro-manual" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
+        <button class="btn pro-clear" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
   </section>
 
-  <div class="tabs">
+  <div class="tabs pro-tabs">
     <button class="tab active" id="tab-btn-rank" onclick="switchTab('rank')">排行榜</button>
     <!-- <button class="tab" id="tab-btn-all" onclick="switchTab('all')">产品累计</button> -->
     <button class="tab" id="tab-btn-cust" onclick="switchTab('cust')" style="display:none">客户统计</button>
@@ -175,7 +257,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-rank" class="card tab-panel">
+  <section id="tab-rank" class="card tab-panel pro-panel">
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
       <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
@@ -213,11 +295,11 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="riskBody" style="display:none;text-align:left"></div>
   </section>
 
-  <section id="tab-cust" class="card tab-panel" style="display:none">
+  <section id="tab-cust" class="card tab-panel pro-panel" style="display:none">
     <div id="tbody-cust"></div>
   </section>
 
-  <section id="tab-orders" class="card tab-panel" style="display:none">
+  <section id="tab-orders" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">订单对账</div>
       <div style="display:flex;gap:6px"><button onclick="showLastOrder()" style="border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:6px;padding:4px 10px;font-size:12px">本次订单</button><button onclick="showTodayRecon()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 10px;font-size:12px">今日对账</button><button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button></div>
@@ -248,7 +330,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-pay" class="card tab-panel" style="display:none">
+  <section id="tab-pay" class="card tab-panel pro-panel" style="display:none">
     <div style="font-size:17px;margin-bottom:8px">
       销售总额：<b id="paySales">0.00</b> 元 |
       总赔付：<b style="color:#cf1322" id="payTotal">0.00</b> 元 |
@@ -270,7 +352,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-split" class="card tab-panel" style="display:none">
+  <section id="tab-split" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)">
@@ -302,7 +384,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="autoCustPay" style="margin-top:8px"></div>
   </section>
 
-  <section id="tab-settings" class="card tab-panel" style="display:none">
+  <section id="tab-settings" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <input id="newProductCode" class="input" placeholder="添加主产品名，如：手机壳（不要填数字）" style="flex:1">
       <button class="btn primary" style="min-width:80px" onclick="addProduct()">添加主产品</button>
@@ -335,9 +417,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border:none;box-shadow:none;background:transparent !important;padding:0 0 4px">
+  <section class="card pro-settings-dock" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border:none;box-shadow:none;background:transparent !important;padding:0 0 4px">
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
-    <div onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:2px;cursor:pointer;font-size:11px;color:#999;line-height:1.2">
+    <div class="pro-settings-toggle" onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:2px;cursor:pointer;font-size:11px;color:#999;line-height:1.2">
       功能设置 <span class="arrow">▼</span>
     </div>
     <div id="bottomBtns" class="btn-row" style="display:none">
@@ -606,6 +688,12 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button onclick="closeHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-top:20px">知道了</button>
     </div>
   </div>
+<div class="pro-nav">
+  <button class="pro-nav-item active" onclick="proGo('entry',this)"><span class="pro-nav-ico">录</span><span>录单</span></button>
+  <button class="pro-nav-item" onclick="proGo('rank',this)"><span class="pro-nav-ico">排</span><span>排行</span></button>
+  <button class="pro-nav-item" onclick="proGo('orders',this)"><span class="pro-nav-ico">单</span><span>订单</span></button>
+  <button class="pro-nav-item" onclick="event.stopPropagation();proGo('more',this)"><span class="pro-nav-ico">⋯</span><span>功能</span></button>
+</div>
 </main>
 
 <script>
@@ -669,7 +757,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.66-Pro';
+var APP_VER = 'v59.67-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -11457,12 +11545,9 @@ function applyTheme(){
       }
     `;
   }
-  st.textContent = `
-    .last { color: ${color} !important; }
-    ${darkCss}
-    ${lightCss}
-  `;
-  const fs = t.fontSize || 17;
+  st.textContent = '';
+  const fs = t.fontSize || 15;
+  document.documentElement.style.setProperty('--pro-fs', fs+'px');
   document.body.style.fontSize = fs+'px';
 }
 
@@ -12153,6 +12238,29 @@ setInterval(function(){
     if(r && r.ok) location.replace(url);
   }).catch(function(){});
 })();
+</script>
+
+<script>
+function proGo(name, el){
+  try{
+    if(name === 'entry'){
+      window.scrollTo({top:0, behavior:'smooth'});
+      var inp = document.getElementById('input');
+      if(inp) setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 260);
+    } else if(name === 'rank' || name === 'orders'){
+      if(typeof switchTab === 'function') switchTab(name);
+      var tabs = document.querySelector('.pro-tabs');
+      if(tabs) tabs.scrollIntoView({behavior:'smooth', block:'start'});
+    } else if(name === 'more'){
+      var b = document.getElementById('bottomBtns');
+      if(b) b.style.display = (b.style.display === 'none' || !b.style.display) ? 'grid' : 'none';
+    }
+    if(el){
+      document.querySelectorAll('.pro-nav-item').forEach(function(x){ x.classList.remove('active'); });
+      el.classList.add('active');
+    }
+  }catch(e){}
+}
 </script>
 </body>
 </html>
