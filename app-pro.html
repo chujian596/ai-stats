@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v59.67</title>
+<title>录单Pro · v59.70</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -148,6 +148,195 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 .pro-nav-item.active .pro-nav-ico{background:#2457d6;color:#fff}
 @media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
 @media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
+
+
+/* ===== 系统日/夜模式 + 浅色字对比度增强（v59.70） ===== */
+/* 浅色模式：把偏浅的说明字加深，避免灰到看不清 */
+#orderSummary,#drawInfoBar,.hint{color:#64748b!important}
+html:not([data-system-theme="dark"]) .pro-nav-item{color:#6c7a8b}
+html:not([data-system-theme="dark"]) #saveMsg{color:#334155!important}
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#999"],
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#bbb"],
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#ccc"]{color:#5f6b7a!important}
+
+html[data-system-theme="dark"]{
+  --pro-ink:#e7effc; --pro-muted:#a9b8cb; --pro-line:#2a3a52; --pro-bg:#0b1220;
+  color-scheme:dark; background:#0b1220!important;
+}
+html[data-system-theme="dark"] body{
+  background:radial-gradient(600px 300px at 80% -10%,rgba(47,84,150,.22),rgba(47,84,150,0) 60%),linear-gradient(180deg,#0a1120 0%,#0d1728 45%,#0a1220 100%)!important;
+  color:var(--pro-ink)!important;
+}
+html[data-system-theme="dark"] .pro-hero{
+  background:radial-gradient(420px 220px at 88% -20%,rgba(80,140,255,.28),rgba(80,140,255,0) 65%),linear-gradient(145deg,#061225 0%,#0b2450 52%,#12408f 100%)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.42)!important;
+}
+html[data-system-theme="dark"] .pro-kicker{color:#a9c6ff!important}
+html[data-system-theme="dark"] .pro-preview{color:#ffe0a3!important;background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.22)!important}
+html[data-system-theme="dark"] #billBar{background:transparent!important;border-color:transparent!important}
+html[data-system-theme="dark"] #billDateTxt{color:#fff!important}
+html[data-system-theme="dark"] #billDayStat,#topVer{color:#b6cdff!important}
+html[data-system-theme="dark"] .pro-toolbar{background:transparent!important;border-color:rgba(255,255,255,.16)!important}
+html[data-system-theme="dark"] .pro-toolbar button{
+  background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.22)!important;color:#fff!important
+}
+html[data-system-theme="dark"] #liveClock{color:#fff!important}
+html[data-system-theme="dark"] #shopBox{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important}
+html[data-system-theme="dark"] #shopBox>div:first-child{color:#dbe8ff!important}
+html[data-system-theme="dark"] #shopBox button{background:#fff!important;border-color:#fff!important;color:#16325c!important}
+
+html[data-system-theme="dark"] .pro-entry,
+html[data-system-theme="dark"] .pro-tabs,
+html[data-system-theme="dark"] .pro-panel,
+html[data-system-theme="dark"] .card,
+html[data-system-theme="dark"] #bottomBtns,
+html[data-system-theme="dark"] .order-cust-card,
+html[data-system-theme="dark"] .order-cust-card>div:first-child,
+html[data-system-theme="dark"] #ordersList>div:first-child{
+  background:#111c2e!important;background-color:#111c2e!important;
+  border-color:#2a3a52!important;color:#e7effc!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.25)!important;
+}
+html[data-system-theme="dark"] .pro-input-wrap{
+  background:#0f1a2b!important;border-color:#2a3a52!important;color:#e7effc!important
+}
+html[data-system-theme="dark"] #input,
+html[data-system-theme="dark"] .input,
+html[data-system-theme="dark"] .textarea,
+html[data-system-theme="dark"] #customerName,
+html[data-system-theme="dark"] #orderSearch,
+html[data-system-theme="dark"] #orderDay,
+html[data-system-theme="dark"] input,
+html[data-system-theme="dark"] textarea,
+html[data-system-theme="dark"] select{
+  background:#0b1626!important;color:#f1f5f9!important;border-color:#354762!important
+}
+html[data-system-theme="dark"] input::placeholder,
+html[data-system-theme="dark"] textarea::placeholder{color:#8192a8!important}
+html[data-system-theme="dark"] #drawFetchBtn{background:#14243a!important;color:#9dc0ff!important;border-color:#354762!important}
+html[data-system-theme="dark"] #drawInfoBar,
+html[data-system-theme="dark"] #orderSummary,
+html[data-system-theme="dark"] #drawRecBox,
+html[data-system-theme="dark"] #saveMsg{color:#cbd8ea!important}
+html[data-system-theme="dark"] #saveMsg{color:#cbd8ea!important}
+html[data-system-theme="dark"] .pro-manual{background:#14243a!important;border-color:#354762!important;color:#9dc0ff!important}
+html[data-system-theme="dark"] .pro-clear{background:#162131!important;border-color:#2a3a52!important;color:#aab8ca!important}
+html[data-system-theme="dark"] .pro-save{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .pro-tabs .tab{color:#9aaac0!important}
+html[data-system-theme="dark"] .pro-tabs .tab.active{background:#1b3b72!important;color:#a9c6ff!important}
+html[data-system-theme="dark"] .rank-btn{background:#14243a!important;border-color:#2a3a52!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .rank-btn.on{background:#1b3b72!important;border-color:#4e7bc9!important;color:#bcd6ff!important}
+html[data-system-theme="dark"] #tab-orders>div:first-child{color:#cbd8ea!important}
+html[data-system-theme="dark"] #tab-orders>div:first-child button{background:#14243a!important;border-color:#354762!important;color:#bcd6ff!important}
+html[data-system-theme="dark"] #bottomBtns .btn{background:#14243a!important;border-color:#2a3a52!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .pro-nav{background:rgba(10,18,32,.96)!important;border-color:#2a3a52!important;box-shadow:0 10px 30px rgba(0,0,0,.5)!important}
+html[data-system-theme="dark"] .pro-nav-item{color:#90a2b8!important}
+html[data-system-theme="dark"] .pro-nav-item .pro-nav-ico{background:#182538!important;color:#9fb3ca!important}
+html[data-system-theme="dark"] .pro-nav-item.active{color:#a9c6ff!important;background:#17325f!important}
+html[data-system-theme="dark"] .pro-nav-item.active .pro-nav-ico{background:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .lbl{color:#aab8ca!important}
+html[data-system-theme="dark"] .pro-input-wrap>div:first-child span:first-child{color:#cbd8ea!important}
+html[data-system-theme="dark"] .last{color:#cbd8ea!important}
+html[data-system-theme="dark"] table th{background:#162436!important;color:#cbd8ea!important;border-color:#2a3a52!important}
+html[data-system-theme="dark"] table td{border-color:#223147!important;color:#e7effc!important}
+html[data-system-theme="dark"] .table-wrap{border-color:#2a3a52!important}
+html[data-system-theme="dark"] .chip{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .chip.on{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .btn{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .btn.primary{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .btn.danger{background:#3a1720!important;border-color:#7f2635!important;color:#ff9b9b!important}
+html[data-system-theme="dark"] .pro-settings-dock,
+html[data-system-theme="dark"] #settingsModal>div,
+html[data-system-theme="dark"] .ai-ov>div{background:#111c2e!important;border-color:#2a3a52!important;color:#e7effc!important}
+html[data-system-theme="dark"] #lockScreen{background:#0a1120!important}
+html[data-system-theme="dark"] #lockScreen>div>div:first-child{color:#e7effc!important}
+html[data-system-theme="dark"] #lockMsg{color:#aab8ca!important}
+html[data-system-theme="dark"] #lockCodeWrap>div{color:#90a2b8!important}
+html[data-system-theme="dark"] #backupTxt{background:#0b1626!important;color:#dce8f8!important;border-color:#354762!important}
+html[data-system-theme="dark"] #bgStyles button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #settingsModal button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #settingsModal button[style*="color: rgb(207, 19, 34)"],
+html[data-system-theme="dark"] #settingsModal button[style*="color:#cf1322"]{color:#ff8a8a!important}
+html[data-system-theme="dark"] .order-cust-card>div:first-child button,
+html[data-system-theme="dark"] #ordersList button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .ai-ov button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #billRollTip,
+html[data-system-theme="dark"] #hkDrawBar{background:#332a15!important;border-color:#7a5b1c!important;color:#f6d48a!important}
+
+/* 兜底：动态生成的白色卡片/浅灰底与深色文字统一压暗 */
+html[data-system-theme="dark"] [style*="background:#fff"],
+html[data-system-theme="dark"] [style*="background:#ffffff"],
+html[data-system-theme="dark"] [style*="background:#f8f9fa"],
+html[data-system-theme="dark"] [style*="background:#f3f4f6"],
+html[data-system-theme="dark"] [style*="background: rgb(243, 244, 246)"],
+html[data-system-theme="dark"] [style*="background:#f1f5f9"],
+html[data-system-theme="dark"] [style*="background:#eceff3"],
+html[data-system-theme="dark"] [style*="background:#f0f3f8"],
+html[data-system-theme="dark"] [style*="background:#f2f4f7"],
+html[data-system-theme="dark"] [style*="background:#fafafa"],
+html[data-system-theme="dark"] [style*="background:#f4f6fa"],
+html[data-system-theme="dark"] [style*="background:#eef0f3"],
+html[data-system-theme="dark"] [style*="background:#f2f2f2"],
+html[data-system-theme="dark"] [style*="background:#f0f0f0"],
+html[data-system-theme="dark"] [style*="background:#f7f9fd"],
+html[data-system-theme="dark"] [style*="background:#f8fafc"],
+html[data-system-theme="dark"] [style*="background:#f5f5f5"],
+html[data-system-theme="dark"] [style*="background:#fafbfc"],
+html[data-system-theme="dark"] [style*="background:#f7f7f7"],
+html[data-system-theme="dark"] [style*="background:#f9f9f9"],
+html[data-system-theme="dark"] [style*="background: rgb(255, 255, 255)"],
+html[data-system-theme="dark"] [style*="background: rgb(248, 249, 250)"],
+html[data-system-theme="dark"] [style*="background: rgb(245, 245, 245)"],
+html[data-system-theme="dark"] [style*="background: rgb(247, 249, 253)"],
+html[data-system-theme="dark"] [style*="background: rgb(248, 250, 252)"],
+html[data-system-theme="dark"] [style*="background: rgb(249, 249, 249)"],
+html[data-system-theme="dark"] [style*="background: rgb(240, 243, 248)"],
+html[data-system-theme="dark"] [style*="background: rgb(233, 239, 255)"],
+html[data-system-theme="dark"] [style*="background: rgb(247, 247, 247)"],
+html[data-system-theme="dark"] [style*="background: rgb(250, 251, 252)"],
+html[data-system-theme="dark"] [style*="background: rgb(238, 240, 243)"],
+html[data-system-theme="dark"] [style*="background:#e9efff"]{
+  background:#111c2e!important;background-color:#111c2e!important;
+  color:#e7effc!important;border-color:#2a3a52!important
+}
+html[data-system-theme="dark"] [style*="color:#333"],
+html[data-system-theme="dark"] [style*="color:#1f2329"],
+html[data-system-theme="dark"] [style*="color:#17202b"],
+html[data-system-theme="dark"] [style*="color:#1a1a1a"],
+html[data-system-theme="dark"] [style*="color:#000"],
+html[data-system-theme="dark"] [style*="color:#555"],
+html[data-system-theme="dark"] [style*="color:#666"],
+html[data-system-theme="dark"] [style*="color:#888"],
+html[data-system-theme="dark"] [style*="color:#999"],
+html[data-system-theme="dark"] [style*="color:#334155"],
+html[data-system-theme="dark"] [style*="color:#475569"],
+html[data-system-theme="dark"] [style*="color:#8b97a6"],
+html[data-system-theme="dark"] [style*="color:#7b8797"],
+html[data-system-theme="dark"] [style*="color:#758294"],
+html[data-system-theme="dark"] [style*="color:#8c98a7"],
+html[data-system-theme="dark"] [style*="color:#64748b"],
+html[data-system-theme="dark"] [style*="color: rgb(51, 51, 51)"],
+html[data-system-theme="dark"] [style*="color: rgb(31, 35, 41)"],
+html[data-system-theme="dark"] [style*="color: rgb(23, 32, 43)"],
+html[data-system-theme="dark"] [style*="color: rgb(85, 85, 85)"],
+html[data-system-theme="dark"] [style*="color: rgb(102, 102, 102)"],
+html[data-system-theme="dark"] [style*="color: rgb(136, 136, 136)"],
+html[data-system-theme="dark"] [style*="color: rgb(153, 153, 153)"],
+html[data-system-theme="dark"] [style*="color: rgb(187, 187, 187)"],
+html[data-system-theme="dark"] [style*="color: rgb(204, 204, 204)"],
+html[data-system-theme="dark"] [style*="color: rgb(100, 116, 139)"],
+html[data-system-theme="dark"] [style*="color:#bbb"],
+html[data-system-theme="dark"] [style*="color:#ccc"]{
+  color:#cbd8ea!important
+}
+html[data-system-theme="dark"] [style*="color:#cf1322"],
+html[data-system-theme="dark"] [style*="color:#e74c3c"],
+html[data-system-theme="dark"] [style*="color:red"]{color:#ff8a8a!important}
+html[data-system-theme="dark"] [style*="color:#16a34a"],
+html[data-system-theme="dark"] [style*="color:#059669"],
+html[data-system-theme="dark"] [style*="color:#22c55e"],
+html[data-system-theme="dark"] [style*="color:green"]{color:#6ee7b7!important}
+html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
 
 </style>
 </head>
@@ -698,6 +887,28 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 </main>
 
 <script>
+
+// ===== 系统日/夜模式：跟随手机系统（APK 原生会主动调用） =====
+(function(){
+  function sysDark(){
+    try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; }
+  }
+  window.__applySystemTheme = function(mode){
+    var dark = String(mode||'').toLowerCase() === 'dark';
+    try{
+      document.documentElement.setAttribute('data-system-theme', dark ? 'dark' : 'light');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', dark ? '#0b1220' : '#ffffff');
+    }catch(e){}
+  };
+  window.__applySystemTheme(sysDark() ? 'dark' : 'light');
+  try{
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onChange = function(e){ window.__applySystemTheme(e.matches ? 'dark' : 'light'); };
+    if(mq.addEventListener) mq.addEventListener('change', onChange);
+    else if(mq.addListener) mq.addListener(onChange);
+  }catch(e){}
+})();
 // === IndexedDB自动备份（比localStorage更持久，清缓存不丢） ===
 let _db = null;
 function openDB(){
@@ -758,7 +969,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.69-Pro';
+var APP_VER = 'v59.70-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
