@@ -1,0 +1,97 @@
+{
+ "schema": "weight-validation/v1",
+ "updatedAt": "2026-11-21 14:25:15",
+ "cohortStart": 325,
+ "periods": [],
+ "n": 0,
+ "lastPeriod": null,
+ "status": "COLLECTING",
+ "arms": {
+  "equal": {
+   "n": 0,
+   "top3": {
+    "hits": 0,
+    "rate": null
+   },
+   "top1": {
+    "hits": 0,
+    "rate": null
+   },
+   "bottom3": {
+    "avoids": 0,
+    "rate": null
+   },
+   "meanRank": null,
+   "meanPointBiserial": null,
+   "deltaVsEqual": {
+    "top3": null,
+    "meanRank": null
+   }
+  },
+  "full_cap": {
+   "n": 0,
+   "top3": {
+    "hits": 0,
+    "rate": null
+   },
+   "top1": {
+    "hits": 0,
+    "rate": null
+   },
+   "bottom3": {
+    "avoids": 0,
+    "rate": null
+   },
+   "meanRank": null,
+   "meanPointBiserial": null,
+   "deltaVsEqual": {
+    "top3": null,
+    "meanRank": null
+   }
+  },
+  "dim_cap": {
+   "n": 0,
+   "top3": {
+    "hits": 0,
+    "rate": null
+   },
+   "top1": {
+    "hits": 0,
+    "rate": null
+   },
+   "bottom3": {
+    "avoids": 0,
+    "rate": null
+   },
+   "meanRank": null,
+   "meanPointBiserial": null,
+   "deltaVsEqual": {
+    "top3": null,
+    "meanRank": null
+   }
+  }
+ },
+ "milestones": [
+  {
+   "period": 330,
+   "label": "6期 · 完整性检查"
+  },
+  {
+   "period": 335,
+   "label": "11期 · 首次样本外观察"
+  },
+  {
+   "period": 344,
+   "label": "20期 · 进入 REVIEW，才谈权重是否有用"
+  },
+  {
+   "period": 369,
+   "label": "45期 · 才谈硬规则"
+  }
+ ],
+ "notes": [
+  "主指标先定：Top3 命中、平均排名、Brier/logloss；不在事后换指标。",
+  "20期前只观察，不因几期好看就替换实盘。",
+  "全指纹封顶是结构口径；维度封顶是压力测试，失败就撤。"
+ ]
+}

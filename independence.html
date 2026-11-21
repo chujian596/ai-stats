@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f5f7fb">
+<title>独立模板审计 · AI资料统计</title>
+<style>
+:root{--ink:#17202b;--muted:#6b7785;--line:#e5eaf1;--blue:#2457d6;--green:#1d6b4f;--amber:#9b7737;--red:#a33b3b;--bg:#f5f7fb;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;padding-bottom:28px}
+.wrap{max-width:760px;margin:0 auto;padding:0 14px}
+header{background:linear-gradient(145deg,#16325c,#2457d6);color:#fff;padding:24px 14px 20px;padding-top:max(env(safe-area-inset-top),24px);border-radius:0 0 22px 22px}
+header .inner{max-width:760px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.16em;color:#cfe0ff;font-weight:700}
+h1{margin:6px 0 4px;font-size:25px;letter-spacing:-.02em}
+.sub{margin:0;color:#dbe8ff;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0}
+.kpi{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:20px;line-height:1.2}
+.kpi span{font-size:11px;color:#dbe8ff}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:20px 2px 10px}
+.section-title h2{margin:0;font-size:16px}
+.section-title small{color:var(--muted);font-size:11px;text-align:right}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;box-shadow:0 2px 8px rgba(16,35,70,.04)}
+.card + .card{margin-top:9px}
+.card h3{margin:0;font-size:16px}
+.card p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+.tag.blue{background:#e8efff;color:#2457d6}.tag.green{background:#e7f5ee;color:#1d6b4f}.tag.amber{background:#fbf1dc;color:#9b7737}.tag.gray{background:#eef2f7;color:#5b6675}.tag.red{background:#fbe8e8;color:#a33b3b}
+.summary{display:grid;grid-template-columns:1fr;gap:8px}
+.sum{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.sum b{font-size:17px;white-space:nowrap}
+.sum span{font-size:12px;color:var(--muted)}
+.sum .right{text-align:right;min-width:88px}
+.mono{font-variant-numeric:tabular-nums;white-space:pre-line}
+.arms{display:grid;grid-template-columns:1fr;gap:8px}
+.arm{border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px 13px}
+.arm.active{border-color:#b8c9f2;background:#f7f9ff}
+.arm-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.arm h4{margin:0;font-size:15px}
+.arm .nums{font-size:12px;color:var(--muted);margin-top:6px}
+.arm .top3{font-size:18px;font-weight:700;letter-spacing:.02em;margin-top:5px}
+.tabs{display:flex;gap:6px;overflow:auto;padding:2px 0 4px}
+.tab{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px;white-space:nowrap}
+.tab.on{background:#2457d6;border-color:#2457d6;color:#fff}
+.group{border:1px solid var(--line);border-radius:13px;background:#fff;padding:10px 12px;margin-top:8px}
+.group-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.group-head b{font-size:13px}
+.group p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.55}
+.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 15px;margin-top:10px}
+.note b{color:var(--ink)}
+.note p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.note ul{margin:5px 0 0;padding-left:18px;color:var(--muted);font-size:12px}
+.note li{margin:2px 0}
+.msg{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;color:var(--muted);font-size:13px}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding:22px 10px 0}
+@media(min-width:620px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.arms{grid-template-columns:repeat(3,minmax(0,1fr))}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <div class="kicker">INDEPENDENCE AUDIT</div>
+    <h1>独立模板审计</h1>
+    <p class="sub" id="sub">100 站公开资料 · 325 期 · 只做口径审计，不输出方向</p>
+    <div class="kpis">
+      <div class="kpi"><b id="k-reg">-</b><span>登记站点</span></div>
+      <div class="kpi"><b id="k-data">-</b><span>有数据站</span></div>
+      <div class="kpi"><b id="k-full">-</b><span>全指纹模板</span></div>
+      <div class="kpi"><b id="k-empty">-</b><span>当期无票</span></div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="error" class="msg" style="display:none"></div>
+
+  <div class="section-title"><h2>先看结论</h2><small>同九肖 ≠ 同模板</small></div>
+  <div class="summary">
+    <div class="sum"><div><b id="s-full">-</b><br><span>全指纹独立模板</span></div><div class="right"><span class="tag green">整站封顶</span><p id="s-full-note" style="margin:4px 0 0">-</p></div></div>
+    <div class="sum"><div><b id="s-nine">-</b><br><span>九肖独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-nine-note" style="margin:4px 0 0">-</p></div></div>
+    <div class="sum"><div><b id="s-kill">-</b><br><span>杀三独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-kill-note" style="margin:4px 0 0">-</p></div></div>
+    <div class="sum"><div><b id="s-tail">-</b><br><span>尾数独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-tail-note" style="margin:4px 0 0">-</p></div></div>
+  </div>
+
+  <div class="section-title"><h2>325 权重影子账</h2><small id="shadow-state">PREVIEW · 未开奖</small></div>
+  <div class="arms" id="arms"><div class="msg">读取中…</div></div>
+  <div class="note">
+    <b>三路只做对照</b>
+    <p>等权是现在的基线；全指纹封顶只合并真正同模板的整站；九肖/杀三/尾数封顶是压力测试。影子账不替换研判引擎，也不生成投注指令。</p>
+  </div>
+
+  <div class="section-title"><h2>重复组</h2><small>只列 ≥2 站的组</small></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="groups"><div class="msg">读取中…</div></div>
+
+  <div class="section-title"><h2>成绩跟踪</h2><small>325 起 · 时间外验证</small></div>
+  <div class="card">
+    <div class="arm-top"><h3>影子验证</h3><span class="tag amber" id="track-tag">-</span></div>
+    <p id="track-line">-</p>
+    <p id="track-arms" class="mono" style="margin-top:6px">-</p>
+  </div>
+
+  <div class="note">
+    <b>口径</b>
+    <ul>
+      <li>全指纹=九肖、杀三、平特、波色、尾数、头数、大小、单双全部一致；只有这种才按整站封顶。</li>
+      <li>同九肖只说明这一维同票，不等于同站；九肖封顶是压力测试，不是定论。</li>
+      <li>平特/波色/大小/单双只有少数取值，正常共识会被误压，所以不做封顶。</li>
+      <li>20 期前只观察；20 期后才第一次判断权重是否有用，失败就撤掉，不保留装饰性权重。</li>
+    </ul>
+  </div>
+  <div class="footer">独立模板审计 v1.0 · 只做公开资料统计，不接私盘，不生成投注指令</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let IND = null, SHADOW = null, VALID = null, TAB = 'full';
+
+function pct(x){ return x == null ? '-' : (x * 100).toFixed(1) + '%'; }
+function num(x){ return x == null ? '-' : Number(x).toLocaleString('zh-CN'); }
+
+function render(ind, shadow, valid){
+  IND = ind; SHADOW = shadow; VALID = valid;
+  const c = ind.counts || {}, eff = ind.effective || {}, dims = ind.dimensions || {};
+  $('sub').textContent = `${c.registered} 站公开资料 · ${ind.period} 期 · 只做口径审计，不输出方向`;
+  $('k-reg').textContent = c.registered ?? '-';
+  $('k-data').textContent = c.withData ?? '-';
+  $('k-full').textContent = c.fullTemplates ?? '-';
+  $('k-empty').textContent = c.empty ?? '-';
+  $('s-full').textContent = `${eff.full ?? '-'} / ${c.withData ?? '-'}`;
+  $('s-full-note').textContent = `全指纹重复 ${c.fullDuplicateGroups ?? 0} 组`;
+  const nine = dims.nine || {}, kill = dims.kill || {}, tail = dims.tail || {};
+  $('s-nine').textContent = `${nine.unique ?? '-'} / ${nine.sites ?? '-'}`;
+  $('s-nine-note').textContent = `${nine.duplicateSites ?? '-'} 站同九肖`;
+  $('s-kill').textContent = `${kill.unique ?? '-'} / ${kill.sites ?? '-'}`;
+  $('s-kill-note').textContent = `${kill.duplicateSites ?? '-'} 站同杀三`;
+  $('s-tail').textContent = `${tail.unique ?? '-'} / ${tail.sites ?? '-'}`;
+  $('s-tail-note').textContent = `${tail.duplicateSites ?? '-'} 站同尾数`;
+
+  renderArms(shadow);
+  renderTabs();
+  renderGroups();
+  renderTrack(valid);
+}
+
+function renderArms(shadow){
+  const box = $('arms'); box.innerHTML = '';
+  const state = shadow.status === 'FROZEN' ? 'FROZEN · 已冻结' : 'PREVIEW · 未开奖';
+  $('shadow-state').textContent = state;
+  const order = ['equal','full_cap','dim_cap'];
+  order.forEach((key, i) => {
+    const a = shadow.arms?.[key]; if(!a) return;
+    const div = document.createElement('div');
+    div.className = 'arm' + (key === 'dim_cap' ? ' active' : '');
+    const eff = a.effectiveN || {};
+    div.innerHTML = `<div class="arm-top"><h4>${esc(a.label)}</h4><span class="tag ${key==='equal'?'gray':key==='full_cap'?'green':'blue'}">${key==='equal'?'基线':key==='full_cap'?'整站封顶':'压力测试'}</span></div>
+      <div class="top3">${(a.top3||[]).join(' / ') || '-'}</div>
+      <div class="nums mono">有效N 九肖 ${eff.nine ?? '-'} · 杀三 ${eff.kill ?? '-'} · 首位 ${eff.first ?? '-'}</div>
+      <div class="nums mono">末3 ${(a.bottom3||[]).join(' / ') || '-'}</div>`;
+    box.appendChild(div);
+  });
+  if (shadow.differences) {
+    const note = document.createElement('div');
+    note.className = 'note';
+    note.innerHTML = `<b>本期差异</b><p>等权 Top3 ${(shadow.arms?.equal?.top3||[]).join('/')}；全指纹 ${(shadow.arms?.full_cap?.top3||[]).join('/')}；维度封顶 ${(shadow.arms?.dim_cap?.top3||[]).join('/')}。${shadow.differences.top3Changed ? ' 维度封顶改变了 Top3，先当压力测试看，不直接采用。' : ' 三路 Top3 一致，本期没有分歧。'}</p>`;
+    box.appendChild(note);
+  }
+}
+
+function renderTabs(){
+  const tabs = [['full','全指纹'],['nine','九肖'],['kill','杀三'],['tail','尾数']];
+  $('tabs').innerHTML = tabs.map(([k,l]) => `<button class="tab ${TAB===k?'on':''}" data-tab="${k}">${l}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { TAB=b.dataset.tab; renderTabs(); renderGroups(); });
+}
+
+function renderGroups(){
+  const c = IND.counts || {}, d = IND.dimensions || {};
+  let title, groups;
+  if (TAB === 'full') { title='全指纹重复'; groups = c.fullDuplicates || []; }
+  else { title='重复组'; groups = (d[TAB]?.duplicateGroups) || []; }
+  const box = $('groups');
+  if (!groups.length) { box.innerHTML = `<div class="msg">${TAB==='full'?'没有全指纹重复组。':'这一维没有重复组。'}</div>`; return; }
+  const shown = groups.slice(0, 8);
+  box.innerHTML = `<div class="card"><h3>${title} <span class="tag gray">${groups.length} 组</span></h3><p>同组代表同一取值；同九肖只说明这一维重票，不等同整站复制。</p></div>` +
+    shown.map(g => `<div class="group"><div class="group-head"><b>${TAB==='full'?'8 维全指纹完全一致':esc((g.value||[]).join(' / ') || '空指纹')}</b><span class="tag ${TAB==='full'?'green':'blue'}">${g.size} 站</span></div><p>${g.members.map(m=>esc(m.name)).join('、')}</p></div>`).join('') +
+    (groups.length > shown.length ? `<div class="msg">还有 ${groups.length - shown.length} 组；先看前 8 组。</div>` : '');
+}
+
+function renderTrack(valid){
+  const v = valid || {};
+  $('track-tag').textContent = v.status || 'COLLECTING';
+  $('track-line').textContent = `n=${v.n ?? 0} · 最近期 ${v.lastPeriod ?? '-'} · 325 起算；20 期才进入 REVIEW。`;
+  const arms = v.arms || {};
+  $('track-arms').textContent = ['equal','full_cap','dim_cap'].map(k => {
+    const a = arms[k]; if(!a) return `${k}: -`;
+    return `${k}: Top3 ${a.top3?.hits ?? 0}/${a.n ?? 0} (${pct(a.top3?.rate)}) · 平均排名 ${a.meanRank ?? '-'}`;
+  }).join('\n');
+}
+
+Promise.all([
+  fetch('data/independence.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('independence')),
+  fetch('data/weight-shadow.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-shadow')),
+  fetch('data/weight-validation.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-validation'))
+]).then(([i,s,v])=>render(i,s,v)).catch(e=>{
+  console.error(e);
+  $('error').style.display='block';
+  $('error').textContent='数据读取失败：请确认 data/independence.json、data/weight-shadow.json、data/weight-validation.json 已发布。';
+  $('arms').innerHTML='<div class="msg">读取失败</div>';
+  $('groups').innerHTML='<div class="msg">读取失败</div>';
+});
+</script>
+</body>
+</html>
