@@ -55,6 +55,18 @@ h1{margin:6px 0 4px;font-size:25px;letter-spacing:-.02em}
 .note li{margin:2px 0}
 .msg{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;color:var(--muted);font-size:13px}
 .footer{text-align:center;color:var(--muted);font-size:11px;padding:22px 10px 0}
+.sum.clickable{cursor:pointer;transition:background .15s,border-color .15s}
+.sum.clickable:hover{background:#f7f9ff;border-color:#b8c9f2}
+.sum .go{display:inline-block;margin-top:3px;font-size:11px;color:var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{display:inline-block;padding:3px 9px;border-radius:8px;background:#eef2f7;color:var(--ink);font-size:12px}
+.members{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mem{display:inline-flex;flex-direction:column;gap:1px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fafbfe;min-width:0}
+.mem b{font-size:12px;font-weight:600;white-space:nowrap}
+.mem i{font-style:normal;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.frow{display:flex;gap:8px;align-items:flex-start;margin-top:7px}
+.frow .flabel{flex:0 0 52px;font-size:11px;color:var(--muted);line-height:22px}
+.frow .chips{margin-top:0}
 @media(min-width:620px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.arms{grid-template-columns:repeat(3,minmax(0,1fr))}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
@@ -77,10 +89,10 @@ h1{margin:6px 0 4px;font-size:25px;letter-spacing:-.02em}
 
   <div class="section-title"><h2>先看结论</h2><small>同九肖 ≠ 同模板</small></div>
   <div class="summary">
-    <div class="sum"><div><b id="s-full">-</b><br><span>全指纹独立模板</span></div><div class="right"><span class="tag green">整站封顶</span><p id="s-full-note" style="margin:4px 0 0">-</p></div></div>
-    <div class="sum"><div><b id="s-nine">-</b><br><span>九肖独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-nine-note" style="margin:4px 0 0">-</p></div></div>
-    <div class="sum"><div><b id="s-kill">-</b><br><span>杀三独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-kill-note" style="margin:4px 0 0">-</p></div></div>
-    <div class="sum"><div><b id="s-tail">-</b><br><span>尾数独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-tail-note" style="margin:4px 0 0">-</p></div></div>
+    <div class="sum clickable" data-dim="full"><div><b id="s-full">-</b><br><span>全指纹独立模板</span></div><div class="right"><span class="tag green">整站封顶</span><p id="s-full-note" style="margin:4px 0 0">-</p><span class="go">查看同组 ›</span></div></div>
+    <div class="sum clickable" data-dim="nine"><div><b id="s-nine">-</b><br><span>九肖独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-nine-note" style="margin:4px 0 0">-</p><span class="go">查看同组 ›</span></div></div>
+    <div class="sum clickable" data-dim="kill"><div><b id="s-kill">-</b><br><span>杀三独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-kill-note" style="margin:4px 0 0">-</p><span class="go">查看同组 ›</span></div></div>
+    <div class="sum clickable" data-dim="tail"><div><b id="s-tail">-</b><br><span>尾数独立组合</span></div><div class="right"><span class="tag blue">维度封顶</span><p id="s-tail-note" style="margin:4px 0 0">-</p><span class="go">查看同组 ›</span></div></div>
   </div>
 
   <div class="section-title"><h2>325 权重影子账</h2><small id="shadow-state">PREVIEW · 未开奖</small></div>
@@ -116,6 +128,7 @@ h1{margin:6px 0 4px;font-size:25px;letter-spacing:-.02em}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let IND = null, SHADOW = null, VALID = null, TAB = 'full';
+const FULL_DIMS=[['nine','九肖'],['kill','杀三'],['pingte','平特'],['wave','波色'],['tail','尾数'],['head','头数'],['size','大小'],['parity','单双']];
 
 function pct(x){ return x == null ? '-' : (x * 100).toFixed(1) + '%'; }
 function num(x){ return x == null ? '-' : Number(x).toLocaleString('zh-CN'); }
@@ -142,6 +155,21 @@ function render(ind, shadow, valid){
   renderTabs();
   renderGroups();
   renderTrack(valid);
+  bindSummary();
+}
+
+function bindSummary(){
+  document.querySelectorAll('.sum.clickable').forEach(card => {
+    card.onclick = () => selectTab(card.dataset.dim);
+  });
+}
+
+function selectTab(dim){
+  TAB = dim;
+  renderTabs();
+  renderGroups();
+  const el = $('groups');
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function renderArms(shadow){
@@ -174,6 +202,21 @@ function renderTabs(){
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { TAB=b.dataset.tab; renderTabs(); renderGroups(); });
 }
 
+function valChips(arr){
+  if(!arr || !arr.length) return `<span class="chip" style="color:var(--muted)">—</span>`;
+  return arr.map(v=>`<span class="chip">${esc(v)}</span>`).join('');
+}
+function membersHtml(members){
+  return (members||[]).map(m=>`<span class="mem"><b>${esc(m.name)}</b><i>${esc(m.siteId||'')}</i></span>`).join('');
+}
+function fullFingers(value){
+  const arr = Array.isArray(value) ? value : [];
+  return FULL_DIMS.map(([k,label],i)=>{
+    const picks = arr[i] || [];
+    return `<div class="frow"><span class="flabel">${label}</span><div class="chips">${picks.length ? picks.map(v=>`<span class="chip">${esc(v)}</span>`).join('') : '<span class="chip" style="color:var(--muted)">—</span>'}</div></div>`;
+  }).join('');
+}
+
 function renderGroups(){
   const c = IND.counts || {}, d = IND.dimensions || {};
   let title, groups;
@@ -182,8 +225,11 @@ function renderGroups(){
   const box = $('groups');
   if (!groups.length) { box.innerHTML = `<div class="msg">${TAB==='full'?'没有全指纹重复组。':'这一维没有重复组。'}</div>`; return; }
   const shown = groups.slice(0, 8);
-  box.innerHTML = `<div class="card"><h3>${title} <span class="tag gray">${groups.length} 组</span></h3><p>同组代表同一取值；同九肖只说明这一维重票，不等同整站复制。</p></div>` +
-    shown.map(g => `<div class="group"><div class="group-head"><b>${TAB==='full'?'8 维全指纹完全一致':esc((g.value||[]).join(' / ') || '空指纹')}</b><span class="tag ${TAB==='full'?'green':'blue'}">${g.size} 站</span></div><p>${g.members.map(m=>esc(m.name)).join('、')}</p></div>`).join('') +
+  const isFull = TAB === 'full';
+  box.innerHTML = `<div class="card"><h3>${title} <span class="tag gray">${groups.length} 组</span></h3><p>同组代表推荐的是同一套取值；点开顶部对应卡片可直达。同九肖只说明这一维重票，不等同整站复制。</p></div>` +
+    shown.map(g => `<div class="group"><div class="group-head"><b>${isFull ? '8 维全指纹完全一致' : '同票组合'}</b><span class="tag ${isFull?'green':'blue'}">${g.size} 站</span></div>` +
+      (isFull ? fullFingers(g.value) : `<div class="chips">${valChips(g.value)}</div>`) +
+      `<div class="members">${membersHtml(g.members)}</div></div>`).join('') +
     (groups.length > shown.length ? `<div class="msg">还有 ${groups.length - shown.length} 组；先看前 8 组。</div>` : '');
 }
 
