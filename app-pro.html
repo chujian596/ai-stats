@@ -118,6 +118,7 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 #tab-rank>div:first-child,#tab-rank>div:nth-child(2){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;margin-bottom:7px!important}
 .rank-btn{display:flex!important;align-items:center!important;justify-content:center!important;background:#f7f9fd!important;border:1px solid #e5eaf2!important;border-radius:10px!important;min-height:38px!important;padding:6px 3px!important;font-size:12px!important;font-weight:700!important;color:#3d4b5e!important;box-shadow:none!important;margin:0!important;line-height:1.2!important}
 .rank-btn:active{background:#e9efff!important;color:#2457d6!important}
+.rank-btn.on{background:#e9efff!important;border-color:#a9c2f5!important;color:#2457d6!important;box-shadow:inset 0 0 0 1px rgba(36,87,214,.12)!important}
 #tab-rank table{font-size:12px!important}
 #tab-rank th,#tab-rank td{padding:5px 3px!important}
 #riskBody,#rank-singles,#rank-split,#rank-pay{font-size:12px!important;line-height:1.6!important}
@@ -259,17 +260,17 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 
   <section id="tab-rank" class="card tab-panel pro-panel">
     <div style="display:flex;gap:6px;margin-bottom:6px">
-      <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
+      <div data-rank-section="rank" onclick="openRankSection('rank')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
       <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
 
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
-      <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
-      <div onclick="var e=document.getElementById('splitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
-      <div onclick="var e=document.getElementById('profitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
-      <div onclick="var e=document.getElementById('singlesList');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
+      <div data-rank-section="risk" onclick="openRankSection('risk')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
+      <div data-rank-section="split" onclick="openRankSection('split')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
+      <div data-rank-section="profit" onclick="openRankSection('profit')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
+      <div data-rank-section="singles" onclick="openRankSection('singles')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
     </div>
     <div id="rankTableBody" style="display:none;text-align:left">
     <div style="display:flex;gap:4px">
@@ -757,7 +758,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.67-Pro';
+var APP_VER = 'v59.68-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10734,6 +10735,7 @@ function renderStatsSections(stats){
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
+  try { applyRankSectionState(); } catch(e){}
 }
 
 function renderAll(){
@@ -10802,6 +10804,31 @@ function renderAll(){
     warn.style.display = 'none';
   }
   try { renderStorageQuotaWarning(); } catch(e){}
+}
+
+var _rankOpen = '';
+function applyRankSectionState(){
+  var p = {rank:'rankTableBody', singles:'rank-singles', split:'rank-split', profit:'rank-pay', risk:'riskBody'};
+  Object.keys(p).forEach(function(k){
+    var el = document.getElementById(p[k]);
+    if(el) el.style.display = (k === _rankOpen ? 'block' : 'none');
+  });
+  if(_rankOpen === 'singles'){ var l = document.getElementById('singlesList'); if(l) l.style.display = 'block'; }
+  if(_rankOpen === 'split'){ var sp = document.getElementById('splitBody'); if(sp) sp.style.display = 'block'; }
+  if(_rankOpen === 'profit'){ var pb = document.getElementById('profitBody'); if(pb) pb.style.display = 'block'; }
+  var btns = document.querySelectorAll('.rank-btn[data-rank-section]');
+  for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-rank-section') === _rankOpen);
+}
+function openRankSection(key){
+  _rankOpen = (_rankOpen === key ? '' : key);
+  if(_rankOpen === 'split'){
+    try { calcSplit(); refreshFlySummary(); } catch(e){}
+  }
+  applyRankSectionState();
+  if(_rankOpen){
+    var anchor = document.querySelector('.pro-tabs') || document.getElementById('tab-rank');
+    if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'start'});
+  }
 }
 
 function switchTab(name){
