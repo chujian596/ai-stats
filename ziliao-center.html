@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<title>资料中心 · 本期资料 / 九肖 / 杀三肖</title>
+<style>
+  :root{
+    --bg:#f3f1ea; --bg-2:#ece8df; --card:#fffdf9; --card-2:#f8f5ef;
+    --text:#17202b; --muted:#70766f; --faint:#989e97;
+    --line:#ded8cb; --line-soft:#ece7dc;
+    --accent:#2456a6; --accent-2:#173f7a; --accent-soft:#e9eff9;
+    --green:#1f7a4c; --green-soft:#e8f4ed;
+    --red:#c8322b; --red-soft:#fbeaea;
+    --amber:#a97608; --amber-soft:#fbf1d9;
+    --shadow:0 16px 40px rgba(31,36,48,.08);
+    --shadow-sm:0 6px 18px rgba(31,36,48,.06);
+    --radius:20px;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --bg-2:#0e1727; --card:#111c2e; --card-2:#152238;
+      --text:#e7edf7; --muted:#9aa8bc; --faint:#74839a;
+      --line:#26364d; --line-soft:#1d2b40;
+      --accent:#6ea8ff; --accent-2:#a7c8ff; --accent-soft:#14284a;
+      --green:#5bd39a; --green-soft:#10261f;
+      --red:#ff8b84; --red-soft:#2c1519;
+      --amber:#e8bd66; --amber-soft:#2e2410;
+      --shadow:0 18px 50px rgba(0,0,0,.28);
+      --shadow-sm:0 8px 24px rgba(0,0,0,.2);
+      color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bg)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.55}
+  a{color:inherit;text-decoration:none}
+  button,input,select{font:inherit}
+  button{cursor:pointer}
+  .hidden{display:none!important}
+  .page{max-width:1040px;margin:0 auto;padding:14px 16px 54px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px}
+  .brand{display:flex;align-items:center;gap:9px;min-width:0}
+  .brand-logo{width:34px;height:34px;border-radius:11px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex:none}
+  .brand-text{display:flex;flex-direction:column;line-height:1.05}
+  .brand-text b{font-size:15px;letter-spacing:.02em}
+  .brand-text small{font-size:9px;letter-spacing:.16em;color:var(--muted);margin-top:4px;font-weight:700}
+  .top-actions{display:flex;align-items:center;gap:6px}
+  .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:7px 9px;color:var(--muted);font-size:12px;white-space:nowrap}
+  .ghost:hover{color:var(--text);border-color:var(--faint)}
+  .hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(135deg,#10264c 0%,#173b6b 52%,#0f223f 100%);color:#fff;padding:24px 22px 20px;margin-bottom:12px;box-shadow:0 20px 45px rgba(16,38,76,.22)}
+  .hero::after{content:"";position:absolute;right:-62px;top:-82px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(123,168,255,.38),rgba(123,168,255,0) 68%);pointer-events:none}
+  .hero-grid{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:relative;z-index:1}
+  .kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#b9d1ff;margin-bottom:9px}
+  .hero h1{margin:0;font-size:30px;letter-spacing:-.03em;line-height:1.1}
+  .hero p{margin:9px 0 0;color:#c7d8f5;font-size:13px;max-width:620px}
+  .hero-side{text-align:right;flex:none}
+  .status-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+  .status-pill.live::before{content:"";width:5px;height:5px;border-radius:50%;background:#5bd39a}
+  .status-pill.warn{background:rgba(232,189,102,.16);border-color:rgba(232,189,102,.4);color:#ffe2a7}
+  .hero-period{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:9px}
+  .hero-updated{font-size:10px;color:#a9c1e8;margin-top:3px;white-space:nowrap}
+  .tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
+  .tabbar button{position:relative;border:0;border-radius:11px;padding:10px 7px;background:transparent;color:var(--muted);font-size:13px;font-weight:750;white-space:nowrap}
+  .tabbar button.on{background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(36,86,166,.18)}
+  .tabbar button .cnt{display:block;font-size:9px;font-weight:600;opacity:.72;margin-top:2px}
+  .tabbar button.on .cnt{opacity:.9}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+  .panel-head{padding:17px 16px 13px;border-bottom:1px solid var(--line-soft);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--faint);margin-bottom:5px}
+  .panel-head h2{margin:0;font-size:18px;letter-spacing:-.02em;line-height:1.25}
+  .panel-head p{margin:6px 0 0;color:var(--muted);font-size:11.5px;line-height:1.65;max-width:720px}
+  .badge{flex:none;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800;white-space:nowrap}
+  .badge.pending{background:var(--amber-soft);color:var(--amber)}
+  .badge.done{background:var(--green-soft);color:var(--green)}
+  .section{padding:15px 16px}
+  .summary-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 11px}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:var(--card-2);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:600}
+  .chip.accent{background:var(--accent-soft);border-color:transparent;color:var(--accent-2)}
+  .chip.warn{background:var(--amber-soft);border-color:transparent;color:var(--amber)}
+  .chip.good{background:var(--green-soft);border-color:transparent;color:var(--green)}
+  .chip .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat-card{background:var(--card-2);border:1px solid var(--line-soft);border-radius:15px;padding:12px 13px;min-height:72px}
+  .stat-card .label{font-size:10px;color:var(--muted);font-weight:700}
+  .stat-card .value{font-size:23px;font-weight:800;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .stat-card .value small{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:3px}
+  .stat-card .hint{font-size:10px;color:var(--faint);margin-top:2px}
+  .two-col{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}
+  .subcard{border:1px solid var(--line-soft);border-radius:14px;background:var(--card-2);padding:12px 13px;min-width:0}
+  .subcard h3{margin:0 0 2px;font-size:13px}
+  .subcard .subhint{font-size:10px;color:var(--faint);margin-bottom:8px}
+  .rank-list{display:flex;flex-direction:column;gap:5px}
+  .rank-row{display:flex;align-items:center;gap:8px;min-width:0}
+  .rank-no{width:21px;height:21px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--card);color:var(--muted);font-size:10px;font-weight:800;flex:none}
+  .rank-no.top{background:var(--accent);color:#fff}
+  .rank-name{flex:1;min-width:42px;font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-bar{flex:0 1 100px;height:7px;border-radius:5px;background:var(--card);overflow:hidden;min-width:40px}
+  .rank-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),#7ea9e8)}
+  .rank-bar.kill i{background:linear-gradient(90deg,var(--red),#e98c86)}
+  .rank-count{width:44px;flex:none;text-align:right;font-size:10.5px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .ledger-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 12px;background:var(--card-2);border:1px solid var(--line-soft);border-radius:13px;margin-bottom:9px}
+  .period-box{display:flex;align-items:center;gap:7px;padding-right:7px;border-right:1px solid var(--line);margin-right:2px}
+  .period-box label{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .period-box select{max-width:190px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 9px;font-size:12px;outline:none}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;font-size:11.5px;font-weight:650;white-space:nowrap}
+  .btn:hover{border-color:var(--faint)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .filterbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin:0 0 11px}
+  .filterbar input,.filterbar select{border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--text);padding:8px 9px;font-size:12px;outline:none;min-width:0}
+  .filterbar input::placeholder{color:var(--faint)}
+  .filter-chips{display:flex;flex-wrap:wrap;gap:5px;grid-column:1/-1}
+  .filter-chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:700}
+  .filter-chip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+  .site-grid{display:grid;grid-template-columns:1fr;gap:8px}
+  .site-card{border:1px solid var(--line-soft);border-radius:13px;background:var(--card-2);overflow:hidden;min-width:0}
+  .site-card-body{padding:11px 12px}
+  .site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+  .site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-word}
+  .site-name .tag{display:inline-block;font-size:8.5px;font-weight:800;border-radius:5px;padding:2px 4px;margin-left:4px;vertical-align:1px;background:var(--accent-soft);color:var(--accent-2)}
+  .site-name .tag.carry{background:var(--amber-soft);color:var(--amber)}
+  .site-name .tag.change{background:var(--amber-soft);color:var(--amber)}
+  .site-sub{font-size:9.5px;color:var(--faint);margin-top:3px;line-height:1.35;word-break:break-all}
+  .site-right{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+  .tag-count{font-size:9.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px;white-space:nowrap}
+  .hit-badge{font-size:9.5px;font-weight:800;border-radius:6px;padding:3px 6px;white-space:nowrap}
+  .hit-badge.hit{background:var(--green-soft);color:var(--green)}
+  .hit-badge.miss{background:var(--red-soft);color:var(--red)}
+  .hit-badge.unk{background:var(--card);color:var(--faint)}
+  .mini-block{margin-top:9px}
+  .mini-label{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;color:var(--faint);margin-bottom:5px}
+  .mini-label .n{font-size:9px;font-weight:600;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:5px;padding:1px 4px}
+  .picks{display:flex;flex-wrap:wrap;gap:4px}
+  .pick{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;border-radius:7px;background:var(--card);border:1px solid var(--line-soft);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+  .pick.kill{background:var(--red-soft);border-color:transparent;color:var(--red);text-decoration:line-through;text-decoration-thickness:1px}
+  .mini-dims{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)}
+  .mini-dim{display:flex;align-items:baseline;gap:5px;min-width:0;font-size:10px;color:var(--faint)}
+  .mini-dim em{font-style:normal;font-weight:700;white-space:nowrap;flex:none}
+  .mini-dim b{font-size:10.5px;color:var(--text);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trail-line{display:flex;align-items:center;gap:6px;margin-top:8px;min-width:0}
+  .trail-label{font-size:9px;color:var(--faint);flex:none}
+  .trail{display:flex;gap:2px;flex-wrap:wrap}
+  .t{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:4px;font-size:9px;font-weight:800;color:#fff;flex:none}
+  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:var(--faint);color:var(--bg)}
+  .ledger-card summary{list-style:none;cursor:pointer;padding:11px 12px;display:block}
+  .ledger-card summary::-webkit-details-marker{display:none}
+  .ledger-card summary:hover{background:var(--card)}
+  .ledger-card[open] summary{border-bottom:1px solid var(--line-soft)}
+  .ledger-metrics{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;font-size:9.5px;color:var(--faint)}
+  .ledger-metrics b{font-weight:750;color:var(--text);font-variant-numeric:tabular-nums}
+  .ledger-metrics .w{color:var(--green)} .ledger-metrics .l{color:var(--red)}
+  .site-detail{padding:10px 12px 12px;background:var(--card)}
+  .detail-table{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed}
+  .detail-table th,.detail-table td{padding:6px 4px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top;word-break:break-all}
+  .detail-table th{font-size:9px;color:var(--faint);font-weight:700}
+  .detail-table tr:last-child td{border-bottom:0}
+  .detail-table .zp{display:flex;flex-wrap:wrap;gap:2px}
+  .detail-table .zp .pick{min-width:21px;height:21px;font-size:10.5px;padding:0 4px}
+  .detail-table .raw{font-size:9px;color:var(--faint);margin-top:2px;line-height:1.4;word-break:break-all}
+  .empty{padding:26px 16px;text-align:center;color:var(--faint);font-size:12px;font-style:italic}
+  .empty-mini{color:var(--faint);font-size:10px}
+  .more-row{display:flex;justify-content:center;padding:10px 0 2px}
+  .warn{font-size:10.5px;color:var(--amber);line-height:1.55;margin:0 2px 10px}
+  .foot{border-top:1px solid var(--line);margin-top:18px;padding:13px 2px 0;font-size:10px;color:var(--faint);line-height:1.7;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .modal{position:fixed;inset:0;background:rgba(10,18,30,.58);display:flex;align-items:center;justify-content:center;padding:18px;z-index:90}
+  .modal-card{width:min(680px,100%);max-height:82vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .modal-head h2{margin:0;font-size:18px}
+  .modal-close{border:1px solid var(--line);background:var(--card-2);border-radius:9px;padding:5px 9px;color:var(--muted)}
+  .doc p{font-size:12px;line-height:1.8;color:var(--muted);margin:0 0 9px}
+  .doc b{color:var(--text)}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:var(--text);color:var(--bg);font-size:12px;font-weight:600;padding:9px 14px;border-radius:999px;z-index:100;transition:.2s ease;max-width:calc(100vw - 40px);text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-color-scheme:dark){
+    .tabbar button.on{background:#2f67b5;color:#fff}
+    .tabbar button.on .cnt{opacity:.9}
+  }
+  @media (min-width:620px){
+    .two-col{grid-template-columns:1fr 1fr}
+    .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  }
+  @media (min-width:900px){ .site-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (max-width:640px){
+    .page{padding:11px 12px 42px}
+    .hero{padding:19px 17px 16px;border-radius:22px}
+    .hero-grid{align-items:flex-start;flex-direction:column;gap:13px}
+    .hero h1{font-size:27px}
+    .hero-side{text-align:left;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%}
+    .hero-period{margin-top:0;font-size:15px}
+    .hero-updated{width:100%;margin-top:-4px}
+    .panel-head{padding:15px 13px 11px}
+    .section{padding:13px}
+    .tabbar button{font-size:12px;padding:9px 5px}
+    .tabbar button .cnt{font-size:8.5px}
+    .period-box{width:100%;border-right:0;margin-right:0;padding:0 0 7px;border-bottom:1px solid var(--line)}
+    .period-box select{flex:1;max-width:none}
+    .lexicon .filterbar{grid-template-columns:minmax(0,1fr)}
+    .filterbar select{width:100%}
+    .site-card-body{padding:10px 11px}
+    .ledger-card summary{padding:10px 11px}
+    .stat-card{padding:10px 11px;min-height:66px}
+    .stat-card .value{font-size:21px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="stats.html" title="返回资料统计">
+      <span class="brand-logo">资</span>
+      <span class="brand-text"><b>资料统计</b><small>DATA ROOM</small></span>
+    </a>
+    <div class="top-actions">
+      <a class="ghost" href="stats.html">总览</a>
+      <a class="ghost" href="extra-ledger.html">扩展维度</a>
+      <button class="ghost" id="openRules" type="button">说明</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <div class="kicker">DATA CENTER · v1.0 / ONE PAGE</div>
+        <h1>资料中心</h1>
+        <p>本期资料、每站九肖、每站杀三肖合到一页。先看共识，再按站核对，不用来回跳页面。</p>
+      </div>
+      <div class="hero-side">
+        <span class="status-pill warn" id="heroStatus">待开</span>
+        <div class="hero-period" id="heroPeriod">—</div>
+        <div class="hero-updated" id="heroUpdated">数据加载中</div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="tabbar" id="tabbar" aria-label="资料视图">
+    <button type="button" data-tab="now" class="on">本期资料<span class="cnt" id="tabNowCount">—</span></button>
+    <button type="button" data-tab="nine">九肖<span class="cnt" id="tabNineCount">—</span></button>
+    <button type="button" data-tab="kill">杀三肖<span class="cnt" id="tabKillCount">—</span></button>
+  </nav>
+
+  <!-- ===== 视图：本期资料 ===== -->
+  <section class="view" id="view-now">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow" id="nowEyebrow">ISSUE — · PENDING</div>
+          <h2>本期资料 · 全站一页看完</h2>
+          <p id="nowSub">每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。</p>
+        </div>
+        <span class="badge pending" id="nowBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="nowChips"></div>
+        <div class="stats" id="nowStats"></div>
+        <div class="two-col">
+          <div class="subcard">
+            <h3>九肖共识 · Top</h3>
+            <div class="subhint" id="nowNineHint">按站次统计，票不是金额</div>
+            <div id="nowNineRank"><div class="empty">读取中…</div></div>
+          </div>
+          <div class="subcard">
+            <h3>杀三肖共识 · Top</h3>
+            <div class="subhint" id="nowKillHint">按站次统计，票不是金额</div>
+            <div id="nowKillRank"><div class="empty">读取中…</div></div>
+          </div>
+        </div>
+        <div class="filterbar" id="nowFilters">
+          <input id="nowSearch" type="search" placeholder="搜站名 / 站号 / 系统">
+          <select id="nowSort">
+            <option value="name">按站名</option>
+            <option value="nine">九肖多在前</option>
+            <option value="kill">杀三多在前</option>
+            <option value="fresh">新料优先</option>
+          </select>
+          <div class="filter-chips" id="nowFilterChips">
+            <button type="button" class="filter-chip on" data-f="all">全部</button>
+            <button type="button" class="filter-chip" data-f="nine">有九肖</button>
+            <button type="button" class="filter-chip" data-f="kill">有杀三</button>
+            <button type="button" class="filter-chip" data-f="six">有六维</button>
+          </div>
+        </div>
+        <div id="nowCards" class="site-grid"></div>
+        <div id="nowMore" class="more-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：九肖 ===== -->
+  <section class="view hidden" id="view-nine">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">NINE-ZODIAC LEDGER · 每站九肖</div>
+          <h2>九肖台账</h2>
+          <p id="nineSub">逐站看九肖原序、近 7 期轨迹、连对连错；点开卡片看最近 10 期明细。</p>
+        </div>
+        <span class="badge pending" id="nineBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="nineChips"></div>
+        <div class="stats" id="nineStats"></div>
+        <div class="ledger-toolbar">
+          <div class="period-box"><label for="ninePeriod">期号</label><select id="ninePeriod"></select></div>
+          <button class="btn primary" id="nineBack" type="button">回到待开</button>
+          <button class="btn" id="nineExpand" type="button">展开全部</button>
+          <div style="flex:1"></div><span class="chip" id="nineModeChip">—</span>
+        </div>
+        <div class="two-col">
+          <div class="subcard">
+            <h3>九肖共识 · Top</h3>
+            <div class="subhint" id="nineRankHint">按站次统计</div>
+            <div id="nineRank"></div>
+          </div>
+          <div class="subcard">
+            <h3>本页读法</h3>
+            <div class="doc" style="padding-top:2px">
+              <p><b>中</b> = 开奖特肖在 9 肖内；<b>错</b> = 不在。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。样本不足只记录，不定论。</p>
+            </div>
+          </div>
+        </div>
+        <div class="filterbar" id="nineFilters">
+          <input id="nineSearch" type="search" placeholder="搜站名 / 站号 / 系统">
+          <select id="nineSort">
+            <option value="name">按站名</option>
+            <option value="loss">连错多在前</option>
+            <option value="win">连对多在前</option>
+            <option value="totalLoss">总错多在前</option>
+          </select>
+          <div class="filter-chips" id="nineFilterChips"></div>
+        </div>
+        <div id="nineList" class="site-grid"></div>
+        <div id="nineMore" class="more-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：杀三肖 ===== -->
+  <section class="view hidden" id="view-kill">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">KILL-3 LEDGER · 每站杀三肖</div>
+          <h2>杀三肖台账</h2>
+          <p id="killSub">逐站看被杀三肖、近 7 期轨迹、连对连错；点开卡片看最近 10 期明细。</p>
+        </div>
+        <span class="badge pending" id="killBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="killChips"></div>
+        <div class="stats" id="killStats"></div>
+        <div class="ledger-toolbar">
+          <div class="period-box"><label for="killPeriod">期号</label><select id="killPeriod"></select></div>
+          <button class="btn primary" id="killBack" type="button">回到待开</button>
+          <button class="btn" id="killExpand" type="button">展开全部</button>
+          <div style="flex:1"></div><span class="chip" id="killModeChip">—</span>
+        </div>
+        <div class="two-col">
+          <div class="subcard">
+            <h3>杀三共识 · Top</h3>
+            <div class="subhint" id="killRankHint">按站次统计</div>
+            <div id="killRank"></div>
+          </div>
+          <div class="subcard">
+            <h3>本页读法</h3>
+            <div class="doc" style="padding-top:2px">
+              <p><b>杀中</b> = 开奖特肖不在所杀 3 肖内；<b>杀错</b> = 特肖正好落在被杀 3 肖内。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。</p>
+            </div>
+          </div>
+        </div>
+        <div class="filterbar" id="killFilters">
+          <input id="killSearch" type="search" placeholder="搜站名 / 站号 / 系统">
+          <select id="killSort">
+            <option value="name">按站名</option>
+            <option value="loss">连错多在前</option>
+            <option value="win">连对多在前</option>
+            <option value="totalLoss">总错多在前</option>
+          </select>
+          <div class="filter-chips" id="killFilterChips"></div>
+        </div>
+        <div id="killList" class="site-grid"></div>
+        <div id="killMore" class="more-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>资料统计 · 只记录，不定论 · v1.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger</span></div>
+</div>
+
+<div class="modal hidden" id="rulesModal" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div><div class="eyebrow">READING GUIDE</div><h2>这一页怎么看</h2></div>
+      <button class="modal-close" id="closeRules" type="button">×</button>
+    </div>
+    <div class="doc">
+      <p><b>本期资料：</b>每站本期公开资料的原样汇总。九肖看“哪 9 个肖被写进推荐”，杀三肖看“哪 3 个肖被杀”；下面六维是平特、波色、尾数、头数、大小、单双。</p>
+      <p><b>九肖 / 杀三肖：</b>点顶部第二个或第三个标签进入逐站台账；期号选“待开”看本期原始推荐，选已开奖期看中错、连对连错、近 7 期轨迹和最近 10 期明细。</p>
+      <p><b>票数口径：</b>1 个站、1 个栏目算 1 票（站次），不是金额，也不是下注量。九肖每站 9 个肖，杀三肖每站 3 个肖。</p>
+      <p><b>命中规则：</b>九肖：开奖特肖在 9 肖内记“中”；杀三肖：开奖特肖不在所杀 3 肖内记“杀中”。历史命中率只做描述，不构成下期结论。</p>
+      <p><b>数据来源：</b>本期汇总读 <b>data/current-recommend.json</b>；九肖台账读 <b>data/max-zodiac-ledger.json</b>；杀三肖台账读 <b>data/kill3-ledger.json</b>；站名对照读 <b>data/site-aliases.json</b>。</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+  var ZOD=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  var EXTRA=[
+    {key:'pingte',label:'平特'},
+    {key:'wave',label:'波色'},
+    {key:'tail',label:'尾数'},
+    {key:'head',label:'头数'},
+    {key:'size',label:'大小'},
+    {key:'parity',label:'单双'}
+  ];
+  var S={
+    tab:'now', pend:null, nine:null, kill:null, aliases:{},
+    q:{now:'',nine:'',kill:''},
+    f:{now:'all',nine:'has',kill:'has'},
+    sort:{now:'name',nine:'name',kill:'name'},
+    limit:{now:30,nine:30,kill:30},
+    per:{nine:'pending',kill:'pending'},
+    loadError:''
+  };
+  var $=function(id){return document.getElementById(id);};
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function num(v){var n=Number(v);return isFinite(n)?n:0;}
+  function fetchJson(u){
+    return fetch(u+(u.indexOf('?')>=0?'&':'?')+'t='+Date.now(),{cache:'no-cache'}).then(function(r){
+      if(!r.ok) throw new Error(u+' 读取失败 ('+r.status+')');
+      return r.json();
+    });
+  }
+  function keyOf(s){return s.siteId || ((s.system||'')+':'+(s.siteKey||''));}
+  function aliasOf(k,s){
+    var A=S.aliases||{};
+    return A[k] || A[(s&&s.system||'')+':'+(s&&s.siteKey||'')] || A[s&&s.siteKey] || A[(s&&s.siteKey)||''] || '';
+  }
+  function nameOf(s,k){
+    return (s&& (s.siteName || s.name)) || aliasOf(k,s) || (s&&s.displayName) || (s&&s.siteKey) || k || '—';
+  }
+  function subOf(s){
+    var a=[]; if(s&&s.siteKey)a.push(s.siteKey); if(s&&s.system)a.push(s.system); return a.join(' · ');
+  }
+  function zarr(s,kind){ return kind==='nine' ? (s&&s.zodiacs||[]) : (s&&s.killZodiacs||s&&s.killZodiacs||[]); }
+  function extraPicks(s,k){ var o=(s&&s[k])||{}; return (o.picks||[]).map(String); }
+  function hasSix(s){ return EXTRA.some(function(d){return extraPicks(s,d.key).length;}); }
+  function countOf(arr,getter){
+    var c={};
+    (arr||[]).forEach(function(x){ (getter(x)||[]).forEach(function(v){ v=String(v); if(!v)return; c[v]=(c[v]||0)+1; }); });
+    return c;
+  }
+  function topRows(c,n){
+    return Object.keys(c).map(function(k){return {name:k,n:c[k]};}).sort(function(a,b){return b.n-a.n || ZOD.indexOf(a.name)-ZOD.indexOf(b.name);}).slice(0,n||8);
+  }
+  function sumZ(arr,kind){ return (arr||[]).reduce(function(a,s){return a+(kind==='nine'?(s.zodiacs||[]).length:(s.killZodiacs||[]).length);},0); }
+  function rankHtml(rows, total, kind){
+    if(!rows.length) return '<div class="empty">本期暂无数据</div>';
+    var max=rows[0].n||1;
+    return '<div class="rank-list">'+rows.map(function(r,i){
+      return '<div class="rank-row"><span class="rank-no'+(i===0?' top':'')+'">'+(i+1)+'</span><span class="rank-name">'+esc(r.name)+'</span><span class="rank-bar'+(kind==='kill'?' kill':'')+'"><i style="width:'+Math.round(r.n/max*100)+'%"></i></span><span class="rank-count">'+r.n+' 票</span></div>';
+    }).join('')+'</div><div class="subhint" style="margin-top:7px">合计 '+(total||rows.reduce(function(a,r){return a+r.n;},0))+' 票 · 按站次</div>';
+  }
+  function statCard(label,value,unit,hint){
+    return '<div class="stat-card"><div class="label">'+esc(label)+'</div><div class="value">'+esc(value)+(unit?'<small>'+esc(unit)+'</small>':'')+'</div><div class="hint">'+esc(hint||'')+'</div></div>';
+  }
+  function picksHtml(arr,cls,empty){
+    if(!arr||!arr.length) return '<span class="empty-mini">'+esc(empty||'无')+'</span>';
+    return '<div class="picks">'+arr.map(function(z){return '<span class="pick'+(cls?' '+cls:'')+'">'+esc(z)+'</span>';}).join('')+'</div>';
+  }
+  function zPicksHtml(arr,cls,empty){ return picksHtml(arr,cls,empty); }
+  function trailFor(kind,key,base){
+    var L=kind==='nine'?S.nine:S.kill; if(!L) return [];
+    var issues=Object.keys(L.periods).sort(function(a,b){return +a-+b;});
+    var recent=issues.filter(function(i){return +i<=+base;}).slice(-7);
+    return recent.map(function(i){
+      var rr=L.periods[i] && L.periods[i].stations[key];
+      if(!rr||rr.hit===null||rr.hit===undefined) return {cls:'n',tx:'·'};
+      return rr.hit?{cls:'w',tx:kind==='kill'?'中':'中'}:{cls:'l',tx:'错'};
+    });
+  }
+  function trailHtml(arr){
+    if(!arr||!arr.length) return '<span class="empty-mini">无历史</span>';
+    return '<div class="trail">'+arr.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div>';
+  }
+  function streakFor(kind,key,base){
+    var L=kind==='nine'?S.nine:S.kill;
+    var issues=Object.keys(L.periods).sort(function(a,b){return +a-+b;});
+    var w=0,l=0,hits=0,loses=0,seen=0;
+    var r, started=false, cur=false, idx=issues.length-1;
+    while(idx>=0 && +issues[idx]<=+base){
+      r=L.periods[issues[idx]] && L.periods[issues[idx]].stations[key];
+      if(!r || r.hit===null || r.hit===undefined) break;
+      seen++;
+      if(!started){ started=true; cur=!!r.hit; if(cur){hits++;w=1;}else{loses++;l=1;} }
+      else if(!!r.hit===cur){ if(cur){hits++;w++;}else{loses++;l++;} }
+      else break;
+      idx--;
+    }
+    // 总数单独统计（不打断连对/连错）
+    var totalW=0,totalL=0,totalN=0;
+    issues.forEach(function(i){
+      if(+i>+base) return;
+      var rr=L.periods[i] && L.periods[i].stations[key];
+      if(rr && rr.hit!==null && rr.hit!==undefined){ totalN++; if(rr.hit)totalW++; else totalL++; }
+    });
+    return {w:w,l:l,hits:hits,loses:loses,seen:seen,totalW:totalW,totalL:totalL,totalN:totalN};
+  }
+  function detailFor(kind,key,base,currentRow,currentIssue){
+    var L=kind==='nine'?S.nine:S.kill;
+    var issues=Object.keys(L.periods).sort(function(a,b){return +a-+b;}).filter(function(i){return +i<=+base;}).slice(-10).reverse();
+    var rows='';
+    if(currentRow){
+      rows+='<tr><td>'+currentIssue+'</td><td>待开</td><td>'+zPicksHtml(currentRow.zodiacs,'',kind==='nine'?'无':'无')+'</td><td><span class="empty-mini">待开</span></td></tr>';
+    }
+    issues.forEach(function(i){
+      var per=L.periods[i], r=per && per.stations[key];
+      var actual=per && per.actual ? per.actual : '—';
+      var result='—',cls='empty-mini';
+      if(r && r.hit!==null && r.hit!==undefined){ result=kind==='kill'?(r.hit?'杀中':'杀错'):(r.hit?'中':'错'); cls=r.hit?'hit-badge hit':'hit-badge miss'; }
+      rows+='<tr><td>'+i+'</td><td>'+esc(actual)+'</td><td>'+(r?zPicksHtml(r.zodiacs,'',kind==='nine'?'无九肖':'无三肖'):'<span class="empty-mini">—</span>')+'</td><td><span class="'+cls+'">'+esc(result)+'</span></td></tr>';
+    });
+    if(!rows) return '<div class="empty-mini">暂无逐期记录</div>';
+    return '<table class="detail-table"><thead><tr><th style="width:18%">期号</th><th style="width:17%">开奖</th><th>推荐</th><th style="width:18%">结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function setHero(period,status,updated){
+    $('heroPeriod').textContent=period?('第 '+period+' 期'):'—';
+    $('heroUpdated').textContent=updated||'—';
+    var st=$('heroStatus'); st.textContent=status; st.className='status-pill '+(status==='待开'?'warn':'live');
+  }
+  function showToast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(showToast._t);showToast._t=setTimeout(function(){t.classList.remove('show');},1300);}
+
+  // ===== 本期资料 =====
+  function renderNow(){
+    if(!S.pend){ $('nowCards').innerHTML='<div class="empty">本期资料读取失败或还没出。</div>'; return; }
+    var p=S.pend, sites=p.sites||[];
+    setHero(p.period,p.status==='pending'?'待开':'已归档',p.updatedAt);
+    var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
+    var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
+    var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
+    $('nowEyebrow').textContent='ISSUE '+p.period+' · PENDING';
+    $('nowSub').textContent='每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。';
+    $('nowBadge').textContent=p.status==='pending'?'待开':'已归档';
+    $('nowBadge').className='badge '+(p.status==='pending'?'pending':'done');
+    $('tabNowCount').textContent=sites.length+' 站';
+    $('nowChips').innerHTML='<span class="chip accent"><span class="dot"></span>第 '+esc(p.period)+' 期 · 待开</span><span class="chip">快照 '+esc(p.updatedAt||'—')+'</span><span class="chip">采集 '+sites.length+' 站</span>'+(p.carriedCount?'<span class="chip warn">沿用 '+p.carriedCount+' 站</span>':'<span class="chip">全部新料</span>');
+    $('nowStats').innerHTML=
+      statCard('采集站点',sites.length,'站','本期公开资料')+
+      statCard('九肖覆盖',nineSites.length,'站','每站 9 肖')+
+      statCard('杀三覆盖',killSites.length,'站','每站 3 肖')+
+      statCard('平特覆盖',pingSites.length,'站','六维之一');
+    var nAgg=countOf(nineSites,function(s){return s.zodiacs;});
+    var kAgg=countOf(killSites,function(s){return s.killZodiacs;});
+    $('nowNineHint').textContent=nineSites.length+' 站 · '+sumZ(nineSites,'nine')+' 票 · 按站次';
+    $('nowKillHint').textContent=killSites.length+' 站 · '+sumZ(killSites,'kill')+' 票 · 按站次';
+    $('nowNineRank').innerHTML=rankHtml(topRows(nAgg,8),sumZ(nineSites,'nine'),'nine');
+    $('nowKillRank').innerHTML=rankHtml(topRows(kAgg,8),sumZ(killSites,'kill'),'kill');
+    // 按筛选排序
+    var q=(S.q.now||'').trim().toLowerCase();
+    var list=sites.filter(function(s){
+      var f=S.f.now;
+      var hay=[nameOf(s,keyOf(s)),s.siteKey,s.system,s.siteId,s.displayName].join(' ').toLowerCase();
+      if(q && hay.indexOf(q)<0) return false;
+      if(f==='nine' && !(s.zodiacs||[]).length) return false;
+      if(f==='kill' && !(s.killZodiacs||[]).length) return false;
+      if(f==='six' && !hasSix(s)) return false;
+      return true;
+    });
+    var sort=S.sort.now;
+    list.sort(function(a,b){
+      if(sort==='nine') return (b.zodiacs||[]).length-(a.zodiacs||[]).length || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
+      if(sort==='kill') return (b.killZodiacs||[]).length-(a.killZodiacs||[]).length || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
+      if(sort==='fresh') return (b.fresh?1:0)-(a.fresh?1:0) || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
+      return nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
+    });
+    var limit=(q?1000:S.limit.now);
+    var shown=list.slice(0,limit);
+    $('nowCards').innerHTML=shown.map(function(s){return nowCard(s);}).join('') || '<div class="empty">没有符合条件的站点</div>';
+    if(list.length>shown.length){
+      $('nowMore').innerHTML='<button class="btn" type="button" data-more="now">显示全部 '+list.length+' 站</button>';
+    } else if(S.limit.now>30 && list.length>30 && !q){
+      $('nowMore').innerHTML='<button class="btn" type="button" data-less="now">收起，只看前 30 站</button>';
+    } else { $('nowMore').innerHTML=''; }
+    var b=$('nowMore').querySelector('button'); if(b) b.addEventListener('click',function(){S.limit.now=b.dataset.more?9999:30;renderNow();});
+  }
+  function nowCard(s){
+    var k=keyOf(s), name=nameOf(s,k), z=s.zodiacs||[], kl=s.killZodiacs||[];
+    var tags='';
+    if(s.carried) tags+='<span class="tag carry">沿用</span>';
+    else if(s.fresh) tags+='<span class="tag">新料</span>';
+    if(s.changed || (s.changedDims&&s.changedDims.length)) tags+='<span class="tag change">改料</span>';
+    var six=EXTRA.map(function(d){
+      var picks=extraPicks(s,d.key);
+      return '<div class="mini-dim"><em>'+d.label+'</em><b title="'+esc(picks.join('、'))+'">'+(picks.length?esc(picks.join('、')):'—')+'</b></div>';
+    }).join('');
+    return '<div class="site-card"><div class="site-card-body">'+
+      '<div class="site-top"><div><div class="site-name">'+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right"><span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>'+
+      '<div class="mini-block"><div class="mini-label">九肖 <span class="n">'+z.length+' 肖</span></div>'+picksHtml(z,'',s.status==='无九肖栏目'?'无九肖栏目':'未更新')+'</div>'+
+      '<div class="mini-block"><div class="mini-label">杀三肖 <span class="n">'+kl.length+' 肖</span></div>'+picksHtml(kl,'kill',s.column===null?'无杀三肖':'无杀三肖')+'</div>'+
+      '<div class="mini-dims">'+six+'</div>'+
+    '</div></div>';
+  }
+
+  // ===== 九肖 / 杀三肖台账 =====
+  function issuesOf(kind){
+    var L=kind==='nine'?S.nine:S.kill; if(!L) return [];
+    return Object.keys(L.periods).sort(function(a,b){return +a-+b;});
+  }
+  function buildPeriod(kind){
+    var sel=$(kind+'Period'), L=kind==='nine'?S.nine:S.kill;
+    if(!sel) return;
+    var issues=issuesOf(kind);
+    sel.innerHTML='';
+    if(kind==='nine' || kind==='kill'){
+      var o=document.createElement('option'); o.value='pending'; o.textContent='待开 · 第'+(S.pend?S.pend.period:(parseInt(issues[issues.length-1]||0,10)+1))+'期（未开奖）'; sel.appendChild(o);
+    }
+    issues.slice().reverse().forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+    if(S.per[kind]==='pending') sel.value='pending'; else if(issues.indexOf(S.per[kind])>=0) sel.value=S.per[kind];
+  }
+  function entriesFor(kind,mode){
+    var L=kind==='nine'?S.nine:S.kill; if(!L) return [];
+    var arr=[];
+    if(mode==='pending'){
+      (S.pend&&S.pend.sites||[]).forEach(function(s){
+        var z=kind==='nine'?(s.zodiacs||[]):(s.killZodiacs||[]);
+        arr.push({key:keyOf(s),name:nameOf(s,keyOf(s)),system:s.system,siteKey:s.siteKey,r:{zodiacs:z,hit:null,status:kind==='nine'?(s.status||(z.length?'有九肖':'无九肖栏目')):(z.length?'有三肖':'无三肖'),changed:!!(s.changed||(s.changedDims&&s.changedDims.length)),raw:'',fresh:!!s.fresh,carried:!!s.carried}});
+      });
+    } else {
+      var per=L.periods[mode]; if(!per) return [];
+      Object.keys(per.stations||{}).forEach(function(k){
+        var r=per.stations[k]||{};
+        arr.push({key:k,name:nameOf(r,k),system:r.system,siteKey:r.siteKey,r:r});
+      });
+    }
+    var base=mode==='pending'?(issuesOf(kind).slice(-1)[0]||''):mode;
+    arr.forEach(function(e){
+      e.z=e.r.zodiacs||[];
+      e.st=streakFor(kind,e.key,base);
+      e.trail=trailFor(kind,e.key,base);
+      e.has=e.z.length>0;
+    });
+    return arr;
+  }
+  function renderLedger(kind){
+    var L=kind==='nine'?S.nine:S.kill;
+    var badge=$(kind+'Badge'), sub=$(kind+'Sub'), chips=$(kind+'Chips'), stats=$(kind+'Stats');
+    if(!L){ $(kind+'List').innerHTML='<div class="empty">台账读取失败。</div>'; return; }
+    var mode=S.per[kind];
+    if(mode==='pending' && (S.f[kind]==='hit'||S.f[kind]==='miss')) S.f[kind]='has';
+    if(kind==='kill' && mode!=='pending' && S.f[kind]==='no') S.f[kind]='has';
+    var issues=issuesOf(kind);
+    var per=mode==='pending'?null:L.periods[mode];
+    var base=mode==='pending'?(issues.slice(-1)[0]||''):mode;
+    if(mode==='pending') setHero(S.pend?S.pend.period:base,'待开',L.updated_at||L.updatedAt||(S.pend&&S.pend.updatedAt));
+    else setHero(mode,'已开奖',L.updated_at||L.updatedAt||'—');
+    var entries=entriesFor(kind,mode);
+    var eligible=entries.filter(function(e){return e.has;});
+    var hitN=eligible.filter(function(e){return e.r.hit===true;}).length;
+    var missN=eligible.filter(function(e){return e.r.hit===false;}).length;
+    var changed=eligible.filter(function(e){return e.r.changed;}).length;
+    var totalVotes=eligible.reduce(function(a,e){return a+e.z.length;},0);
+    var modeText=mode==='pending'?'待开':'第'+mode+'期';
+    $(kind+'ModeChip').textContent=mode==='pending'?'本期原始推荐':('已开奖 '+esc(per?per.actual:'—'));
+    $(kind+'Back').style.display=mode==='pending'?'none':'inline-flex';
+    if(mode==='pending'){
+      badge.textContent='待开'; badge.className='badge pending';
+      sub.textContent='第'+(S.pend?S.pend.period:'—')+'期待开 · 逐站原始推荐；开奖后自动进入复盘。';
+    } else {
+      badge.textContent='已开奖'; badge.className='badge done';
+      sub.textContent='第'+mode+'期 · 开奖 '+(per?per.specialNum:'—')+' · 特肖 '+(per?per.actual:'—')+' · 逐站对账。';
+    }
+    chips.innerHTML=
+      '<span class="chip accent"><span class="dot"></span>'+esc(modeText)+'</span>'+
+      '<span class="chip">'+eligible.length+' 站有'+(kind==='nine'?'九肖':'杀三')+'</span>'+
+      (mode==='pending'?'<span class="chip">票数 '+totalVotes+'</span>':('<span class="chip good">中 '+hitN+'</span><span class="chip warn">错 '+missN+'</span><span class="chip">命中率 '+(eligible.length?Math.round(hitN/eligible.length*100):0)+'%</span>'))+
+      (changed?'<span class="chip warn">改料 '+changed+' 站</span>':'');
+    stats.innerHTML=
+      statCard('覆盖站点',eligible.length,'站',(kind==='nine'?'有九肖栏目':'有杀三肖栏目'))+
+      statCard('推荐票数',totalVotes,'票',(kind==='nine'?'每站 9 肖':'每站 3 肖'))+
+      statCard('近 7 期有记录',entries.filter(function(e){return e.trail.some(function(t){return t.cls!=='n';});}).length,'站','不看中错，只看有数')+
+      (mode==='pending'
+        ? statCard('本期结果','待开','','开奖后自动判定')
+        : statCard('本期命中',hitN+' / '+eligible.length,'站','命中率 '+(eligible.length?Math.round(hitN/eligible.length*100):0)+'%'));
+    var agg=countOf(eligible,function(e){return e.z;});
+    $(kind+'RankHint').textContent=eligible.length+' 站 · '+totalVotes+' 票 · 按站次';
+    $(kind+'Rank').innerHTML=rankHtml(topRows(agg,8),totalVotes,kind);
+    // filter chips
+    var fc=$(kind+'FilterChips');
+    var opts = kind==='nine'
+      ? [['all','全部'],['has','有九肖'],['no','无九肖']].concat(mode==='pending'?[]:[['hit','中'],['miss','错']])
+      : [['all','全部'],['has','有三肖']].concat(mode==='pending'?[['no','无三肖']]:[['hit','杀中'],['miss','杀错']]);
+    fc.innerHTML=opts.map(function(o){return '<button type="button" class="filter-chip'+(S.f[kind]===o[0]?' on':'')+'" data-f="'+o[0]+'">'+o[1]+'</button>';}).join('');
+    Array.prototype.forEach.call(fc.querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f[kind]=b.dataset.f;renderLedger(kind);});});
+    // list
+    var q=(S.q[kind]||'').trim().toLowerCase();
+    var list=entries.filter(function(e){
+      var f=S.f[kind];
+      if(q){
+        var hay=[e.name,e.key,e.system,e.siteKey,e.r.raw].join(' ').toLowerCase();
+        if(hay.indexOf(q)<0) return false;
+      }
+      if(f==='has'&&!e.has) return false;
+      if(f==='no'&&e.has) return false;
+      if(f==='hit'&&e.r.hit!==true) return false;
+      if(f==='miss'&&e.r.hit!==false) return false;
+      return true;
+    });
+    var sort=S.sort[kind];
+    list.sort(function(a,b){
+      if(sort==='loss') return b.st.l-a.st.l || b.st.totalL-a.st.totalL || a.name.localeCompare(b.name,'zh-Hans-CN');
+      if(sort==='win') return b.st.w-a.st.w || b.st.totalW-a.st.totalW || a.name.localeCompare(b.name,'zh-Hans-CN');
+      if(sort==='totalLoss') return b.st.totalL-a.st.totalL || a.name.localeCompare(b.name,'zh-Hans-CN');
+      return a.name.localeCompare(b.name,'zh-Hans-CN');
+    });
+    var limit=(q?1000:S.limit[kind]);
+    var shown=list.slice(0,limit);
+    $(kind+'List').innerHTML=shown.map(function(e){return ledgerCard(kind,mode,base,e);}).join('') || '<div class="empty">没有符合条件的站点</div>';
+    var more=$(kind+'More');
+    if(list.length>shown.length){
+      more.innerHTML='<button class="btn" type="button" data-more="1">显示全部 '+list.length+' 站</button>';
+    } else if(S.limit[kind]>30&&list.length>30&&!q){
+      more.innerHTML='<button class="btn" type="button" data-less="1">收起，只看前 30 站</button>';
+    } else more.innerHTML='';
+    var mb=more.querySelector('button'); if(mb) mb.addEventListener('click',function(){S.limit[kind]=mb.dataset.more?9999:30;renderLedger(kind);});
+  }
+  function ledgerCard(kind,mode,base,e){
+    var r=e.r, z=e.z, hit=r.hit;
+    var badge = mode==='pending' ? '<span class="hit-badge unk">待开</span>' : (hit?'<span class="hit-badge hit">'+(kind==='kill'?'杀中':'中')+'</span>':'<span class="hit-badge miss">'+(kind==='kill'?'杀错':'错')+'</span>');
+    var tags='';
+    if(e.r.carried) tags+='<span class="tag carry">沿用</span>'; else if(e.r.fresh) tags+='<span class="tag">新料</span>';
+    if(e.r.changed) tags+='<span class="tag change">改料</span>';
+    var metrics='';
+    if(mode==='pending'){
+      metrics='<div class="ledger-metrics"><span>上期连对 <b class="w">'+e.st.w+'</b></span><span>上期连错 <b class="l">'+e.st.l+'</b></span><span>近7期 '+(e.trail.filter(function(t){return t.cls!=='n';}).length)+' 期有记录</span></div>';
+    } else {
+      metrics='<div class="ledger-metrics"><span>连对 <b class="w">'+e.st.w+'</b></span><span>连错 <b class="l">'+e.st.l+'</b></span><span>总中 <b>'+e.st.totalW+'</b></span><span>总错 <b>'+e.st.totalL+'</b></span></div>';
+    }
+    var picks = z.length?zPicksHtml(z,kind==='kill'?'kill':'', '无') : '<div class="empty-mini">'+(kind==='nine'?'无九肖栏目':'无杀三肖')+'</div>';
+    var detail = detailFor(kind,e.key,base,mode==='pending'?{zodiacs:z}:null,mode==='pending'?(S.pend?S.pend.period:''):mode);
+    return '<details class="site-card ledger-card"><summary>'+
+      '<div class="site-top"><div><div class="site-name">'+esc(e.name)+tags+'</div><div class="site-sub">'+esc(subOf(e.r))+'</div></div><div class="site-right">'+badge+'<span class="tag-count">'+(z.length||0)+' 肖</span></div></div>'+
+      '<div class="mini-block" style="margin-top:8px">'+picks+'</div>'+
+      '<div class="trail-line"><span class="trail-label">近7期</span>'+trailHtml(e.trail)+'</div>'+
+      metrics+
+    '</summary><div class="site-detail">'+detail+(r.raw?'<div class="raw">原文：'+esc(r.raw)+'</div>':'')+'</div></details>';
+  }
+
+  // ===== 交互 =====
+  function switchTab(t){
+    S.tab=t;
+    Array.prototype.forEach.call($('tabbar').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.tab===t);});
+    ['now','nine','kill'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
+    try{history.replaceState(null,'','#'+t);}catch(e){}
+    if(t==='nine'||t==='kill') renderLedger(t);
+    try{document.title='资料中心 · '+(t==='now'?'本期资料':(t==='nine'?'九肖':'杀三肖'));}catch(e){}
+  }
+  function bind(){
+    $('tabbar').addEventListener('click',function(e){var b=e.target.closest('button[data-tab]');if(b)switchTab(b.dataset.tab);});
+    $('nowSearch').addEventListener('input',function(){S.q.now=this.value;S.limit.now=30;renderNow();});
+    $('nowSort').addEventListener('change',function(){S.sort.now=this.value;renderNow();});
+    Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f.now=b.dataset.f;Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(x){x.classList.toggle('on',x===b);});renderNow();});});
+    ['nine','kill'].forEach(function(kind){
+      $(kind+'Period').addEventListener('change',function(){S.per[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
+      $(kind+'Search').addEventListener('input',function(){S.q[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
+      $(kind+'Sort').addEventListener('change',function(){S.sort[kind]=this.value;renderLedger(kind);});
+      $(kind+'Back').addEventListener('click',function(){S.per[kind]='pending';buildPeriod(kind);S.f[kind]='has';renderLedger(kind);});
+      $(kind+'Expand').addEventListener('click',function(){
+        var all=$(kind+'List').querySelectorAll('details');
+        var open=[]; Array.prototype.forEach.call(all,function(d){open.push(d.open);});
+        var doOpen=open.some(function(x){return !x;});
+        Array.prototype.forEach.call(all,function(d){d.open=doOpen;});
+        this.textContent=doOpen?'收起全部':'展开全部';
+      });
+    });
+    $('openRules').addEventListener('click',function(){$('rulesModal').classList.remove('hidden');$('rulesModal').setAttribute('aria-hidden','false');});
+    $('closeRules').addEventListener('click',function(){$('rulesModal').classList.add('hidden');$('rulesModal').setAttribute('aria-hidden','true');});
+    $('rulesModal').addEventListener('click',function(e){if(e.target===this){$('closeRules').click();}});
+  }
+  function init(){
+    bind();
+    Promise.all([
+      fetchJson('data/current-recommend.json').catch(function(e){S.loadError=e.message;return null;}),
+      fetchJson('data/max-zodiac-ledger.json').catch(function(){return null;}),
+      fetchJson('data/kill3-ledger.json').catch(function(){return null;}),
+      fetchJson('data/site-aliases.json').catch(function(){return {aliases:{}};})
+    ]).then(function(r){
+      S.pend=r[0]; S.nine=r[1]; S.kill=r[2]; S.aliases=(r[3]&&(r[3].aliases||r[3]))||{};
+      if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
+      var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
+      setHero(per,S.pend&&S.pend.status==='pending'?'待开':'已归档',(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
+      $('tabNineCount').textContent=(S.nine?Object.keys(S.nine.periods).length:0)+' 期';
+      $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
+      buildPeriod('nine'); buildPeriod('kill');
+      renderNow();
+      var h=(location.hash||'').replace('#',''); if(h==='nine'||h==='kill') switchTab(h); else switchTab('now');
+    }).catch(function(e){setHero('—','异常','读取失败');$('nowCards').innerHTML='<div class="empty">'+esc(e.message||e)+'</div>';});
+  }
+  init();
+})();
+</script>
+</body>
+</html>
