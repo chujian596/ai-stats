@@ -605,7 +605,7 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">九、数据备份（重要）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 数据存本机，并<b style="color:var(--modalText,#fff)">自动双备份</b>（localStorage + IndexedDB），清缓存不容易丢<br>
-        2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把全部数据导出成文件，建议每天存一份<br>
+        2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把活动订单、历史归档、客户名单、产品、赔付、飞单配置、主题导出成一个文件，建议每天存一份<br>
         3. <b style="color:var(--modalText,#fff)">导入备份</b>：换手机/重装后选JSON文件恢复；手机选不了文件就用旁边的<b style="color:var(--modalText,#fff)">粘贴导入</b>，把备份内容直接粘进窗口<br>
         4. <b style="color:var(--modalText,#fff)">一键恢复上次备份</b>：误操作后快速回滚<br>
         5. <b style="color:var(--modalText,#fff)">清空全部数据</b>：全部清零且不可恢复，非必要别点
@@ -758,7 +758,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.68-Pro';
+var APP_VER = 'v59.69-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10892,21 +10892,52 @@ function exportCSV(){
   download('产品统计_' + dateStr() + '.csv', csv, 'text/csv;charset=utf-8');
 }
 
+function buildBackupPayload(){
+  var theme = null;
+  try { theme = JSON.parse(localStorage.getItem('app_theme')||'null'); } catch(e){ theme = null; }
+  return {
+    version: 5,
+    exportedAt: new Date().toISOString(),
+    orders: orders || [],
+    hkOrders: hkOrders || [],
+    roster: roster || [],
+    products: products || [],
+    billArchive: billArchive || {},
+    pays: pays || [],
+    custpays: custpays || [],
+    payMult: Number(payMult)||0,
+    splitTakeAll: Number(splitTakeAll)||0,
+    pteFlyTakeAll: Number(pteFlyTakeAll)||0,
+    lxFlyAmt: Number(lxFlyAmt)||0,
+    autoFlyOn: !!autoFlyOn,
+    flyRoundOn: (typeof flyRoundOn === 'function' ? flyRoundOn() : false),
+    flownPerPos: flownPerPos || {},
+    flownReal: flownReal || {},
+    hkModes: hkModeMap(),
+    hkGlobalMode: hkGlobalMode(),
+    shop: shop,
+    theme: theme
+  };
+}
+
 function exportBackup(){
-  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() });
+  const payload = buildBackupPayload();
+  const data = JSON.stringify(payload);
+  const pretty = JSON.stringify(payload, null, 2);
+  const dayCount = Object.keys(payload.billArchive||{}).length;
+  const custCount = (payload.roster||[]).length;
+  const orderCount = (payload.orders||[]).length + (payload.hkOrders||[]).length;
   // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
   try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
-    download('订单备份_' + dateStr() + '.json',
-      JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() }, null, 2),
-      'application/json');
+    download('完整备份_' + dateStr() + '.json', pretty, 'application/json');
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
   const ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">'
-    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+activeOrders().length+'单）</div>'
+    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 完整备份<br><span style="font-size:12px;color:#888;font-weight:400">'+orderCount+'单 · 归档'+dayCount+'天 · 客户'+custCount+'人</span></div>'
     + '<div style="margin:12px 12px 0;padding:10px;background:#e8f7ee;color:#16a34a;border-radius:8px;font-size:14px;font-weight:700;text-align:center;line-height:1.5">✓ 已自动存到 app 内部<br><span style="font-weight:400;font-size:12px">以后点绿色「一键恢复上次备份」即可找回，不用找文件</span></div>'
     + '<div style="padding:12px;flex:1;overflow:auto;background:#f9f9f9;margin:10px;border-radius:6px"><textarea id="backupTxt" style="width:100%;height:160px;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;font-family:monospace;color:#333;resize:none">'+data.replace(/</g,'&lt;')+'</textarea></div>'
     + '<div style="display:flex;gap:8px;padding:0 14px 14px">'
@@ -10918,6 +10949,8 @@ function exportBackup(){
 
 function applyBackup(data){
   let newOrders, newHKOrders = null, newRoster = null, newProducts = null, newHKModes = null, newHKGlobalMode = null;
+  let newArchive = null, newPays = null, newCustPays = null, newPayMult = null, newSplit = null, newPte = null, newLx = null;
+  let newAutoFly = null, newFlyRound = null, newFlownPerPos = null, newFlownReal = null, newTheme = null, newShop = null;
   if(Array.isArray(data)){
     newOrders = data;
   } else if(data && Array.isArray(data.orders)){
@@ -10927,21 +10960,51 @@ function applyBackup(data){
     if(Array.isArray(data.products)) newProducts = data.products;
     if(data.hkModes && typeof data.hkModes === 'object') newHKModes = data.hkModes;
     if(data.hkGlobalMode === 'all' || data.hkGlobalMode === 'rule' || data.hkGlobalMode === 'none') newHKGlobalMode = data.hkGlobalMode;
+    if(data.billArchive && typeof data.billArchive === 'object' && !Array.isArray(data.billArchive)) newArchive = data.billArchive;
+    if(Array.isArray(data.pays)) newPays = data.pays;
+    if(Array.isArray(data.custpays)) newCustPays = data.custpays;
+    if(isFinite(Number(data.payMult)) && Number(data.payMult) > 0) newPayMult = Number(data.payMult);
+    if(isFinite(Number(data.splitTakeAll))) newSplit = Number(data.splitTakeAll);
+    if(isFinite(Number(data.pteFlyTakeAll))) newPte = Number(data.pteFlyTakeAll);
+    if(isFinite(Number(data.lxFlyAmt))) newLx = Number(data.lxFlyAmt);
+    if(typeof data.autoFlyOn === 'boolean') newAutoFly = data.autoFlyOn;
+    if(typeof data.flyRoundOn === 'boolean') newFlyRound = data.flyRoundOn;
+    if(data.flownPerPos && typeof data.flownPerPos === 'object') newFlownPerPos = data.flownPerPos;
+    if(data.flownReal && typeof data.flownReal === 'object') newFlownReal = data.flownReal;
+    if(data.theme && typeof data.theme === 'object') newTheme = data.theme;
+    if(data.shop === 'A' || data.shop === 'B') newShop = data.shop;
   } else {
     throw new Error('备份格式不正确');
   }
   const _total = newOrders.length + (newHKOrders ? newHKOrders.length : 0);
-  myConfirm(`将用备份中的 ${_total} 条订单（澳门${newOrders.length} / 香港${newHKOrders ? newHKOrders.length : 0}）替换当前 ${activeOrders().length} 条活动订单，确定？`, function(){
+  const _archDays = newArchive ? Object.keys(newArchive).length : 0;
+  const _custN = newRoster ? newRoster.length : 0;
+  const _payN = newPays ? newPays.length : 0;
+  myConfirm(`将用备份中的 ${_total} 条活动订单、${_archDays} 天归档、${_custN} 个客户、${_payN} 条赔付覆盖当前数据，确定？`, function(){
   orders = newOrders.map(normalizeOrder);
   if(newHKOrders) hkOrders = newHKOrders.map(normalizeOrder);
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
+  if(newArchive){ billArchive = newArchive; billSaveArchive(); }
+  if(newPays){ pays = newPays; if(typeof savePays === 'function') savePays(); }
+  if(newCustPays){ custpays = newCustPays; if(typeof saveCP === 'function') saveCP(); }
+  if(newPayMult != null){ payMult = newPayMult; try{ localStorage.setItem(PAY_MULT_KEY, payMult); }catch(e){} }
+  if(newSplit != null){ splitTakeAll = newSplit; try{ localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); }catch(e){} }
+  if(newPte != null){ pteFlyTakeAll = newPte; try{ localStorage.setItem(sk('pteFlyTakeAll'), String(pteFlyTakeAll)); }catch(e){} }
+  if(newLx != null){ lxFlyAmt = newLx; try{ localStorage.setItem(sk('lxFlyAmt'), String(lxFlyAmt)); }catch(e){} }
+  if(newAutoFly != null){ autoFlyOn = newAutoFly; try{ localStorage.setItem(sk('autoFlyOn'), autoFlyOn?'1':'0'); localStorage.setItem(sk('emFlyOn'), autoFlyOn?'1':'0'); }catch(e){} }
+  if(newFlyRound != null){ try{ localStorage.setItem(sk('flyRoundOn'), newFlyRound?'1':'0'); }catch(e){} }
+  if(newFlownPerPos){ flownPerPos = newFlownPerPos; try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); }catch(e){} }
+  if(newFlownReal){ flownReal = newFlownReal; try{ localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){} }
+  if(newTheme){ try{ localStorage.setItem('app_theme', JSON.stringify(newTheme)); }catch(e){}; try{ applyTheme(); }catch(e){} }
+  if(newShop){ try{ localStorage.setItem('current_shop', newShop); }catch(e){}; shop = newShop; var _sl=document.getElementById('shopLabel'); if(_sl) _sl.textContent = shopNames[shop]; }
   if(newHKModes){ try{ localStorage.setItem(HK_MODE_KEY, JSON.stringify(newHKModes)); }catch(e){} }
   if(newHKGlobalMode){ try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, newHKGlobalMode); }catch(e){} }
   saveOrders();
   restoreIfNeeded();
   renderAll();
-  myAlert('导入成功');
+  if(typeof billRefreshBar === 'function') billRefreshBar();
+  myAlert('导入成功：' + _total + ' 单，归档 ' + _archDays + ' 天，客户 ' + _custN + ' 人');
   });
 }
 function importBackup(ev){
