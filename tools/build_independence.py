@@ -140,6 +140,15 @@ def main():
         site_rows.append(row)
 
     full_dups = dup_groups(full_groups)
+    # 22:30 后 current 可能已切到下一期空快照；此时保留上一份有数据的模板审计，
+    # 避免把 325 的审计页覆盖成 0 站。
+    if len(sites) == len(empty_sites):
+        old_path = os.path.join(DATA, 'independence.json')
+        if os.path.exists(old_path):
+            old = load('independence.json')
+            if (old.get('counts') or {}).get('withData', 0) > 0:
+                print('INDEPENDENCE_SKIP_EMPTY keep period=%s' % old.get('period'))
+                return
     out = {
         'schema': 'independence/v1',
         'updatedAt': now,
