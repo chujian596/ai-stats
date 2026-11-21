@@ -3,6 +3,7 @@ package io.github.chujian596.app.pro;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -55,37 +56,66 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        applyLightBars();
+        applySystemBars();
         buildUi();
         // 启动直接用包里内置的页面顶上（URL 仍是线上地址，localStorage 同源，历史数据不搬家）
         // 这样网络被墙/断网也能秒开，绝不会卡在白屏或报错页
         loadLocalFirst(HOME_URL);
     }
 
-    /** 状态栏、导航栏统一白底黑字，跟页面白底对齐 */
-    private void applyLightBars() {
+    /** 是否系统深色模式 */
+    private boolean isNightMode() {
         try {
+            int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            return mode == Configuration.UI_MODE_NIGHT_YES;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** 状态栏、导航栏跟随系统日/夜模式 */
+    private void applySystemBars() {
+        try {
+            boolean dark = isNightMode();
             android.view.Window w = getWindow();
             if (Build.VERSION.SDK_INT >= 21) {
                 w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                w.setStatusBarColor(0xFFFFFFFF);
-                w.setNavigationBarColor(0xFFFFFFFF);
+                w.setStatusBarColor(dark ? 0xFF0B1220 : 0xFFFFFFFF);
+                w.setNavigationBarColor(dark ? 0xFF0B1220 : 0xFFFFFFFF);
             }
             if (Build.VERSION.SDK_INT >= 26) {
-                w.getDecorView().setSystemUiVisibility(
-                        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                w.getDecorView().setSystemUiVisibility(dark ? 0 : (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
             } else if (Build.VERSION.SDK_INT >= 23) {
-                w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                w.getDecorView().setSystemUiVisibility(dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
             }
         } catch (Exception ignored) {
         }
+    }
+
+    /** 页面颜色跟随系统（页面侧由 __applySystemTheme 落地） */
+    private void applySystemThemeToPage() {
+        if (web == null) return;
+        try {
+            boolean dark = isNightMode();
+            if (web != null) web.setBackgroundColor(dark ? 0xFF0B1220 : 0xFFFFFFFF);
+            String js = "try{window.__applySystemTheme&&window.__applySystemTheme('" + (dark ? "dark" : "light") + "')}catch(e){}";
+            web.evaluateJavascript(js, null);
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applySystemBars();
+        applySystemThemeToPage();
     }
 
     private void buildUi() {
         root = new FrameLayout(this);
 
         web = new WebView(this);
-        web.setBackgroundColor(0xFFFFFFFF);
+        web.setBackgroundColor(isNightMode() ? 0xFF0B1220 : 0xFFFFFFFF);
         FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         root.addView(web, wlp);
@@ -138,6 +168,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 hideError();
+                applySystemThemeToPage();
             }
 
             @Override
