@@ -202,7 +202,7 @@ async function getData(name){
   const urls = [`data/${name}`, `https://chujian596.github.io/ai-stats/data/${name}`];
   for (const u of urls) {
     try {
-      const r = await fetch(u + '?v=' + Date.now(), {cache:'no-store'});
+      const r = await fetch(u, {cache:'no-store'});
       if (r.ok) {
         const text = await r.text();
         if (text.trim()) return JSON.parse(text);
