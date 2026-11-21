@@ -19,6 +19,7 @@ PARENT = os.path.dirname(ROOT)
 LEDGER_PUB = os.path.join(ROOT, "data", "max-zodiac-ledger.json")
 SNAP_DIR = os.path.join(PARENT, "snapshots")
 OUT = os.path.join(ROOT, "data", "current-recommend.json")
+CHANGE_LEDGER = os.path.join(PARENT, "改料台账.json")
 Z = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
 WAVE = "红蓝绿"
 # 与 build_kill3_ledger.py 同一杀三肖栏口径
@@ -140,6 +141,34 @@ def load_json(p):
         return json.load(f)
 
 
+def load_change_changes(issue):
+    """待开期改料台账：siteId -> {dims, added, removed}；只取未结算（待开奖）条目。"""
+    m = {}
+    if not os.path.exists(CHANGE_LEDGER):
+        return m
+    try:
+        L = load_json(CHANGE_LEDGER)
+    except Exception:
+        return m
+    for e in L.get("entries", []):
+        if str(e.get("period")) != str(issue) or e.get("result"):
+            continue
+        sid = e.get("siteId")
+        if not sid:
+            continue
+        rec = m.setdefault(sid, {"dims": [], "added": [], "removed": []})
+        dim = e.get("dim") or e.get("kind")
+        if dim and dim not in rec["dims"]:
+            rec["dims"].append(dim)
+        for z in e.get("added") or []:
+            if z not in rec["added"]:
+                rec["added"].append(z)
+        for z in e.get("removed") or []:
+            if z not in rec["removed"]:
+                rec["removed"].append(z)
+    return m
+
+
 def _col_has_value(cd):
     """栏目是否真有内容；空栏/只报错不能覆盖早先抓到的有效值。"""
     if not isinstance(cd, dict):
@@ -255,6 +284,8 @@ def main():
         seq = pending[issue]
         sp, snap = seq[-1]
         merged_sites, merged_sources = merge_pending(seq)
+        # 本期待开改料台账（未结算条目）：供待开视图标注「本期有改动」
+        change_map = load_change_changes(issue)
 
         # 收集各份快照里没进 sites 的失败站：fetch_error=连接抓取失败；not_updated=站点还没更新
         fail_map = {}
@@ -308,6 +339,15 @@ def main():
                 "size": extra['size'] or {},
                 "parity": extra['parity'] or {},
             }
+            site_id = f"{system}-{site_key}"
+            ch = change_map.get(site_id)
+            if ch:
+                base["changed"] = True
+                base["changedDims"] = ch["dims"]
+                base["changedAdded"] = ch["added"]
+                base["changedRemoved"] = ch["removed"]
+            else:
+                base["changed"] = False
             if pick:
                 title, zs = pick
                 base.update({"column": title, "zodiacs": zs, "status": "有九肖"})
@@ -330,6 +370,7 @@ def main():
                 "system": fr.get("system", ""), "siteKey": str(fr.get("siteKey", "")),
                 "fresh": False, "carried": False, "carryFrom": None,
                 "status": status, "failKind": kind, "error": fr.get("error"),
+                "changed": False,
                 "column": None, "zodiacs": [], "killZodiacs": [],
                 "pingte": {}, "wave": {}, "tail": {}, "head": {}, "size": {}, "parity": {},
             })

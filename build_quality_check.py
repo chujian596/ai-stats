@@ -87,19 +87,26 @@ def snapshot_map(snap, picker):
 
 
 snaps = {}  # issue -> {'early': {sk: raw}, 'late': {sk: raw}}
-for sp in sorted(glob.glob(os.path.join(PARENT, 'snapshots', 'snapshot-*.json'))):
-    d = load(Path(sp))
-    iss = d.get('issue')
-    if not iss:
-        continue
-    iss = int(iss)
-    name = os.path.basename(sp)
-    bucket = 'early' if '-18' in name else ('late' if '-20' in name else None)
-    if not bucket:
-        continue
+# 早晚快照口径与 max_zodiac_ledger.find_snapshots 一致：generated_at 排序 + 覆盖度过滤取首/尾完整版
+import importlib.util as _iu
+_spec = _iu.spec_from_file_location('mzl', str(PARENT / 'max_zodiac_ledger.py'))
+_mzl = _iu.module_from_spec(_spec); _spec.loader.exec_module(_mzl)
+
+_issues = set()
+for sp in glob.glob(os.path.join(PARENT, 'snapshots', 'snapshot-*.json')):
+    try:
+        _issues.add(int(load(Path(sp)).get('issue')))
+    except Exception:
+        pass
+for iss in sorted(_issues):
+    ep, lp = _mzl.find_snapshots(str(iss))
     slot = snaps.setdefault(iss, {})
-    slot.setdefault(bucket, {})['nine'] = snapshot_map(d, pick_nine)
-    slot[bucket]['kill'] = snapshot_map(d, pick_kill)
+    if ep:
+        d = _mzl.load_snapshot(ep)
+        slot['early'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill)}
+    if lp:
+        d = _mzl.load_snapshot(lp)
+        slot['late'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill)}
 
 
 anomalies = []
@@ -168,8 +175,8 @@ def check_ledger(fn, ledger, expect, hit_rule):
                 if bool(r['hit']) != recompute:
                     add(iss, ledger, sk, sys, 'HIT_RECOMPUTE',
                         f"台账 hit={r['hit']} 复算应为 {recompute}", zs, actual)
-            # 6 改料标记一致性（早晚两份都有记录才判）
-            if raw_e is not None and raw_l is not None:
+            # 6 改料标记一致性（早晚两份都有记录才判；改料跟踪不回填历史，仅核 325 及以后）
+            if raw_e is not None and raw_l is not None and iss_i >= 325:
                 early_diff = set(zchars(raw_e)) != set(zchars(raw_l))
                 if bool(r.get('changed')) != early_diff:
                     add(iss, ledger, sk, sys, 'CHANGED_FLAG',
