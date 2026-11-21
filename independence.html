@@ -245,7 +245,7 @@ function renderTrack(valid){
 }
 
 async function getData(name){
-  const urls = [`data/${name}`, `https://chujian596.github.io/ai-stats/data/${name}`];
+  const urls = [`data/${name}`, `https://aistats-9uo.pages.dev/data/${name}`, `https://chujian596.github.io/ai-stats/data/${name}`];
   for (const u of urls) {
     try {
       const r = await fetch(u, {cache:'no-store'});
