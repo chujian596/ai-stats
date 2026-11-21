@@ -669,7 +669,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.66';
+var APP_VER = 'v59.71';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1201,7 +1201,8 @@ function _verLabel(v){
 // 唯一版本源：GitHub raw 的 version.txt；raw 不通时退回当前站点同源文件。
 // 不再把备用站/测试页的版本号一起取最大值，避免某个脏版本导致无限提示更新。
 function fetchRemoteVer(){
-  var verFile = 'version.txt';
+  // 客户版只读 version-client.txt；专业版读 version.txt，避免客户版被专业版号一直提示更新
+  var verFile = /Pro/.test(APP_VER) ? 'version.txt' : 'version-client.txt';
   var urls = [
     'https://raw.githubusercontent.com/chujian596/ai-stats/main/' + verFile + '?t=' + Date.now(),
     _siteBase().replace(/\/$/,'') + '/' + verFile + '?t=' + Date.now()
