@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v59.70</title>
+<title>录单Pro · v59.71</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -249,6 +249,8 @@ html[data-system-theme="dark"] .pro-settings-dock,
 html[data-system-theme="dark"] #settingsModal>div,
 html[data-system-theme="dark"] .ai-ov>div{background:#111c2e!important;border-color:#2a3a52!important;color:#e7effc!important}
 html[data-system-theme="dark"] #lockScreen{background:#0a1120!important}
+html[data-system-theme="dark"]{color-scheme:dark}
+html[data-system-theme="dark"] input,html[data-system-theme="dark"] select,html[data-system-theme="dark"] textarea{accent-color:#3b82f6}
 html[data-system-theme="dark"] #lockScreen>div>div:first-child{color:#e7effc!important}
 html[data-system-theme="dark"] #lockMsg{color:#aab8ca!important}
 html[data-system-theme="dark"] #lockCodeWrap>div{color:#90a2b8!important}
@@ -337,6 +339,14 @@ html[data-system-theme="dark"] [style*="color:#059669"],
 html[data-system-theme="dark"] [style*="color:#22c55e"],
 html[data-system-theme="dark"] [style*="color:green"]{color:#6ee7b7!important}
 html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
+
+
+/* 动态内容夜间兜底：JS 扫描后加类，浅色切换时只移除类即可复原 */
+.tdark-bg{background-color:#111c2e!important;border-color:#2a3a52!important}
+.tdark-bg-green{background-color:#10261f!important;border-color:#2f5e4a!important}
+.tdark-bg-blue{background-color:#10213a!important;border-color:#31527e!important}
+.tdark-bg-amber{background-color:#2e2410!important;border-color:#7a5b1c!important}
+.tdark-bg-red{background-color:#2c1519!important;border-color:#7f2635!important}
 
 </style>
 </head>
@@ -893,6 +903,100 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
   function sysDark(){
     try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; }
   }
+  var mo = null, timer = null, normalizing = false;
+  function parseColor(c){
+    var m = String(c||'').match(/rgba?\(([^)]+)\)/);
+    if(!m) return null;
+    var a = m[1].split(',').map(function(x){ return parseFloat(x); });
+    return {r:a[0],g:a[1],b:a[2],a:(a.length>3?a[3]:1)};
+  }
+  function hueSat(r,g,b){
+    var max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    var l=(max+min)/510;
+    var s=d===0?0:d/(1-Math.abs(2*l-1));
+    var h=0;
+    if(d!==0){
+      if(max===r) h=60*(((g-b)/d)%6);
+      else if(max===g) h=60*(((b-r)/d)+2);
+      else h=60*(((r-g)/d)+4);
+      if(h<0) h+=360;
+    }
+    return {h:h,s:s,l:l};
+  }
+  function bgClass(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.10){
+      if(hs.h>=70 && hs.h<170) return 'tdark-bg-green';
+      if(hs.h>=190 && hs.h<260) return 'tdark-bg-blue';
+      if(hs.h>=15 && hs.h<70) return 'tdark-bg-amber';
+      if(hs.h>=330 || hs.h<15) return 'tdark-bg-red';
+    }
+    return 'tdark-bg';
+  }
+  function textColor(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.30){
+      if(hs.h>=345 || hs.h<15) return '#ff8a8a';
+      if(hs.h>=15 && hs.h<70) return '#fcd34d';
+      if(hs.h>=70 && hs.h<170) return '#6ee7b7';
+      if(hs.h>=190 && hs.h<260) return '#9dc0ff';
+      if(hs.h>=260 && hs.h<330) return '#c4b5fd';
+    }
+    return '#cbd8ea';
+  }
+  function restore(){
+    var all=document.querySelectorAll('.tdark-bg,.tdark-bg-green,.tdark-bg-blue,.tdark-bg-amber,.tdark-bg-red');
+    for(var i=0;i<all.length;i++) all[i].classList.remove('tdark-bg','tdark-bg-green','tdark-bg-blue','tdark-bg-amber','tdark-bg-red');
+    var txt=document.querySelectorAll('[data-tdark-color]');
+    for(var j=0;j<txt.length;j++){
+      var el=txt[j], v=el.getAttribute('data-tdark-color')||'', p=el.getAttribute('data-tdark-color-p')||'';
+      if(v) el.style.setProperty('color',v,p); else el.style.removeProperty('color');
+      el.removeAttribute('data-tdark-color'); el.removeAttribute('data-tdark-color-p');
+    }
+  }
+  function apply(){
+    if(!document.body){ return; }
+    if(document.documentElement.getAttribute('data-system-theme') !== 'dark'){
+      restore();
+      if(mo){ mo.disconnect(); mo=null; }
+      return;
+    }
+    if(normalizing) return;
+    normalizing=true;
+    try{
+      var nodes=document.body.querySelectorAll('*');
+      for(var i=0;i<nodes.length;i++){
+        var el=nodes[i];
+        if(el.tagName==='SCRIPT'||el.tagName==='STYLE'||el.tagName==='IMG'||el.tagName==='SVG'||el.tagName==='VIDEO'||el.tagName==='CANVAS') continue;
+        if(el.closest && el.closest('.pro-hero')) continue;
+        var cs=getComputedStyle(el);
+        if(cs.display==='none'||cs.visibility==='hidden') continue;
+        var bg=parseColor(cs.backgroundColor);
+        if(bg && bg.a>0.05 && hueSat(bg.r,bg.g,bg.b).l>0.62 && cs.backgroundImage==='none'){
+          if(!el.classList.contains('tdark-bg') && !el.classList.contains('tdark-bg-green') && !el.classList.contains('tdark-bg-blue') && !el.classList.contains('tdark-bg-amber') && !el.classList.contains('tdark-bg-red')){
+            el.classList.add(bgClass(bg.r,bg.g,bg.b));
+          }
+        }
+        if(el.textContent && el.textContent.trim()){
+          var fg=parseColor(cs.color);
+          if(fg && fg.a>0.05 && hueSat(fg.r,fg.g,fg.b).l<0.55 && !el.hasAttribute('data-tdark-color')){
+            el.setAttribute('data-tdark-color', el.style.getPropertyValue('color')||'');
+            el.setAttribute('data-tdark-color-p', el.style.getPropertyPriority('color')||'');
+            el.style.setProperty('color', textColor(fg.r,fg.g,fg.b), 'important');
+          }
+        }
+      }
+    }catch(e){}
+    normalizing=false;
+    if(!mo && document.body){
+      mo=new MutationObserver(function(){ schedule(); });
+      mo.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class']});
+    }
+  }
+  function schedule(){
+    if(timer) clearTimeout(timer);
+    timer=setTimeout(function(){ timer=null; apply(); },60);
+  }
   window.__applySystemTheme = function(mode){
     var dark = String(mode||'').toLowerCase() === 'dark';
     try{
@@ -900,7 +1004,9 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       var meta = document.querySelector('meta[name="theme-color"]');
       if(meta) meta.setAttribute('content', dark ? '#0b1220' : '#ffffff');
     }catch(e){}
+    schedule();
   };
+  window.__normalizeSystemDark = schedule;
   window.__applySystemTheme(sysDark() ? 'dark' : 'light');
   try{
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -908,6 +1014,8 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
     if(mq.addEventListener) mq.addEventListener('change', onChange);
     else if(mq.addListener) mq.addListener(onChange);
   }catch(e){}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', schedule);
+  else schedule();
 })();
 // === IndexedDB自动备份（比localStorage更持久，清缓存不丢） ===
 let _db = null;
@@ -969,7 +1077,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.70-Pro';
+var APP_VER = 'v59.71-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
