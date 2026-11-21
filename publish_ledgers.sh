@@ -22,12 +22,12 @@ python3 tools/build_source_registry.py >/dev/null 2>&1 && echo "SOURCES_OK" || e
 python3 tools/build_site_performance.py >/dev/null 2>&1 && echo "PERF_OK" || echo "PERF_SKIP"
 # 研判引擎：316 后拥挤度审计（只做统计分级，不生成方向）
 python3 tools/build_engine.py >/dev/null 2>&1 && echo "ENGINE_OK" || echo "ENGINE_SKIP"
-# 独立模板审计与权重影子账：20:00-21:29 冻结，开奖后补分
+# 独立模板审计与权重影子账：18:00-21:29 冻结，开奖后补分
 python3 tools/build_independence.py >/dev/null 2>&1 && echo "INDEPENDENCE_OK" || echo "INDEPENDENCE_SKIP"
 python3 tools/weight_shadow.py update >/dev/null 2>&1 && echo "WEIGHT_OK" || echo "WEIGHT_SKIP"
-# 群众走向验证：20:00-21:29 开奖前冻结；开奖后（22:30链）打分
+# 群众走向验证：18:00-21:29 开奖前冻结；开奖后（22:30链）打分
 HH=$(date +%H); MM=$(date +%M)
-if { [ "$HH" -eq 20 ] || { [ "$HH" -eq 21 ] && [ "$MM" -lt 30 ]; }; }; then
+if { [ "$HH" -ge 18 ] && [ "$HH" -lt 21 ]; } || { [ "$HH" -eq 21 ] && [ "$MM" -lt 30 ]; }; then
   python3 tools/crowd_validation.py freeze
 else
   echo "CROWD_FREEZE_SKIP $(date '+%H:%M')"

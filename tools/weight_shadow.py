@@ -286,8 +286,8 @@ def update():
     period = int(cur.get('period', 0))
     hh = datetime.now().hour
     mm = datetime.now().minute
-    # 只在 20:00-21:29 冻结，避免白天提前锁死影子账
-    if hh == 20 or (hh == 21 and mm < 30):
+    # 只在 18:00-21:29 冻结，避免白天提前锁死影子账
+    if hh >= 18 and (hh < 21 or (hh == 21 and mm < 30)):
         fp = os.path.join(DATA, f'weight-freeze-{period}.json')
         if not os.path.exists(fp):
             write_freeze(period, force=False)
