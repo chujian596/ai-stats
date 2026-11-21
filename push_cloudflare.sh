@@ -38,7 +38,7 @@ fi
 mkdir -p "$DEPLOY"
 cd "$SRC" || exit 1
 cp -f admin.html admin58.html
-for f in index.html app.html app-pro.html app-pro-backup.html app-client-v59.03-test.html admin.html admin58.html portal.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html independence.html forum-picks.html members.json whitelist.json version.txt version-client.txt version-client-test.txt system-guide.html 0491.html ai-analysis.html shengxiao.html update-tool.html zhengpiao.html ziliao.html apps.html lab.html issues.html manage.html max-zodiac-current.html max-zodiac.html nine-zodiac.html kill3-ledger.html extra-ledger.html site-registry.html sources.html engine.html dashboard.html independence.html; do
+for f in index.html app.html app-pro.html app-pro-backup.html app-client-v59.03-test.html admin.html admin58.html portal.html start.html manifest.json sw.js icon-512.png apple-touch-icon.png draw-latest.json stats.html independence.html forum-picks.html members.json whitelist.json version.txt version-client.txt version-client-test.txt system-guide.html 0491.html ai-analysis.html shengxiao.html update-tool.html zhengpiao.html ziliao.html apps.html lab.html issues.html manage.html max-zodiac-current.html max-zodiac.html nine-zodiac.html kill3-ledger.html extra-ledger.html site-registry.html sources.html engine.html dashboard.html independence.html; do
   [ -f "$f" ] && cp -f "$f" "$DEPLOY/"
 done
 
@@ -66,7 +66,7 @@ if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   UNEXPECTED=()
   while IFS= read -r -d '' p; do
     case "$p" in
-      app-pro.html|app-pro-backup.html|app.html|app-client-backup.html|app-client-v59.03-test.html|version.txt|version-client.txt|version-client-test.txt|sw.js|manifest.json|extra-ledger.html|kill3-ledger.html|nine-zodiac.html|site-registry.html|engine.html|dashboard.html|independence.html|max-zodiac-current.html|max-zodiac.html|stats.html|lab.html|ziliao.html|portal.html|0491.html|ai-analysis.html|issue*.html) ;;
+      app-pro.html|app-pro-backup.html|app.html|app-client-backup.html|app-client-v59.03-test.html|version.txt|version-client.txt|version-client-test.txt|sw.js|manifest.json|extra-ledger.html|kill3-ledger.html|nine-zodiac.html|site-registry.html|engine.html|dashboard.html|independence.html|max-zodiac-current.html|max-zodiac.html|stats.html|start.html|lab.html|ziliao.html|portal.html|0491.html|ai-analysis.html|issue*.html) ;;
       versions/*|functions/*) ;;
       .wrangler/*|node_modules/*|__pycache__/*|*/__pycache__/*|tests/__pycache__/*|tools/__pycache__/*|*.pyc|*.pyo) ;;
       # 运行时产物：抓板缓存/故障登记/日志，从不进部署包，出现改动不阻断部署
