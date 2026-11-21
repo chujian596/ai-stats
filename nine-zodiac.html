@@ -749,7 +749,7 @@ function render(){
 }
 
 function loadPend(){
-  return fetchJson('data/current-recommend.json?v='+Date.now()).then(function(d){PEND=d;}).catch(function(){PEND=null;});
+  return fetchJson('data/current-recommend.json').then(function(d){PEND=d;}).catch(function(){PEND=null;});
 }
 
 loadQC('九肖');
@@ -771,7 +771,7 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   if(rb) rb.addEventListener('click',function(){
     var keep=sel.value;
     rb.textContent='刷新中…';
-    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(function(){return fetchJson('data/kill3-ledger.json?v='+Date.now()).then(function(k){KILL=k;}).catch(function(){});}).then(loadPend).then(function(){
+    fetchJson('data/max-zodiac-ledger.json').then(function(d){LG=d;return fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(function(){return fetchJson('data/kill3-ledger.json').then(function(k){KILL=k;}).catch(function(){});}).then(loadPend).then(function(){
       buildSelect();
       if(keep!=='pending' && issues.indexOf(keep)>=0){ enterReview(keep); } else { enterPending(); }
       renderPending(); rb.textContent='立即刷新';

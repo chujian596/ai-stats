@@ -700,11 +700,11 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   if(rb) rb.addEventListener('click',function(){
     var keep=sel.value;
     rb.textContent='刷新中…';
-    fetchJson('data/kill3-ledger.json?v='+Date.now()).then(function(d){
+    fetchJson('data/kill3-ledger.json').then(function(d){
       LG=d; PROF=(d&&d.profiles)||{};
-      var pAlias=fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
-      var pRank=fetchJson('data/kill-rank-stats.json?v='+Date.now()).then(function(k){KR=k;}).catch(function(){});
-      var pPend=fetchJson('data/current-recommend.json?v='+Date.now()).then(function(p){PEND=p;}).catch(function(){PEND=null;});
+      var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
+      var pRank=fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;}).catch(function(){});
+      var pPend=fetchJson('data/current-recommend.json').then(function(p){PEND=p;}).catch(function(){PEND=null;});
       return Promise.all([pAlias,pRank,pPend]);
     }).then(function(){
       buildSelect();
