@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f3f1ea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
-<title>资料中心 · 本期资料 / 九肖 / 杀三肖</title>
+<title>资料中心 · 本期资料 / 九肖 / 杀三肖 / 改料跟踪</title>
 <style>
   :root{
     --bg:#f3f1ea; --bg-2:#ece8df; --card:#fffdf9; --card-2:#f8f5ef;
@@ -63,8 +63,8 @@
   .status-pill.warn{background:rgba(232,189,102,.16);border-color:rgba(232,189,102,.4);color:#ffe2a7}
   .hero-period{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:9px}
   .hero-updated{font-size:10px;color:#a9c1e8;margin-top:3px;white-space:nowrap}
-  .tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
-  .tabbar button{position:relative;border:0;border-radius:11px;padding:10px 7px;background:transparent;color:var(--muted);font-size:13px;font-weight:750;white-space:nowrap}
+  .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
+  .tabbar button{position:relative;border:0;border-radius:11px;padding:10px 5px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;white-space:nowrap}
   .tabbar button.on{background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(36,86,166,.18)}
   .tabbar button .cnt{display:block;font-size:9px;font-weight:600;opacity:.72;margin-top:2px}
   .tabbar button.on .cnt{opacity:.9}
@@ -165,6 +165,48 @@
   .more-row{display:flex;justify-content:center;padding:10px 0 2px}
   .warn{font-size:10.5px;color:var(--amber);line-height:1.55;margin:0 2px 10px}
   .foot{border-top:1px solid var(--line);margin-top:18px;padding:13px 2px 0;font-size:10px;color:var(--faint);line-height:1.7;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .change-tools{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .change-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .change-row .period-box{border-right:0;margin-right:0;padding-right:0}
+  .change-dim-chips,.change-status-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .change-list{display:grid;grid-template-columns:1fr;gap:8px}
+  .change-site{background:var(--card-2);border:1px solid var(--line-soft);border-radius:14px;padding:12px 13px;min-width:0;cursor:pointer}
+  .change-site:hover{border-color:var(--line)}
+  .change-site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+  .change-site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-word}
+  .change-site-name span{font-size:9.5px;color:var(--faint);font-weight:500;margin-left:5px}
+  .change-site-nums{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+  .change-num{font-size:9.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px;white-space:nowrap}
+  .change-num.g{color:var(--green);border-color:transparent;background:var(--green-soft)}
+  .change-num.r{color:var(--red);border-color:transparent;background:var(--red-soft)}
+  .change-num.a{color:var(--amber);border-color:transparent;background:var(--amber-soft)}
+  .change-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .change-tag{font-size:9px;font-weight:700;border-radius:5px;padding:2px 5px;background:var(--accent-soft);color:var(--accent-2)}
+  .change-periods{font-size:9.5px;color:var(--faint);margin-top:7px;line-height:1.5}
+  .change-go{font-size:10px;color:var(--accent);margin-top:8px;font-weight:700}
+  .change-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 10px}
+  .change-back{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 9px;color:var(--accent);font-size:11px;font-weight:700}
+  .change-detail-title{font-size:14px;font-weight:800}
+  .change-detail-sub{font-size:10px;color:var(--faint)}
+  .change-entry{background:var(--card-2);border:1px solid var(--line-soft);border-radius:13px;padding:11px 12px;margin-bottom:8px}
+  .change-entry-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .change-entry-meta{font-size:10px;color:var(--faint);line-height:1.5}
+  .change-entry-col{font-size:11px;color:var(--muted);margin-top:2px;word-break:break-word}
+  .change-flow{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:11px;line-height:1.5}
+  .change-before,.change-after{background:var(--card);border:1px solid var(--line-soft);border-radius:7px;padding:3px 7px;word-break:break-all}
+  .change-arrow{color:var(--faint);flex:none}
+  .change-sets{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+  .change-chip{min-width:22px;height:22px;padding:0 5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--line-soft);font-size:11px;font-weight:700}
+  .change-chip.add{background:var(--green-soft);color:var(--green);border-color:transparent}
+  .change-chip.rem{background:var(--red-soft);color:var(--red);border-color:transparent}
+  .change-sub{display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--faint);margin-top:7px}
+  .change-flag{font-size:10px;color:var(--amber);margin-top:6px}
+  .change-note{border-top:1px solid var(--line-soft);margin-top:12px;padding:12px 2px 0;font-size:10.5px;color:var(--muted);line-height:1.7}
+  .change-note b{color:var(--text)}
+  .change-raw{margin-top:5px;font-size:9.5px;color:var(--faint);line-height:1.55}
+  .change-raw summary{cursor:pointer;list-style:none}
+  .change-raw summary::-webkit-details-marker{display:none}
+  .change-raw div{margin-top:3px;word-break:break-all}
   .modal{position:fixed;inset:0;background:rgba(10,18,30,.58);display:flex;align-items:center;justify-content:center;padding:18px;z-index:90}
   .modal-card{width:min(680px,100%);max-height:82vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
   .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
@@ -182,7 +224,7 @@
     .two-col{grid-template-columns:1fr 1fr}
     .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
   }
-  @media (min-width:900px){ .site-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (min-width:900px){ .site-grid{grid-template-columns:repeat(2,minmax(0,1fr))} .change-list{grid-template-columns:repeat(2,minmax(0,1fr))} }
   @media (max-width:640px){
     .page{padding:11px 12px 42px}
     .hero{padding:19px 17px 16px;border-radius:22px}
@@ -193,7 +235,7 @@
     .hero-updated{width:100%;margin-top:-4px}
     .panel-head{padding:15px 13px 11px}
     .section{padding:13px}
-    .tabbar button{font-size:12px;padding:9px 5px}
+    .tabbar button{font-size:11px;padding:9px 3px}
     .tabbar button .cnt{font-size:8.5px}
     .period-box{width:100%;border-right:0;margin-right:0;padding:0 0 7px;border-bottom:1px solid var(--line)}
     .period-box select{flex:1;max-width:none}
@@ -211,7 +253,7 @@
   <header class="topbar">
     <a class="brand" href="stats.html" title="返回资料统计">
       <span class="brand-logo">资</span>
-      <span class="brand-text"><b>资料统计</b><small>DATA ROOM</small></span>
+      <span class="brand-text"><b>资料中心</b><small>DATA ROOM</small></span>
     </a>
     <div class="top-actions">
       <a class="ghost" href="stats.html">总览</a>
@@ -223,9 +265,9 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">DATA CENTER · v1.0 / ONE PAGE</div>
+        <div class="kicker">一页看全 · 四个视图</div>
         <h1>资料中心</h1>
-        <p>本期资料、每站九肖、每站杀三肖合到一页。先看共识，再按站核对，不用来回跳页面。</p>
+        <p>本期资料、逐站九肖、逐站杀三肖、改料跟踪，一页看完。</p>
       </div>
       <div class="hero-side">
         <span class="status-pill warn" id="heroStatus">待开</span>
@@ -239,6 +281,7 @@
     <button type="button" data-tab="now" class="on">本期资料<span class="cnt" id="tabNowCount">—</span></button>
     <button type="button" data-tab="nine">九肖<span class="cnt" id="tabNineCount">—</span></button>
     <button type="button" data-tab="kill">杀三肖<span class="cnt" id="tabKillCount">—</span></button>
+    <button type="button" data-tab="change">改料跟踪<span class="cnt" id="tabChangeCount">—</span></button>
   </nav>
 
   <!-- ===== 视图：本期资料 ===== -->
@@ -247,7 +290,7 @@
       <div class="panel-head">
         <div>
           <div class="eyebrow" id="nowEyebrow">ISSUE — · PENDING</div>
-          <h2>本期资料 · 全站一页看完</h2>
+          <h2>本期资料 · 逐站核对</h2>
           <p id="nowSub">每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。</p>
         </div>
         <span class="badge pending" id="nowBadge">读取中</span>
@@ -257,13 +300,13 @@
         <div class="stats" id="nowStats"></div>
         <div class="two-col">
           <div class="subcard">
-            <h3>九肖共识 · Top</h3>
-            <div class="subhint" id="nowNineHint">按站次统计，票不是金额</div>
+            <h3>九肖共识</h3>
+            <div class="subhint" id="nowNineHint">按站次计票，不是金额</div>
             <div id="nowNineRank"><div class="empty">读取中…</div></div>
           </div>
           <div class="subcard">
-            <h3>杀三肖共识 · Top</h3>
-            <div class="subhint" id="nowKillHint">按站次统计，票不是金额</div>
+            <h3>杀三肖共识</h3>
+            <div class="subhint" id="nowKillHint">按站次计票，不是金额</div>
             <div id="nowKillRank"><div class="empty">读取中…</div></div>
           </div>
         </div>
@@ -293,8 +336,8 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <div class="eyebrow">NINE-ZODIAC LEDGER · 每站九肖</div>
-          <h2>九肖台账</h2>
+          <div class="eyebrow">九肖 · 逐站台账</div>
+          <h2>九肖 · 逐站台账</h2>
           <p id="nineSub">逐站看九肖原序、近 7 期轨迹、连对连错；点开卡片看最近 10 期明细。</p>
         </div>
         <span class="badge pending" id="nineBadge">读取中</span>
@@ -310,12 +353,12 @@
         </div>
         <div class="two-col">
           <div class="subcard">
-            <h3>九肖共识 · Top</h3>
+            <h3>九肖共识</h3>
             <div class="subhint" id="nineRankHint">按站次统计</div>
             <div id="nineRank"></div>
           </div>
           <div class="subcard">
-            <h3>本页读法</h3>
+            <h3>判定说明</h3>
             <div class="doc" style="padding-top:2px">
               <p><b>中</b> = 开奖特肖在 9 肖内；<b>错</b> = 不在。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。样本不足只记录，不定论。</p>
             </div>
@@ -342,8 +385,8 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <div class="eyebrow">KILL-3 LEDGER · 每站杀三肖</div>
-          <h2>杀三肖台账</h2>
+          <div class="eyebrow">杀三肖 · 逐站台账</div>
+          <h2>杀三肖 · 逐站台账</h2>
           <p id="killSub">逐站看被杀三肖、近 7 期轨迹、连对连错；点开卡片看最近 10 期明细。</p>
         </div>
         <span class="badge pending" id="killBadge">读取中</span>
@@ -359,12 +402,12 @@
         </div>
         <div class="two-col">
           <div class="subcard">
-            <h3>杀三共识 · Top</h3>
+            <h3>杀三共识</h3>
             <div class="subhint" id="killRankHint">按站次统计</div>
             <div id="killRank"></div>
           </div>
           <div class="subcard">
-            <h3>本页读法</h3>
+            <h3>判定说明</h3>
             <div class="doc" style="padding-top:2px">
               <p><b>杀中</b> = 开奖特肖不在所杀 3 肖内；<b>杀错</b> = 特肖正好落在被杀 3 肖内。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。</p>
             </div>
@@ -386,7 +429,51 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料统计 · 只记录，不定论 · v1.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger</span></div>
+  <!-- ===== 视图：改料跟踪 ===== -->
+  <section class="view hidden" id="view-change">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">改料跟踪 · 登记与回检</div>
+          <h2>改料跟踪</h2>
+          <p id="changeSub">同一期多份快照逐站比对，登记“补进 / 换掉”；开奖后按维度回检改对、改错、无差异。</p>
+        </div>
+        <span class="badge pending" id="changeBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="changeChips"></div>
+        <div class="stats" id="changeStats"></div>
+        <div class="change-tools">
+          <div class="change-row">
+            <div class="period-box"><label for="changePeriod">期号</label><select id="changePeriod"></select></div>
+            <input id="changeSearch" type="search" placeholder="搜站名 / 站号 / 栏目" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--text);padding:8px 9px;font-size:12px;outline:none">
+          </div>
+          <div class="change-dim-chips" id="changeDimChips"></div>
+          <div class="change-row">
+            <div class="change-status-chips" id="changeStatusChips">
+              <button type="button" class="filter-chip on" data-s="all">全部</button>
+              <button type="button" class="filter-chip" data-s="pending">待检</button>
+              <button type="button" class="filter-chip" data-s="settled">已结算</button>
+            </div>
+            <div style="flex:1"></div>
+            <select id="changeSort" style="border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--text);padding:7px 9px;font-size:11px;outline:none">
+              <option value="rank">改对在前</option>
+              <option value="wrong">改错多在前</option>
+              <option value="count">改动多在前</option>
+              <option value="name">按站名</option>
+            </select>
+          </div>
+        </div>
+        <div id="changeList" class="change-list"></div>
+        <div id="changeMore" class="more-row"></div>
+        <div class="change-note">
+          <b>判定口径：</b>九肖按子集判——特肖落在“补进”子集＝改补命中，落在“换掉”子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。样本不足 30 期只记录，不下结论。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -397,10 +484,11 @@
     </div>
     <div class="doc">
       <p><b>本期资料：</b>每站本期公开资料的原样汇总。九肖看“哪 9 个肖被写进推荐”，杀三肖看“哪 3 个肖被杀”；下面六维是平特、波色、尾数、头数、大小、单双。</p>
-      <p><b>九肖 / 杀三肖：</b>点顶部第二个或第三个标签进入逐站台账；期号选“待开”看本期原始推荐，选已开奖期看中错、连对连错、近 7 期轨迹和最近 10 期明细。</p>
+      <p><b>九肖 / 杀三肖：</b>点顶部第二、第三个标签进入逐站台账；期号选“待开”看本期原始推荐，选已开奖期看中错、连对连错、近 7 期轨迹和最近 10 期明细。</p>
+      <p><b>改料跟踪：</b>点第四个标签看同一期不同快照间的改动。先按维度/期号筛，再点站点看历次“补进 / 换掉”；有开奖结果的显示改对、改错或无差异，未开奖的留在“待检”。</p>
       <p><b>票数口径：</b>1 个站、1 个栏目算 1 票（站次），不是金额，也不是下注量。九肖每站 9 个肖，杀三肖每站 3 个肖。</p>
       <p><b>命中规则：</b>九肖：开奖特肖在 9 肖内记“中”；杀三肖：开奖特肖不在所杀 3 肖内记“杀中”。历史命中率只做描述，不构成下期结论。</p>
-      <p><b>数据来源：</b>本期汇总读 <b>data/current-recommend.json</b>；九肖台账读 <b>data/max-zodiac-ledger.json</b>；杀三肖台账读 <b>data/kill3-ledger.json</b>；站名对照读 <b>data/site-aliases.json</b>。</p>
+      <p><b>数据来源：</b>本期汇总读 <b>data/current-recommend.json</b>；九肖台账读 <b>data/max-zodiac-ledger.json</b>；杀三肖台账读 <b>data/kill3-ledger.json</b>；改料跟踪读 <b>data/change-ledger.json</b>；站名对照读 <b>data/site-aliases.json</b>。</p>
     </div>
   </div>
 </div>
@@ -419,13 +507,17 @@
     {key:'size',label:'大小'},
     {key:'parity',label:'单双'}
   ];
+  var CHANGE_DIMS=[['all','全部'],['kill','杀肖'],['pingte','平特一肖'],['nine','九肖'],['wave','波色'],['tail','尾数'],['head','头数'],['size','大小'],['parity','单双']];
+  var CHANGE_DIM_LABEL={kill:'杀肖',pingte:'平特一肖',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
   var S={
-    tab:'now', pend:null, nine:null, kill:null, aliases:{},
-    q:{now:'',nine:'',kill:''},
+    tab:'now', pend:null, nine:null, kill:null, change:null, aliases:{},
+    q:{now:'',nine:'',kill:'',change:''},
     f:{now:'all',nine:'has',kill:'has'},
     sort:{now:'name',nine:'name',kill:'name'},
-    limit:{now:30,nine:30,kill:30},
+    limit:{now:30,nine:30,kill:30,change:30},
     per:{nine:'pending',kill:'pending'},
+    c:{dim:'all',status:'all',period:'all',sort:'rank',view:'list',site:null},
+    changeError:'',
     loadError:''
   };
   var $=function(id){return document.getElementById(id);};
@@ -544,7 +636,7 @@
     var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
     var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
     var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
-    $('nowEyebrow').textContent='ISSUE '+p.period+' · PENDING';
+    $('nowEyebrow').textContent='第 '+p.period+' 期 · '+(p.status==='pending'?'待开':'已归档');
     $('nowSub').textContent='每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。';
     $('nowBadge').textContent=p.status==='pending'?'待开':'已归档';
     $('nowBadge').className='badge '+(p.status==='pending'?'pending':'done');
@@ -751,20 +843,180 @@
     '</summary><div class="site-detail">'+detail+(r.raw?'<div class="raw">原文：'+esc(r.raw)+'</div>':'')+'</div></details>';
   }
 
+  // ===== 改料跟踪 =====
+  function changeSiteKey(e){ return e.siteId || e.siteName || '?'; }
+  function changeSiteName(e){ return e.siteName || e.siteId || '未知站点'; }
+  function changeKind(e){
+    if(!e.result) return 'pending';
+    var v=e.result.verdict||'无差异';
+    if(v==='改补命中'||v==='改对'||v==='前后都中') return 'right';
+    if(v==='改掉特肖'||v==='改错'||v==='前后都错') return 'wrong';
+    return 'neutral';
+  }
+  function changeVerdict(e){ return e.result ? (e.result.verdict||'无差异') : '待检'; }
+  function changeBadge(e){
+    var k=changeKind(e), v=changeVerdict(e);
+    if(k==='pending') return '<span class="hit-badge unk">待检</span>';
+    if(k==='right') return '<span class="hit-badge hit">'+esc(v)+'</span>';
+    if(k==='wrong') return '<span class="hit-badge miss">'+esc(v)+'</span>';
+    return '<span class="hit-badge unk">'+esc(v)+'</span>';
+  }
+  function changeFilter(){
+    var es=(S.change&&S.change.entries)||[];
+    var q=(S.q.change||'').trim().toLowerCase();
+    return es.filter(function(e){
+      if(S.c.dim!=='all' && e.dim!==S.c.dim) return false;
+      if(S.c.period!=='all' && String(e.period)!==String(S.c.period)) return false;
+      if(S.c.status==='pending' && e.result) return false;
+      if(S.c.status==='settled' && !e.result) return false;
+      if(q){
+        var hay=[changeSiteName(e),changeSiteKey(e),e.column,e.dim,CHANGE_DIM_LABEL[e.dim]||''].join(' ').toLowerCase();
+        if(hay.indexOf(q)<0) return false;
+      }
+      return true;
+    });
+  }
+  function changeAgg(es){
+    var map={};
+    es.forEach(function(e){
+      var key=changeSiteKey(e);
+      if(!map[key]) map[key]={sid:key,name:changeSiteName(e),entries:[],right:0,wrong:0,neutral:0,pending:0,periods:{},dims:{}};
+      var s=map[key]; s.entries.push(e);
+      if(!s.name || s.name==='未知站点') s.name=changeSiteName(e);
+      var k=changeKind(e);
+      if(k==='right')s.right++; else if(k==='wrong')s.wrong++; else if(k==='pending')s.pending++; else s.neutral++;
+      s.periods[e.period]=1; s.dims[e.dim]=1;
+    });
+    return Object.keys(map).map(function(k){return map[k];});
+  }
+  function changeGroup(s){ return s.right>0?0:(s.wrong>0?1:2); }
+  function changeSiteRank(a,b){
+    var ga=changeGroup(a), gb=changeGroup(b);
+    if(ga!==gb) return ga-gb;
+    if(ga===0) return (b.right-a.right)||(a.wrong-b.wrong)||(b.entries.length-a.entries.length);
+    if(ga===1) return (b.wrong-a.wrong)||(a.right-b.right)||(b.entries.length-a.entries.length);
+    return b.entries.length-a.entries.length;
+  }
+  function buildChangePeriods(){
+    var sel=$('changePeriod'); if(!sel) return;
+    var ps={};
+    ((S.change&&S.change.entries)||[]).forEach(function(e){ps[e.period]=1;});
+    var opts=[['all','全部期号']].concat(Object.keys(ps).sort(function(a,b){return +b-+a;}).map(function(p){return [p,'第'+p+'期'];}));
+    sel.innerHTML=opts.map(function(o){return '<option value="'+o[0]+'">'+esc(o[1])+'</option>';}).join('');
+    if(!opts.some(function(o){return String(o[0])===String(S.c.period);})) S.c.period='all';
+    sel.value=S.c.period;
+  }
+  function renderChange(){
+    var list=$('changeList'), badge=$('changeBadge');
+    if(!S.change || !S.change.entries){
+      badge.textContent='读取失败'; badge.className='badge pending';
+      $('changeSub').textContent='改料台账没有读到，其它标签仍可用。';
+      list.innerHTML='<div class="empty">改料台账读取失败：'+esc(S.changeError||'data/change-ledger.json')+'</div>';
+      $('changeChips').innerHTML=''; $('changeStats').innerHTML=''; $('changeMore').innerHTML='';
+      return;
+    }
+    buildChangePeriods();
+    var all=S.change.entries, es=changeFilter();
+    var allSites=changeAgg(all), sites=changeAgg(es).sort(function(a,b){
+      if(S.c.sort==='name') return a.name.localeCompare(b.name,'zh-Hans-CN');
+      if(S.c.sort==='wrong') return (b.wrong-a.wrong)||(b.right-a.right)||(b.entries.length-a.entries.length);
+      if(S.c.sort==='count') return (b.entries.length-a.entries.length)||(b.right-a.right);
+      return changeSiteRank(a,b);
+    });
+    var pending=all.filter(function(e){return !e.result;}).length;
+    var settled=all.length-pending;
+    $('tabChangeCount').textContent=all.length+' 次';
+    badge.textContent=pending?('待检 '+pending):'已看完';
+    badge.className='badge '+(pending?'pending':'done');
+    $('changeSub').textContent='同一期不同快照逐站比对；点站点看补进 / 换掉和回检结果。';
+    $('changeChips').innerHTML='<span class="chip accent"><span class="dot"></span>更新 '+esc(S.change.updatedAt||'—')+'</span><span class="chip">八维度</span><span class="chip">'+allSites.length+' 站</span>';
+    $('changeStats').innerHTML=
+      statCard('改动条目',all.length,'次','八维度快照')+
+      statCard('已结算',settled,'次','已有结果')+
+      statCard('待检',pending,'次','等开奖补检')+
+      statCard('涉及站点',allSites.length,'站','按站聚合');
+    // 维度 / 状态
+    var dc=$('changeDimChips');
+    dc.innerHTML=CHANGE_DIMS.map(function(d){return '<button type="button" class="filter-chip'+(S.c.dim===d[0]?' on':'')+'" data-d="'+d[0]+'">'+d[1]+'</button>';}).join('');
+    Array.prototype.forEach.call(dc.querySelectorAll('button'),function(b){b.onclick=function(){S.c.dim=b.dataset.d;S.c.view='list';S.c.site=null;renderChange();};});
+    Array.prototype.forEach.call($('changeStatusChips').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.s===S.c.status);b.onclick=function(){S.c.status=b.dataset.s;S.c.view='list';S.c.site=null;renderChange();};});
+    // 明细
+    if(S.c.view==='site' && S.c.site){
+      var siteEntries=es.filter(function(e){return changeSiteKey(e)===S.c.site;}).sort(function(a,b){
+        var pa=a.result?1:0, pb=b.result?1:0;
+        if(pa!==pb) return pa-pb;
+        return String(b.period).localeCompare(String(a.period));
+      });
+      var s=changeAgg(siteEntries)[0]||{name:S.c.site,sid:S.c.site,entries:siteEntries,right:0,wrong:0,pending:0,neutral:0};
+      list.innerHTML='<div class="change-detail-head"><button type="button" class="change-back">← 返回站点榜</button><span class="change-detail-title">'+esc(s.name)+'</span><span class="change-detail-sub">'+esc(s.sid)+' · 共 '+siteEntries.length+' 次</span></div>'
+        +'<div class="change-site-nums" style="justify-content:flex-start;margin:0 2px 10px"><span class="change-num">总改 '+siteEntries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num r">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div>'
+        +(siteEntries.length?siteEntries.map(changeEntryCard).join(''):'<div class="empty">该站在当前筛选下没有改料记录</div>');
+      $('changeMore').innerHTML='';
+      return;
+    }
+    $('changeList').innerHTML=(sites.length?sites.slice(0,S.limit.change).map(changeSiteCard).join(''):'<div class="empty">没有符合条件的改料记录</div>');
+    if(sites.length>S.limit.change){
+      $('changeMore').innerHTML='<button class="btn" type="button" data-more="change">显示全部 '+sites.length+' 站</button>';
+    } else if(S.limit.change>30 && sites.length>30){
+      $('changeMore').innerHTML='<button class="btn" type="button" data-less="change">收起，只看前 30 站</button>';
+    } else $('changeMore').innerHTML='';
+    var mb=$('changeMore').querySelector('button');
+    if(mb) mb.onclick=function(){S.limit.change=mb.dataset.more?9999:30;renderChange();};
+  }
+  function changeSiteCard(s){
+    var dims=Object.keys(s.dims).map(function(d){return '<span class="change-tag">'+esc(CHANGE_DIM_LABEL[d]||d)+'</span>';}).join('');
+    var periods=Object.keys(s.periods).sort(function(a,b){return +b-+a;}).map(function(p){return '第'+p+'期';}).join('、');
+    return '<div class="change-site" data-site="'+esc(s.sid)+'">'
+      +'<div class="change-site-top"><div><div class="change-site-name">'+esc(s.name)+'<span>'+esc(s.sid)+'</span></div></div>'
+      +'<div class="change-site-nums"><span class="change-num">总改 '+s.entries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num r">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div></div>'
+      +'<div class="change-tags">'+dims+'</div>'
+      +'<div class="change-periods">'+esc(periods)+'</div>'
+      +'<div class="change-go">查看历次改料 ›</div></div>';
+  }
+  function changeEntryCard(e){
+    var added=(e.added||[]).map(function(x){return '<span class="change-chip add">'+esc(x)+'</span>';}).join('');
+    var removed=(e.removed||[]).map(function(x){return '<span class="change-chip rem">'+esc(x)+'</span>';}).join('');
+    var beforeTxt=(e.beforeSet&&e.beforeSet.length)?e.beforeSet.join('·'):(e.before||'—');
+    var afterTxt=(e.afterSet&&e.afterSet.length)?e.afterSet.join('·'):(e.after||'—');
+    var raw=((e.before&&/[0-9]/.test(e.before))||(e.after&&/[0-9]/.test(e.after))
+      ? '<details class="change-raw"><summary>查看原值</summary><div>'+esc(e.before||'—')+' → '+esc(e.after||'—')+'</div></details>'
+      : '');
+    var sets='';
+    if(added||removed) sets='<div class="change-sets">'+(added?'<span class="change-num g">补进 '+(e.added||[]).length+'</span>'+added:'')+(removed?'<span class="change-num r">换掉 '+(e.removed||[]).length+'</span>'+removed:'')+'</div>';
+    return '<div class="change-entry">'
+      +'<div class="change-entry-top"><div><div class="change-entry-meta">第'+esc(e.period)+'期 · '+esc(CHANGE_DIM_LABEL[e.dim]||e.dim)+'</div><div class="change-entry-col">'+esc(e.column||'')+'</div></div>'+changeBadge(e)+'</div>'
+      +'<div class="change-flow"><span class="change-before">'+esc(beforeTxt)+'</span><span class="change-arrow">→</span><span class="change-after">'+esc(afterTxt)+'</span></div>'
+      +sets
+      +(e.flag?'<div class="change-flag">标记：'+esc(e.flag)+'</div>':'')
+      +(e.result&&e.result.drawZod?'<div class="change-sub"><span>开奖 '+esc(e.result.drawZod)+'</span></div>':'')
+      +raw
+      +'</div>';
+  }
+
   // ===== 交互 =====
   function switchTab(t){
     S.tab=t;
     Array.prototype.forEach.call($('tabbar').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.tab===t);});
-    ['now','nine','kill'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
+    ['now','nine','kill','change'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
     try{history.replaceState(null,'','#'+t);}catch(e){}
     if(t==='nine'||t==='kill') renderLedger(t);
-    try{document.title='资料中心 · '+(t==='now'?'本期资料':(t==='nine'?'九肖':'杀三肖'));}catch(e){}
+    if(t==='change') renderChange();
+    try{document.title='资料中心 · '+(t==='now'?'本期资料':(t==='nine'?'九肖':(t==='kill'?'杀三肖':'改料跟踪')));}catch(e){}
   }
   function bind(){
     $('tabbar').addEventListener('click',function(e){var b=e.target.closest('button[data-tab]');if(b)switchTab(b.dataset.tab);});
     $('nowSearch').addEventListener('input',function(){S.q.now=this.value;S.limit.now=30;renderNow();});
     $('nowSort').addEventListener('change',function(){S.sort.now=this.value;renderNow();});
     Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f.now=b.dataset.f;Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(x){x.classList.toggle('on',x===b);});renderNow();});});
+    $('changeSearch').addEventListener('input',function(){S.q.change=this.value;S.limit.change=30;S.c.view='list';S.c.site=null;renderChange();});
+    $('changeSort').addEventListener('change',function(){S.c.sort=this.value;renderChange();});
+    $('changePeriod').addEventListener('change',function(){S.c.period=this.value;S.c.view='list';S.c.site=null;renderChange();});
+    $('changeList').addEventListener('click',function(e){
+      var site=e.target.closest('.change-site');
+      if(site){S.c.site=site.dataset.site;S.c.view='site';renderChange();return;}
+      var back=e.target.closest('.change-back');
+      if(back){S.c.view='list';S.c.site=null;renderChange();}
+    });
     ['nine','kill'].forEach(function(kind){
       $(kind+'Period').addEventListener('change',function(){S.per[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
       $(kind+'Search').addEventListener('input',function(){S.q[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
@@ -788,17 +1040,19 @@
       fetchJson('data/current-recommend.json').catch(function(e){S.loadError=e.message;return null;}),
       fetchJson('data/max-zodiac-ledger.json').catch(function(){return null;}),
       fetchJson('data/kill3-ledger.json').catch(function(){return null;}),
+      fetchJson('data/change-ledger.json').catch(function(e){S.changeError=e.message;return null;}),
       fetchJson('data/site-aliases.json').catch(function(){return {aliases:{}};})
     ]).then(function(r){
-      S.pend=r[0]; S.nine=r[1]; S.kill=r[2]; S.aliases=(r[3]&&(r[3].aliases||r[3]))||{};
+      S.pend=r[0]; S.nine=r[1]; S.kill=r[2]; S.change=r[3]; S.aliases=(r[4]&&(r[4].aliases||r[4]))||{};
       if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
       var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
       setHero(per,S.pend&&S.pend.status==='pending'?'待开':'已归档',(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
       $('tabNineCount').textContent=(S.nine?Object.keys(S.nine.periods).length:0)+' 期';
       $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
-      buildPeriod('nine'); buildPeriod('kill');
+      $('tabChangeCount').textContent=S.change?(S.change.entries||[]).length+' 次':'—';
+      buildPeriod('nine'); buildPeriod('kill'); buildChangePeriods();
       renderNow();
-      var h=(location.hash||'').replace('#',''); if(h==='nine'||h==='kill') switchTab(h); else switchTab('now');
+      var h=(location.hash||'').replace('#',''); if(h==='nine'||h==='kill'||h==='change') switchTab(h); else switchTab('now');
     }).catch(function(e){setHero('—','异常','读取失败');$('nowCards').innerHTML='<div class="empty">'+esc(e.message||e)+'</div>';});
   }
   init();
