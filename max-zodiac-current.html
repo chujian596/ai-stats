@@ -40,6 +40,18 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 .bar-fill.bottom{background:#e7ebf2}
 .bar-n{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
 .bar-row.top .bar-z,.bar-row.top .bar-n{color:var(--red)}
+.hero .badge .delta{display:block;font-size:10px;color:var(--muted);margin-top:3px;font-weight:600}
+.dev-head{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;padding:0 2px 4px}
+.dev-row{display:grid;grid-template-columns:26px 52px 1fr 88px;gap:8px;align-items:center;padding:6px 0}
+.dev-row.top .bar-z,.dev-row.top .dev-val b{color:var(--red)}
+.dev-track{position:relative;height:14px;background:#f4f6fa;border-radius:999px}
+.dev-center{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#c3cedd}
+.dev-fill{position:absolute;top:3px;height:8px;border-radius:999px}
+.dev-fill.pos{left:50%;background:linear-gradient(90deg,#e35d52,#b42318)}
+.dev-fill.neg{right:50%;background:#9aa8ba}
+.dev-val{font-size:11px;text-align:right;font-variant-numeric:tabular-nums;line-height:1.15}
+.dev-val b{display:block;font-size:13px;color:var(--ink)}
+.dev-val span{color:var(--muted)}
 .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:11px}
 .meta b{color:var(--ink)}
 .table-scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:12px}
@@ -57,7 +69,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 .kill .i{background:#fff7ed;border:1px solid #f3dfc0;border-radius:10px;padding:8px 10px;font-size:12px;color:#8a5a16}
 .kill .i b{font-size:15px;color:#7a3e00}
 .footer{text-align:center;color:var(--muted);font-size:11px;padding:22px 10px 0;line-height:1.7}
-@media(max-width:380px){.hero .z{font-size:40px}.bar-row{grid-template-columns:22px 44px 1fr 34px;gap:6px}}
+@media(max-width:380px){.hero .z{font-size:40px}.dev-row{grid-template-columns:22px 40px 1fr 76px;gap:6px}}
 </style>
 </head>
 <body>
@@ -80,11 +92,12 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <div class="badge">
       <b id="topPct">—</b>
       <span>有效九肖站内占比</span>
+      <span class="delta" id="topDelta">—</span>
     </div>
   </section>
   <div class="chips" id="chips"></div>
 
-  <div class="section-title"><h2>12 生肖票数</h2><small>按 9 肖推荐站计数</small></div>
+  <div class="section-title"><h2>12 生肖票数</h2><small>0 = 75% 基线，右偏=更集中</small></div>
   <div class="card" id="bars"><div class="meta">正在加载…</div></div>
   <div class="meta" id="meta" style="margin:8px 2px 0"></div>
 
@@ -105,8 +118,9 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
   <div class="note">
     <b>口径</b>
     <p>只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。100 站中当前有九肖 87 站，杀三 70 站。新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。</p>
+    <p><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。87 站平均 65.3 票；猪 69 票只是 79.3%（+4.3pp），牛 59 票是 67.8%（−7.2pp）。单个生肖的粗略 95% 抽样波动约 ±9pp，猪和牛的区间仍重叠，所以首末差 10 票现在只能算噪声，不能当方向。</p>
   </div>
-  <div class="footer">AI资料统计 · 最大生肖 v1.0 · 325 期 · 只做公开资料统计</div>
+  <div class="footer">AI资料统计 · 最大生肖 v1.1 · 325 期 · 只做公开资料统计</div>
 </main>
 
 <script>
@@ -130,19 +144,35 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var nineSites=sites.length;
     var total=arr.reduce(function(a,b){return a+b.n;},0);
 
+    var avg=total/12;
+    var avgPct=avg/nineSites*100;
+    var topDelta=(top/nineSites-0.75)*100;
+    var lowDelta=(low/nineSites-0.75)*100;
+    var gapVotes=top-low;
+    var gapPct=gapVotes/nineSites*100;
+    var oneVote=100/nineSites;
+    var noise=1.96*Math.sqrt(0.75*0.25/nineSites)*100;
     document.getElementById('periodLabel').textContent=(d.period||325)+' 期';
     document.getElementById('topZ').textContent=topZ;
-    document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站';
+    document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站 · 平均 '+Math.round(avg*10)/10+' 票';
     document.getElementById('topPct').textContent=pct(top,nineSites)+'%';
+    document.getElementById('topDelta').textContent='较 75% 基线 '+(topDelta>0?'+':'')+topDelta.toFixed(1)+'pp';
     document.getElementById('chips').innerHTML=arr.slice(0,3).map(function(x,i){return '<span class="chip '+(i===0?'top':'')+'">'+esc(x.z)+' <b>'+x.n+'</b> 票</span>';}).join('')+
-      '<span class="chip">末位 '+esc(arr[arr.length-1].z)+' <b>'+low+'</b> 票</span>';
+      '<span class="chip">平均 <b>'+Math.round(avg*10)/10+'</b> 票 · '+avgPct.toFixed(1)+'%</span>'+
+      '<span class="chip">末位 '+esc(arr[arr.length-1].z)+' <b>'+low+'</b> 票</span>'+
+      '<span class="chip">首末差 <b>'+gapVotes+'</b> 票 · '+gapPct.toFixed(1)+'pp</span>';
 
-    var max=top||1;
-    document.getElementById('bars').innerHTML=arr.map(function(x){
-      var cls=x.n===top?'top':(x.n===low?'bottom':'');
-      return '<div class="bar-row '+cls+'"><div class="bar-z">'+esc(x.z)+'</div><div class="bar-name">'+(x.n===top?'第一':(x.n===low?'末位':''))+'</div><div class="bar-track"><div class="bar-fill '+cls+'" style="width:'+Math.max(2,Math.round(x.n/max*100))+'%"></div></div><div class="bar-n">'+x.n+'</div></div>';
+    var maxAbs=Math.max.apply(null,arr.map(function(x){return Math.abs((x.n/nineSites-0.75)*100);}).concat([1]));
+    document.getElementById('bars').innerHTML='<div class="dev-head"><span>低于 75% ←</span><span>75% 基线</span><span>→ 高于 75%</span></div>'+
+      arr.map(function(x){
+      var delta=(x.n/nineSites-0.75)*100;
+      var w=Math.max(delta?2:0,Math.round(Math.abs(delta)/maxAbs*46));
+      var cls=x.n===top?'top':'';
+      return '<div class="dev-row '+cls+'"><div class="bar-z">'+esc(x.z)+'</div><div class="bar-name">'+(x.n===top?'第一':(x.n===low?'末位':''))+'</div>'+
+        '<div class="dev-track"><div class="dev-center"></div><div class="dev-fill '+(delta>=0?'pos':'neg')+'" style="width:'+w+'%"></div></div>'+
+        '<div class="dev-val"><b>'+x.n+'</b><span>'+(delta>0?'+':'')+delta.toFixed(1)+'pp</span></div></div>';
     }).join('');
-    document.getElementById('meta').innerHTML='<b>'+nineSites+'</b> 个有效九肖站 · 合计 '+total+' 票 · 平均每生肖 '+Math.round(total/12*10)/10+' 票 · 数据源 '+esc(d.source||'current-recommend.json');
+    document.getElementById('meta').innerHTML='<b>'+nineSites+'</b> 个有效九肖站 · 合计 '+total+' 票 · 平均 '+Math.round(avg*10)/10+' 票（'+avgPct.toFixed(1)+'% 基线）· 首末差 '+gapVotes+' 票 / '+gapPct.toFixed(1)+'pp · 1 票≈'+oneVote.toFixed(1)+'pp · 数据源 '+esc(d.source||'current-recommend.json');
 
     var topSites=sites.filter(function(s){return tops.some(function(z){return s.zodiacs.indexOf(z)>=0;});});
     document.getElementById('listSub').textContent=tops.join('、')+' · '+topSites.length+' 站';
