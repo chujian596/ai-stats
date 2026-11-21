@@ -125,7 +125,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1</span></h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.1</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -493,7 +493,7 @@ function buildSelect(){
     op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
     sel.appendChild(op);
   }
-  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+  issues.slice().reverse().forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
   if(PEND && !sel.value) sel.value='pending';
   return issues;
 }
@@ -721,5 +721,6 @@ fetchJson('data/kill3-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.1 · 2026-11-22</div>
 </body>
 </html>

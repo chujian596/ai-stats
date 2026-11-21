@@ -133,7 +133,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1</span></h1>
+    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.1</span></h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
 
@@ -596,7 +596,7 @@ function buildSelect(){
     op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
     sel.appendChild(op);
   }
-  issues.forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
+  issues.slice().reverse().forEach(function(i){var o=document.createElement('option');o.value=i;o.textContent='第'+i+'期';sel.appendChild(o);});
   return issues;
 }
 
@@ -786,5 +786,6 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">九肖追踪 · 期号倒序修复 · v1.1.1 · 2026-11-22</div>
 </body>
 </html>

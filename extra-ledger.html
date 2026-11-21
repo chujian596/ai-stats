@@ -214,7 +214,7 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">EXTENDED LEDGER · v2.0 / 06 DIMENSIONS</div>
+        <div class="kicker">EXTENDED LEDGER · v2.0.1 / 06 DIMENSIONS</div>
         <h1>扩展维度台账</h1>
         <p>逐站逐期记录推荐，开奖后自动复盘。看清共识，也看清偏差。</p>
       </div>
@@ -343,7 +343,7 @@
 
   <footer class="foot">
     <span id="ruleNote">—</span>
-    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0</b></span>
+    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.1</b></span>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -413,7 +413,7 @@ function buildSelect(){
     op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
     sel.appendChild(op);
   }
-  issues().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
+  issues().slice().reverse().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
   sel.onchange=function(){
     if(sel.value==='pending') enterPending(); else enterReview(sel.value);
   };
