@@ -81,7 +81,8 @@ def snapshot_map(snap, picker):
         v = picker(rec.get('columns') or {})
         if v is None:
             continue
-        out[str(rec.get('siteKey'))] = v
+        sysname = rec.get('system') or ''
+        out[f"{sysname}:{rec.get('siteKey')}"] = v
     return out
 
 
@@ -150,7 +151,12 @@ def check_ledger(fn, ledger, expect, hit_rule):
             # 4 快照外部回比（早/晚任一份一致即通过；两份都缺则跳过）
             early = slot.get('early', {}).get(snap_key, {})
             late = slot.get('late', {}).get(snap_key, {})
-            raw_e, raw_l = early.get(sk), late.get(sk)
+            ck = f"{sys}:{sk}" if sys else sk
+            raw_e, raw_l = early.get(ck), late.get(ck)
+            if raw_e is None:
+                raw_e = early.get(sk)
+            if raw_l is None:
+                raw_l = late.get(sk)
             if raw_e is not None or raw_l is not None:
                 sets = [set(zchars(x)) for x in (raw_e, raw_l) if x is not None]
                 if sets and set(zs) not in sets:
