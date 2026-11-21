@@ -181,6 +181,17 @@ def main():
         ],
     }
     save('independence.json', out)
+    summary = {
+        'schema': 'independence-summary/v1',
+        'updatedAt': out['updatedAt'],
+        'period': out['period'],
+        'source': out['source'],
+        'counts': out['counts'],
+        'effective': out['effective'],
+        'dimensions': out['dimensions'],
+        'notes': out['notes'],
+    }
+    save('independence-summary.json', summary)
     print('INDEPENDENCE_OK', 'registered=%s' % out['counts']['registered'],
           'withData=%s' % out['counts']['withData'],
           'full=%s' % out['counts']['fullTemplates'],

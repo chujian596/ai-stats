@@ -55,6 +55,7 @@ data/source-registry.json
 data/site-performance.json
 data/engine.json
 data/independence.json
+data/independence-summary.json
 data/weight-shadow.json
 data/weight-validation.json
 $(ls data/weight-preview-*.json 2>/dev/null | tr '\n' ' ')

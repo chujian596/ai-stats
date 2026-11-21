@@ -110,7 +110,7 @@ h1{margin:6px 0 4px;font-size:25px;letter-spacing:-.02em}
       <li>20 期前只观察；20 期后才第一次判断权重是否有用，失败就撤掉，不保留装饰性权重。</li>
     </ul>
   </div>
-  <div class="footer">独立模板审计 v1.0 · 只做公开资料统计，不接私盘，不生成投注指令</div>
+  <div class="footer">独立模板审计 v1.1 · 只做公开资料统计，不接私盘，不生成投注指令</div>
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -199,13 +199,13 @@ function renderTrack(valid){
 }
 
 Promise.all([
-  fetch('data/independence.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('independence')),
+  fetch('data/independence-summary.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('independence')),
   fetch('data/weight-shadow.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-shadow')),
   fetch('data/weight-validation.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-validation'))
 ]).then(([i,s,v])=>render(i,s,v)).catch(e=>{
   console.error(e);
   $('error').style.display='block';
-  $('error').textContent='数据读取失败：请确认 data/independence.json、data/weight-shadow.json、data/weight-validation.json 已发布。';
+  $('error').textContent='数据读取失败：请确认 data/independence-summary.json、data/weight-shadow.json、data/weight-validation.json 已发布。';
   $('arms').innerHTML='<div class="msg">读取失败</div>';
   $('groups').innerHTML='<div class="msg">读取失败</div>';
 });
