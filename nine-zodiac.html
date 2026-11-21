@@ -133,7 +133,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站九肖台账</h1>
+    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1</span></h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
 
@@ -181,6 +181,15 @@
   <div class="meta" style="margin:-4px 0 10px">回看往期：上方「期号」下拉选任意一期，主表即切到该期各站；点任意一行展开该站全部逐期明细（期号 / 开奖 / 推荐九肖 / 中错）。表格左右可滑动查看连错、总中、总错、轨迹。</div>
   <div class="meta" id="issueNote" style="margin:-4px 0 10px;color:#2456a6"></div>
 
+  <div class="card pending-card" id="periodCard" style="display:none">
+    <div class="rc-title"><span id="perTitle"></span></div>
+    <div class="rc-sub" id="perSub"></div>
+    <div class="cmp2">
+      <div class="cmp2-col left"><div class="cmp2-h">九肖首肖 · Top</div><div id="perNine"></div></div>
+      <div class="cmp2-col right"><div class="cmp2-h">被杀三肖 · Top</div><div id="perKill"></div></div>
+    </div>
+  </div>
+
   <div class="layout">
     <div>
       <div class="alertbox a2" id="missAlert" style="display:none"></div>
@@ -222,7 +231,7 @@
 </div>
 
 <script>
-var LG=null, ALIAS={}, PEND=null, POS=null, curDim='nine';
+var LG=null, ALIAS={}, PEND=null, POS=null, KILL=null, curDim='nine';
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function switchDim(d){
@@ -445,7 +454,7 @@ function jumpPendSite(sk){
 
 function renderPending(){
   var card=document.getElementById('pendingCard');
-  if(!PEND){card.style.display='none';return;}
+  if(!PEND || document.getElementById('periodSel').value!=='pending'){card.style.display='none';return;}
   card.style.display='block';
   var title=document.getElementById('pendTitle');
   var sub=document.getElementById('pendSub');
@@ -595,14 +604,45 @@ function enterPending(){
   var sel=document.getElementById('periodSel');
   sel.value='pending';
   document.getElementById('reviewSection').classList.add('hidden');
+  document.getElementById('periodCard').style.display='none';
+  document.getElementById('pendingCard').style.display=PEND?'block':'none';
   document.getElementById('summary').innerHTML='';
 }
 
 function enterReview(cur){
   var sel=document.getElementById('periodSel');
   sel.value=cur;
+  document.getElementById('pendingCard').style.display='none';
   document.getElementById('reviewSection').classList.remove('hidden');
   render();
+}
+
+function renderPeriodCard(cur,per){
+  var card=document.getElementById('periodCard');
+  if(!card) return;
+  card.style.display='block';
+  var keys=Object.keys(per.stations||{});
+  var elig=keys.filter(function(k){return per.stations[k].status==='有九肖';});
+  var nagg={};
+  elig.forEach(function(k){
+    var r=per.stations[k];
+    if(r.zodiacs && r.zodiacs.length){ nagg[r.zodiacs[0]]=(nagg[r.zodiacs[0]]||0)+1; }
+  });
+  var kp=(KILL && KILL.periods && KILL.periods[String(cur)])||null;
+  var kagg={}, kn=0, ksites=0;
+  if(kp){
+    Object.keys(kp.stations||{}).forEach(function(k){
+      var r=kp.stations[k];
+      if(!r || r.status==='无三肖' || !r.zodiacs || !r.zodiacs.length) return;
+      ksites++;
+      r.zodiacs.forEach(function(z){ kagg[z]=(kagg[z]||0)+1; kn++; });
+    });
+  }
+  var wins=elig.filter(function(k){return per.stations[k].hit;}).length;
+  document.getElementById('perTitle').textContent='第'+cur+'期 · 复盘速览';
+  document.getElementById('perSub').textContent='开奖 '+per.specialNum+' · 特肖 '+per.actual+' · 九肖 '+elig.length+' 站（中'+wins+' 错'+(elig.length-wins)+'）'+(ksites?' · 杀三 '+ksites+' 站':' · 杀三台账暂无');
+  document.getElementById('perNine').innerHTML=miniRows(nagg, elig.length, '站');
+  document.getElementById('perKill').innerHTML=ksites?miniRows(kagg, kn, '票'):'<div class="rc-sub">暂无杀三台账</div>';
 }
 
 function render(){
@@ -705,6 +745,7 @@ function render(){
   var nextIssue=PEND?PEND.period:(parseInt(lastIssue,10)+1);
   document.getElementById('issueNote').textContent='台账/快照期号 '+lastIssue+' · 待开 '+nextIssue;
   renderRank(cur);
+  renderPeriodCard(cur,per);
 }
 
 function loadPend(){
@@ -716,7 +757,8 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   LG=d;
   var p1=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
   var p2=fetchJson('data/zodiac-position-stats.json').then(function(p){POS=p;}).catch(function(){});
-  return Promise.all([p1,p2]);
+  var p3=fetchJson('data/kill3-ledger.json').then(function(k){KILL=k;}).catch(function(){KILL=null;});
+  return Promise.all([p1,p2,p3]);
 }).then(loadPend).then(function(){
   var issues=buildSelect();
   var sel=document.getElementById('periodSel');
@@ -729,7 +771,7 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
   if(rb) rb.addEventListener('click',function(){
     var keep=sel.value;
     rb.textContent='刷新中…';
-    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(loadPend).then(function(){
+    fetchJson('data/max-zodiac-ledger.json?v='+Date.now()).then(function(d){LG=d;return fetchJson('data/site-aliases.json?v='+Date.now()).then(function(a){ALIAS=a.aliases||{};}).catch(function(){});}).then(function(){return fetchJson('data/kill3-ledger.json?v='+Date.now()).then(function(k){KILL=k;}).catch(function(){});}).then(loadPend).then(function(){
       buildSelect();
       if(keep!=='pending' && issues.indexOf(keep)>=0){ enterReview(keep); } else { enterPending(); }
       renderPending(); rb.textContent='立即刷新';

@@ -125,7 +125,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账</h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -268,6 +268,7 @@ function detailHtml(key,r,upTo){
 function renderRank(cur){
   var listEl=document.getElementById('curRankList');
   var subEl=document.getElementById('rankSub');
+  document.getElementById('rankTitle').textContent='第'+cur+'期 · 被杀排行';
   if(!KR){ listEl.innerHTML=''; subEl.textContent='台账杀肖统计加载中…'; return; }
   var per=KR.periods[String(cur)]||KR.periods[cur];
   if(!per||!per.rank||!per.rank.length){
@@ -415,7 +416,7 @@ function jumpPendSite(sk){
 
 function renderPendingKill(){
   var card=document.getElementById('pendCard');
-  if(!PEND || PEND.status!=='pending'){ card.style.display='none'; return; }
+  if(!PEND || PEND.status!=='pending' || document.getElementById('periodSel').value!=='pending'){ card.style.display='none'; return; }
   card.style.display='block';
   document.getElementById('pendTitle').textContent='待开期杀三肖 · 第'+PEND.period+'期（待开奖 · 未对账）';
   var missN=(PEND.missingCount||0);
@@ -501,6 +502,7 @@ function enterPending(){
   var sel=document.getElementById('periodSel');
   sel.value='pending';
   document.getElementById('reviewSection').classList.add('hidden');
+  document.getElementById('pendCard').style.display=PEND?'block':'none';
   document.getElementById('summary').innerHTML='';
   var mb=document.getElementById('btnMiss2'); if(mb) mb.style.display='none';
   var tb3=document.getElementById('btnTier'); if(tb3) tb3.style.display='none';
@@ -509,6 +511,7 @@ function enterPending(){
 function enterReview(cur){
   var sel=document.getElementById('periodSel');
   sel.value=cur;
+  document.getElementById('pendCard').style.display='none';
   document.getElementById('reviewSection').classList.remove('hidden');
   var mb=document.getElementById('btnMiss2'); if(mb) mb.style.display='';
   var tb3=document.getElementById('btnTier'); if(tb3) tb3.style.display='';
