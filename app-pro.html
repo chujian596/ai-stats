@@ -347,6 +347,11 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
 .tdark-bg-blue{background-color:#10213a!important;border-color:#31527e!important}
 .tdark-bg-amber{background-color:#2e2410!important;border-color:#7a5b1c!important}
 .tdark-bg-red{background-color:#2c1519!important;border-color:#7f2635!important}
+.tdark-border{border-color:#2a3a52!important}
+.tdark-border-green{border-color:#2f5e4a!important}
+.tdark-border-blue{border-color:#31527e!important}
+.tdark-border-amber{border-color:#7a5b1c!important}
+.tdark-border-red{border-color:#7f2635!important}
 
 </style>
 </head>
@@ -933,6 +938,16 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
     }
     return 'tdark-bg';
   }
+  function borderClass(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.10){
+      if(hs.h>=70 && hs.h<170) return 'tdark-border-green';
+      if(hs.h>=190 && hs.h<260) return 'tdark-border-blue';
+      if(hs.h>=15 && hs.h<70) return 'tdark-border-amber';
+      if(hs.h>=330 || hs.h<15) return 'tdark-border-red';
+    }
+    return 'tdark-border';
+  }
   function textColor(r,g,b){
     var hs=hueSat(r,g,b);
     if(hs.s>0.30){
@@ -945,8 +960,8 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
     return '#cbd8ea';
   }
   function restore(){
-    var all=document.querySelectorAll('.tdark-bg,.tdark-bg-green,.tdark-bg-blue,.tdark-bg-amber,.tdark-bg-red');
-    for(var i=0;i<all.length;i++) all[i].classList.remove('tdark-bg','tdark-bg-green','tdark-bg-blue','tdark-bg-amber','tdark-bg-red');
+    var all=document.querySelectorAll('.tdark-bg,.tdark-bg-green,.tdark-bg-blue,.tdark-bg-amber,.tdark-bg-red,.tdark-border,.tdark-border-green,.tdark-border-blue,.tdark-border-amber,.tdark-border-red');
+    for(var i=0;i<all.length;i++) all[i].classList.remove('tdark-bg','tdark-bg-green','tdark-bg-blue','tdark-bg-amber','tdark-bg-red','tdark-border','tdark-border-green','tdark-border-blue','tdark-border-amber','tdark-border-red');
     var txt=document.querySelectorAll('[data-tdark-color]');
     for(var j=0;j<txt.length;j++){
       var el=txt[j], v=el.getAttribute('data-tdark-color')||'', p=el.getAttribute('data-tdark-color-p')||'';
@@ -975,6 +990,20 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
         if(bg && bg.a>0.05 && hueSat(bg.r,bg.g,bg.b).l>0.62 && cs.backgroundImage==='none'){
           if(!el.classList.contains('tdark-bg') && !el.classList.contains('tdark-bg-green') && !el.classList.contains('tdark-bg-blue') && !el.classList.contains('tdark-bg-amber') && !el.classList.contains('tdark-bg-red')){
             el.classList.add(bgClass(bg.r,bg.g,bg.b));
+          }
+        }
+        var _hasBgClass = el.classList.contains('tdark-bg') || el.classList.contains('tdark-bg-green') || el.classList.contains('tdark-bg-blue') || el.classList.contains('tdark-bg-amber') || el.classList.contains('tdark-bg-red');
+        if(!_hasBgClass && !el.classList.contains('tdark-border') && !el.classList.contains('tdark-border-green') && !el.classList.contains('tdark-border-blue') && !el.classList.contains('tdark-border-amber') && !el.classList.contains('tdark-border-red')){
+          var bd=null;
+          var _sides=['Top','Right','Bottom','Left'];
+          for(var si=0;si<4;si++){
+            if((parseFloat(cs['border'+_sides[si]+'Width'])||0)>0){
+              var _bc=parseColor(cs['border'+_sides[si]+'Color']);
+              if(_bc && _bc.a>0.05){ bd=_bc; break; }
+            }
+          }
+          if(bd && hueSat(bd.r,bd.g,bd.b).l>0.62){
+            el.classList.add(borderClass(bd.r,bd.g,bd.b));
           }
         }
         if(el.textContent && el.textContent.trim()){
