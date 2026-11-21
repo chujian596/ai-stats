@@ -53,6 +53,7 @@ data/tail-ledger.json
 data/head-ledger.json
 data/size-ledger.json
 data/parity-ledger.json
+data/change-ledger.json
 data/draws-recent.json
 data/quality-report.json
 data/source-registry.json

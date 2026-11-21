@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f5f7fb">
+<title>改料跟踪 · 八维度快照改动回检</title>
+<style>
+:root{--ink:#17202b;--muted:#6b7785;--line:#e5eaf1;--blue:#2457d6;--green:#1d6b4f;--red:#b42318;--redbg:#fff1ef;--amber:#9b7737;--amberbg:#fbf1dc;--bg:#f5f7fb;--card:#fff;--gray:#eef2f7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;padding-bottom:28px}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+header{background:linear-gradient(145deg,#16325c,#2457d6);color:#fff;padding:22px 14px 20px;padding-top:max(env(safe-area-inset-top),22px);border-radius:0 0 22px 22px}
+header .inner{max-width:720px;margin:0 auto}
+.back{display:inline-block;margin-bottom:10px;color:#dbe8ff;text-decoration:none;font-size:12px}
+.kicker{font-size:11px;letter-spacing:.16em;color:#cfe0ff;font-weight:700}
+h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
+.sub{margin:0;color:#dbe8ff;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 0}
+.kpi{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:20px;line-height:1.2}
+.kpi span{font-size:11px;color:#dbe8ff}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 10px}
+.section-title h2{margin:0;font-size:16px}
+.section-title small{color:var(--muted);font-size:11px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.tab{padding:7px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted)}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.status-row{display:flex;gap:8px;margin:4px 2px 12px}
+.status-row .tab.on{background:var(--blue);border-color:var(--blue)}
+.cards{display:flex;flex-direction:column;gap:10px}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 15px;box-shadow:0 2px 8px rgba(16,35,70,.04)}
+.ccard-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ccard-site{font-weight:700;font-size:14.5px}
+.ccard-sid{color:var(--muted);font-size:10.5px;font-weight:400;margin-left:5px}
+.ccard-col{color:var(--muted);font-size:11.5px;margin-top:2px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.g{background:#e7f5ee;color:var(--green)}
+.badge.r{background:var(--redbg);color:var(--red)}
+.badge.n{background:var(--gray);color:#5b6675}
+.badge.a{background:var(--amberbg);color:var(--amber)}
+.dimtag{display:inline-block;padding:1px 8px;border-radius:7px;background:#e8efff;color:var(--blue);font-size:10.5px;font-weight:700;margin-right:6px}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:9px 0 0;font-size:12.5px}
+.flow .arr{color:var(--muted)}
+.set{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
+.chip.add{background:#e7f5ee;color:var(--green)}
+.chip.rem{background:var(--redbg);color:var(--red)}
+.subset{margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px}
+.subset .lab{color:var(--muted)}
+.subset .add-t{color:var(--green)}
+.subset .rem-t{color:var(--red)}
+.flag{margin-top:7px;font-size:10.5px;color:var(--amber)}
+.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:14px}
+.note b{color:var(--ink)}
+.note p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 0}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding:22px 10px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <a class="back" href="dashboard.html">← 返回入口</a>
+    <div class="kicker">CHANGE TRACKING</div>
+    <h1>改料跟踪</h1>
+    <p class="sub">同一期多份快照逐站逐栏目比对，登记补进 / 换掉子集，开奖后按各维度属性回检。</p>
+    <div class="kpis">
+      <div class="kpi"><b id="kpiTotal">—</b><span>改动条目</span></div>
+      <div class="kpi"><b id="kpiSettled">—</b><span>已结算</span></div>
+      <div class="kpi"><b id="kpiPending">—</b><span>待检</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="section-title"><h2>按资料栏目</h2><small>八维度分类</small></div>
+  <div class="tabs" id="dimTabs"></div>
+  <div class="status-row" id="statusRow">
+    <button class="tab on" data-status="all">全部</button>
+    <button class="tab" data-status="pending">待检</button>
+    <button class="tab" data-status="settled">已结算</button>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="note">
+    <b>口径说明</b>
+    <p>九肖按子集判：特肖落在<b>补进</b>子集＝改补命中；落在<b>换掉</b>子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。仅杀肖、平特一肖保留站点评级；其余维度纯描述跟踪，不设阈值。样本不足 30 期不下结论；不回填历史，从当前期起靠各时段快照判断有无改动。</p>
+  </div>
+  <div class="footer">AI资料统计 · 改料跟踪只做公开资料比对，不生成投注指令</div>
+</main>
+
+<script>
+var DIMS = [
+  ['kill','杀肖'], ['pingte','平特一肖'], ['nine','九肖'], ['wave','波色'],
+  ['tail','尾数'], ['head','头数'], ['size','大小'], ['parity','单双']
+];
+var DIM_T = {kill:'杀肖',pingte:'平特一肖',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
+var VERDICT_G = {'改补命中':1,'改对':1,'前后都中':1};
+var VERDICT_R = {'改掉特肖':1,'改错':1,'前后都错':1};
+var state = {dim:'all', status:'all', entries:[]};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+function fetchJson(u){
+  function one(url){return fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+  return one(u).catch(function(){return one('https://chujian596.github.io/ai-stats/'+u);});
+}
+
+function verdictBadge(e){
+  if(!e.result){ return '<span class="badge a">待检</span>'; }
+  var v = e.result.verdict || '无差异';
+  var cls = VERDICT_G[v] ? 'g' : (VERDICT_R[v] ? 'r' : 'n');
+  return '<span class="badge '+cls+'">'+esc(v)+'</span>';
+}
+
+function chips(arr, cls){
+  return (arr||[]).map(function(x){return '<span class="chip '+cls+'">'+esc(x)+'</span>';}).join('');
+}
+
+function renderTabs(){
+  var dims = [['all','全部']].concat(DIMS);
+  document.getElementById('dimTabs').innerHTML = dims.map(function(k){
+    return '<button class="tab'+(state.dim===k[0]?' on':'')+'" data-dim="'+k[0]+'">'+k[1]+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#dimTabs .tab'),function(b){
+    b.addEventListener('click',function(){state.dim=b.dataset.dim;renderTabs();render();});
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#statusRow .tab'),function(b){
+    b.classList.toggle('on', state.status===b.dataset.status);
+    b.onclick=function(){state.status=b.dataset.status;render();};
+  });
+}
+
+function render(){
+  var es = state.entries.slice();
+  if(state.dim!=='all') es = es.filter(function(e){return e.dim===state.dim;});
+  if(state.status==='pending') es = es.filter(function(e){return !e.result;});
+  if(state.status==='settled') es = es.filter(function(e){return e.result;});  // 待检在前；其余按期号倒序
+  es.sort(function(a,b){
+    var pa=a.result?1:0, pb=b.result?1:0;
+    if(pa!==pb) return pa-pb;
+    return String(b.period).localeCompare(String(a.period));
+  });
+
+  var total=state.entries.length;
+  var settled=state.entries.filter(function(e){return e.result;}).length;
+  document.getElementById('kpiTotal').textContent=total;
+  document.getElementById('kpiSettled').textContent=settled;
+  document.getElementById('kpiPending').textContent=total-settled;
+
+  var box=document.getElementById('cards');
+  if(!es.length){ box.innerHTML='<div class="empty">暂无符合条件的改料记录</div>'; return; }
+  box.innerHTML = es.map(function(e){
+    var site = e.siteName || '';
+    var sid = e.siteId || '';
+    var added=chips(e.added,'add'), removed=chips(e.removed,'rem');
+    var sub = '';
+    if((e.added||[]).length||(e.removed||[]).length){
+      sub = '<div class="subset">'
+        +'<span class="lab"><span class="add-t">补进</span> '+(e.added||[]).length+'</span>'
+        +'<span class="lab"><span class="rem-t">换掉</span> '+(e.removed||[]).length+'</span>'
+        +'</div>';
+    }
+    var flag = e.flag ? '<div class="flag">标记：'+esc(e.flag)+'</div>' : '';
+    var before = esc(e.before||'—'), after = esc(e.after||'—');
+    return '<div class="ccard">'
+      +'<div class="ccard-top">'
+      +'<div><span class="dimtag">'+esc(DIM_T[e.dim]||e.dim)+'</span>'
+      +'<span class="ccard-site">'+(site?esc(site):'')+'<span class="sid">'+esc(sid)+'</span></span>'
+      +'<div class="ccard-col">'+esc(e.column||'')+' · 第'+esc(e.period)+'期</div></div>'
+      +verdictBadge(e)
+      +'</div>'
+      +'<div class="flow"><span>'+before+'</span><span class="arr">→</span><span>'+after+'</span></div>'
+      +'<div class="flow"><span class="set">'+added+'</span>'+(removed?'<span class="set">'+removed+'</span>':'')+'</div>'
+      +sub+flag
+      +'</div>';
+  }).join('');
+}
+
+fetchJson('data/change-ledger.json').then(function(d){
+  state.entries = d.entries || [];
+  renderTabs();
+  render();
+}).catch(function(e){
+  document.getElementById('cards').innerHTML='<div class="empty">改料台账读取失败：'+esc(e.message)+'</div>';
+});
+</script>
+</body>
+</html>
