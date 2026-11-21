@@ -69,6 +69,8 @@ if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
       app-pro.html|app-pro-backup.html|app.html|app-client-backup.html|app-client-v59.03-test.html|version.txt|version-client.txt|version-client-test.txt|sw.js|manifest.json|extra-ledger.html|kill3-ledger.html|nine-zodiac.html|site-registry.html|engine.html|dashboard.html|independence.html|max-zodiac-current.html|max-zodiac.html|stats.html|start.html|lab.html|ziliao.html|portal.html|0491.html|ai-analysis.html|issue*.html) ;;
       versions/*|functions/*) ;;
       .wrangler/*|node_modules/*|__pycache__/*|*/__pycache__/*|tests/__pycache__/*|tools/__pycache__/*|*.pyc|*.pyo) ;;
+      # APK 壳工程 / 设计稿草稿：本地并发会话产物，不进站点部署包，出现改动不阻断部署
+      android-start/*|mockups/*) ;;
       # 运行时产物：抓板缓存/故障登记/日志，从不进部署包，出现改动不阻断部署
       forum-details-cache.json|forum-snapshot.json|forum-summary.json|问题与故障登记.md|*.log|*.tmp) ;;
       # 部署/运维脚本与文档：不打进站点包，改动不应阻断部署（.html/.json 仍受保护）
