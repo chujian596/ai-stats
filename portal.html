@@ -6,183 +6,162 @@
 <title>系统导航 · 全部入口</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fff;color:#000;font-size:15px;padding:14px}
-h1{font-size:19px;font-weight:700;text-align:center;margin:6px 0 4px}
-.sub{font-size:12px;color:#666;text-align:center;margin-bottom:16px}
-.group{margin-bottom:16px}
-.gtitle{font-size:13px;font-weight:700;color:#000;padding:8px 4px 8px 10px;border-left:4px solid #000;background:#f2f2f2;border-radius:0 6px 6px 0;margin-bottom:8px}
-.item{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px 14px;margin-bottom:8px;text-decoration:none;color:#000}
-.item:active{background:#f0f0f0}
-.item .name{font-size:15px;font-weight:700;color:#000}
-.item .desc{font-size:12px;color:#666;margin-top:3px}
-.item .arrow{font-size:16px;color:#000;font-weight:700}
-.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid #000;margin-left:6px;vertical-align:middle}
-.badge.ai{background:#000;color:#fff}
-.tip{font-size:12px;color:#666;text-align:center;margin-top:18px;line-height:1.7}
+:root{--blue:#2457d6;--ink:#17202b;--muted:#6b7785;--faint:#98a2ae;--line:#e3e8ef}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Segoe UI",Roboto,Arial,sans-serif;background:#f5f7fb;color:var(--ink);font-size:15px;padding:0 14px 44px;min-height:100vh}
+.shell{max-width:720px;margin:0 auto}
+header{background:linear-gradient(145deg,#16325c,#2457d6);color:#fff;margin:0 -14px 16px;padding:max(env(safe-area-inset-top),24px) 16px 20px;border-radius:0 0 22px 22px;box-shadow:0 8px 24px rgba(22,50,92,.16)}
+.kicker{font-size:10.5px;font-weight:750;color:#cfe0ff;letter-spacing:.16em;margin-bottom:5px}
+h1{font-size:25px;line-height:1.15;font-weight:750;letter-spacing:-.02em}
+.sub{font-size:13px;color:#dbe8ff;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.kpi{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi b{display:block;font-size:20px;line-height:1.2}
+.kpi span{font-size:11px;color:#dbe8ff}
+h2{font-size:14px;font-weight:750;margin:18px 2px 9px;display:flex;align-items:center;gap:8px}
+h2:before{content:"";width:4px;height:16px;border-radius:2px;background:var(--blue);display:inline-block}
+.grid{display:grid;grid-template-columns:1fr;gap:10px}
+a.item{display:block;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px;text-decoration:none;color:inherit;box-shadow:0 2px 8px rgba(16,35,70,.04)}
+a.item:active{background:#f8faff}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.name{font-size:16px;font-weight:750;letter-spacing:-.01em}
+.arrow{font-size:18px;color:var(--blue);font-weight:700}
+.desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:5px}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;background:#e8efff;color:var(--blue);margin-left:6px;vertical-align:middle;font-weight:700}
+.badge.dark{background:#17202b;color:#fff}
+.badge.green{background:#e7f5ee;color:#1d6b4f}
+.badge.gold{background:#fbf1dc;color:#9b7737}
+.note{font-size:12px;color:var(--faint);line-height:1.8;text-align:center;margin-top:22px}
+.note a{color:var(--blue);text-decoration:none}
+@media(min-width:620px){body{padding-left:20px;padding-right:20px}header{margin-left:-20px;margin-right:-20px;padding-left:24px;padding-right:24px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr));max-width:560px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
+<div class="shell">
+<header>
+  <div class="kicker">SYSTEM PORTAL</div>
+  <h1>系统导航</h1>
+  <div class="sub">一个网址，进入全部系统</div>
+  <div class="kpis">
+    <div class="kpi"><b>2</b><span>录单版本</span></div>
+    <div class="kpi"><b>11</b><span>资料系统</span></div>
+    <div class="kpi"><b>v59.66</b><span>当前版本</span></div>
+    <div class="kpi"><b>24</b><span>全部入口</span></div>
+  </div>
+</header>
 
-<h1>系统导航</h1>
-<div class="sub">一个网址，进入全部系统</div>
-
-<div class="group">
-  <div class="gtitle">录单系统</div>
+<h2>录单系统</h2>
+<div class="grid">
   <a class="item" href="app-pro.html">
-    <div>
-      <div class="name">专业版（自己用）<span class="badge ai">AI</span><span class="badge">v59.39-Pro</span></div>
-      <div class="desc">带AI语义识别 · 订单录入 · 排行榜</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">专业版（自己用）<span class="badge dark">AI</span><span class="badge">v59.66-Pro</span></div><div class="arrow">›</div></div>
+    <div class="desc">带 AI 语义识别 · 订单录入 · 排行榜 · 港澳门双盘口</div>
   </a>
   <a class="item" href="app.html">
-    <div>
-      <div class="name">客户版（给客户）<span class="badge">v59.39</span></div>
-      <div class="desc">无AI按钮 · 纯录单 · 会员验证</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">客户版（给客户）<span class="badge">v59.66</span></div><div class="arrow">›</div></div>
+    <div class="desc">无 AI 按钮 · 纯录单 · 会员验证 · 与专业版同解析</div>
   </a>
 </div>
 
-<div class="group">
-  <div class="gtitle">应急与版本</div>
-  <a class="item" href="app-pro-backup.html">
-    <div>
-      <div class="name">应急备用版</div>
-      <div class="desc">主页面打不开或异常时用 · 功能同 v59.39-Pro</div>
-    </div>
-    <div class="arrow">›</div>
+<h2>资料分析</h2>
+<div class="grid">
+  <a class="item" href="stats.html">
+    <div class="top"><div class="name">资料统计<span class="badge dark">主入口</span><span class="badge">v59.05</span></div><div class="arrow">›</div></div>
+    <div class="desc">100 站公开资料汇总 · 九肖/杀三/平特/波色/尾头大小单双 · 逐站台账与开奖对账</div>
   </a>
-  <a class="item" href="versions/index.html">
-    <div>
-      <div class="name">历史版本目录</div>
-      <div class="desc">11 个旧版可按版本号打开 · 随时回退</div>
-    </div>
-    <div class="arrow">›</div>
+  <a class="item" href="sources.html">
+    <div class="top"><div class="name">来源名单<span class="badge green">100 站</span></div><div class="arrow">›</div></div>
+    <div class="desc">站点启用、空站、论坛池、历史成绩和固定 ID</div>
   </a>
-  <a class="item" href="admin.html?v=2">
-    <div>
-      <div class="name">会员管理</div>
-      <div class="desc">授权码 · 到期时间 · 设备管理</div>
-    </div>
-    <div class="arrow">›</div>
+  <a class="item" href="nine-zodiac.html">
+    <div class="top"><div class="name">九肖逐站台账<span class="badge">87 覆盖</span></div><div class="arrow">›</div></div>
+    <div class="desc">每站九肖逐期命中、连对连错、改料轨迹</div>
   </a>
-  <a class="item" href="update-tool.html">
-    <div>
-      <div class="name">更新工具</div>
-      <div class="desc">版本发布与快照管理</div>
-    </div>
-    <div class="arrow">›</div>
+  <a class="item" href="kill3-ledger.html">
+    <div class="top"><div class="name">杀三肖逐站台账<span class="badge">70 覆盖</span></div><div class="arrow">›</div></div>
+    <div class="desc">杀特三肖逐期明细、谁准谁差、改料核查</div>
   </a>
-</div>
-
-<div class="group">
-  <div class="gtitle">资料分析</div>
-  <a class="item" href="lab.html">
-    <div>
-      <div class="name">资料中心<span class="badge ai">全部</span></div>
-      <div class="desc">杀肖共识 · 0491栏目 · 票仓排行 · 生肖码表 · 波色</div>
-    </div>
-    <div class="arrow">›</div>
+  <a class="item" href="extra-ledger.html">
+    <div class="top"><div class="name">平特/六维台账<span class="badge">平特 83</span></div><div class="arrow">›</div></div>
+    <div class="desc">平特、波色、尾数、头数、大小、单双逐站对账</div>
   </a>
-  <a class="item" href="ai-analysis.html">
-    <div>
-      <div class="name">六合AI分析<span class="badge ai">AI</span></div>
-      <div class="desc">多站共识 · 历史回测 · 自动统计</div>
-    </div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="item" href="0491.html">
-    <div>
-      <div class="name">0491资料栏目</div>
-      <div class="desc">开奖前封存 · 命中核对 · 事后改料核查</div>
-    </div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="item" href="ziliao.html">
-    <div>
-      <div class="name">多站资料对比</div>
-      <div class="desc">各站资料横向对照</div>
-    </div>
-    <div class="arrow">›</div>
+  <a class="item" href="engine.html">
+    <div class="top"><div class="name">研判引擎<span class="badge gold">群众方向</span></div><div class="arrow">›</div></div>
+    <div class="desc">拥挤度、同站重叠、群众方向验证 · 不生成投注指令</div>
   </a>
   <a class="item" href="max-zodiac.html">
-    <div>
-      <div class="name">每站台账（九肖 · 三肖 · 杀三肖）<span class="badge ai">新</span></div>
-      <div class="desc">九肖逐站中错/连对连错/改料轨迹；三肖杀肖票数 · 推荐三肖 · 谁准谁差；杀三肖逐期明细</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">每站台账总览<span class="badge">极细致</span></div><div class="arrow">›</div></div>
+    <div class="desc">九肖 · 三肖 · 杀三肖三套台账同页查看</div>
   </a>
   <a class="item" href="compare.html">
-    <div>
-      <div class="name">左右对比（九肖首肖 × 杀肖排行）<span class="badge ai">新</span></div>
-      <div class="desc">两张排行同屏左右并排：左边九肖首肖，右边杀三肖被杀排行，逐期对照参考</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">左右对比<span class="badge">新</span></div><div class="arrow">›</div></div>
+    <div class="desc">九肖首肖 × 杀三肖排行同屏左右对照</div>
+  </a>
+  <a class="item" href="0491.html">
+    <div class="top"><div class="name">0491 资料栏目</div><div class="arrow">›</div></div>
+    <div class="desc">开奖前封存 · 命中核对 · 事后改料核查</div>
+  </a>
+  <a class="item" href="ziliao.html">
+    <div class="top"><div class="name">多站资料对比</div><div class="arrow">›</div></div>
+    <div class="desc">各站资料横向对照</div>
+  </a>
+  <a class="item" href="ai-analysis.html">
+    <div class="top"><div class="name">六合 AI 分析<span class="badge dark">AI</span></div><div class="arrow">›</div></div>
+    <div class="desc">多站共识 · 历史回测 · 自动统计</div>
+  </a>
+  <a class="item" href="lab.html">
+    <div class="top"><div class="name">资料中心<span class="badge">全部</span></div><div class="arrow">›</div></div>
+    <div class="desc">杀肖共识 · 0491 栏目 · 票仓排行 · 生肖码表 · 波色</div>
   </a>
 </div>
 
-<div class="group">
-  <div class="gtitle">运维与记录</div>
+<h2>运维与记录</h2>
+<div class="grid">
   <a class="item" href="issues.html">
-    <div>
-      <div class="name">问题本<span class="badge ai">新</span></div>
-      <div class="desc">处理过的问题 · 怎么查 · 怎么避免再犯 · 上线前自检清单</div>
-    </div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="item" href="stats.html">
-    <div>
-      <div class="name">资料统计</div>
-      <div class="desc">论坛推杀票 · 图库逐栏识图 · 谁准谁差</div>
-    </div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="item" href="apps.html">
-    <div>
-      <div class="name">应用登记</div>
-      <div class="desc">版本与 versionCode 台账</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">问题本<span class="badge">新</span></div><div class="arrow">›</div></div>
+    <div class="desc">处理过的问题 · 怎么查 · 怎么避免再犯 · 上线前自检清单</div>
   </a>
   <a class="item" href="manage.html">
-    <div>
-      <div class="name">资料系统总管理<span class="badge ai">新</span></div>
-      <div class="desc">全部资料系统在线状态 · 本期期号 · 缺哪个文件</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">资料系统总管理<span class="badge">新</span></div><div class="arrow">›</div></div>
+    <div class="desc">全部资料系统在线状态 · 本期期号 · 缺哪个文件</div>
+  </a>
+  <a class="item" href="apps.html">
+    <div class="top"><div class="name">应用登记</div><div class="arrow">›</div></div>
+    <div class="desc">版本与 versionCode 台账</div>
+  </a>
+  <a class="item" href="versions/index.html">
+    <div class="top"><div class="name">历史版本目录</div><div class="arrow">›</div></div>
+    <div class="desc">旧版按版本号打开 · 随时回退</div>
+  </a>
+  <a class="item" href="admin.html?v=2">
+    <div class="top"><div class="name">会员管理</div><div class="arrow">›</div></div>
+    <div class="desc">授权码 · 到期时间 · 设备管理</div>
+  </a>
+  <a class="item" href="update-tool.html">
+    <div class="top"><div class="name">更新工具</div><div class="arrow">›</div></div>
+    <div class="desc">版本发布与快照管理</div>
   </a>
 </div>
 
-<div class="group">
-  <div class="gtitle">票务与工具</div>
+<h2>票务与工具</h2>
+<div class="grid">
   <a class="item" href="zhengpiao.html">
-    <div>
-      <div class="name">正票排行榜</div>
-      <div class="desc">本期正票 · 排行</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">正票排行榜</div><div class="arrow">›</div></div>
+    <div class="desc">本期正票 · 排行</div>
   </a>
   <a class="item" href="shengxiao.html">
-    <div>
-      <div class="name">生肖灵码表</div>
-      <div class="desc">生肖对应号码速查</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">生肖灵码表</div><div class="arrow">›</div></div>
+    <div class="desc">生肖对应号码速查</div>
   </a>
   <a class="item" href="system-guide.html">
-    <div>
-      <div class="name">系统总览说明书</div>
-      <div class="desc">各系统定位与使用说明</div>
-    </div>
-    <div class="arrow">›</div>
+    <div class="top"><div class="name">系统总览说明书</div><div class="arrow">›</div></div>
+    <div class="desc">各系统定位与使用说明</div>
+  </a>
+  <a class="item" href="app-pro-backup.html">
+    <div class="top"><div class="name">应急备用版</div><div class="arrow">›</div></div>
+    <div class="desc">主页面打不开时用 · 功能同 v59.66-Pro</div>
   </a>
 </div>
 
-<div class="tip">
-  网址收藏这一页，以后从这里进<br>
-  chujian596.github.io/ai-stats/portal.html
+<div class="note">网址收藏这一页，以后从这里进<br>chujian596.github.io/ai-stats/portal.html</div>
 </div>
-
 </body>
 </html>
