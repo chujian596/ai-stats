@@ -3,123 +3,350 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>扩展维度台账 · 平特/波色/尾数/头数/大小/单双</title>
+<meta name="theme-color" content="#f3f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<title>扩展维度台账 · 资料系统</title>
 <style>
   :root{
-    --red:#c8322b; --blue:#2456a6; --green:#1f7a4c; --ink:#111; --sub:#6b6b6b;
-    --line:#e3e3e3; --bg:#f6f6f6; --yellow:#b8860b;
+    --bg:#f3f1ea; --bg-2:#ece8df; --card:#fffdf9; --card-2:#f8f5ef;
+    --text:#17202b; --muted:#70766f; --faint:#989e97;
+    --line:#ded8cb; --line-soft:#ece7dc;
+    --accent:#2456a6; --accent-2:#173f7a; --accent-soft:#e9eff9;
+    --green:#1f7a4c; --green-soft:#e8f4ed;
+    --red:#c8322b; --red-soft:#fbeaea;
+    --amber:#a97608; --amber-soft:#fbf1d9;
+    --shadow:0 16px 40px rgba(31,36,48,.08);
+    --shadow-sm:0 6px 18px rgba(31,36,48,.06);
+    --radius:20px;
+    --nav:rgba(243,241,234,.9);
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --bg-2:#0e1727; --card:#111c2e; --card-2:#152238;
+      --text:#e7edf7; --muted:#9aa8bc; --faint:#74839a;
+      --line:#26364d; --line-soft:#1d2b40;
+      --accent:#6ea8ff; --accent-2:#a7c8ff; --accent-soft:#14284a;
+      --green:#5bd39a; --green-soft:#10261f;
+      --red:#ff8b84; --red-soft:#2c1519;
+      --amber:#e8bd66; --amber-soft:#2e2410;
+      --shadow:0 18px 50px rgba(0,0,0,.28);
+      --shadow-sm:0 8px 24px rgba(0,0,0,.2);
+      --nav:rgba(11,18,32,.92);
+      color-scheme:dark;
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;padding:22px 14px 40px;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;}
-  .wrap{max-width:680px;margin:0 auto}
-  header{margin-bottom:16px}
-  h1{margin:0 0 6px;font-size:21px;font-weight:700}
-  .meta{font-size:12.5px;color:var(--sub);line-height:1.7}
-  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-  .tab{padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--sub)}
-  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .bar-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
-  select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
-  .stat{font-size:13px;color:var(--ink)}
-  .stat b{font-variant-numeric:tabular-nums}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
-  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{width:100%;min-width:640px;border-collapse:collapse;font-size:12.5px}
-  th,td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
-  th{color:var(--sub);font-weight:600;font-size:11.5px;white-space:nowrap}
-  tr:last-child td{border-bottom:none}
-  .site{font-weight:700;white-space:nowrap}
-  .sys{color:var(--sub);font-size:11px}
-  .zs{display:flex;flex-wrap:wrap;gap:4px}
-  .z{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
-  .hit{color:var(--green);font-weight:700;white-space:nowrap}
-  .miss{color:var(--red);font-weight:700;white-space:nowrap}
-  .na{color:var(--sub);white-space:nowrap}
-  .trail{display:flex;gap:3px;flex-wrap:wrap}
-  .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
-  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
-  .rowlink{cursor:pointer}
-  .rowlink:hover{background:#fafafa}
-  .detail td{background:#fafbfc;padding:12px 14px}
-  .det-title{font-size:12px;color:var(--sub);margin-bottom:8px}
-  .det-table{width:100%;border-collapse:collapse;font-size:12px}
-  .det-table th{font-size:11px;color:var(--sub);padding:6px 8px;border-bottom:1px solid var(--line)}
-  .det-table td{padding:7px 8px;border-bottom:1px solid var(--line)}
-  .det-table tr:last-child td{border-bottom:none}
-  .raw{font-size:10px;color:var(--sub);margin-top:3px;white-space:normal;word-break:break-all}
-  .rc-title{font-weight:700;font-size:15px;padding:14px 14px 4px}
-  .rc-sub{font-size:11.5px;color:var(--sub);padding:0 14px 8px;line-height:1.6}
-  .rank-row{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--line)}
-  .rank-no{width:22px;height:22px;border-radius:7px;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#666;flex:none}
-  .rank-z{flex:1;font-weight:700}
-  .rank-c{font-variant-numeric:tabular-nums;color:var(--sub);font-size:12px;text-align:right;white-space:nowrap}
-  .rank-bar{flex:none;width:64px;height:6px;border-radius:4px;background:#f0f2f5;overflow:hidden}
-  .rank-bar i{display:block;height:100%;background:var(--blue)}
-  .rank-hot{color:var(--red);font-weight:700}
-  .note{padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.9}
-  .hidden{display:none}
-  .warn{margin:8px 2px 0;font-size:11.5px;color:var(--yellow)}
-  .pend-card{border-color:#f3c9c6;background:#fffafa}
-  .pend-table{min-width:auto;width:100%}
-  .pend-table td{padding:8px 12px;vertical-align:middle}
-  .pend-table td.pend-site{width:42%;font-weight:700;white-space:nowrap}
-  .pend-table td.pend-z{width:58%}
-  .pend-hist{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.5;white-space:normal}
-  .empty{color:var(--sub);font-style:italic}
+  html{background:var(--bg)}
+  body{
+    margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55;
+  }
+  a{color:inherit;text-decoration:none}
+  button,input,select{font:inherit}
+  button{cursor:pointer}
+  .page{max-width:1040px;margin:0 auto;padding:14px 16px 54px}
+  .hidden{display:none!important}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px}
+  .brand{display:flex;align-items:center;gap:9px;min-width:0}
+  .brand-logo{width:34px;height:34px;border-radius:11px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;letter-spacing:.02em;flex:none}
+  .brand-text{display:flex;flex-direction:column;line-height:1.05}
+  .brand-text b{font-size:15px;letter-spacing:.02em}
+  .brand-text small{font-size:9px;letter-spacing:.16em;color:var(--muted);margin-top:4px;font-weight:700}
+  .top-actions{display:flex;align-items:center;gap:6px}
+  .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:7px 9px;color:var(--muted);font-size:12px}
+  .ghost:hover{color:var(--text);border-color:var(--faint)}
+  .hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(135deg,#10264c 0%,#173b6b 52%,#0f223f 100%);color:#fff;padding:24px 22px 20px;margin-bottom:12px;box-shadow:0 20px 45px rgba(16,38,76,.22)}
+  .hero::after{content:"";position:absolute;right:-62px;top:-82px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(123,168,255,.38),rgba(123,168,255,0) 68%);pointer-events:none}
+  .hero-grid{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:relative;z-index:1}
+  .kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#b9d1ff;margin-bottom:9px}
+  .hero h1{margin:0;font-size:30px;letter-spacing:-.03em;line-height:1.1}
+  .hero p{margin:9px 0 0;color:#c7d8f5;font-size:13px;max-width:500px}
+  .hero-side{text-align:right;flex:none}
+  .status-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+  .status-pill.live::before{content:"";width:5px;height:5px;border-radius:50%;background:#5bd39a}
+  .status-pill.warn{background:rgba(232,189,102,.16);border-color:rgba(232,189,102,.4);color:#ffe2a7}
+  .hero-period{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:9px;letter-spacing:-.02em}
+  .hero-updated{font-size:10px;color:#a9c1e8;margin-top:3px;white-space:nowrap}
+  .rules-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+  .rules-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+  .rules-head h2{margin:0;font-size:14px}
+  .rules-head button{border:0;background:var(--card-2);color:var(--muted);border-radius:8px;padding:5px 8px;font-size:12px}
+  .rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rule-item{padding:10px 11px;border:1px solid var(--line-soft);border-radius:12px;background:var(--card-2)}
+  .rule-item b{display:block;font-size:12px;margin-bottom:3px}
+  .rule-item span{font-size:11px;color:var(--muted);line-height:1.55;display:block}
+  .control-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px 14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+  .control-label{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--faint);margin:0 0 9px 2px}
+  .dims{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .dim-btn{position:relative;border:1px solid var(--line);background:var(--card-2);color:var(--muted);border-radius:12px;padding:11px 6px;font-size:13px;font-weight:700;transition:.16s ease}
+  .dim-btn:hover{color:var(--text);border-color:var(--faint)}
+  .dim-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 7px 16px rgba(36,86,166,.2)}
+  .dim-btn.on::after{content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:12px;height:2px;border-radius:2px;background:rgba(255,255,255,.65)}
+  .toolbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:9px 10px;margin:10px 0;box-shadow:var(--shadow-sm);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .period-box{display:flex;align-items:center;gap:7px;padding:0 6px 0 2px;border-right:1px solid var(--line);margin-right:2px}
+  .period-box label{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .period-box select{max-width:190px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 9px;font-size:12px;outline:none}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s ease}
+  .btn:hover{border-color:var(--faint)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-2)}
+  .btn.ghostish{background:transparent;color:var(--muted)}
+  .toolbar .push{flex:1}
+  .summary-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 1px 11px}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:600}
+  .chip.accent{background:var(--accent-soft);border-color:transparent;color:var(--accent-2)}
+  .chip.warn{background:var(--amber-soft);border-color:transparent;color:var(--amber)}
+  .chip .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat-card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:12px 13px;min-height:72px;box-shadow:var(--shadow-sm)}
+  .stat-card .label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.01em}
+  .stat-card .value{font-size:23px;font-weight:800;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+  .stat-card .value small{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:3px}
+  .stat-card .hint{font-size:10px;color:var(--faint);margin-top:2px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+  .panel-head{padding:17px 16px 13px;border-bottom:1px solid var(--line-soft);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--faint);margin-bottom:5px}
+  .panel-head h2{margin:0;font-size:18px;letter-spacing:-.02em;line-height:1.25}
+  .panel-head p{margin:6px 0 0;color:var(--muted);font-size:11.5px;line-height:1.65;max-width:720px}
+  .badge{flex:none;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800;white-space:nowrap}
+  .badge.pending{background:var(--amber-soft);color:var(--amber)}
+  .badge.done{background:var(--green-soft);color:var(--green)}
+  .section{padding:15px 16px}
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+  .section-title h3{margin:0;font-size:13px}
+  .section-title .hint{font-size:10px;color:var(--faint);text-align:right}
+  .rank-list{display:flex;flex-direction:column;gap:7px}
+  .rank-row{display:flex;align-items:center;gap:9px;padding:6px 0;min-width:0}
+  .rank-no{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--card-2);color:var(--muted);font-size:10px;font-weight:800;flex:none;font-variant-numeric:tabular-nums}
+  .rank-no.top{background:var(--accent);color:#fff}
+  .rank-name{flex:1;min-width:54px;font-size:14px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-name .hot-note{font-size:9px;font-weight:800;color:var(--red);margin-left:4px;vertical-align:1px}
+  .rank-bar{flex:0 1 120px;height:7px;border-radius:5px;background:var(--card-2);overflow:hidden;min-width:50px}
+  .rank-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),#7ea9e8)}
+  .rank-count{width:46px;flex:none;text-align:right;font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+  .filterbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin:0 0 11px}
+  .filterbar input,.filterbar select{border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--text);padding:8px 9px;font-size:12px;outline:none;min-width:0}
+  .filterbar input::placeholder{color:var(--faint)}
+  .filter-chips{display:flex;flex-wrap:wrap;gap:5px;grid-column:1/-1}
+  .filter-chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:700}
+  .filter-chip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+  .site-grid{display:grid;grid-template-columns:1fr;gap:8px}
+  .site-card{border:1px solid var(--line-soft);border-radius:13px;background:var(--card-2);overflow:hidden}
+  .site-card summary{list-style:none;cursor:pointer;padding:11px 12px;display:block}
+  .site-card summary::-webkit-details-marker{display:none}
+  .site-card summary:hover{background:var(--card)}
+  .site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+  .site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-all}
+  .site-name .tag{display:inline-block;font-size:8.5px;font-weight:800;border-radius:5px;padding:2px 4px;margin-left:4px;vertical-align:1px;background:var(--accent-soft);color:var(--accent-2)}
+  .site-name .tag.carry{background:var(--amber-soft);color:var(--amber)}
+  .site-sub{font-size:9.5px;color:var(--faint);margin-top:3px;line-height:1.35;word-break:break-all}
+  .site-right{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+  .tag-count{font-size:9.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px;white-space:nowrap}
+  .hit-badge{font-size:10px;font-weight:800;border-radius:6px;padding:3px 6px;white-space:nowrap}
+  .hit-badge.hit{background:var(--green-soft);color:var(--green)}
+  .hit-badge.miss{background:var(--red-soft);color:var(--red)}
+  .hit-badge.unk{background:var(--card);color:var(--faint)}
+  .picks{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+  .pick{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:25px;padding:0 6px;border-radius:7px;background:var(--card);border:1px solid var(--line-soft);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+  .trail-line{display:flex;align-items:center;gap:6px;margin-top:8px;min-width:0}
+  .trail-label{font-size:9px;color:var(--faint);flex:none}
+  .trail{display:flex;gap:2px;flex-wrap:wrap}
+  .t{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:4px;font-size:9px;font-weight:800;color:#fff;flex:none}
+  .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:var(--faint);color:var(--bg)}
+  .site-detail{border-top:1px solid var(--line-soft);padding:10px 12px 12px;background:var(--card)}
+  .detail-table{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed}
+  .detail-table th,.detail-table td{padding:6px 4px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top;word-break:break-all}
+  .detail-table th{font-size:9px;color:var(--faint);font-weight:700}
+  .detail-table tr:last-child td{border-bottom:0}
+  .detail-table .zp{display:flex;flex-wrap:wrap;gap:2px}
+  .detail-table .raw{font-size:9px;color:var(--faint);margin-top:2px;line-height:1.4}
+  .empty{padding:26px 16px;text-align:center;color:var(--faint);font-size:12px;font-style:italic}
+  .warn{font-size:10.5px;color:var(--amber);line-height:1.55;margin:0 2px 10px}
+  .foot{border-top:1px solid var(--line);margin-top:18px;padding:13px 2px 0;font-size:10px;color:var(--faint);line-height:1.7;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:var(--text);color:var(--bg);font-size:12px;font-weight:600;padding:9px 14px;border-radius:999px;z-index:80;transition:.2s ease;max-width:calc(100vw - 40px);text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:640px){
+    .page{padding:11px 12px 42px}
+    .hero{padding:19px 17px 16px;border-radius:22px}
+    .hero-grid{align-items:flex-start;flex-direction:column;gap:13px}
+    .hero h1{font-size:27px}
+    .hero-side{text-align:left;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%}
+    .hero-period{margin-top:0;font-size:15px}
+    .hero-updated{width:100%;margin-top:-4px}
+    .rule-grid{grid-template-columns:1fr}
+    .dims{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .dim-btn{font-size:12px;padding:10px 4px}
+    .toolbar{gap:5px;padding:8px;border-radius:14px}
+    .period-box{width:100%;border-right:0;margin-right:0;padding:0 0 7px;border-bottom:1px solid var(--line)}
+    .period-box select{flex:1;max-width:none}
+    .toolbar .push{display:none}
+    .btn{padding:7px 9px;font-size:11px}
+    .filterbar{grid-template-columns:minmax(0,1fr)}
+    .filterbar select{width:100%}
+    .rank-bar{flex-basis:82px}
+    .panel-head{padding:15px 13px 11px}
+    .section{padding:13px}
+    .stat-card{padding:10px 11px;min-height:66px}
+    .stat-card .value{font-size:21px}
+  }
+  @media (min-width:900px){
+    .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .site-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .rule-grid{grid-template-columns:repeat(3,1fr)}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>扩展维度台账</h1>
-    <div class="meta">在九肖 / 杀三肖之外，逐站逐期登记各站推荐并复盘命中。<br>
-      <b>平特一肖</b>：推肖落在当期 6 平码生肖 ∪ 特肖（七肖）内记中；<b>波色</b>：特码波色落在推双色内记中；<b>尾数</b>：特码个位落在推尾集合内记中；<b>头数</b>：特码头位落在推头集合内记中；<b>大小</b>：特码 25-49 记大、1-24 记小；<b>单双</b>：奇数为单、偶数为双。<br>
-      默认显示<b>待开期</b>各站最新推荐；要看往期成绩，用上方「期号」下拉选已开奖期进入复盘。样本偏小，只记录不定论；早期无快照期（仅平特历史库）留存不全，命中率不与快照期并列对比。</div>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="stats.html" title="返回资料系统">
+      <span class="brand-logo">资</span>
+      <span class="brand-text"><b>资料系统</b><small>DATA ROOM</small></span>
+    </a>
+    <div class="top-actions">
+      <a class="ghost" href="stats.html">总览</a>
+      <button class="ghost" id="topRules" type="button">说明</button>
+    </div>
   </header>
 
-  <div class="tabs" id="tabs"></div>
-
-  <div class="bar-row">
-    <label class="stat">期号</label>
-    <select id="periodSel"></select>
-    <div class="stat" id="summary"></div>
-  </div>
-  <div class="warn" id="snapNote"></div>
-
-  <!-- 待开期推荐（默认视图） -->
-  <div class="card pend-card" id="pendCard">
-    <div class="rc-title" id="pendTitle"></div>
-    <div class="rc-sub" id="pendSub"></div>
-    <div id="pendRank"></div>
-    <div class="table-scroll" id="pendTableWrap">
-      <table class="pend-table">
-        <thead><tr><th>站名</th><th id="pendColHead">本期推荐</th></tr></thead>
-        <tbody id="pendRows"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 往期复盘（选已开奖期才展开） -->
-  <div id="reviewSection" class="hidden">
-    <div class="card">
-      <div class="rc-title" id="rankTitle"></div>
-      <div class="rc-sub" id="rankSub"></div>
-      <div id="rankList"></div>
-    </div>
-
-    <div class="card">
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th>期号</th><th>站名</th><th>推荐</th><th>结果</th><th>近 7 期轨迹</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-main">
+        <div class="kicker">EXTENDED LEDGER · v2.0 / 06 DIMENSIONS</div>
+        <h1>扩展维度台账</h1>
+        <p>逐站逐期记录推荐，开奖后自动复盘。看清共识，也看清偏差。</p>
+      </div>
+      <div class="hero-side">
+        <span class="status-pill warn" id="heroStatus">待开</span>
+        <div class="hero-period" id="heroPeriod">—</div>
+        <div class="hero-updated" id="heroUpdated">数据加载中</div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="note" id="ruleNote"></div>
+  <section class="rules-panel hidden" id="rulePanel">
+    <div class="rules-head">
+      <h2>统计口径与使用说明</h2>
+      <button type="button" id="closeRules">收起</button>
+    </div>
+    <div class="rule-grid">
+      <div class="rule-item"><b>平特一肖</b><span>推肖落在当期 6 平码生肖与特肖（七肖）内记中。</span></div>
+      <div class="rule-item"><b>波色</b><span>特码波色落在推双色内记中。</span></div>
+      <div class="rule-item"><b>尾数</b><span>特码个位落在推尾集合内记中。</span></div>
+      <div class="rule-item"><b>头数</b><span>特码头位落在推头集合内记中。</span></div>
+      <div class="rule-item"><b>大小</b><span>特码 25–49 记大，1–24 记小。</span></div>
+      <div class="rule-item"><b>单双</b><span>奇数为单，偶数为双。</span></div>
+    </div>
+    <div class="warn" style="margin-top:11px;margin-bottom:0">默认显示待开期最新推荐；要看往期成绩，用「期号」切到已开奖期。样本偏小，只记录不定论；早期无快照期留存不全，不与快照期并列比较。</div>
+  </section>
+
+  <section class="control-card">
+    <div class="control-label">选择维度</div>
+    <div class="dims" id="tabs"></div>
+  </section>
+
+  <section class="toolbar" id="toolbar">
+    <div class="period-box">
+      <label for="periodSel">期号</label>
+      <select id="periodSel" aria-label="选择期号"></select>
+    </div>
+    <button class="btn ghostish" id="backPending" type="button">回到待开</button>
+    <button class="btn" id="copyBtn" type="button">复制本期</button>
+    <button class="btn ghostish" id="expandBtn" type="button">展开全部</button>
+    <span class="push"></span>
+    <button class="btn ghostish" id="inlineRules" type="button">规则</button>
+  </section>
+
+  <div class="summary-chips" id="summaryChips"></div>
+  <div class="warn" id="snapNote"></div>
+  <section class="stats" id="statsGrid"></section>
+
+  <section class="panel" id="pendCard">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow" id="pendEyebrow">待开期 · 原始推荐</div>
+        <h2 id="pendTitle">加载中</h2>
+        <p id="pendSub">正在读取待开推荐。</p>
+      </div>
+      <span class="badge pending" id="pendBadge">未对账</span>
+    </div>
+    <div class="section">
+      <div class="section-title"><h3>推荐共识</h3><span class="hint" id="pendRankHint">按票数排序</span></div>
+      <div class="rank-list" id="pendRank"></div>
+    </div>
+    <div class="section" style="padding-top:0">
+      <div class="section-title"><h3>逐站推荐</h3><span class="hint" id="pendSiteHint"></span></div>
+      <div class="filterbar">
+        <input id="pendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+        <select id="pendSort" aria-label="推荐排序">
+          <option value="name">按站名</option>
+          <option value="new">新料优先</option>
+          <option value="history">历史命中优先</option>
+        </select>
+        <div class="filter-chips" id="pendFilter">
+          <button class="filter-chip on" data-filter="all" type="button">全部</button>
+          <button class="filter-chip" data-filter="new" type="button">只看新料</button>
+          <button class="filter-chip" data-filter="carry" type="button">只看沿用</button>
+        </div>
+      </div>
+      <div class="site-grid" id="pendSiteList"></div>
+      <div class="empty hidden" id="pendEmpty">没有匹配的站点。</div>
+    </div>
+  </section>
+
+  <section id="reviewSection" class="hidden">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">REVIEW · 已开奖复盘</div>
+          <h2 id="rankTitle">推荐排行</h2>
+          <p id="rankSub">按各站推荐票数汇总。</p>
+        </div>
+        <span class="badge done">已开奖</span>
+      </div>
+      <div class="section">
+        <div class="section-title"><h3>共识票数</h3><span class="hint">标红为当期开出项</span></div>
+        <div class="rank-list" id="rankList"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">SITE BY SITE</div>
+          <h2>逐站明细</h2>
+          <p>点开任一站点，查看它最近 10 期的推荐、开奖与命中轨迹。</p>
+        </div>
+        <span class="badge done" id="reviewBadge">已对账</span>
+      </div>
+      <div class="section">
+        <div class="filterbar">
+          <input id="reviewSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+          <select id="reviewSort" aria-label="明细排序">
+            <option value="name">按站名</option>
+            <option value="hit">命中优先</option>
+            <option value="miss">未中优先</option>
+          </select>
+          <div class="filter-chips" id="reviewFilter">
+            <button class="filter-chip on" data-filter="all" type="button">全部</button>
+            <button class="filter-chip" data-filter="hit" type="button">只看命中</button>
+            <button class="filter-chip" data-filter="miss" type="button">只看未中</button>
+          </div>
+        </div>
+        <div class="site-grid" id="rows"></div>
+        <div class="empty hidden" id="reviewEmpty">没有匹配的站点。</div>
+      </div>
+    </section>
+  </section>
+
+  <footer class="foot">
+    <span id="ruleNote">—</span>
+    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0</b></span>
+  </footer>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 var DIMS = {
@@ -133,182 +360,216 @@ var DIMS = {
 var dim=(new URLSearchParams(location.search).get('dim'))||location.hash.replace('#','')||'pingte';
 if(!DIMS[dim]) dim='pingte';
 var LG=null, ALIAS={}, PEND=null, mode='pending', pendLoaded=false;
+var pendState={q:'', sort:'name', filter:'all'};
+var reviewState={q:'', sort:'name', filter:'all'};
+var currentPeriod='';
 
-function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
-function nameOf(r,key){ return r.siteName || ALIAS[r.siteKey] || ALIAS[key] || r.siteKey; }
-
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok) throw new Error(u); return r.json();});}
+function nameOf(r,key){ return r && r.siteName || ALIAS[r && r.siteKey] || ALIAS[key] || (r && r.siteKey) || key; }
 function issues(){ return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}); }
 function lastIssue(){ var i=issues(); return i[i.length-1]; }
+function dimCfg(){ return DIMS[dim]; }
+function isPending(){ return PEND && PEND.status==='pending'; }
+function toast(msg){ var el=$('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},1900); }
 
-function loadDim(){
-  document.getElementById('tabs').innerHTML=Object.keys(DIMS).map(function(k){
-    return '<button class="tab'+(k===dim?' on':'')+'" data-dim="'+k+'">'+DIMS[k].title+'</button>';
+function setHero(period,status,updated){
+  var hs=$('heroStatus');
+  hs.textContent=status;
+  hs.className='status-pill '+(status.indexOf('待')===0?'warn':'live');
+  $('heroPeriod').textContent=period ? ('第 '+period+' 期') : '—';
+  $('heroUpdated').textContent=updated ? ('快照 '+updated) : '—';
+}
+function setSummary(chips){
+  $('summaryChips').innerHTML=chips.map(function(c){
+    return '<span class="chip '+(c.tone||'')+'"><span class="dot"></span>'+esc(c.text)+'</span>';
   }).join('');
-  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){
-    b.addEventListener('click',function(){ if(b.dataset.dim!==dim){dim=b.dataset.dim; loadDim();} });
-  });
-  var pLg=fetchJson('data/'+DIMS[dim].file).then(function(d){ LG=d; });
-  var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
-  var pPend=pendLoaded?Promise.resolve():fetchJson('data/current-recommend.json').then(function(p){PEND=p;pendLoaded=true;}).catch(function(){PEND=null;});
-  Promise.all([pLg,pAlias,pPend]).then(function(){
-    buildSelect();
-    if(mode==='pending' && PEND && PEND.status==='pending'){ enterPending(); }
-    else { enterReview(lastIssue()); }
+}
+function setStats(items){
+  $('statsGrid').innerHTML=items.map(function(x){
+    return '<div class="stat-card"><div class="label">'+esc(x.label)+'</div><div class="value">'+esc(x.value)+(x.unit?'<small>'+esc(x.unit)+'</small>':'')+'</div><div class="hint">'+esc(x.hint||'')+'</div></div>';
+  }).join('');
+}
+
+function renderTabs(){
+  $('tabs').innerHTML=Object.keys(DIMS).map(function(k){
+    return '<button type="button" class="dim-btn'+(k===dim?' on':'')+'" data-dim="'+k+'">'+esc(DIMS[k].title)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('tabs').querySelectorAll('.dim-btn'),function(b){
+    b.addEventListener('click',function(){
+      if(b.dataset.dim===dim) return;
+      dim=b.dataset.dim;
+      try{ var u=new URL(location.href); u.searchParams.set('dim',dim); history.replaceState(null,'',u); }catch(e){}
+      loadDim();
+    });
   });
 }
 
 function buildSelect(){
-  var sel=document.getElementById('periodSel');
-  sel.innerHTML='';
-  if(PEND && PEND.status==='pending'){
+  var sel=$('periodSel'); sel.innerHTML='';
+  if(isPending()){
     var op=document.createElement('option');
     op.value='pending'; op.textContent='待开 · 第'+PEND.period+'期（未开奖）';
     sel.appendChild(op);
   }
   issues().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
   sel.onchange=function(){
-    if(sel.value==='pending'){ enterPending(); } else { enterReview(sel.value); }
+    if(sel.value==='pending') enterPending(); else enterReview(sel.value);
   };
 }
 
+function loadDim(){
+  renderTabs();
+  $('pendCard').classList.add('hidden');
+  $('reviewSection').classList.add('hidden');
+  $('snapNote').textContent='';
+  $('statsGrid').innerHTML='';
+  $('summaryChips').innerHTML='';
+  var pLg=fetchJson('data/'+DIMS[dim].file).then(function(d){ LG=d; });
+  var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
+  var pPend=pendLoaded?Promise.resolve():fetchJson('data/current-recommend.json').then(function(p){PEND=p;pendLoaded=true;}).catch(function(){PEND=null;});
+  Promise.all([pLg,pAlias,pPend]).then(function(){
+    buildSelect();
+    if(mode==='review' && currentPeriod && LG.periods[currentPeriod]) enterReview(currentPeriod);
+    else if(isPending()) enterPending(); else enterReview(lastIssue());
+  }).catch(function(e){
+    $('pendEmpty').textContent='数据加载失败，请刷新重试。';
+    $('pendEmpty').classList.remove('hidden');
+    $('pendCard').classList.remove('hidden');
+  });
+}
+
 function enterPending(){
-  mode='pending';
-  document.getElementById('periodSel').value='pending';
-  document.getElementById('reviewSection').classList.add('hidden');
-  document.getElementById('pendCard').classList.remove('hidden');
+  if(!isPending()){ enterReview(lastIssue()); return; }
+  mode='pending'; currentPeriod=PEND.period;
+  $('periodSel').value='pending';
+  $('reviewSection').classList.add('hidden');
+  $('pendCard').classList.remove('hidden');
   renderPending();
 }
-
 function enterReview(cur){
-  mode='review';
-  document.getElementById('periodSel').value=cur;
-  document.getElementById('pendCard').classList.add('hidden');
-  document.getElementById('reviewSection').classList.remove('hidden');
-  render();
+  mode='review'; currentPeriod=cur;
+  $('backPending').style.display='inline-flex';
+  $('periodSel').value=cur;
+  $('pendCard').classList.add('hidden');
+  $('reviewSection').classList.remove('hidden');
+  renderReview();
 }
 
-// ---- 待开视图 ----
 function pendExt(s){ var e=s[DIMS[dim].ext]; return (e&&e.picks&&e.picks.length)?e:null; }
 
 function renderPending(){
-  var cfg=DIMS[dim];
-  var card=document.getElementById('pendCard');
-  if(!PEND || PEND.status!=='pending'){ card.classList.add('hidden'); document.getElementById('reviewSection').classList.remove('hidden'); render(); return; }
-  card.classList.remove('hidden');
+  var cfg=dimCfg();
   var sites=(PEND.sites||[]).filter(pendExt);
-  document.getElementById('pendTitle').textContent='待开期 '+cfg.title+' · 第'+PEND.period+'期（待开奖 · 未对账）';
   var carryN=sites.filter(function(s){return s.carried;}).length;
-  var carryTxt=carryN?(' · 上版沿用 '+carryN+' 站（计入票数）'):'';
-  var missTxt=(PEND.missingCount||0)?(' · 本轮未纳入 '+(PEND.missingCount||0)+' 站（不计入本轮票数，非改料）'):'';
-  document.getElementById('pendSub').innerHTML='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+(sites.length-carryN)+' 站有'+cfg.title+'推荐'+carryTxt+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。<br><b>历史中错 / 连对连错 / 近 7 期轨迹，把上方期号切到已开奖期（如 323）即可看到。</b>';
-  document.getElementById('pendColHead').textContent='本期'+cfg.title+'推荐';
-  document.getElementById('summary').innerHTML='待开 <b>第 '+PEND.period+'</b> 期 · '+cfg.title+' 有推荐 <b>'+sites.length+'</b> 站（未对账）';
-  document.getElementById('snapNote').textContent='';
-
-  // 排行
-  var rows=(PEND[cfg.pend]||[]).slice();
-  var max=rows.length?rows[0].n:1;
-  document.getElementById('pendRank').innerHTML=rows.map(function(r,i){
-    var bar=Math.round(r.n/max*100);
-    return '<div class="rank-row"><div class="rank-no">'+(i+1)+'</div>'+
-      '<div class="rank-z">'+r.p+'</div>'+
-      '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
-      '<div class="rank-c">'+r.n+' 票</div></div>';
-  }).join('') || '<div class="rc-sub">本期暂无'+cfg.title+'推荐数据</div>';
-
-  // 逐站表
-  var tb=document.getElementById('pendRows');
-  tb.innerHTML='';
-  sites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
-  var last=lastIssue();
-  sites.forEach(function(s){
-    var e=pendExt(s);
-    var picks=e.picks.map(function(p){return '<span class="z">'+p+'</span>';}).join('');
-    var hist=trailOf(s.siteKey,last);
-    var trail=hist.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('');
-    var histHtml=hist.length?('<div class="trail">'+trail+'</div>'):('<div class="pend-hist empty">无历史记录</div>');
-    var tr=document.createElement('tr');
-    tr.className='rowlink';
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
-      '<td class="pend-z"><div class="zs">'+picks+'</div></td>';
-    tb.appendChild(tr);
-  });
-  document.getElementById('pendTableWrap').style.display=sites.length?'block':'none';
-  document.getElementById('ruleNote').textContent='更新时间：'+(PEND.updatedAt||'—')+'　口径：'+(LG.rule||'—');
+  var missN=PEND.missingCount||0;
+  var noRec=Math.max(0,(PEND.sites||[]).length-sites.length);
+  var updated=PEND.updatedAt||'—';
+  setHero(PEND.period,'待开奖',updated);
+  try{document.title='扩展维度台账 · '+cfg.title+' · 第'+PEND.period+'期';}catch(e){}
+  $('pendEyebrow').textContent='待开期 · 原始推荐';
+  $('pendTitle').textContent='第 '+PEND.period+' 期 · '+cfg.title+'推荐';
+  $('pendSub').innerHTML='快照 '+esc(updated)+' · 新料 <b>'+(sites.length-carryN)+'</b> 站 · 沿用 <b>'+carryN+'</b> 站'+(noRec?' · 本期未推荐 <b>'+noRec+'</b> 站':'')+(missN?' · 缺更 <b>'+missN+'</b> 站':'')+'。开奖前原始推荐，未作对账判定。';
+  $('pendBadge').textContent='未对账';
+  $('pendBadge').className='badge pending';
+  $('backPending').style.display='none';
+  setSummary([
+    {text:cfg.title,tone:'accent'},
+    {text:'第 '+PEND.period+' 期 · 待开',tone:'warn'},
+    {text:sites.length+' 站有推荐'},
+    {text:updated,tone:'warn'}
+  ]);
+  var rankRows=(PEND[cfg.pend]||[]).slice();
+  var totalVotes=rankRows.reduce(function(a,x){return a+(Number(x.n)||0);},0);
+  var coverage=rankRows.length;
+  var hits=0; sites.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
+  setStats([
+    {label:'有推荐站点',value:sites.length,unit:'站',hint:'采集 '+(PEND.sites||[]).length+' 站，'+noRec+' 站本期无此维度'},
+    {label:'推荐票数',value:totalVotes,unit:'票',hint:'按共识项汇总'},
+    {label:'覆盖'+cfg.title,value:coverage,unit:'项',hint:'待开期去重后的项数'},
+    {label:'近 7 期有命中',value:hits,unit:'站',hint:'按站历史轨迹粗筛'}
+  ]);
+  $('pendRankHint').textContent='按票数排序 · 共 '+coverage+' 项';
+  renderRank(rankRows,null,$('pendRank'));
+  $('pendSiteHint').textContent='共 '+sites.length+' 站 · 点开可看近 10 期轨迹';
+  $('pendSearch').value=pendState.q;
+  $('pendSort').value=pendState.sort;
+  applyFilterButtons('pendFilter',pendState.filter);
+  renderPendSites(sites);
+  $('snapNote').textContent='';
+  $('ruleNote').textContent='更新时间：'+updated+'　口径：'+(LG.rule||'—')+'　当前：待开期原始推荐，未与开奖结果对账。';
 }
 
-// ---- 复盘视图 ----
+function renderPendSites(allSites){
+  var cfg=dimCfg();
+  var q=pendState.q.trim().toLowerCase();
+  var list=allSites.filter(function(s){
+    var e=pendExt(s);
+    if(pendState.filter==='new' && s.carried) return false;
+    if(pendState.filter==='carry' && !s.carried) return false;
+    if(!q) return true;
+    return (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
+  });
+  list.sort(function(a,b){
+    if(pendState.sort==='new'){
+      if(!!a.carried!==!!b.carried) return a.carried?1:-1;
+    } else if(pendState.sort==='history'){
+      var ha=trailHits(a.siteKey,lastIssue()), hb=trailHits(b.siteKey,lastIssue());
+      if(ha!==hb) return hb-ha;
+    }
+    return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');
+  });
+  $('pendSiteList').innerHTML=list.map(function(s){
+    var e=pendExt(s);
+    var picks=e.picks.map(function(p){return '<span class="pick">'+esc(p)+'</span>';}).join('');
+    var trail=trailOf(s.siteKey,lastIssue());
+    var histHtml=trail.length?('<div class="trail-line"><span class="trail-label">近7期</span><div class="trail">'+trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div></div>'):('<div class="trail-line"><span class="trail-label">近7期</span><span style="font-size:9px;color:var(--faint)">暂无记录</span></div>');
+    var carryTag=s.carried?'<span class="tag carry">沿用</span>':'<span class="tag">新料</span>';
+    return '<details class="site-card">'+
+      '<summary>'+
+        '<div class="site-top"><div><div class="site-name">'+esc(nameOf(s,s.siteKey))+carryTag+'</div><div class="site-sub">'+esc(s.siteKey)+' · '+esc(s.system||'—')+'</div></div>'+
+        '<div class="site-right"><span class="tag-count">'+e.picks.length+' 项</span></div></div>'+
+        '<div class="picks">'+picks+'</div>'+
+        histHtml+
+      '</summary>'+
+      '<div class="site-detail"><div class="detail-table-wrap">'+detailHtml(s.siteKey,lastIssue())+'</div></div>'+
+    '</details>';
+  }).join('');
+  $('pendEmpty').classList.toggle('hidden',!!list.length);
+  $('expandBtn').textContent='展开全部';
+}
+
+function applyFilterButtons(id,active){
+  Array.prototype.forEach.call($(id).querySelectorAll('.filter-chip'),function(b){
+    b.classList.toggle('on',b.dataset.filter===active);
+  });
+}
+
 function trailOf(key,cur){
   var hist=issues().filter(function(i){return +i<=+cur;}).slice(-7);
+  if(!hist.length) return [];
   return hist.map(function(i){
-    var r=LG.periods[i].stations[key];
+    var per=LG.periods[i]; var r=per&&per.stations[key];
     if(!r||r.hit===null||r.hit===undefined) return {cls:'n',tx:'·'};
     return r.hit?{cls:'w',tx:'中'}:{cls:'l',tx:'错'};
   });
 }
-
-function render(){
-  if(!LG){return;}
-  var cur=document.getElementById('periodSel').value;
-  if(cur==='pending'){ return; }
-  if(!cur){ cur=lastIssue(); }
-  var per=LG.periods[cur];
-  if(!per){document.getElementById('rows').innerHTML='';return;}
-  var keys=Object.keys(per.stations);
-  var wins=keys.filter(function(k){return per.stations[k].hit;}).length;
-  var rate=keys.length?Math.round(wins/keys.length*100):0;
-  document.getElementById('summary').innerHTML=
-    '第 <b>'+cur+'</b> 期　有推荐 <b>'+keys.length+'</b> 站 · 中 <b>'+wins+'</b> 错 <b>'+(keys.length-wins)+'</b>（命中率 '+rate+'%）';
-  document.getElementById('snapNote').textContent = per.source==='history'
-    ? '本期为早期历史库留存，站点不全，命中率不参与快照期对比。' : '';
-
-  renderRank(per);
-  renderRows(per,cur);
-  document.getElementById('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—');
+function trailHits(key,cur){
+  return trailOf(key,cur).filter(function(t){return t.cls==='w';}).length;
 }
 
-function renderRank(per){
-  var cfg=DIMS[dim], cnt={};
-  Object.keys(per.stations).forEach(function(k){
-    (per.stations[k].picks||[]).forEach(function(p){ cnt[p]=(cnt[p]||0)+1; });
-  });
-  var rows=Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]};}).sort(function(a,b){return b.n-a.n;});
-  var hot=per[cfg.hot];
-  document.getElementById('rankTitle').textContent=cfg.title+' · 本期推荐排行';
-  document.getElementById('rankSub').textContent='按各站推荐票数汇总；标红为当期开出项。';
-  var max=rows.length?rows[0].n:1;
-  document.getElementById('rankList').innerHTML=rows.map(function(r){
-    var hotCls=r.p===String(hot)?' rank-hot':'';
-    var bar=Math.round(r.n/max*100);
-    return '<div class="rank-row"><div class="rank-no">'+(rows.indexOf(r)+1)+'</div>'+
-      '<div class="rank-z'+hotCls+'">'+r.p+(r.p===String(hot)?'（开出）':'')+'</div>'+
+function renderRank(rows,hot,target){
+  var max=rows.length?Math.max.apply(null,rows.map(function(r){return Number(r.n)||0;})):1;
+  target.innerHTML=rows.map(function(r,i){
+    var p=String(r.p);
+    var isHot=hot!==null && p===String(hot);
+    var bar=max?Math.round((Number(r.n)||0)/max*100):0;
+    return '<div class="rank-row"><div class="rank-no'+(i<3?' top':'')+'">'+(i+1)+'</div>'+
+      '<div class="rank-name">'+esc(p)+(isHot?'<span class="hot-note">开出</span>':'')+'</div>'+
       '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
-      '<div class="rank-c">'+r.n+' 票</div></div>';
-  }).join('') || '<div class="rc-sub">本期无推荐数据</div>';
-}
-
-function renderRows(per,cur){
-  var tb=document.getElementById('rows');
-  tb.innerHTML='';
-  var keys=Object.keys(per.stations).sort(function(a,b){
-    var ra=per.stations[a],rb=per.stations[b];
-    return ra.siteKey<rb.siteKey?-1:1;
-  });
-  keys.forEach(function(k){
-    var r=per.stations[k];
-    var tr=document.createElement('tr');
-    tr.className='rowlink'; tr.dataset.key=k;
-    var trail=trailOf(k,cur).map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('');
-    var hitTx=r.hit?'中':'错', hitCls=r.hit?'hit':'miss';
-    var picks=(r.picks||[]).map(function(p){return '<span class="z">'+p+'</span>';}).join('');
-    tr.innerHTML='<td class="na">'+cur+'期</td>'+
-      '<td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
-      '<td><div class="zs">'+picks+'</div></td>'+
-      '<td><span class="'+hitCls+'">'+hitTx+'</span></td>'+
-      '<td><div class="trail">'+trail+'</div></td>';
-    tr.addEventListener('click',function(){ toggleDetail(k,tr,cur); });
-    tb.appendChild(tr);
-  });
+      '<div class="rank-count">'+esc(r.n)+' 票</div></div>';
+  }).join('') || '<div class="empty" style="padding:15px 0">暂无数据</div>';
 }
 
 function detailHtml(key,cur){
@@ -317,24 +578,151 @@ function detailHtml(key,cur){
     var rr=LG.periods[h].stations[key], actual=LG.periods[h].actual;
     if(!rr) return '';
     var hitTx=rr.hit?'中':'错', hitCls=rr.hit?'hit':'miss';
-    var picks=(rr.picks||[]).map(function(p){return '<span class="z">'+p+'</span>';}).join('');
-    var raw=rr.raw?'<div class="raw">原话：'+rr.raw+'</div>':'';
-    return '<tr><td>'+h+'期</td><td>开'+actual+'</td><td><div class="zs">'+picks+'</div>'+raw+'</td>'+
-      '<td><span class="'+hitCls+'">'+hitTx+'</span></td></tr>';
+    var picks=(rr.picks||[]).map(function(p){return '<span class="pick" style="min-width:20px;height:20px;font-size:10px">'+esc(p)+'</span>';}).join('');
+    var raw=rr.raw?'<div class="raw">原话：'+esc(rr.raw)+'</div>':'';
+    return '<tr><td>'+esc(h)+'期</td><td>开'+esc(actual)+'</td><td><div class="zp">'+picks+'</div>'+raw+'</td><td><span class="hit-badge '+hitCls+'">'+hitTx+'</span></td></tr>';
   }).join('');
-  var r=LG.periods[cur].stations[key];
-  return '<div class="det-title">'+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
-    '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  var r=LG.periods[cur]&&LG.periods[cur].stations[key];
+  return '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+esc(nameOf(r,key))+'（'+esc(r&&r.system||'—')+' · '+esc(r&&r.siteKey||key)+'）共 '+hist.length+' 期</div>'+
+    '<table class="detail-table"><thead><tr><th style="width:13%">期号</th><th style="width:12%">开奖</th><th>推荐</th><th style="width:14%">结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-function toggleDetail(key,tr,cur){
-  var det=tr.nextElementSibling;
-  if(det&&det.classList.contains('detail')){ det.style.display=det.style.display==='none'?'':'none'; return; }
-  det=document.createElement('tr'); det.className='detail';
-  det.innerHTML='<td colspan="5">'+detailHtml(key,cur)+'</td>';
-  tr.parentNode.insertBefore(det,tr.nextSibling);
+function renderReview(){
+  var per=LG.periods[currentPeriod];
+  if(!per){ return; }
+  var cfg=dimCfg();
+  var keys=Object.keys(per.stations);
+  var wins=keys.filter(function(k){return per.stations[k].hit===true;}).length;
+  var misses=keys.filter(function(k){return per.stations[k].hit===false;}).length;
+  var rate=keys.length?Math.round(wins/keys.length*100):0;
+  setHero(currentPeriod,'已开奖',LG.updated_at||'—');
+  try{document.title='扩展维度台账 · '+cfg.title+' · 第'+currentPeriod+'期';}catch(e){}
+  $('rankTitle').textContent=curTitle(cfg.title);
+  $('rankSub').textContent='第 '+currentPeriod+' 期 · '+keys.length+' 站有推荐，开奖结果 '+String(per.actual||'—')+'。';
+  $('reviewBadge').textContent='已对账';
+  setSummary([
+    {text:cfg.title,tone:'accent'},
+    {text:'第 '+currentPeriod+' 期 · 已开奖'},
+    {text:keys.length+' 站有推荐'},
+    {text:'命中率 '+rate+'%',tone:rate>=50?'':'warn'}
+  ]);
+  setStats([
+    {label:'有推荐站点',value:keys.length,unit:'站',hint:'本期参与对账'},
+    {label:'命中',value:wins,unit:'站',hint:'推荐项覆盖开奖项'},
+    {label:'未中',value:misses,unit:'站',hint:'本期未覆盖'},
+    {label:'命中率',value:rate,unit:'%',hint:'中 / 有推荐'}
+  ]);
+  var cnt={};
+  keys.forEach(function(k){ (per.stations[k].picks||[]).forEach(function(p){ cnt[p]=(cnt[p]||0)+1; }); });
+  var rankRows=Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
+  renderRank(rankRows,per[cfg.hot],$('rankList'));
+  $('reviewSearch').value=reviewState.q;
+  $('reviewSort').value=reviewState.sort;
+  applyFilterButtons('reviewFilter',reviewState.filter);
+  renderReviewSites(keys,per);
+  $('snapNote').textContent=per.source==='history'?'本期为早期历史库留存，站点不全，命中率不参与快照期对比。':'';
+  $('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—')+'　当前：已开奖复盘。';
 }
 
+function curTitle(title){ return title+' · 本期推荐排行'; }
+
+function renderReviewSites(keys,per){
+  var q=reviewState.q.trim().toLowerCase();
+  var list=keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
+    if(reviewState.filter==='hit' && x.r.hit!==true) return false;
+    if(reviewState.filter==='miss' && x.r.hit!==false) return false;
+    if(!q) return true;
+    return (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q)>=0;
+  });
+  list.sort(function(a,b){
+    if(reviewState.sort==='hit'){
+      var ha=a.r.hit===true?1:0, hb=b.r.hit===true?1:0;
+      if(ha!==hb) return hb-ha;
+    } else if(reviewState.sort==='miss'){
+      var ma=a.r.hit===false?1:0, mb=b.r.hit===false?1:0;
+      if(ma!==mb) return mb-ma;
+    }
+    return nameOf(a.r,a.key).localeCompare(nameOf(b.r,b.key),'zh');
+  });
+  $('rows').innerHTML=list.map(function(x){
+    var r=x.r;
+    var picks=(r.picks||[]).map(function(p){return '<span class="pick">'+esc(p)+'</span>';}).join('');
+    var trail=trailOf(x.key,currentPeriod);
+    var histHtml=trail.length?('<div class="trail-line"><span class="trail-label">近7期</span><div class="trail">'+trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div></div>'):'';
+    var hitCls=r.hit===true?'hit':(r.hit===false?'miss':'unk');
+    var hitTx=r.hit===true?'中':(r.hit===false?'错':'未判');
+    return '<details class="site-card">'+
+      '<summary><div class="site-top"><div><div class="site-name">'+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
+      '<div class="site-right"><span class="tag-count">'+(r.picks||[]).length+' 项</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+
+      '<div class="picks">'+picks+'</div>'+histHtml+'</summary>'+
+      '<div class="site-detail">'+detailHtml(x.key,currentPeriod)+'</div>'+
+    '</details>';
+  }).join('');
+  $('reviewEmpty').classList.toggle('hidden',!!list.length);
+  $('expandBtn').textContent='展开全部';
+}
+
+function filteredCurrentSites(){
+  if(mode==='pending'){
+    var list=(PEND.sites||[]).filter(pendExt);
+    var q=pendState.q.trim().toLowerCase();
+    return list.filter(function(s){
+      if(pendState.filter==='new' && s.carried) return false;
+      if(pendState.filter==='carry' && !s.carried) return false;
+      return !q || (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
+    });
+  }
+  var per=LG.periods[currentPeriod]; if(!per) return [];
+  var keys=Object.keys(per.stations); var q2=reviewState.q.trim().toLowerCase();
+  return keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
+    if(reviewState.filter==='hit' && x.r.hit!==true) return false;
+    if(reviewState.filter==='miss' && x.r.hit!==false) return false;
+    return !q2 || (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q2)>=0;
+  });
+}
+
+function copyCurrent(){
+  var cfg=dimCfg(); var lines=[]; var title='第 '+currentPeriod+' 期 · '+cfg.title;
+  lines.push(title);
+  if(mode==='pending'){
+    filteredCurrentSites().forEach(function(s){ lines.push(nameOf(s,s.siteKey)+'：'+pendExt(s).picks.join(' ')); });
+  } else {
+    filteredCurrentSites().forEach(function(x){ var r=x.r; lines.push(nameOf(r,x.key)+'：'+(r.picks||[]).join(' ')+(r.hit===true?'（中）':r.hit===false?'（错）':'')); });
+  }
+  if(lines.length===1){ toast('当前筛选没有可复制的站点'); return; }
+  var text=lines.join('\n');
+  function done(){ toast('已复制 '+String(lines.length-1)+' 站'); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(fallback); }
+  else fallback();
+  function fallback(){ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');done();}catch(e){toast('复制失败，请手动选择');} document.body.removeChild(ta); }
+}
+
+function toggleRules(){ $('rulePanel').classList.toggle('hidden'); }
+function expandAll(){
+  var container=mode==='pending'?$('pendSiteList'):$('rows');
+  var all=Array.prototype.slice.call(container.querySelectorAll('details.site-card'));
+  if(!all.length){ toast('当前没有可展开的站点'); return; }
+  var anyClosed=all.some(function(d){return !d.open;});
+  all.forEach(function(d){ d.open=anyClosed; });
+  $('expandBtn').textContent=anyClosed?'收起全部':'展开全部';
+}
+
+function bind(){
+  $('topRules').onclick=toggleRules;
+  $('inlineRules').onclick=toggleRules;
+  $('closeRules').onclick=toggleRules;
+  $('backPending').onclick=function(){ if(isPending()) enterPending(); else toast('当前没有待开期数据'); };
+  $('copyBtn').onclick=copyCurrent;
+  $('expandBtn').onclick=expandAll;
+  $('pendSearch').addEventListener('input',function(e){pendState.q=e.target.value;renderPendSites((PEND.sites||[]).filter(pendExt));});
+  $('pendSort').onchange=function(e){pendState.sort=e.target.value;renderPendSites((PEND.sites||[]).filter(pendExt));};
+  $('pendFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; pendState.filter=b.dataset.filter; applyFilterButtons('pendFilter',pendState.filter); renderPendSites((PEND.sites||[]).filter(pendExt)); });
+  $('reviewSearch').addEventListener('input',function(e){reviewState.q=e.target.value; var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per);});
+  $('reviewSort').onchange=function(e){reviewState.sort=e.target.value; var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per);};
+  $('reviewFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; reviewState.filter=b.dataset.filter; applyFilterButtons('reviewFilter',reviewState.filter); var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per); });
+}
+
+bind();
 loadDim();
 </script>
 <script>
