@@ -15,6 +15,8 @@ python3 build_kill_rank_stats.py || exit 1
 python3 build_extra_ledgers.py || exit 1
 # 全维度改料跟踪台账（父目录 change_ledger.py；去重追加 + 开奖后补结算，不回填历史）
 python3 ../change_ledger.py || exit 1
+# 刷新改料台账 markdown 视图（八维度分组汇总）
+python3 ../build_change_report.py || exit 1
 python3 build_draws_recent.py || exit 1
 python3 build_quality_check.py || exit 1
 python3 enrich_site_names.py || exit 1
