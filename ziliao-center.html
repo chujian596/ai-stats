@@ -196,6 +196,14 @@
   .rank-site.red .rm{color:var(--red)}
   .rank-site.amber{border-color:#ecd9a8;background:var(--amber-soft)}
   .rank-site.amber .rm{color:var(--amber)}
+  .miss-group-label{font-size:9.5px;font-weight:800;color:var(--muted);margin:6px 0 1px}
+  .miss-group-label.red{color:var(--red)}
+  .miss-group-label.amber{color:var(--amber)}
+  .miss-fold{border-top:1px solid var(--line-soft);margin-top:5px;padding-top:5px}
+  .miss-fold summary{font-size:10px;font-weight:750;color:var(--accent);cursor:pointer;list-style:none;padding:2px 0}
+  .miss-fold summary::-webkit-details-marker{display:none}
+  .miss-fold summary:before{content:'▸';display:inline-block;margin-right:4px;transition:transform .12s}
+  .miss-fold[open] summary:before{transform:rotate(90deg)}
   .tier{display:inline-block;font-size:9px;font-weight:800;border-radius:5px;padding:2px 5px;background:var(--card);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
   .tier.S,.tier.A{background:var(--green-soft);border-color:transparent;color:var(--green)}
   .tier.C,.tier.D{background:var(--red-soft);border-color:transparent;color:var(--red)}
@@ -555,7 +563,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.2.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.2.2</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -950,13 +958,19 @@
     if(mode!=='pending') return eligible.filter(function(e){return e.r.hit===false;}).sort(function(a,b){return b.st.l-a.st.l||b.st.totalL-a.st.totalL||a.name.localeCompare(b.name,'zh-Hans-CN');});
     return eligible.filter(function(e){return e.st&&e.st.l>=1;}).sort(function(a,b){return b.st.l-a.st.l||b.st.totalL-a.st.totalL||a.name.localeCompare(b.name,'zh-Hans-CN');});
   }
+  function missChip(e,mode){
+    var cls=e.st.l>=3?'red':(e.st.l===2?'amber':'warn');
+    return '<button type="button" class="rank-site '+cls+'" data-rk="'+esc(e.key)+'" data-rn="'+esc(e.name)+'">'+esc(e.name)+'<span class="rm">'+(mode==='pending'?'连错'+e.st.l:'本期错 · 连错'+e.st.l)+' · 中'+e.st.totalW+' 错'+e.st.totalL+'</span></button>';
+  }
   function missListHtml(eligible,mode){
     var rows=missRows(eligible,mode), n=rows.length;
     if(!n) return '<div class="empty-mini">'+(mode==='pending'?'截至上期，暂无连错记录。':'本期暂无点错站点。')+'</div>';
-    return '<div class="deep-hint" style="margin:2px 0 5px">'+(mode==='pending'?'共 '+n+' 站还在连错；':'本期共 '+n+' 站点错；')+'点站名直接看该站全部明细。</div><div class="rank-sites">'+rows.map(function(e){
-      var cls=e.st.l>=3?'red':(e.st.l===2?'amber':'warn');
-      return '<button type="button" class="rank-site '+cls+'" data-rk="'+esc(e.key)+'" data-rn="'+esc(e.name)+'">'+esc(e.name)+'<span class="rm">'+(mode==='pending'?'连错'+e.st.l:'本期错 · 连错'+e.st.l)+' · 中'+e.st.totalW+' 错'+e.st.totalL+'</span></button>';
-    }).join('')+'</div>';
+    var l3=rows.filter(function(e){return e.st.l>=3;}), l2=rows.filter(function(e){return e.st.l===2;}), l1=rows.filter(function(e){return e.st.l===1;});
+    var html='<div class="deep-hint" style="margin:2px 0 5px">'+(mode==='pending'?'共 '+n+' 站还在连错；':'本期共 '+n+' 站点错；')+'点站名直接看该站全部明细。</div>';
+    if(l3.length) html+='<div class="miss-group-label red">连错 ≥3 期 · '+l3.length+' 站</div><div class="rank-sites">'+l3.map(function(e){return missChip(e,mode);}).join('')+'</div>';
+    if(l2.length) html+='<div class="miss-group-label amber">连错 2 期 · '+l2.length+' 站</div><div class="rank-sites">'+l2.map(function(e){return missChip(e,mode);}).join('')+'</div>';
+    if(l1.length) html+='<details class="miss-fold"><summary>单期错 1 期 · '+l1.length+' 站，点开查看</summary><div class="rank-sites">'+l1.map(function(e){return missChip(e,mode);}).join('')+'</div></details>';
+    return html;
   }
   function bindRankSites(kind){
     var ids=kind==='nine'?['nineFirstRank','nineKillTop','nineMissList']:['killDeepRank','killDeepMiss'];
