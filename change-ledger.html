@@ -28,6 +28,12 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .status-row{display:flex;gap:8px;margin:4px 2px 12px}
 .status-row .tab.on{background:var(--blue);border-color:var(--blue)}
+.period-select{position:relative;margin:2px 2px 12px;max-width:230px}
+.ps-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:999px;background:#fff;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--ink);width:100%}
+.ps-caret{color:var(--muted);font-size:10px}
+.ps-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(16,35,70,.14);padding:8px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-height:224px;overflow-y:auto;width:230px}
+.ps-opt{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 6px;font-size:12px;text-align:center;cursor:pointer;color:var(--ink)}
+.ps-opt.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .cards{display:flex;flex-direction:column;gap:10px}
 .ccard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 15px;box-shadow:0 2px 8px rgba(16,35,70,.04)}
 .ccard-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -96,7 +102,12 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 <main class="wrap">
   <div class="section-title"><h2>按资料栏目</h2><small>八维度分类</small></div>
   <div class="tabs" id="dimTabs"></div>
-  <div class="tabs" id="periodTabs"></div>
+  <div class="period-select">
+    <button class="ps-trigger" id="periodTrigger" type="button">
+      <span id="periodLabel">全部期号</span><span class="ps-caret">▾</span>
+    </button>
+    <div class="ps-panel" id="periodPanel" style="display:none"></div>
+  </div>
   <div class="status-row" id="statusRow">
     <button class="tab on" data-status="all">全部</button>
     <button class="tab" data-status="pending">待检</button>
@@ -197,11 +208,16 @@ function renderTabs(){
   });
 
   var ps = periodList();
-  document.getElementById('periodTabs').innerHTML = [['all','全部期号']].concat(ps.map(function(p){return [p,'第'+p+'期'];})).map(function(k){
-    return '<button class="tab'+(state.period===String(k[0])?' on':'')+'" data-period="'+k[0]+'">'+k[1]+'</button>';
+  var opts = [['all','全部期号']].concat(ps.map(function(p){return [p,'第'+p+'期'];}));
+  var labelMap = {};
+  opts.forEach(function(k){labelMap[String(k[0])]=k[1];});
+  document.getElementById('periodLabel').textContent = labelMap[String(state.period)] || '全部期号';
+  var panel = document.getElementById('periodPanel');
+  panel.innerHTML = opts.map(function(k){
+    return '<button class="ps-opt'+(state.period===String(k[0])?' on':'')+'" data-period="'+k[0]+'">'+k[1]+'</button>';
   }).join('');
-  Array.prototype.forEach.call(document.querySelectorAll('#periodTabs .tab'),function(b){
-    b.addEventListener('click',function(){state.period=b.dataset.period;renderTabs();render();});
+  Array.prototype.forEach.call(panel.querySelectorAll('.ps-opt'),function(b){
+    b.addEventListener('click',function(){state.period=b.dataset.period;panel.style.display='none';renderTabs();render();});
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('#statusRow .tab'),function(b){
@@ -302,6 +318,16 @@ function render(){
   document.getElementById('kpiPending').textContent=total-settled;
   if(state.view==='site') renderSiteDetail(); else renderSites();
 }
+
+document.getElementById('periodTrigger').addEventListener('click', function(ev){
+  ev.stopPropagation();
+  var p=document.getElementById('periodPanel');
+  p.style.display = (p.style.display==='none'||!p.style.display) ? 'grid' : 'none';
+});
+document.addEventListener('click', function(ev){
+  var sel=document.querySelector('.period-select');
+  if(sel && !sel.contains(ev.target)){ document.getElementById('periodPanel').style.display='none'; }
+});
 
 fetchJson('data/change-ledger.json').then(function(d){
   state.entries = d.entries || [];
