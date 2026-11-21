@@ -1,11 +1,35 @@
 {
-  "generated_at": "2026-11-21 18:38:08",
+  "generated_at": "2026-11-21 22:34:46",
   "rule": "质检仅做一致性核对，不修改台账成绩；无快照期跳过 SNAP_MISMATCH/CHANGED_FLAG；样本不足不下结论。",
   "summary": {
-    "stations_checked": 2225,
-    "anomalies": 0,
+    "stations_checked": 2675,
+    "anomalies": 1,
     "warnings": 0,
-    "by_type": {}
+    "by_type": {
+      "SNAP_MISMATCH": 1
+    }
   },
-  "anomalies": []
+  "anomalies": [
+    {
+      "issue": "325",
+      "ledger": "九肖",
+      "siteKey": "4906",
+      "system": "wanpz-h9",
+      "type": "SNAP_MISMATCH",
+      "detail": "快照原文 ['猪鸡羊牛龙猴狗虎兔083448423911334128'] 与入账 ['蛇', '鼠', '猴', '鸡', '虎', '兔', '牛', '狗', '羊'] 不符",
+      "zodiacs": [
+        "蛇",
+        "鼠",
+        "猴",
+        "鸡",
+        "虎",
+        "兔",
+        "牛",
+        "狗",
+        "羊"
+      ],
+      "actual": "龙",
+      "level": "error"
+    }
+  ]
 }
