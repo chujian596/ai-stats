@@ -1,5 +1,5 @@
 #!/bin/bash
-# 打包在线 WebView 版 APK（指向 Cloudflare Pages）
+# 打包在线 WebView 版 APK（指向自定义域主入口）
 set -e
 export JAVA_HOME=/home/user/jdk/jdk-11.0.33+10
 export PATH=$JAVA_HOME/bin:$PATH
@@ -18,10 +18,10 @@ KS="$(pwd)/keystore.jks"
 #   APP_VER_NAME   显示版本号（如 58.74 / 58.74-Pro）
 #   APP_VER_CODE   版本代码
 #   APK_OUT        输出文件名
-HOME_URL="${APP_HOME_URL:-https://aistats-9uo.pages.dev/dashboard.html}"
-VER_NAME="${APP_VER_NAME:-1.0}"
-VER_CODE="${APP_VER_CODE:-1}"
-OUT="${APK_OUT:-ai-stats-dashboard-v1.0.apk}"
+HOME_URL="${APP_HOME_URL:-https://www.chujian596.dpdns.org/dashboard.html}"
+VER_NAME="${APP_VER_NAME:-1.1}"
+VER_CODE="${APP_VER_CODE:-2}"
+OUT="${APK_OUT:-ai-stats-dashboard-v1.1.apk}"
 
 MAIN=src/io/github/chujian596/aistats/MainActivity.java
 cp "$MAIN" /tmp/_MainActivity_orig.java

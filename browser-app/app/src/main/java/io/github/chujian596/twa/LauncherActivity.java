@@ -487,12 +487,13 @@ public class LauncherActivity extends Activity {
         StringBuilder cards = new StringBuilder();
         Map<String, String> marks = bookmarks();
         for (Map.Entry<String, String> e : marks.entrySet()) cards.append(card(e.getValue(), e.getKey()));
-        String quick = card("录单（专业版）", "https://chujian596.github.io/ai-stats/app-pro.html")
-                + card("录单（客户版）", "https://chujian596.github.io/ai-stats/app.html")
-                + card("资料统计", "https://chujian596.github.io/ai-stats/stats.html")
-                + card("资料系统总管理", "https://chujian596.github.io/ai-stats/manage.html")
-                + card("导航页", "https://chujian596.github.io/ai-stats/portal.html")
-                + card("问题本", "https://chujian596.github.io/ai-stats/issues.html");
+        String quick = card("资料中心", "https://www.chujian596.dpdns.org/ziliao-center.html")
+                + card("录单（专业版）", "https://www.chujian596.dpdns.org/app-pro.html")
+                + card("录单（客户版）", "https://www.chujian596.dpdns.org/app.html")
+                + card("资料统计", "https://www.chujian596.dpdns.org/stats.html")
+                + card("资料系统总管理", "https://www.chujian596.dpdns.org/manage.html")
+                + card("导航页", "https://www.chujian596.dpdns.org/portal.html")
+                + card("问题本", "https://www.chujian596.dpdns.org/issues.html");
         return "data:text/html;charset=utf-8," + Uri.encode(
                 "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
                         + "<style>body{margin:0;background:#f5f6f7;font-family:-apple-system,sans-serif;padding:14px}"

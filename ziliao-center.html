@@ -63,7 +63,7 @@
   .status-pill.warn{background:rgba(232,189,102,.16);border-color:rgba(232,189,102,.4);color:#ffe2a7}
   .hero-period{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:9px}
   .hero-updated{font-size:10px;color:#a9c1e8;margin-top:3px;white-space:nowrap}
-  .tabbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
+  .tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
   .tabbar button{position:relative;border:0;border-radius:11px;padding:10px 5px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;white-space:nowrap}
   .tabbar button.on{background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(36,86,166,.18)}
   .tabbar button .cnt{display:block;font-size:9px;font-weight:600;opacity:.72;margin-top:2px}
@@ -253,6 +253,42 @@
   .change-raw summary{cursor:pointer;list-style:none}
   .change-raw summary::-webkit-details-marker{display:none}
   .change-raw div{margin-top:3px;word-break:break-all}
+  .brief-lead{background:linear-gradient(135deg,var(--accent-soft),var(--card-2));border:1px solid var(--line-soft);border-radius:16px;padding:14px 15px;font-size:13px;line-height:1.85;color:var(--text)}
+  .brief-lead b{font-weight:800;color:var(--accent-2)}
+  .brief-lead .brief-warn{color:var(--amber);font-weight:750}
+  .brief-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;color:var(--faint);font-size:10px}
+  .brief-copy{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:6px 10px;font-size:10.5px;font-weight:700;cursor:pointer}
+  .brief-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:11px 0}
+  .brief-card{border:1px solid var(--line-soft);border-radius:15px;background:var(--card-2);padding:12px 13px;min-width:0}
+  .brief-card h3{margin:0 0 3px;font-size:13px;letter-spacing:-.01em}
+  .brief-card .bh{font-size:10px;color:var(--faint);margin-bottom:8px;line-height:1.5}
+  .brief-cols{display:grid;grid-template-columns:1fr;gap:12px}
+  .brief-cols h4{margin:0 0 5px;font-size:11px;color:var(--muted);font-weight:750}
+  .brief-bars{display:flex;flex-direction:column;gap:4px}
+  .brief-bar{display:grid;grid-template-columns:20px 32px minmax(0,1fr) 38px;align-items:center;gap:5px;font-size:10.5px}
+  .brief-bar em{font-style:normal;color:var(--faint);font-size:9px;text-align:right}
+  .brief-bar b{font-weight:750}
+  .brief-bar i{display:block;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--accent),#8cb4ea)}
+  .brief-bar.kill i{background:linear-gradient(90deg,var(--red),#e79b95)}
+  .brief-bar u{text-decoration:none;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .brief-kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line-soft);font-size:11px}
+  .brief-kv:last-child{border-bottom:0}
+  .brief-kv span{color:var(--muted)}
+  .brief-kv b{font-variant-numeric:tabular-nums}
+  .brief-risk{display:flex;flex-direction:column;gap:6px;font-size:11px;line-height:1.6}
+  .brief-risk .rl{display:flex;gap:7px;align-items:flex-start}
+  .brief-risk .rl span{flex:none;color:var(--faint);font-size:9.5px;padding-top:2px;min-width:58px}
+  .brief-risk .rn{display:flex;flex-wrap:wrap;gap:3px}
+  .brief-risk .rn b{font-weight:650;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px}
+  .brief-risk .rn b.red{color:var(--red);border-color:color-mix(in srgb,var(--red) 28%,transparent)}
+  .brief-risk .rn b.amber{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 28%,transparent)}
+  .brief-table{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed}
+  .brief-table th,.brief-table td{padding:6px 4px;border-bottom:1px solid var(--line-soft);text-align:right;font-variant-numeric:tabular-nums}
+  .brief-table th:first-child,.brief-table td:first-child{text-align:left}
+  .brief-table th{font-size:9px;color:var(--faint);font-weight:700}
+  .brief-table tr:last-child td{border-bottom:0}
+  .brief-note{font-size:10px;line-height:1.65;color:var(--faint);margin-top:8px}
+  @media (min-width:620px){ .brief-grid{grid-template-columns:1fr 1fr} .brief-cols{grid-template-columns:1fr 1fr} }
   .modal{position:fixed;inset:0;background:rgba(10,18,30,.58);display:flex;align-items:center;justify-content:center;padding:18px;z-index:90}
   .modal-card{width:min(680px,100%);max-height:82vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
   .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
@@ -311,9 +347,9 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">一页看全 · 四个视图</div>
+        <div class="kicker">五个视图 · 先看摘要</div>
         <h1>资料中心</h1>
-        <p>本期资料、逐站九肖、逐站杀三肖、改料跟踪，一页看完。</p>
+        <p>先看摘要，再按本期资料、逐站九肖、逐站杀三肖、改料跟踪四层下钻。</p>
       </div>
       <div class="hero-side">
         <span class="status-pill warn" id="heroStatus">待开</span>
@@ -324,11 +360,58 @@
   </section>
 
   <nav class="tabbar" id="tabbar" aria-label="资料视图">
-    <button type="button" data-tab="now" class="on">本期资料<span class="cnt" id="tabNowCount">—</span></button>
+    <button type="button" data-tab="brief" class="on">摘要<span class="cnt" id="tabBriefCount">总览</span></button>
+    <button type="button" data-tab="now">本期<span class="cnt" id="tabNowCount">—</span></button>
     <button type="button" data-tab="nine">九肖<span class="cnt" id="tabNineCount">—</span></button>
-    <button type="button" data-tab="kill">杀三肖<span class="cnt" id="tabKillCount">—</span></button>
-    <button type="button" data-tab="change">改料跟踪<span class="cnt" id="tabChangeCount">—</span></button>
+    <button type="button" data-tab="kill">杀三<span class="cnt" id="tabKillCount">—</span></button>
+    <button type="button" data-tab="change">改料<span class="cnt" id="tabChangeCount">—</span></button>
   </nav>
+
+  <!-- ===== 视图：摘要 ===== -->
+  <section class="view" id="view-brief">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow" id="briefEyebrow">BRIEF · 自动汇总</div>
+          <h2>本期资料摘要</h2>
+          <p id="briefSub">把采集覆盖、共识焦点、最近成绩、连错风险、改料待检压成一页；先看结论，再进明细。</p>
+        </div>
+        <span class="badge pending" id="briefBadge">生成中</span>
+      </div>
+      <div class="section">
+        <div class="brief-lead" id="briefLead">正在汇总…</div>
+        <div class="brief-meta"><span id="briefStamp">—</span><button class="brief-copy" id="briefCopy" type="button">复制摘要</button></div>
+        <div class="brief-grid">
+          <div class="brief-card">
+            <h3>共识焦点</h3>
+            <div class="bh">九肖、杀三肖各自票数最高的几项；票数是站次，不是金额。</div>
+            <div id="briefConsensus"></div>
+          </div>
+          <div class="brief-card">
+            <h3>覆盖与缺口</h3>
+            <div class="bh">本期采集、各栏目覆盖、未纳入与沿用。</div>
+            <div id="briefCoverage"></div>
+          </div>
+          <div class="brief-card">
+            <h3>最近成绩</h3>
+            <div class="bh">只列最近已开奖期；命中率只做描述，不推下期。</div>
+            <div id="briefLast"></div>
+          </div>
+          <div class="brief-card">
+            <h3>风险清单</h3>
+            <div class="bh">连错、快照断档、改料待检；点进九肖/杀三可看站名明细。</div>
+            <div id="briefRisk"></div>
+          </div>
+        </div>
+        <div class="brief-card" style="margin-bottom:10px">
+          <h3>近 5 期走势</h3>
+          <div class="bh">九肖、杀三肖逐期命中对照；同一期两边样本数不同。</div>
+          <div id="briefTrend"></div>
+        </div>
+        <div class="brief-note">口径：按站次统计；九肖“中”＝开奖特肖在 9 肖内，杀三“杀中”＝特肖不在所杀 3 肖内。样本不足只记录，不定论，不构成投注建议。</div>
+      </div>
+    </div>
+  </section>
 
   <!-- ===== 视图：本期资料 ===== -->
   <section class="view" id="view-now">
@@ -563,7 +646,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.2.2</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -573,6 +656,7 @@
       <button class="modal-close" id="closeRules" type="button">×</button>
     </div>
     <div class="doc">
+      <p><b>摘要：</b>自动汇总本期采集覆盖、共识焦点、最近成绩、连错风险、改料待检；点“复制摘要”可生成一段纯文字。摘要只做记录，不推下期。</p>
       <p><b>本期资料：</b>每站本期公开资料的原样汇总。九肖看“哪 9 个肖被写进推荐”，杀三肖看“哪 3 个肖被杀”；下面六维是平特、波色、尾数、头数、大小、单双。</p>
       <p><b>九肖 / 杀三肖：</b>点顶部第二、第三个标签进入逐站台账；期号选“待开”看本期原始推荐，选已开奖期看中错、连对连错、近 7 期轨迹和最近 10 期明细。</p>
       <p><b>改料跟踪：</b>点第四个标签看同一期不同快照间的改动。先按维度/期号筛，再点站点看历次“补进 / 换掉”；有开奖结果的显示改对、改错或无差异，未开奖的留在“待检”。</p>
@@ -600,7 +684,7 @@
   var CHANGE_DIMS=[['all','全部'],['kill','杀肖'],['pingte','平特一肖'],['nine','九肖'],['wave','波色'],['tail','尾数'],['head','头数'],['size','大小'],['parity','单双']];
   var CHANGE_DIM_LABEL={kill:'杀肖',pingte:'平特一肖',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
   var S={
-    tab:'now', pend:null, nine:null, kill:null, change:null, pos:null, kr:null, qc:null, aliases:{},
+    tab:'brief', pend:null, nine:null, kill:null, change:null, pos:null, kr:null, qc:null, aliases:{},
     q:{now:'',nine:'',kill:'',change:''},
     f:{now:'all',nine:'has',kill:'has'},
     sort:{now:'name',nine:'name',kill:'name'},
@@ -729,6 +813,10 @@
     if(!rows) return '<div class="empty-mini">暂无逐期记录</div>';
     return '<div class="det-count">全部 '+n+' 期明细（按期倒序）</div><table class="detail-table"><thead><tr><th style="width:18%">期号</th><th style="width:17%">开奖</th><th>推荐</th><th style="width:18%">结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }
+  function fallbackCopy(t){
+    var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();
+    try{document.execCommand('copy');}catch(e){} document.body.removeChild(a);
+  }
   function setHero(period,status,updated){
     $('heroPeriod').textContent=period?('第 '+period+' 期'):'—';
     $('heroUpdated').textContent=updated||'—';
@@ -805,6 +893,126 @@
       '<div class="mini-block"><div class="mini-label">杀三肖 <span class="n">'+kl.length+' 肖</span></div>'+picksHtml(kl,'kill',s.column===null?'无杀三肖':'无杀三肖')+'</div>'+
       '<div class="mini-dims">'+six+'</div>'+
     '</div></div>';
+  }
+
+  // ===== 摘要 =====
+  function lastIssue(kind){ var a=issuesOf(kind); return a.length?a[a.length-1]:''; }
+  function issueStat(kind,issue){
+    var L=kind==='nine'?S.nine:S.kill;
+    var per=L&&L.periods&&L.periods[issue]; if(!per) return null;
+    var rows=entriesFor(kind,issue).filter(function(e){return e.has;});
+    var hit=rows.filter(function(e){return e.r.hit===true;}).length;
+    var miss=rows.filter(function(e){return e.r.hit===false;}).length;
+    return {issue:issue,actual:per.actual||'—',n:rows.length,hit:hit,miss:miss,rate:rows.length?Math.round(hit/rows.length*100):0};
+  }
+  function riskOf(kind,issue){
+    var rows=entriesFor(kind,issue).filter(function(e){return e.has&&e.r.hit===false;});
+    return {
+      l3:rows.filter(function(e){return e.st.l>=3;}).sort(function(a,b){return b.st.l-a.st.l||a.name.localeCompare(b.name,'zh-Hans-CN');}),
+      l2:rows.filter(function(e){return e.st.l===2;}).sort(function(a,b){return a.name.localeCompare(b.name,'zh-Hans-CN');}),
+      l1:rows.filter(function(e){return e.st.l===1;})
+    };
+  }
+  function briefBars(rows,kind){
+    if(!rows||!rows.length) return '<div class="empty-mini">暂无</div>';
+    var mx=rows[0].n||1;
+    return '<div class="brief-bars">'+rows.map(function(r,i){
+      return '<div class="brief-bar'+(kind==='kill'?' kill':'')+'"><em>'+(i+1)+'</em><b>'+esc(r.name)+'</b><i style="width:'+Math.max(3,Math.round(r.n/mx*100))+'%"></i><u>'+r.n+'</u></div>';
+    }).join('')+'</div>';
+  }
+  function briefData(){
+    var p=S.pend||{}, sites=p.sites||[];
+    var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
+    var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
+    var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
+    var nAgg=countOf(nineSites,function(s){return s.zodiacs;});
+    var kAgg=countOf(killSites,function(s){return s.killZodiacs;});
+    var topN=topRows(nAgg,5), topK=topRows(kAgg,5);
+    var ni=lastIssue('nine'), ki=lastIssue('kill');
+    var ns=issueStat('nine',ni), ks=issueStat('kill',ki);
+    var nr=ni?riskOf('nine',ni):{l3:[],l2:[],l1:[]};
+    var kr=ki?riskOf('kill',ki):{l3:[],l2:[],l1:[]};
+    var ce=(S.change&&S.change.entries)||[];
+    var cp=ce.filter(function(e){return !e.result;}).length;
+    var cr=ce.filter(function(e){return changeKind(e)==='right';}).length;
+    var cw=ce.filter(function(e){return changeKind(e)==='wrong';}).length;
+    var cov=p.coverage||{};
+    var trend=[];
+    var issues=issuesOf('nine').slice(-5);
+    issues.forEach(function(i){ trend.push({nine:issueStat('nine',i),kill:issueStat('kill',i)}); });
+    return {period:p.period||ni||'—',status:p.status||'',sites:sites.length,nineSites:nineSites.length,killSites:killSites.length,pingSites:pingSites.length,
+      nineVotes:sumZ(nineSites,'nine'),killVotes:sumZ(killSites,'kill'),topN:topN,topK:topK,
+      ns:ns,ks:ks,nr:nr,kr:kr,ce:ce,cp:cp,cr:cr,cw:cw,cov:cov,trend:trend,qc:S.qc};
+  }
+  function riskNames(arr,withStreak){
+    if(!arr.length) return '<span class="empty-mini">无</span>';
+    return arr.map(function(e){return '<b class="'+(e.st.l>=3?'red':'amber')+'">'+esc(e.name)+(withStreak?' '+e.st.l:'')+'</b>';}).join('');
+  }
+  function briefLeadHtml(b){
+    var topN=b.topN.slice(0,3).map(function(r){return r.name;}).join('、')||'—';
+    var topK=b.topK.slice(0,3).map(function(r){return r.name;}).join('、')||'—';
+    var last=[];
+    if(b.ns) last.push('九肖 <b>'+b.ns.hit+' 中 '+b.ns.miss+' 错（'+b.ns.rate+'%）</b>');
+    if(b.ks) last.push('杀三 <b>'+b.ks.hit+' 中 '+b.ks.miss+' 错（'+b.ks.rate+'%）</b>');
+    var risk=[];
+    if(b.nr.l3.length) risk.push('九肖连错≥3 '+b.nr.l3.length+' 站');
+    if(b.kr.l2.length) risk.push('杀三连错2 '+b.kr.l2.length+' 站');
+    return '<b>第 '+esc(b.period)+' 期</b> · '+b.sites+' 站采集；九肖 <b>'+b.nineSites+' 站 / '+b.nineVotes+' 票</b>，'+esc(topN)+' 居前；杀三 <b>'+b.killSites+' 站 / '+b.killVotes+' 票</b>，'+esc(topK)+' 被杀最多。'+
+      (last.length?'<br>上期 '+last.join('，')+'。':'')+
+      '<br>改料 <b>'+b.ce.length+' 次</b>，其中 <b>'+b.cp+' 次待检</b>；'+(risk.length?'<span class="brief-warn">风险：'+risk.join('；')+'。</span>':'风险：暂无 ≥3 期连错。');
+  }
+  function briefText(){
+    var b=briefData();
+    var topN=b.topN.slice(0,3).map(function(r){return r.name+r.n;}).join('、')||'—';
+    var topK=b.topK.slice(0,3).map(function(r){return r.name+r.n;}).join('、')||'—';
+    var t=['第'+b.period+'期 · '+b.sites+'站采集；九肖 '+b.nineSites+'站/'+b.nineVotes+'票，'+topN+'居前；杀三 '+b.killSites+'站/'+b.killVotes+'票，'+topK+'被杀最多。'];
+    if(b.ns) t.push('上期九肖：'+b.ns.issue+'期 '+b.ns.hit+'中'+b.ns.miss+'错（'+b.ns.rate+'%）。');
+    if(b.ks) t.push('上期杀三：'+b.ks.issue+'期 '+b.ks.hit+'中'+b.ks.miss+'错（'+b.ks.rate+'%）。');
+    var risk=[];
+    if(b.nr.l3.length) risk.push('九肖≥3期 '+b.nr.l3.map(function(e){return e.name+e.st.l;}).join('、'));
+    if(b.kr.l3.length) risk.push('杀三≥3期 '+b.kr.l3.map(function(e){return e.name+e.st.l;}).join('、'));
+    if(b.nr.l2.length) risk.push('九肖2期 '+b.nr.l2.map(function(e){return e.name;}).join('、'));
+    if(b.kr.l2.length) risk.push('杀三2期 '+b.kr.l2.map(function(e){return e.name;}).join('、'));
+    if(b.cp) risk.push('改料待检'+b.cp+'次');
+    t.push('风险：'+(risk.length?risk.join('；'):'暂无')+'。');
+    t.push('口径：按站次记录，只做资料汇总，不构成投注建议。');
+    return t.join('\n');
+  }
+  function briefKv(label,value){
+    return '<div class="brief-kv"><span>'+esc(label)+'</span><b>'+value+'</b></div>';
+  }
+  function renderBrief(){
+    if(!S.pend&&!S.nine&&!S.kill){ $('briefLead').innerHTML='<div class="empty">数据读取失败，摘要无法生成。</div>'; return; }
+    var b=briefData();
+    $('briefEyebrow').textContent='BRIEF · 第 '+b.period+' 期 · 自动汇总';
+    $('briefBadge').textContent=b.status==='pending'?'待开':'已归档';
+    $('briefBadge').className='badge '+(b.status==='pending'?'pending':'done');
+    $('briefLead').innerHTML=briefLeadHtml(b);
+    $('briefStamp').textContent='数据 '+(S.pend&&S.pend.updatedAt||'—')+' · 自动汇总 '+(new Date()).toLocaleTimeString('zh-CN',{hour12:false});
+    $('briefConsensus').innerHTML='<div class="brief-cols"><div><h4>九肖 Top 5</h4>'+briefBars(b.topN,'nine')+'</div><div><h4>杀三 Top 5</h4>'+briefBars(b.topK,'kill')+'</div></div>';
+    $('briefCoverage').innerHTML=
+      briefKv('采集站点',b.sites+' 站')+
+      briefKv('九肖覆盖',b.nineSites+' 站 · '+b.nineVotes+' 票')+
+      briefKv('杀三覆盖',b.killSites+' 站 · '+b.killVotes+' 票')+
+      briefKv('平特覆盖',b.pingSites+' 站')+
+      briefKv('未更新 / 未纳入',num(b.cov&&b.cov.notUpdated)+' 站 / '+num(S.pend&&S.pend.missingCount)+' 站')+
+      briefKv('沿用上版',num(S.pend&&S.pend.carriedCount)+' 站');
+    $('briefLast').innerHTML=
+      (b.ns?briefKv('九肖 第'+b.ns.issue+'期',b.ns.hit+' 中 · '+b.ns.miss+' 错 · '+b.ns.rate+'%'):'')+
+      (b.ks?briefKv('杀三 第'+b.ks.issue+'期',b.ks.hit+' 中 · '+b.ks.miss+' 错 · '+b.ks.rate+'%'):'')+
+      briefKv('改料总结',b.ce.length+' 次 · 改对 '+b.cr+' · 改错 '+b.cw+' · 待检 '+b.cp);
+    $('briefRisk').innerHTML='<div class="brief-risk">'+
+      '<div class="rl"><span>九肖 ≥3</span><div class="rn">'+riskNames(b.nr.l3,true)+'</div></div>'+
+      '<div class="rl"><span>九肖 2期</span><div class="rn">'+riskNames(b.nr.l2,false)+'</div></div>'+
+      '<div class="rl"><span>杀三 ≥3</span><div class="rn">'+riskNames(b.kr.l3,true)+'</div></div>'+
+      '<div class="rl"><span>杀三 2期</span><div class="rn">'+riskNames(b.kr.l2,false)+'</div></div>'+
+      '<div class="rl"><span>快照 / 质检</span><div class="rn">'+((b.qc&&b.qc.summary)?('<b>检查 '+num(b.qc.summary.stations_checked)+' 站次 · 异常 '+num(b.qc.summary.anomalies)+'</b>'):'<span class="empty-mini">无质检数据</span>')+'</div></div>'+
+    '</div>';
+    $('briefTrend').innerHTML=b.trend.length?('<table class="brief-table"><thead><tr><th>期号</th><th>开奖</th><th>九肖</th><th>杀三</th></tr></thead><tbody>'+b.trend.map(function(x){
+      var n=x.nine, k=x.kill;
+      return '<tr><td>'+esc(n?n.issue:(k?k.issue:'—'))+'</td><td>'+esc((n?n.actual:(k?k.actual:'—')))+'</td><td>'+(n?n.hit+'/'+n.n+' · '+n.rate+'%':'—')+'</td><td>'+(k?k.hit+'/'+k.n+' · '+k.rate+'%':'—')+'</td></tr>';
+    }).join('')+'</tbody></table>'):'<div class="empty-mini">暂无已开奖记录</div>';
+    $('tabBriefCount').textContent=b.period+'期';
   }
 
   // ===== 九肖 / 杀三肖台账 =====
@@ -1310,11 +1518,12 @@
   function switchTab(t){
     S.tab=t;
     Array.prototype.forEach.call($('tabbar').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.tab===t);});
-    ['now','nine','kill','change'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
+    ['brief','now','nine','kill','change'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
     try{history.replaceState(null,'','#'+t);}catch(e){}
+    if(t==='brief') renderBrief();
     if(t==='nine'||t==='kill') renderLedger(t);
     if(t==='change') renderChange();
-    try{document.title='资料中心 · '+(t==='now'?'本期资料':(t==='nine'?'九肖':(t==='kill'?'杀三肖':'改料跟踪')));}catch(e){}
+    try{document.title='资料中心 · '+(t==='brief'?'本期摘要':(t==='now'?'本期资料':(t==='nine'?'九肖':(t==='kill'?'杀三肖':'改料跟踪'))));}catch(e){}
   }
   function bind(){
     $('tabbar').addEventListener('click',function(e){var b=e.target.closest('button[data-tab]');if(b)switchTab(b.dataset.tab);});
@@ -1344,6 +1553,12 @@
         this.textContent=doOpen?'收起全部':'展开全部';
       });
     });
+    $('briefCopy').addEventListener('click',function(){
+      var t=briefText();
+      var done=function(){showToast('摘要已复制');};
+      if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(done).catch(function(){fallbackCopy(t);done();});}
+      else {fallbackCopy(t);done();}
+    });
     $('openRules').addEventListener('click',function(){$('rulesModal').classList.remove('hidden');$('rulesModal').setAttribute('aria-hidden','false');});
     $('closeRules').addEventListener('click',function(){$('rulesModal').classList.add('hidden');$('rulesModal').setAttribute('aria-hidden','true');});
     $('rulesModal').addEventListener('click',function(e){if(e.target===this){$('closeRules').click();}});
@@ -1365,13 +1580,15 @@
       if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
       var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
       setHero(per,S.pend&&S.pend.status==='pending'?'待开':'已归档',(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
+      $('tabBriefCount').textContent=((S.pend&&S.pend.period)||'总览')+'期';
       $('tabNineCount').textContent=(S.nine?Object.keys(S.nine.periods).length:0)+' 期';
       $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
       $('tabChangeCount').textContent=S.change?(S.change.entries||[]).length+' 次':'—';
       buildPeriod('nine'); buildPeriod('kill'); buildChangePeriods();
       renderNow();
+      renderBrief();
       renderQC();
-      var h=(location.hash||'').replace('#',''); if(h==='nine'||h==='kill'||h==='change') switchTab(h); else switchTab('now');
+      var h=(location.hash||'').replace('#',''); if(h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='change') switchTab(h); else switchTab('brief');
     }).catch(function(e){setHero('—','异常','读取失败');$('nowCards').innerHTML='<div class="empty">'+esc(e.message||e)+'</div>';});
   }
   init();

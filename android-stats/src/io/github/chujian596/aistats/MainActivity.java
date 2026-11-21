@@ -39,7 +39,7 @@ import java.io.OutputStream;
 
 public class MainActivity extends Activity {
 
-    private static final String HOME_URL = "https://aistats-9uo.pages.dev/dashboard.html";
+    private static final String HOME_URL = "https://www.chujian596.dpdns.org/dashboard.html";
     private static final int REQ_FILE = 1001;
 
     private WebView web;

@@ -27,7 +27,7 @@
   if(q.indexOf('from404=1') >= 0){ document.title = '暂时打不开'; return; }
   // 只对录单入口做接管：app.html、根路径、以及任意指向 app 的路径
   var looksApp = /app\.html$/.test(p) || p === '/' || p.substring(0,1) === '/';
-  var base = 'https://aistats-9uo.pages.dev/app';
+  var base = 'https://www.chujian596.dpdns.org/app';
   var sep = q ? q + '&' : '?';
   var target = base + sep + 'from404=1';
   try {
