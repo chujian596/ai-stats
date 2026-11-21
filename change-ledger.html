@@ -118,7 +118,7 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 
   <div class="note">
     <b>口径说明</b>
-    <p>九肖按子集判：特肖落在<b>补进</b>子集＝改补命中；落在<b>换掉</b>子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。仅杀肖、平特一肖保留站点评级；其余维度纯描述跟踪，不设阈值。样本不足 30 期不下结论；不回填历史，从当前期起靠各时段快照判断有无改动。</p>
+    <p>九肖按子集判：特肖落在<b>补进</b>子集＝改补命中；落在<b>换掉</b>子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。站点成绩按<b>逐站个人成绩</b>累计，<b>不做对减错的净分排名</b>；榜单只重点跟踪改对记录，改错如实单列、暂不下定论，攒够二三十期样本后再评估。不回填历史，从当前期起靠各时段快照判断有无改动。</p>
   </div>
   <div class="footer">AI资料统计 · 改料跟踪只做公开资料比对，不生成投注指令</div>
 </main>
@@ -186,13 +186,11 @@ function aggregate(es){
   return Object.keys(map).map(function(k){return map[k];});
 }
 
-function siteGroup(s){ return s.right>0 ? 0 : (s.wrong>0 ? 1 : 2); }
 function siteRank(a,b){
-  var ga=siteGroup(a), gb=siteGroup(b);
-  if(ga!==gb) return ga-gb;
-  if(ga===0) return (b.right-a.right)||(a.wrong-b.wrong)||(b.entries.length-a.entries.length);
-  if(ga===1) return (b.wrong-a.wrong)||(a.right-b.right)||(b.entries.length-a.entries.length);
-  return b.entries.length-a.entries.length;
+  // 逐站个人成绩：只按改对次数排序，不做对减错净分；改错仅如实计数，不压后、不定论
+  if(b.right!==a.right) return b.right-a.right;
+  if(b.entries.length!==a.entries.length) return b.entries.length-a.entries.length;
+  return a.wrong-b.wrong;
 }
 
 function periodList(){
@@ -256,9 +254,8 @@ function entryCard(e){
 }
 
 function rankTag(s){
-  if(s.right>0) return '<span class="rank-tag g">改对为主</span>';
-  if(s.wrong>0) return '<span class="rank-tag r">改错为主</span>';
-  return '<span class="rank-tag n">无差异 / 待检</span>';
+  if(s.right>0) return '<span class="rank-tag g">有改对记录</span>';
+  return '<span class="rank-tag n">待积累样本</span>';
 }
 
 function renderSites(){
@@ -266,7 +263,7 @@ function renderSites(){
   var sites = aggregate(es).sort(siteRank);
   var box=document.getElementById('cards');
   document.querySelector('.section-title h2').textContent = '站点改料排行';
-  document.querySelector('.section-title small').textContent = sites.length+' 个站 · 改对在前，改错在后';
+  document.querySelector('.section-title small').textContent = sites.length+' 个站 · 按改对记录排序 · 逐站成绩不做净对错';
   if(!sites.length){ box.innerHTML='<div class="empty">暂无符合条件的改料记录</div>'; return; }
   box.innerHTML = sites.map(function(s){
     var dimtags = Object.keys(s.dims).map(function(d){return '<span class="dimtag">'+esc(DIM_T[d]||d)+'</span>';}).join('');
@@ -276,7 +273,7 @@ function renderSites(){
       +'<div class="scard-stats">'
       +'<span>总改 <b>'+s.entries.length+'</b></span>'
       +'<span class="st-right">改对 <b>'+s.right+'</b></span>'
-      +'<span class="st-wrong">改错 <b>'+s.wrong+'</b></span>'
+      +'<span class="st-neu">改错 <b>'+s.wrong+'</b></span>'
       +(s.pending?'<span class="st-pend">待检 <b>'+s.pending+'</b></span>':'')
       +'</div>'
       +'<div class="scard-meta">'+dimtags+'<span class="scard-period">'+esc(periods)+'</span></div>'
@@ -306,7 +303,7 @@ function renderSiteDetail(){
     +'<div class="scard-stats" style="margin:0 2px 12px">'
     +'<span>总改 <b>'+es.length+'</b></span>'
     +'<span class="st-right">改对 <b>'+s.right+'</b></span>'
-    +'<span class="st-wrong">改错 <b>'+s.wrong+'</b></span>'
+    +'<span class="st-neu">改错 <b>'+s.wrong+'</b></span>'
     +(s.pending?'<span class="st-pend">待检 <b>'+s.pending+'</b></span>':'')
     +'</div>';
   box.innerHTML = head + (es.length ? es.map(entryCard).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');

@@ -631,7 +631,6 @@
             <div style="flex:1"></div>
             <select id="changeSort" style="border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--text);padding:7px 9px;font-size:11px;outline:none">
               <option value="rank">改对在前</option>
-              <option value="wrong">改错多在前</option>
               <option value="count">改动多在前</option>
               <option value="name">按站名</option>
             </select>
@@ -640,13 +639,13 @@
         <div id="changeList" class="change-list"></div>
         <div id="changeMore" class="more-row"></div>
         <div class="change-note">
-          <b>判定口径：</b>九肖按子集判——特肖落在“补进”子集＝改补命中，落在“换掉”子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。样本不足 30 期只记录，不下结论。
+          <b>判定口径：</b>九肖按子集判——特肖落在“补进”子集＝改补命中，落在“换掉”子集＝改掉特肖；其余为前后都中 / 前后都错 / 无差异。波色、尾数、头数、大小、单双按特码对应属性判改对 / 改错 / 无差异。站点按逐站个人成绩累计，不做对减错净分；重点跟踪改对记录，改错如实单列、暂不下定论，攒够二三十期样本后再评估。
         </div>
       </div>
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1410,13 +1409,11 @@
     });
     return Object.keys(map).map(function(k){return map[k];});
   }
-  function changeGroup(s){ return s.right>0?0:(s.wrong>0?1:2); }
   function changeSiteRank(a,b){
-    var ga=changeGroup(a), gb=changeGroup(b);
-    if(ga!==gb) return ga-gb;
-    if(ga===0) return (b.right-a.right)||(a.wrong-b.wrong)||(b.entries.length-a.entries.length);
-    if(ga===1) return (b.wrong-a.wrong)||(a.right-b.right)||(b.entries.length-a.entries.length);
-    return b.entries.length-a.entries.length;
+    // 逐站个人成绩：只按改对次数排序，不做对减错净分；改错如实计数，不压后、不定论
+    if(b.right!==a.right) return b.right-a.right;
+    if(b.entries.length!==a.entries.length) return b.entries.length-a.entries.length;
+    return a.wrong-b.wrong;
   }
   function buildChangePeriods(){
     var sel=$('changePeriod'); if(!sel) return;
@@ -1440,7 +1437,6 @@
     var all=S.change.entries, es=changeFilter();
     var allSites=changeAgg(all), sites=changeAgg(es).sort(function(a,b){
       if(S.c.sort==='name') return a.name.localeCompare(b.name,'zh-Hans-CN');
-      if(S.c.sort==='wrong') return (b.wrong-a.wrong)||(b.right-a.right)||(b.entries.length-a.entries.length);
       if(S.c.sort==='count') return (b.entries.length-a.entries.length)||(b.right-a.right);
       return changeSiteRank(a,b);
     });
@@ -1470,7 +1466,7 @@
       });
       var s=changeAgg(siteEntries)[0]||{name:S.c.site,sid:S.c.site,entries:siteEntries,right:0,wrong:0,pending:0,neutral:0};
       list.innerHTML='<div class="change-detail-head"><button type="button" class="change-back">← 返回站点榜</button><span class="change-detail-title">'+esc(s.name)+'</span><span class="change-detail-sub">'+esc(s.sid)+' · 共 '+siteEntries.length+' 次</span></div>'
-        +'<div class="change-site-nums" style="justify-content:flex-start;margin:0 2px 10px"><span class="change-num">总改 '+siteEntries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num r">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div>'
+        +'<div class="change-site-nums" style="justify-content:flex-start;margin:0 2px 10px"><span class="change-num">总改 '+siteEntries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div>'
         +(siteEntries.length?siteEntries.map(changeEntryCard).join(''):'<div class="empty">该站在当前筛选下没有改料记录</div>');
       $('changeMore').innerHTML='';
       return;
@@ -1489,7 +1485,7 @@
     var periods=Object.keys(s.periods).sort(function(a,b){return +b-+a;}).map(function(p){return '第'+p+'期';}).join('、');
     return '<div class="change-site" data-site="'+esc(s.sid)+'">'
       +'<div class="change-site-top"><div><div class="change-site-name">'+esc(s.name)+'<span>'+esc(s.sid)+'</span></div></div>'
-      +'<div class="change-site-nums"><span class="change-num">总改 '+s.entries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num r">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div></div>'
+      +'<div class="change-site-nums"><span class="change-num">总改 '+s.entries.length+'</span><span class="change-num g">改对 '+s.right+'</span><span class="change-num">改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">待检 '+s.pending+'</span>':'')+'</div></div>'
       +'<div class="change-tags">'+dims+'</div>'
       +'<div class="change-periods">'+esc(periods)+'</div>'
       +'<div class="change-go">查看历次改料 ›</div></div>';

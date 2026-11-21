@@ -395,7 +395,10 @@ def main():
             still = []
             for k in dropped:
                 ps = prev_ok[k]
-                res = repull(ps.get('system'), str(ps.get('siteKey')), issue)
+                try:
+                    res = repull(ps.get('system'), str(ps.get('siteKey')), issue)
+                except Exception as e:
+                    res = {"system": ps.get('system'), "siteKey": str(ps.get('siteKey')), "error": str(e)}
                 if 'columns' in res:
                     results.append(res)
                     cur_ok[k] = res
