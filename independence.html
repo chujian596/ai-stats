@@ -198,10 +198,23 @@ function renderTrack(valid){
   }).join('\n');
 }
 
+async function getData(name){
+  const urls = [`data/${name}`, `https://chujian596.github.io/ai-stats/data/${name}`];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u + '?v=' + Date.now(), {cache:'no-store'});
+      if (r.ok) {
+        const text = await r.text();
+        if (text.trim()) return JSON.parse(text);
+      }
+    } catch (e) { /* try next */ }
+  }
+  throw new Error(name);
+}
 Promise.all([
-  fetch('data/independence-summary.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('independence')),
-  fetch('data/weight-shadow.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-shadow')),
-  fetch('data/weight-validation.json', {cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject('weight-validation'))
+  getData('independence-summary.json'),
+  getData('weight-shadow.json'),
+  getData('weight-validation.json')
 ]).then(([i,s,v])=>render(i,s,v)).catch(e=>{
   console.error(e);
   $('error').style.display='block';
