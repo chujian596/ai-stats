@@ -94,6 +94,12 @@ def ensure_out(path):
 
 def classify(msg):
     msg = str(msg or "")
+    # 只写金额、没写投注目标：这是输入不完整，不是解析器故障。
+    # 不猜全尾/全肖，也不把它算进解析故障统计；提示补目标即可。
+    if ("尾数没写目标" in msg or "头数没写目标" in msg
+            or "平特后面没写生肖" in msg
+            or msg in ("尾数只能 0-9，列表要用单个数字", "无法识别：「平特」")):
+        return ("missing_target", "缺投注目标", "输入不完整，不是解析故障；提示补尾数/生肖，不猜全尾/全肖，不计入解析故障")
     if "整批没有识别到任何项目" in msg or "没有识别到产品" in msg:
         return ("zero", "整批零识别", "先看 rawInput 是否整段乱码、只有标题/客户名；确认零识别拦截是否应触发")
     if "这一行没有识别到号码/生肖/玩法" in msg:
@@ -262,9 +268,11 @@ def write_summary(tickets, batches, outdir):
         "open": len([t for t in tickets if t.get("status") == "open"]),
         "fixedVerified": len([t for t in tickets if t.get("status") == "fixed-verified"]),
         "closed": len([t for t in tickets if t.get("status") == "closed"]),
+        "missingTarget": len([t for t in tickets if t.get("category") == "missing_target"]),
+        "faultOpen": len([t for t in tickets if t.get("status") == "open" and t.get("category") != "missing_target"]),
     }
     (outdir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("汇总：批次 %(batches)s / 失败行 %(failureLines)s / 工单 %(tickets)s（待修 %(open)s，已验 %(fixedVerified)s，已关 %(closed)s）" % summary)
+    print("汇总：批次 %(batches)s / 失败行 %(failureLines)s / 工单 %(tickets)s（待修 %(open)s，其中缺目标 %(missingTarget)s 不计故障；已验 %(fixedVerified)s，已关 %(closed)s）" % summary)
 
 
 def write_ticket_md(tickets, outdir):

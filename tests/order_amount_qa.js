@@ -110,5 +110,12 @@ await comboCase('三中三复式冒号', '三中三复式:09,45,04，16，03，1
 await comboCase('复式三中三冒号', '复式三中三:09,45,04 ，16，03，15，07，31，30，36，34，各组1', 165, 165);
 await comboCase('横杠组合续行', '三中三09-30-31\n30-31-34\n04-07-34\n09-36-45\n04-36-07各组5', 25, 5);
 
+// 6) 缺投注目标：只写金额、没写尾数/生肖，提示补目标，不猜全尾/全肖
+function parseErr(v){ try{ parseLine(v); return ''; }catch(e){ return e.message||String(e); } }
+add('尾1000提示补尾数目标', parseErr('尾1000').indexOf('尾数没写目标')>=0, {msg:parseErr('尾1000')});
+add('平特5提示补生肖目标', parseErr('平特5').indexOf('平特后面没写生肖')>=0, {msg:parseErr('平特5')});
+add('尾0各1000仍正常解析', (()=>{try{return parseLine('尾0各1000').codes.length===4}catch(e){return false}})(), {});
+add('平特马5仍正常解析', (()=>{try{return parseLine('平特马5').codes.length===1}catch(e){return false}})(), {});
+
 window.__orderAmtQA={tested:results.length,pass:results.filter(r=>r.status==='PASS').length,fail:fails.length,fails:fails.slice(0,12),results};
 })();

@@ -98,7 +98,7 @@ fi
 # 只推 Cloudflare 的话，安卓端一直看到旧代码。这里补上同步。
 if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   cd "$SRC" || exit 1
-  SYNC_PATHS=(app-pro.html app-pro-backup.html app.html app-client-backup.html app-client-v59.03-test.html stats.html ziliao-center.html portal.html extra-ledger.html nine-zodiac.html kill3-ledger.html version.txt version-client.txt version-client-test.txt sw.js manifest.json versions functions)
+  SYNC_PATHS=(app-pro.html app-pro-backup.html app-pro-preview.html app.html app-client-backup.html app-client-v59.03-test.html stats.html ziliao-center.html portal.html extra-ledger.html nine-zodiac.html kill3-ledger.html version.txt version-client.txt version-client-test.txt sw.js manifest.json versions functions)
   git add -- "${SYNC_PATHS[@]}" >/dev/null 2>&1
   # 只提交白名单路径：即使别的进程往暂存区放了无关改动（含删除），也不会被本脚本带走。
   if ! git diff --cached --quiet -- "${SYNC_PATHS[@]}"; then
