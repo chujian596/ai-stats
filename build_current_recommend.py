@@ -20,6 +20,7 @@ LEDGER_PUB = os.path.join(ROOT, "data", "max-zodiac-ledger.json")
 SNAP_DIR = os.path.join(PARENT, "snapshots")
 OUT = os.path.join(ROOT, "data", "current-recommend.json")
 CHANGE_LEDGER = os.path.join(PARENT, "改料台账.json")
+SITE_DIRECTORY = os.path.join(ROOT, "data", "site-directory.json")
 Z = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
 WAVE = "红蓝绿"
 # 与 build_kill3_ledger.py 同一杀三肖栏口径
@@ -139,6 +140,20 @@ def pick_column(columns):
 def load_json(p):
     with open(p, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_known_site_keys():
+    """目录里登记过名字的站（siteId 归一成 system-siteKey），用于剔除常态空站。"""
+    ks = set()
+    try:
+        d = load_json(SITE_DIRECTORY)
+        for s in d.get("sites", []):
+            if (s.get("name") or "").strip() or (s.get("displayName") or "").strip():
+                sid = s.get("siteId") or f"{s.get('system')}:{s.get('siteKey')}"
+                ks.add(sid.replace(":", "-"))
+    except Exception:
+        pass
+    return ks
 
 
 def load_change_changes(issue):
@@ -361,10 +376,16 @@ def main():
                 sites.append(base)
         # 补齐没进 sites 的失败站：区分「抓取失败（连接/抓取问题）」与「还没更新（站点未放料）」
         have_keys = {f"{s['system']}-{s['siteKey']}" for s in sites}
+        known_keys = load_known_site_keys()
+        skipped_empty = []
         for fk, fr in fail_map.items():
             if fk in have_keys:
                 continue
             kind = fr.get("failKind", "fetch_error")
+            # 常态空站（目录里无名字的站）：不计入榜单，避免 100 站口径被撑成 104 并出现「未登记站」
+            if kind == "not_updated" and fk not in known_keys:
+                skipped_empty.append(fk)
+                continue
             status = "抓取失败" if kind == "fetch_error" else "还没更新"
             sites.append({
                 "system": fr.get("system", ""), "siteKey": str(fr.get("siteKey", "")),
