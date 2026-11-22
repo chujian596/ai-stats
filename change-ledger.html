@@ -99,9 +99,9 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
     <h1>改料跟踪</h1>
     <p class="sub">同一期多份快照逐站逐栏目比对，登记补进 / 换掉子集，开奖后按各维度属性回检。</p>
     <div class="kpis">
-      <div class="kpi"><b id="kpiTotal">—</b><span>改动条目</span></div>
-      <div class="kpi"><b id="kpiSettled">—</b><span>已结算</span></div>
-      <div class="kpi"><b id="kpiPending">—</b><span>待检</span></div>
+      <div class="kpi"><b id="kpiTotal">—</b><span>独立改料</span></div>
+      <div class="kpi"><b id="kpiSettled">—</b><span>当前已检</span></div>
+      <div class="kpi"><b id="kpiPending">—</b><span>当前待检</span></div>
     </div>
   </div>
 </header>
@@ -158,9 +158,10 @@ function verdictKind(e){
   return 'neutral';
 }
 
-function verdictBadge(e){
+function verdictBadge(e,current){
+  var v = e.result ? (e.result.verdict || '无差异') : '待检';
+  if(current===false) return '<span class="badge n">当时'+esc(v)+'</span>';
   if(!e.result){ return '<span class="badge a">待检</span>'; }
-  var v = e.result.verdict || '无差异';
   var cls = VERDICT_G[v] ? 'g' : (VERDICT_R[v] ? 'r' : 'n');
   return '<span class="badge '+cls+'">'+esc(v)+'</span>';
 }
@@ -178,16 +179,19 @@ function filtered(){
   return es;
 }
 
-function aggregate(es){
+function aggregate(es,curMap){
   var map = {};
   es.forEach(function(e){
     var sid = e.siteId || e.siteName || '?';
-    if(!map[sid]) map[sid]={sid:sid,name:e.siteName||'',entries:[],right:0,wrong:0,neutral:0,pending:0,periods:{},dims:{}};
+    if(!map[sid]) map[sid]={sid:sid,name:e.siteName||'',entries:[],right:0,wrong:0,neutral:0,pending:0,periods:{},dims:{},groups:{}};
     var s=map[sid];
     s.entries.push(e);
     if(!s.name && e.siteName) s.name=e.siteName;
-    var k=verdictKind(e);
-    if(k==='right')s.right++; else if(k==='wrong')s.wrong++; else if(k==='pending')s.pending++; else s.neutral++;
+    s.groups[groupKey(e)]=1;
+    if(!curMap || isCurrent(e,curMap)){
+      var k=verdictKind(e);
+      if(k==='right')s.right++; else if(k==='wrong')s.wrong++; else if(k==='pending')s.pending++; else s.neutral++;
+    }
     s.periods[e.period]=1; s.dims[e.dim]=1;
   });
   return Object.keys(map).map(function(k){return map[k];});
@@ -234,28 +238,23 @@ function renderTabs(){
   });
 }
 
-function pairCount(es){
-  var seen={},n=0;
-  (es||[]).forEach(function(e){
-    var bs=(e.beforeSet&&e.beforeSet.length)?e.beforeSet:String(e.before||'').split('');
-    var as=(e.afterSet&&e.afterSet.length)?e.afterSet:String(e.after||'').split('');
-    var pair=[bs.slice().sort().join('·'),as.slice().sort().join('·')].sort().join('↔');
-    var k=String(e.column||'')+'|'+pair;
-    if(!seen[k]){ seen[k]=1; n++; }
-  });
-  return n;
+function groupKey(e){ return (e.siteId||e.siteName||'?')+'|'+e.period+'|'+(e.dim||'')+'|'+(e.column||''); }
+function groupCount(es){
+  var seen={};
+  (es||[]).forEach(function(e){ seen[groupKey(e)]=1; });
+  return Object.keys(seen).length;
 }
+function timeKey(e){ return String(e.at||'')+'|'+String(e.to_snapshot||''); }
 function currentMap(es){
   var map={};
   (es||[]).forEach(function(e){
-    var key=(e.siteId||e.siteName||'?')+'|'+e.period+'|'+e.column;
-    var t=String(e.at||e.to_snapshot||'');
+    var key=groupKey(e), t=timeKey(e);
     if(!map[key] || t>map[key].t) map[key]={t:t,entry:e};
   });
   return map;
 }
 function isCurrent(e,map){
-  var key=(e.siteId||e.siteName||'?')+'|'+e.period+'|'+e.column;
+  var key=groupKey(e);
   return !!(map&&map[key]&&map[key].entry===e);
 }
 function entryCard(e,current){
@@ -276,7 +275,7 @@ function entryCard(e,current){
     +'<div><span class="dimtag">'+esc(DIM_T[e.dim]||e.dim)+'</span>'
     +'<span class="ccard-site">'+(site?esc(site):'')+'<span class="sid">'+esc(sid)+'</span></span>'
     +'<div class="ccard-col">'+esc(e.column||'')+' · 第'+esc(e.period)+'期</div></div>'
-    +'<div class="ccard-badges"><span class="ccard-ver '+(current?'now':'old')+'">'+(current?'当前版本':'历史版本')+'</span>'+verdictBadge(e)+'</div>'
+    +'<div class="ccard-badges"><span class="ccard-ver '+(current?'now':'old')+'">'+(current?'当前版本':'历史 · 不计成绩')+'</span>'+verdictBadge(e,current)+'</div>'
     +'</div>'
     +'<div class="flow"><span class="part"><i>改前</i>'+before+'</span><span class="arr">→</span><span class="part"><i>改后</i>'+after+'</span></div>'
     +'<div class="flow"><span class="set">'+added+'</span>'+(removed?'<span class="set">'+removed+'</span>':'')+'</div>'
@@ -291,7 +290,8 @@ function rankTag(s){
 
 function renderSites(){
   var es = filtered();
-  var sites = aggregate(es).sort(siteRank);
+  var curMap=currentMap(state.entries);
+  var sites = aggregate(es,curMap).sort(siteRank);
   var box=document.getElementById('cards');
   document.querySelector('.section-title h2').textContent = '站点改料排行';
   document.querySelector('.section-title small').textContent = sites.length+' 个站 · 按改对记录排序 · 逐站成绩不做净对错';
@@ -302,10 +302,10 @@ function renderSites(){
     return '<div class="scard" data-sid="'+esc(s.sid)+'">'
       +'<div class="scard-top"><div><span class="scard-name">'+(s.name?esc(s.name):'')+'<span class="scard-sid">'+esc(s.sid)+'</span></span></div>'+rankTag(s)+'</div>'
       +'<div class="scard-stats">'
-      +'<span>总改 <b>'+s.entries.length+'</b></span>'
-      +'<span class="st-right">改对 <b>'+s.right+'</b></span>'
-      +'<span class="st-neu">改错 <b>'+s.wrong+'</b></span>'
-      +(s.pending?'<span class="st-pend">待检 <b>'+s.pending+'</b></span>':'')
+      +'<span>流水 <b>'+s.entries.length+'</b> · 独立 <b>'+Object.keys(s.groups||{}).length+'</b> 组</span>'
+      +'<span class="st-right">当前改对 <b>'+s.right+'</b></span>'
+      +'<span class="st-wrong">当前改错 <b>'+s.wrong+'</b></span>'
+      +(s.pending?'<span class="st-pend">当前待检 <b>'+s.pending+'</b></span>':'')
       +'</div>'
       +'<div class="scard-meta">'+dimtags+'<span class="scard-period">'+esc(periods)+'</span></div>'
       +'<div class="scard-go">查看历次明细 ›</div>'
@@ -318,39 +318,36 @@ function renderSites(){
 
 function renderSiteDetail(){
   var es = filtered().filter(function(e){return (e.siteId||e.siteName||'?')===state.activeSid;});
-  es.sort(function(a,b){
-    var pa=a.result?1:0, pb=b.result?1:0;
-    if(pa!==pb) return pa-pb;
-    return String(b.period).localeCompare(String(a.period));
-  });
-  var s = aggregate(es)[0] || {name:'',sid:state.activeSid,entries:es,right:0,wrong:0,neutral:0,pending:0};
+  var curMap=currentMap(state.entries);
+  es.sort(function(a,b){ return timeKey(a).localeCompare(timeKey(b)); });
+  var s = aggregate(es,curMap)[0] || {name:'',sid:state.activeSid,entries:es,right:0,wrong:0,neutral:0,pending:0,groups:{}};
   var box=document.getElementById('cards');
   document.querySelector('.section-title h2').textContent = '站点明细';
   document.querySelector('.section-title small').textContent = '历次改料 · 按期号倒序';
-  var colMap={}; es.forEach(function(e){colMap[e.column||'']=1;});
-  var colN=Object.keys(colMap).length, groupN=pairCount(es);
+  var groupN=groupCount(es);
   var head = '<div class="detail-bar">'
     +'<a class="detail-back" id="backBtn">← 返回站点榜</a>'
     +'<span class="detail-title">'+(s.name?esc(s.name):esc(s.sid))+'</span>'
-    +'<span class="detail-sub">'+esc(s.sid)+' · 共 '+es.length+' 条流水 · '+colN+' 个栏目 · 去重 '+groupN+' 组</span></div>'
-    +'<div class="ver-note">每条标「改前 / 改后」；同一站、同栏目、同期最新一条标「当前版本」，更早的标「历史版本」。同栏目正反互改会各记一条流水，所以「条数」不等于独立改料组数，按栏目去重后看组数。</div>'
+    +'<span class="detail-sub">'+esc(s.sid)+' · 共 '+es.length+' 条流水 · '+groupN+' 组独立改料</span></div>'
+    +'<div class="ver-note">每组只把「当前版本」计一次成绩；更早的「历史版本」只留过程，不计改对、改错、待检。同栏目正反互改会各记一条流水，所以流水条数不等于独立改料组数。</div>'
     +'<div class="scard-stats" style="margin:0 2px 12px">'
-    +'<span>总改 <b>'+es.length+' 条</b></span>'
-    +'<span class="st-right">改对 <b>'+s.right+'</b></span>'
-    +'<span class="st-neu">改错 <b>'+s.wrong+'</b></span>'
-    +(s.pending?'<span class="st-pend">待检 <b>'+s.pending+'</b></span>':'')
+    +'<span>流水 <b>'+es.length+'</b> · 独立 <b>'+groupN+'</b> 组</span>'
+    +'<span class="st-right">当前改对 <b>'+s.right+'</b></span>'
+    +'<span class="st-wrong">当前改错 <b>'+s.wrong+'</b></span>'
+    +(s.pending?'<span class="st-pend">当前待检 <b>'+s.pending+'</b></span>':'')
     +'</div>';
-  var curMap=currentMap(state.entries);
   box.innerHTML = head + (es.length ? es.map(function(e){return entryCard(e,isCurrent(e,curMap));}).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');
   document.getElementById('backBtn').onclick=function(){state.view='sites';state.activeSid=null;render();window.scrollTo({top:0,behavior:'smooth'});};
 }
 
 function render(){
-  var total=state.entries.length;
-  var settled=state.entries.filter(function(e){return e.result;}).length;
+  var total=groupCount(state.entries);
+  var cm=currentMap(state.entries);
+  var pending=state.entries.filter(function(e){return isCurrent(e,cm)&&!e.result;}).length;
+  var settled=total-pending;
   document.getElementById('kpiTotal').textContent=total;
   document.getElementById('kpiSettled').textContent=settled;
-  document.getElementById('kpiPending').textContent=total-settled;
+  document.getElementById('kpiPending').textContent=pending;
   if(state.view==='site') renderSiteDetail(); else renderSites();
 }
 
