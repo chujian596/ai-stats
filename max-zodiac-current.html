@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#f5f7fb">
-<title>最大生肖 · 当期拥挤度</title>
+<title>最大生肖 · 各期拥挤度</title>
 <style>
 :root{--ink:#17202b;--muted:#6b7785;--line:#e5eaf1;--blue:#2457d6;--red:#b42318;--redbg:#fff1ef;--green:#1d6b4f;--amber:#9b7737;--bg:#f5f7fb;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -16,7 +16,17 @@ header .inner{max-width:760px;margin:0 auto}
 h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 .sub{margin:0;color:#dbe8ff;font-size:13px}
 .back{display:inline-block;margin-bottom:12px;color:#dbe8ff;text-decoration:none;font-size:12px}
-.hero{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 18px;margin-top:14px;box-shadow:0 4px 14px rgba(16,35,70,.06)}
+.periodbar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:12px;box-shadow:0 2px 8px rgba(16,35,70,.04);position:sticky;top:0;z-index:9}
+.periodbar label{font-size:12px;color:var(--muted);white-space:nowrap;font-weight:700}
+.periodbar select{flex:1;min-width:0;appearance:none;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:8px 30px 8px 10px;font:inherit;font-size:13px;color:var(--ink);font-weight:700;background-image:linear-gradient(45deg,transparent 50%,#6b7785 50%),linear-gradient(135deg,#6b7785 50%,transparent 50%);background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.periodbar .period-hint{font-size:11px;color:var(--muted);white-space:nowrap}
+.result-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:#fff;padding:9px 12px;margin-top:10px;font-size:12px;color:var(--muted)}
+.result-line b{color:var(--ink);font-size:13px}
+.result-line .rl-tag{background:#eef2f8;border-radius:6px;padding:1px 6px;color:#5b6675;font-size:10px;font-weight:700}
+.result-line .rl-verdict{font-weight:700}
+.result-line.hit{border-color:#cfe5d8;background:#f3fbf7}.result-line.hit .rl-verdict{color:var(--green)}
+.result-line.miss{border-color:#f3c9c5;background:var(--redbg)}.result-line.miss .rl-verdict{color:var(--red)}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 18px;margin-top:12px;box-shadow:0 4px 14px rgba(16,35,70,.06)}
 .hero .label{font-size:12px;color:var(--muted);letter-spacing:.1em}
 .hero .z{font-size:46px;line-height:1.05;font-weight:800;letter-spacing:-.05em;margin-top:4px}
 .hero .n{font-size:13px;color:var(--muted);margin-top:6px}
@@ -78,13 +88,19 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 <header>
   <div class="inner">
     <a class="back" href="dashboard.html">← 返回入口</a>
-    <div class="kicker">CURRENT CROWDING</div>
+    <div class="kicker">CROWDING · BY PERIOD</div>
     <h1>最大生肖</h1>
-    <p class="sub">看当期九肖推荐票数最集中的生肖，辅助判断群众方向，不当作必中信号。</p>
+    <p class="sub">看各期九肖推荐票数最集中的生肖，辅助判断群众方向，不当作必中信号。</p>
   </div>
 </header>
 
 <main class="wrap">
+  <div class="periodbar">
+    <label for="periodSelect">查看期号</label>
+    <select id="periodSelect" aria-label="选择期号"><option>正在读取…</option></select>
+    <span class="period-hint" id="periodHint">—</span>
+  </div>
+  <div class="result-line" id="resultLine" style="display:none"></div>
   <section class="hero" id="hero">
     <div>
       <div class="label"><span id="periodLabel">327 期</span> · 九肖推荐第一</div>
@@ -111,36 +127,72 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     </table>
   </div>
 
+  <section id="killSection">
   <div class="section-title"><h2>同时看杀三</h2><small>与九肖推票分开</small></div>
   <div class="card">
     <div style="font-size:12px;color:var(--muted)">杀三票是“看空”方向，不和九肖推荐直接相加。</div>
     <div class="kill" id="killBox"><div class="meta">正在加载…</div></div>
   </div>
+  </section>
 
   <div class="note">
     <b>口径</b>
-    <p id="noteText">只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。有效站数与杀三站数以本页实时数据为准；新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。</p>
+    <p id="noteText">只统计所选期有效九肖栏目的站；同站出现重复生肖只记 1 票。不同期站点数不同，不混在一起比；最大生肖不是开奖结果，也不是投注指令。</p>
     <p id="statNote"><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。票数、首末差和抽样波动以本页实时统计为准，不能拿旧期数字代替。</p>
   </div>
-  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.2 · 327 期 · 只做公开资料统计</div>
+  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.3 · 327 期 · 只做公开资料统计</div>
 </main>
 
 <script>
 (function(){
-  var state={d:null};
+  var state={current:null,history:{},map:{},period:null};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   var DIM_TXT={kill:'杀肖',pingte:'平特',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
   function pct(n,d){return d?Math.round(n/d*1000)/10:0;}
   function fetchJson(u){
     function one(url){ return fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}); }
     return one(u)
-      .catch(function(){ return one('https://www.chujian596.dpdns.org/'+u); })
       .catch(function(){ return one('https://aistats-9uo.pages.dev/'+u); })
       .catch(function(){ return one('https://chujian596.github.io/ai-stats/'+u); });
   }
+  function ledgerToData(period,v){
+    var stations=(v&&v.stations)||{}, sites=[];
+    Object.keys(stations).forEach(function(k){
+      var s=stations[k]||{};
+      if(Array.isArray(s.zodiacs) && s.zodiacs.length===9){
+        sites.push({siteId:s.siteId||k,siteName:s.siteName||'',displayName:s.displayName||s.siteName||s.siteId||k,column:s.column||'',zodiacs:s.zodiacs});
+      }
+    });
+    return {period:Number(v.issue||period),status:'drawn',actual:v.actual||null,specialNum:v.specialNum,sites:sites,emptyStations:[],emptyCount:Object.keys(stations).length-sites.length,source:'max-zodiac-ledger.json'};
+  }
+  function makeMap(current,ledger){
+    var map={};
+    var periods=(ledger&&ledger.periods)||{};
+    Object.keys(periods).sort(function(a,b){return Number(b)-Number(a);}).forEach(function(k){ map[String(k)]=ledgerToData(k,periods[k]); });
+    if(current && current.period!=null){
+      var cp=String(current.period);
+      if(!map[cp] || current.status==='pending') map[cp]=current;
+    }
+    return map;
+  }
+  function populate(map,currentPeriod){
+    var select=document.getElementById('periodSelect');
+    var keys=Object.keys(map).sort(function(a,b){return Number(b)-Number(a);});
+    if(!keys.length){ select.innerHTML='<option>暂无数据</option>'; return keys; }
+    select.innerHTML=keys.map(function(k){
+      var d=map[k], label=k+' 期 · '+(d.status==='drawn'?('已开 '+(d.actual||'—')):'待开');
+      return '<option value="'+esc(k)+'">'+esc(label)+'</option>';
+    }).join('');
+    var initial=null;
+    try{ initial=new URLSearchParams(location.search).get('period'); }catch(e){}
+    if(initial && map[initial]) select.value=initial;
+    else if(map[currentPeriod]) select.value=currentPeriod;
+    else select.value=keys[0];
+    return keys;
+  }
   function render(d){
-    state.d=d;
-    var sites=(d.sites||[]).filter(function(s){return s && s.zodiacs && s.zodiacs.length;});
+    var sites=(d.sites||[]).filter(function(s){return s && Array.isArray(s.zodiacs) && s.zodiacs.length===9;});
+    if(!sites.length) throw new Error('该期没有有效九肖数据');
     var counts={}; ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'].forEach(function(z){counts[z]=0;});
     sites.forEach(function(s){
       var seen={};
@@ -152,21 +204,33 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var topZ=tops.join(' / ');
     var nineSites=sites.length;
     var total=arr.reduce(function(a,b){return a+b.n;},0);
-
     var avg=total/12;
     var avgPct=avg/nineSites*100;
     var topDelta=(top/nineSites-0.75)*100;
-    var lowDelta=(low/nineSites-0.75)*100;
     var gapVotes=top-low;
     var gapPct=gapVotes/nineSites*100;
     var oneVote=100/nineSites;
     var noise=1.96*Math.sqrt(0.75*0.25/nineSites)*100;
-    document.getElementById('periodLabel').textContent=(d.period||327)+' 期';
-    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.2 · '+(d.period||327)+' 期 · 只做公开资料统计';
+
+    document.getElementById('periodLabel').textContent=d.period+' 期';
+    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.3 · '+d.period+' 期 · 只做公开资料统计';
+    document.getElementById('periodHint').textContent=d.status==='drawn'?'已开 · '+(d.actual||'—'):'待开';
     document.getElementById('topZ').textContent=topZ;
     document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站 · 平均 '+Math.round(avg*10)/10+' 票';
     document.getElementById('topPct').textContent=pct(top,nineSites)+'%';
     document.getElementById('topDelta').textContent='较 75% 基线 '+(topDelta>0?'+':'')+topDelta.toFixed(1)+'pp';
+
+    var result=document.getElementById('resultLine');
+    if(d.status==='drawn' && d.actual){
+      var hit=tops.indexOf(d.actual)>=0;
+      result.className='result-line '+(hit?'hit':'miss');
+      result.style.display='flex';
+      result.innerHTML='<span class="rl-tag">开奖</span><b>'+esc(d.actual)+'</b>'+(d.specialNum!=null?'<span>'+String(d.specialNum).padStart(2,'0')+' 号</span>':'')+'<span>·</span><span>第一名 <b>'+esc(topZ)+'</b></span><span class="rl-verdict">'+(hit?'开奖肖在第一名内':'开奖肖不在第一名')+'</span>';
+    }else{
+      result.className='result-line'; result.style.display='flex';
+      result.innerHTML='<span class="rl-tag">待开</span><span>开奖后自动结算；当前第一名 <b>'+esc(topZ)+'</b></span>';
+    }
+
     document.getElementById('chips').innerHTML=arr.slice(0,3).map(function(x,i){return '<span class="chip '+(i===0?'top':'')+'">'+esc(x.z)+' <b>'+x.n+'</b> 票</span>';}).join('')+
       '<span class="chip">平均 <b>'+Math.round(avg*10)/10+'</b> 票 · '+avgPct.toFixed(1)+'%</span>'+
       '<span class="chip">末位 '+esc(arr[arr.length-1].z)+' <b>'+low+'</b> 票</span>'+
@@ -184,7 +248,14 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     }).join('');
     document.getElementById('meta').innerHTML='<b>'+nineSites+'</b> 个有效九肖站 · 合计 '+total+' 票 · 平均 '+Math.round(avg*10)/10+' 票（'+avgPct.toFixed(1)+'% 基线）· 首末差 '+gapVotes+' 票 / '+gapPct.toFixed(1)+'pp · 1 票≈'+oneVote.toFixed(1)+'pp · 数据源 '+esc(d.source||'current-recommend.json');
     var emptyList=(d.emptyStations||[]).map(function(x){return esc(x.siteKey||x.siteId||'?');});
-    document.getElementById('noteText').innerHTML='只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。本期有效九肖 <b>'+nineSites+'</b> 站，杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入 100 站：'+emptyList.join(' / ')+'。':'')+' 新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。';
+    var base='只统计所选期有效九肖栏目的站；同站出现重复生肖只记 1 票。本期有效九肖 <b>'+nineSites+'</b> 站。';
+    if(d.status==='drawn'){
+      base+=' 历史期按当时快照站点数计算，开奖 <b>'+esc(d.actual||'—')+'</b>'+(d.specialNum!=null?'（'+String(d.specialNum).padStart(2,'0')+' 号）':'')+'；不同期站点数不同，不混在一起比。';
+    }else{
+      base+=' 杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入 100 站：'+emptyList.join(' / ')+'。':'');
+    }
+    base+=' 最大生肖不是开奖结果，也不是投注指令。';
+    document.getElementById('noteText').innerHTML=base;
     document.getElementById('statNote').innerHTML='<b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。本期合计 '+total+' 票，平均 '+Math.round(avg*10)/10+' 票；第一 '+esc(topZ)+' '+top+' 票（'+pct(top,nineSites)+'%），末位 '+esc(arr[arr.length-1].z)+' '+low+' 票。单个生肖的粗略 95% 抽样波动约 ±'+noise.toFixed(1)+'pp，首末差 '+gapVotes+' 票 / '+gapPct.toFixed(1)+'pp，当前只能算噪声，不能当方向。';
 
     var topSites=sites.filter(function(s){return tops.some(function(z){return s.zodiacs.indexOf(z)>=0;});});
@@ -200,11 +271,30 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     }).join('') || '<tr><td colspan="2" style="color:var(--muted)">暂无</td></tr>';
 
     var kill=(d.pendingKill||[]).slice(0,5);
-    document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(d.killSites!=null?d.killSites:'—')+'</b></div>';
+    var hasKill=kill.length>0 || d.killSites!=null;
+    document.getElementById('killSection').style.display=hasKill?'block':'none';
+    if(hasKill){
+      document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(d.killSites!=null?d.killSites:'—')+'</b></div>';
+    }
   }
-  fetchJson('data/current-recommend.json').then(function(d){
-    if(!d || !Array.isArray(d.sites)) throw new Error('数据结构不符');
+  function show(period){
+    var d=state.map[String(period)];
+    if(!d) return;
+    state.period=String(period);
+    try{ history.replaceState(null,'','?period='+encodeURIComponent(state.period)); }catch(e){}
     render(d);
+  }
+  document.getElementById('periodSelect').addEventListener('change',function(){ show(this.value); });
+  Promise.all([
+    fetchJson('data/current-recommend.json').catch(function(){return null;}),
+    fetchJson('data/max-zodiac-ledger.json').catch(function(){return null;})
+  ]).then(function(res){
+    var current=res[0], ledger=res[1];
+    if(!current && !ledger) throw new Error('当期与历史数据都没读到');
+    state.current=current; state.history=(ledger&&ledger.periods)||{}; state.map=makeMap(current,ledger);
+    var keys=populate(state.map,current&&current.period!=null?String(current.period):null);
+    if(!keys.length) throw new Error('没有可展示的期号');
+    show(document.getElementById('periodSelect').value);
   }).catch(function(e){
     document.getElementById('hero').innerHTML='<div><div class="label">读取失败</div><div class="z">—</div><div class="n">'+esc(e.message)+'</div></div>';
   });
