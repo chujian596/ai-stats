@@ -178,6 +178,43 @@
   .deep-card{background:var(--card-2);border:1px solid var(--line-soft);border-radius:14px;padding:11px 12px;min-width:0}
   .deep-card h3{margin:0 0 2px;font-size:13px}
   .deep-hint{font-size:9.5px;color:var(--faint);margin-bottom:7px;line-height:1.5}
+  .dual-card{border-color:var(--line);background:linear-gradient(180deg,var(--card-2),var(--card))}
+  .dual-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .dual-head h3{margin:0}
+  .dual-tag{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:1px 5px;font-size:8.5px;font-weight:750;color:var(--muted);white-space:nowrap;vertical-align:2px}
+  .dual-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:7px 0 6px}
+  .dual-kpi{background:var(--card);border:1px solid var(--line-soft);border-radius:9px;padding:7px 7px 6px;min-width:0}
+  .dual-kpi span{display:block;font-size:8.5px;color:var(--faint);font-weight:700;white-space:nowrap}
+  .dual-kpi b{display:block;font-size:16px;line-height:1.25;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dual-kpi.good b{color:var(--green)}
+  .dual-kpi.bad b{color:var(--red)}
+  .dual-kpi.neutral b{color:var(--text)}
+  .dual-kpi small{display:block;font-size:8px;color:var(--faint);margin-top:1px;white-space:nowrap}
+  .dual-last{font-size:9.5px;color:var(--muted);line-height:1.6;margin:0 0 2px}
+  .dual-last b{color:var(--text)}
+  .dual-note{font-size:9px;color:var(--faint);line-height:1.55;border-left:2px solid var(--line);padding-left:6px;margin-top:5px}
+  .dual-fold{border-top:1px solid var(--line-soft);margin-top:7px;padding-top:6px}
+  .dual-fold summary{font-size:10px;font-weight:750;color:var(--accent);cursor:pointer;list-style:none;padding:1px 0}
+  .dual-fold summary::-webkit-details-marker{display:none}
+  .dual-fold summary:before{content:'▸';display:inline-block;margin-right:4px;transition:transform .12s}
+  .dual-fold[open] summary:before{transform:rotate(90deg)}
+  .dual-fold .dual-meta{float:right;color:var(--faint);font-weight:600;font-size:8.5px;margin-top:2px}
+  .dual-rows{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px}
+  .dual-row{border:1px solid var(--line-soft);border-radius:9px;background:var(--card);padding:6px 7px;min-width:0}
+  .dual-row.hot{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft) inset}
+  .dual-row-head{display:flex;align-items:center;gap:6px;font-size:10px;font-variant-numeric:tabular-nums;margin-bottom:2px}
+  .dual-row-head .di{font-weight:800;color:var(--muted);min-width:24px}
+  .dual-row-head .da{font-weight:800;font-size:11px}
+  .dual-row-head .dnet{margin-left:auto;font-weight:800;font-size:11px}
+  .dual-row-head .dnet.good{color:var(--green)}
+  .dual-row-head .dnet.bad{color:var(--red)}
+  .dual-line{display:flex;gap:5px;font-size:9px;line-height:1.55;color:var(--muted);min-width:0}
+  .dual-line .dl{flex:none;width:35px;color:var(--faint);font-weight:700}
+  .dual-line .dv{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dual-line .dv b{color:var(--text);font-weight:750}
+  .dual-line .dv.wrap{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-all}
+  .dual-foot{font-size:8.5px;color:var(--faint);margin-top:2px;line-height:1.5}
+  @media (min-width:900px){ .dual-rows{grid-template-columns:repeat(2,minmax(0,1fr))} .dual-fold[open] .dual-rows{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .rank-expand{border-top:1px solid var(--line-soft);padding:5px 0}
   .rank-expand summary{display:flex;align-items:center;gap:6px;list-style:none;cursor:pointer;font-size:10.5px;line-height:1.5}
   .rank-expand summary::-webkit-details-marker{display:none}
@@ -512,6 +549,14 @@
             <div id="nineKillTop"></div>
           </div>
         </div>
+        <div class="deep-card dual-card" id="nineDualCard" style="margin:0 0 10px">
+          <div class="dual-head">
+            <h3>双榜去重回测</h3>
+            <span class="dual-tag">首肖 Top3 + 杀三 Top3</span>
+          </div>
+          <div class="deep-hint">每期取「首肖排行」前 3 和「被杀三肖 Top」前 3，去重排除，投剩下所有肖；按 1 码/份、47 倍含本金、2026 年马 5 码计算。并列时按页面排行榜实际顺序取前 3，可能出现只排除 4 个、剩 8 肖。</div>
+          <div id="nineDualBody"><div class="empty-mini">读取中…</div></div>
+        </div>
         <div class="deep-card" style="margin:0 0 10px">
           <h3 id="nineMissTitle">最近连错</h3>
           <div class="deep-hint">截至开奖前，连错 1 期起列出；连错 2 期橙色、≥3 期红色。点站名直接看他的全部明细。</div>
@@ -645,7 +690,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.2</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1188,6 +1233,65 @@
       });
     });
   }
+  function renderDualBacktest(mode){
+    var box=$('nineDualBody'); if(!box) return;
+    if(!S.nine||!S.kill||!S.nine.periods||!S.kill.periods){ box.innerHTML='<div class="empty-mini">数据不足，暂无法回测。</div>'; return; }
+    var issues=Object.keys(S.nine.periods).filter(function(i){
+      return S.kill.periods[i] && S.nine.periods[i].actual;
+    }).sort(function(a,b){return +a-+b;}).slice(-10);
+    if(!issues.length){ box.innerHTML='<div class="empty-mini">暂无已开奖期。</div>'; return; }
+    function top3Text(rows){ return rows.map(function(r){return esc(r.z)+'<b>'+r.n+'</b>';}).join(' '); }
+    function signed(n){ return (n>0?'+':'')+n; }
+    function codeCount(zs){ return zs.reduce(function(a,z){return a+(z==='马'?5:4);},0); }
+    var rows=issues.map(function(i){
+      var per=S.nine.periods[i];
+      var ft=rankRows(entriesFor('nine',i,true),'first').slice(0,3);
+      var kt=rankRows(entriesFor('kill',i,true),'all').slice(0,3);
+      var ex={}, overlap=[];
+      ft.forEach(function(r){ if(!ex[r.z]) ex[r.z]=1; else ex[r.z]++; });
+      kt.forEach(function(r){
+        if(ex[r.z]){ if(overlap.indexOf(r.z)<0) overlap.push(r.z); }
+        ex[r.z]=1;
+      });
+      var rem=ZOD.filter(function(z){return !ex[z];});
+      var actual=per.actual||'—';
+      var hit=rem.indexOf(actual)>=0;
+      var cost=codeCount(rem), ret=hit?47:0;
+      return {issue:i,actual:actual,ft:ft,kt:kt,overlap:overlap,rem:rem,exCount:Object.keys(ex).length,cost:cost,ret:ret,net:ret-cost,hit:hit};
+    });
+    var n=rows.length, wins=rows.filter(function(r){return r.hit;}).length;
+    var cost=rows.reduce(function(a,r){return a+r.cost;},0);
+    var ret=rows.reduce(function(a,r){return a+r.ret;},0);
+    var net=ret-cost, avg=n?cost/n:0, rate=n?wins/n*100:0, be=avg/47*100;
+    var remain={}; rows.forEach(function(r){ remain[r.rem.length]=(remain[r.rem.length]||0)+1; });
+    var remainText=Object.keys(remain).sort(function(a,b){return +a-+b;}).map(function(k){return k+'肖 '+remain[k]+'期';}).join(' · ');
+    var last=rows[rows.length-1];
+    var lastNet=last.net>0?'good':(last.net<0?'bad':'');
+    var roi=cost?net/cost*100:0;
+    var detail=rows.slice().reverse().map(function(r){
+      var hot=String(mode)===r.issue?' hot':'';
+      var netCls=r.net>0?'good':(r.net<0?'bad':'');
+      var ov=r.overlap.length?r.overlap.map(esc).join('、'):'无';
+      return '<div class="dual-row'+hot+'">'+
+        '<div class="dual-row-head"><span class="di">'+r.issue+' 期</span><span class="da">开'+esc(r.actual)+'</span><span class="dnet '+netCls+'">'+signed(r.net)+'</span></div>'+
+        '<div class="dual-line"><span class="dl">首肖</span><span class="dv">'+top3Text(r.ft)+'</span></div>'+
+        '<div class="dual-line"><span class="dl">杀三</span><span class="dv">'+top3Text(r.kt)+'</span></div>'+
+        '<div class="dual-line"><span class="dl">去重</span><span class="dv">重叠 '+ov+' · 排除 '+r.exCount+' 个 · 剩 '+r.rem.length+' 肖</span></div>'+
+        '<div class="dual-line"><span class="dl">投注</span><span class="dv wrap">'+r.rem.map(esc).join(' ')+'</span></div>'+
+        '<div class="dual-foot">成本 '+r.cost+' 码 · 返还 '+r.ret+' 码 · 净 '+signed(r.net)+'</div>'+
+      '</div>';
+    }).join('');
+    box.innerHTML=
+      '<div class="dual-kpis">'+
+        '<div class="dual-kpi neutral"><span>近'+n+'期</span><b>'+wins+'中'+(n-wins)+'错</b><small>命中 '+rate.toFixed(1)+'%</small></div>'+
+        '<div class="dual-kpi '+(net>0?'good':(net<0?'bad':'neutral'))+'"><span>净收益</span><b>'+signed(net)+'</b><small>ROI '+roi.toFixed(1)+'%</small></div>'+
+        '<div class="dual-kpi neutral"><span>成本 / 返还</span><b>'+cost+' / '+ret+'</b><small>码，按 1 码 1 份</small></div>'+
+        '<div class="dual-kpi neutral"><span>保本线</span><b>'+be.toFixed(1)+'%</b><small>均成本 '+(avg?avg.toFixed(1):'—')+' 码</small></div>'+
+      '</div>'+
+      '<div class="dual-last">最近 <b>'+last.issue+' 期</b> 开 <b>'+esc(last.actual)+'</b> · 剩 '+last.rem.length+' 肖 · <b class="'+lastNet+'">'+signed(last.net)+'</b> · '+remainText+'</div>'+
+      '<div class="dual-note">按实际剩余肖逐期算，每期成本随剩余 6/7/8 肖变化；样本只有 '+n+' 期，少中 1 期就会明显缩水，暂只作观察，不定论。</div>'+
+      '<details class="dual-fold"><summary>逐期明细 <span class="dual-meta">'+n+' 期 · 最近在前</span></summary><div class="dual-rows">'+detail+'</div></details>';
+  }
   function renderDeep(kind,mode,eligible){
     if(kind==='nine'){
       if($('nineFirstRank')) $('nineFirstRank').innerHTML=rankDetailHtml(rankRows(eligible,'first'),'站',12);
@@ -1195,6 +1299,7 @@
       if($('nineSpecial')) $('nineSpecial').innerHTML=specialNineHtml(mode);
       var ke=entriesFor('kill',mode).filter(function(e){return e.has;});
       if($('nineKillTop')) $('nineKillTop').innerHTML=rankDetailHtml(rankRows(ke,'all'),'票',10);
+      if($('nineDualBody')) renderDualBacktest(mode);
       if($('nineMissTitle')) $('nineMissTitle').textContent=mode==='pending'?'最近连错（截至上期）':'本期点错名单（第'+mode+'期）';
       if($('nineMissList')) $('nineMissList').innerHTML=missListHtml(eligible,mode);
     } else {
