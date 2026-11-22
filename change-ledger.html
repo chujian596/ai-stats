@@ -56,6 +56,16 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 .ccard-ver.old{background:transparent;color:var(--muted)}
 .ver-note{font-size:10.5px;color:var(--muted);line-height:1.65;margin:0 2px 10px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:10px}
 .set{display:flex;flex-wrap:wrap;gap:4px}
+.ccard.net-none{border-style:dashed}
+.trace{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px;font-size:10.5px;color:var(--muted)}
+.trace summary{cursor:pointer;list-style:none;font-weight:700;color:var(--blue)}
+.trace summary::-webkit-details-marker{display:none}
+.trace-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:5px;align-items:start;padding:4px 0;border-bottom:1px dashed var(--line);line-height:1.45}
+.trace-row:last-child{border-bottom:0}
+.trace-row time{color:var(--muted);font-variant-numeric:tabular-nums}
+.trace-row span{word-break:break-all}
+.trace-row em{font-style:normal;white-space:nowrap;color:var(--muted)}
+.trace-row.now em{color:var(--blue);font-weight:700}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
 .chip.add{background:#e7f5ee;color:var(--green)}
 .chip.rem{background:var(--redbg);color:var(--red)}
@@ -257,32 +267,52 @@ function isCurrent(e,map){
   var key=groupKey(e);
   return !!(map&&map[key]&&map[key].entry===e);
 }
-function entryCard(e,current){
-  var site = e.siteName || '';
-  var sid = e.siteId || '';
-  var added=chips(e.added,'add'), removed=chips(e.removed,'rem');
-  var sub = '';
-  if((e.added||[]).length||(e.removed||[]).length){
-    sub = '<div class="subset">'
-      +'<span class="lab"><span class="add-t">补进</span> '+(e.added||[]).length+'</span>'
-      +'<span class="lab"><span class="rem-t">换掉</span> '+(e.removed||[]).length+'</span>'
-      +'</div>';
+function setOf(e,which){
+  var a = which==='before' ? e.beforeSet : e.afterSet;
+  if(a && a.length) return a.slice();
+  return String((which==='before'?e.before:e.after)||'').split(/[·,\s]+/).filter(Boolean);
+}
+function setTxt(e,which){
+  var a=setOf(e,which);
+  return a.length?a.join('·'):'—';
+}
+function shortTime(e){
+  var m=String(e.at||'').match(/[0-9]{1,2}:[0-9]{2}/);
+  return m?m[0]:'—';
+}
+function groupCard(arr,curMap){
+  var sorted=arr.slice().sort(function(a,b){return timeKey(a).localeCompare(timeKey(b));});
+  var first=sorted[0], key=groupKey(first);
+  var cur=(curMap&&curMap[key]&&curMap[key].entry)||sorted[sorted.length-1];
+  var before=setOf(first,'before'), after=setOf(cur,'after');
+  var added=after.filter(function(x){return before.indexOf(x)<0;});
+  var removed=before.filter(function(x){return after.indexOf(x)<0;});
+  var net=added.length||removed.length;
+  var trace='';
+  if(sorted.length>1){
+    trace='<details class="trace"><summary>过程 '+sorted.length+' 次快照 · 点开看每次改动</summary>'
+      +sorted.map(function(e){
+        var isCur=isCurrent(e,curMap);
+        var v=e.result?(e.result.verdict||'无差异'):'待检';
+        return '<div class="trace-row'+(isCur?' now':'')+'"><time>'+esc(shortTime(e))+'</time><span>'+esc(setTxt(e,'before'))+' → '+esc(setTxt(e,'after'))+'</span><em>'+(isCur?'当前 · ':'当时 · ')+esc(v)+'</em></div>';
+      }).join('')+'</details>';
   }
-  var flag = e.flag ? '<div class="flag">标记：'+esc(e.flag)+'</div>' : '';
-  var before = esc(e.before||'—'), after = esc(e.after||'—');
-  return '<div class="ccard">'
-    +'<div class="ccard-top">'
-    +'<div><span class="dimtag">'+esc(DIM_T[e.dim]||e.dim)+'</span>'
-    +'<span class="ccard-site">'+(site?esc(site):'')+'<span class="sid">'+esc(sid)+'</span></span>'
-    +'<div class="ccard-col">'+esc(e.column||'')+' · 第'+esc(e.period)+'期</div></div>'
-    +'<div class="ccard-badges"><span class="ccard-ver '+(current?'now':'old')+'">'+(current?'当前版本':'历史 · 不计成绩')+'</span>'+verdictBadge(e,current)+'</div>'
-    +'</div>'
-    +'<div class="flow"><span class="part"><i>改前</i>'+before+'</span><span class="arr">→</span><span class="part"><i>改后</i>'+after+'</span></div>'
-    +'<div class="flow"><span class="set">'+added+'</span>'+(removed?'<span class="set">'+removed+'</span>':'')+'</div>'
-    +sub+flag
+  var sub=(added.length||removed.length)?'<div class="subset"><span class="lab"><span class="add-t">补进</span> '+added.length+'</span><span class="lab"><span class="rem-t">换掉</span> '+removed.length+'</span></div>':'';
+  var sets=(added.length||removed.length)?'<div class="flow"><span class="set">'+chips(added,'add')+chips(removed,'rem')+'</span></div>':'';
+  var netNote=net?'':'<div class="flag">两次快照回到原值 · 无净变化；只按当前版本判结果。</div>';
+  var flag=(cur.flag||first.flag)?'<div class="flag">标记：'+esc(cur.flag||first.flag)+'</div>':'';
+  var draw=(cur.result&&cur.result.drawZod)?'<div class="flag" style="color:var(--muted)">开奖 '+esc(cur.result.drawZod)+'</div>':'';
+  var raw=((first.before&&/[0-9]/.test(first.before))||(cur.after&&/[0-9]/.test(cur.after))
+    ? '<div class="flag" style="color:var(--muted);word-break:break-all">原值：'+esc(first.before||'—')+' → 最终：'+esc(cur.after||'—')+'</div>'
+    : '');
+  return '<div class="ccard'+(net?'':' net-none')+'">'
+    +'<div class="ccard-top"><div><span class="dimtag">'+esc(DIM_T[first.dim]||first.dim)+'</span>'
+    +'<div class="ccard-col">'+esc(first.column||'')+' · 第'+esc(first.period)+'期</div></div>'
+    +'<div class="ccard-badges"><span class="ccard-ver now">当前版本</span>'+verdictBadge(cur,true)+'</div></div>'
+    +'<div class="flow"><span class="part"><i>原值</i>'+esc(setTxt(first,'before'))+'</span><span class="arr">→</span><span class="part"><i>最终</i>'+esc(setTxt(cur,'after'))+'</span></div>'
+    +sub+sets+netNote+flag+draw+trace+raw
     +'</div>';
 }
-
 function rankTag(s){
   if(s.right>0) return '<span class="rank-tag g">有改对记录</span>';
   return '<span class="rank-tag n">待积累样本</span>';
@@ -329,14 +359,22 @@ function renderSiteDetail(){
     +'<a class="detail-back" id="backBtn">← 返回站点榜</a>'
     +'<span class="detail-title">'+(s.name?esc(s.name):esc(s.sid))+'</span>'
     +'<span class="detail-sub">'+esc(s.sid)+' · 共 '+es.length+' 条流水 · '+groupN+' 组独立改料</span></div>'
-    +'<div class="ver-note">每组只把「当前版本」计一次成绩；更早的「历史版本」只留过程，不计改对、改错、待检。同栏目正反互改会各记一条流水，所以流水条数不等于独立改料组数。</div>'
+    +'<div class="ver-note">每组只把「当前版本」计一次成绩；同组更早的快照收进「过程」，只留过程，不计改对、改错、待检。流水条数不等于独立改料组数，卡片每组只出一张。</div>'
     +'<div class="scard-stats" style="margin:0 2px 12px">'
     +'<span>流水 <b>'+es.length+'</b> · 独立 <b>'+groupN+'</b> 组</span>'
     +'<span class="st-right">当前改对 <b>'+s.right+'</b></span>'
     +'<span class="st-wrong">当前改错 <b>'+s.wrong+'</b></span>'
     +(s.pending?'<span class="st-pend">当前待检 <b>'+s.pending+'</b></span>':'')
     +'</div>';
-  box.innerHTML = head + (es.length ? es.map(function(e){return entryCard(e,isCurrent(e,curMap));}).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');
+  var groupMap={};
+  es.forEach(function(e){ var k=groupKey(e); (groupMap[k]||(groupMap[k]=[])).push(e); });
+  var groupKeys=Object.keys(groupMap).sort(function(a,b){
+    var aa=groupMap[a], bb=groupMap[b];
+    var ta=timeKey(aa[aa.length-1]), tb=timeKey(bb[bb.length-1]);
+    if(tb!==ta) return tb.localeCompare(ta);
+    return String(aa[0].column||'').localeCompare(String(bb[0].column||''),'zh-Hans-CN');
+  });
+  box.innerHTML = head + (es.length ? groupKeys.map(function(k){return groupCard(groupMap[k],curMap);}).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');
   document.getElementById('backBtn').onclick=function(){state.view='sites';state.activeSid=null;render();window.scrollTo({top:0,behavior:'smooth'});};
 }
 
