@@ -46,8 +46,15 @@ h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
 .badge.n{background:var(--gray);color:#5b6675}
 .badge.a{background:var(--amberbg);color:var(--amber)}
 .dimtag{display:inline-block;padding:1px 8px;border-radius:7px;background:#e8efff;color:var(--blue);font-size:10.5px;font-weight:700;margin-right:6px}
-.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:9px 0 0;font-size:12.5px}
-.flow .arr{color:var(--muted)}
+.flow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin:9px 0 0;font-size:12.5px}
+.flow .arr{color:var(--muted);padding-top:12px}
+.flow .part{background:#fff;border:1px solid var(--line);border-radius:9px;padding:3px 8px;word-break:break-all}
+.flow .part i{font-style:normal;display:block;font-size:9px;line-height:1.3;color:var(--muted);margin-bottom:1px}
+.ccard-badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.ccard-ver{display:inline-block;border-radius:6px;padding:2px 7px;font-size:9.5px;font-weight:700;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:#fff}
+.ccard-ver.now{background:#e8efff;border-color:transparent;color:var(--blue)}
+.ccard-ver.old{background:transparent;color:var(--muted)}
+.ver-note{font-size:10.5px;color:var(--muted);line-height:1.65;margin:0 2px 10px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:10px}
 .set{display:flex;flex-wrap:wrap;gap:4px}
 .chip{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 5px;border-radius:7px;background:#f0f2f5;font-size:12px}
 .chip.add{background:#e7f5ee;color:var(--green)}
@@ -227,7 +234,31 @@ function renderTabs(){
   });
 }
 
-function entryCard(e){
+function pairCount(es){
+  var seen={},n=0;
+  (es||[]).forEach(function(e){
+    var bs=(e.beforeSet&&e.beforeSet.length)?e.beforeSet:String(e.before||'').split('');
+    var as=(e.afterSet&&e.afterSet.length)?e.afterSet:String(e.after||'').split('');
+    var pair=[bs.slice().sort().join('·'),as.slice().sort().join('·')].sort().join('↔');
+    var k=String(e.column||'')+'|'+pair;
+    if(!seen[k]){ seen[k]=1; n++; }
+  });
+  return n;
+}
+function currentMap(es){
+  var map={};
+  (es||[]).forEach(function(e){
+    var key=(e.siteId||e.siteName||'?')+'|'+e.period+'|'+e.column;
+    var t=String(e.at||e.to_snapshot||'');
+    if(!map[key] || t>map[key].t) map[key]={t:t,entry:e};
+  });
+  return map;
+}
+function isCurrent(e,map){
+  var key=(e.siteId||e.siteName||'?')+'|'+e.period+'|'+e.column;
+  return !!(map&&map[key]&&map[key].entry===e);
+}
+function entryCard(e,current){
   var site = e.siteName || '';
   var sid = e.siteId || '';
   var added=chips(e.added,'add'), removed=chips(e.removed,'rem');
@@ -245,9 +276,9 @@ function entryCard(e){
     +'<div><span class="dimtag">'+esc(DIM_T[e.dim]||e.dim)+'</span>'
     +'<span class="ccard-site">'+(site?esc(site):'')+'<span class="sid">'+esc(sid)+'</span></span>'
     +'<div class="ccard-col">'+esc(e.column||'')+' · 第'+esc(e.period)+'期</div></div>'
-    +verdictBadge(e)
+    +'<div class="ccard-badges"><span class="ccard-ver '+(current?'now':'old')+'">'+(current?'当前版本':'历史版本')+'</span>'+verdictBadge(e)+'</div>'
     +'</div>'
-    +'<div class="flow"><span>'+before+'</span><span class="arr">→</span><span>'+after+'</span></div>'
+    +'<div class="flow"><span class="part"><i>改前</i>'+before+'</span><span class="arr">→</span><span class="part"><i>改后</i>'+after+'</span></div>'
     +'<div class="flow"><span class="set">'+added+'</span>'+(removed?'<span class="set">'+removed+'</span>':'')+'</div>'
     +sub+flag
     +'</div>';
@@ -296,17 +327,21 @@ function renderSiteDetail(){
   var box=document.getElementById('cards');
   document.querySelector('.section-title h2').textContent = '站点明细';
   document.querySelector('.section-title small').textContent = '历次改料 · 按期号倒序';
+  var colMap={}; es.forEach(function(e){colMap[e.column||'']=1;});
+  var colN=Object.keys(colMap).length, groupN=pairCount(es);
   var head = '<div class="detail-bar">'
     +'<a class="detail-back" id="backBtn">← 返回站点榜</a>'
     +'<span class="detail-title">'+(s.name?esc(s.name):esc(s.sid))+'</span>'
-    +'<span class="detail-sub">'+esc(s.sid)+' · 共 '+es.length+' 次</span></div>'
+    +'<span class="detail-sub">'+esc(s.sid)+' · 共 '+es.length+' 条流水 · '+colN+' 个栏目 · 去重 '+groupN+' 组</span></div>'
+    +'<div class="ver-note">每条标「改前 / 改后」；同一站、同栏目、同期最新一条标「当前版本」，更早的标「历史版本」。同栏目正反互改会各记一条流水，所以「条数」不等于独立改料组数，按栏目去重后看组数。</div>'
     +'<div class="scard-stats" style="margin:0 2px 12px">'
-    +'<span>总改 <b>'+es.length+'</b></span>'
+    +'<span>总改 <b>'+es.length+' 条</b></span>'
     +'<span class="st-right">改对 <b>'+s.right+'</b></span>'
     +'<span class="st-neu">改错 <b>'+s.wrong+'</b></span>'
     +(s.pending?'<span class="st-pend">待检 <b>'+s.pending+'</b></span>':'')
     +'</div>';
-  box.innerHTML = head + (es.length ? es.map(entryCard).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');
+  var curMap=currentMap(state.entries);
+  box.innerHTML = head + (es.length ? es.map(function(e){return entryCard(e,isCurrent(e,curMap));}).join('') : '<div class="empty">该站在当前筛选下没有改料记录</div>');
   document.getElementById('backBtn').onclick=function(){state.view='sites';state.activeSid=null;render();window.scrollTo({top:0,behavior:'smooth'});};
 }
 
