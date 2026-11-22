@@ -48,6 +48,7 @@
   button.alert-chip{font:inherit;color:inherit;cursor:pointer}
   .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
   .chg{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;background:#fff6df;color:var(--yellow);font-size:10.5px}
+  .seq-no{display:inline-block;margin-right:5px;padding:0 6px;border-radius:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
   .trail{display:flex;gap:3px;flex-wrap:wrap}
   .t{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10.5px;color:#fff}
   .t.w{background:var(--green)} .t.l{background:var(--red)} .t.n{background:#d9d9d9}
@@ -215,6 +216,7 @@ function loadQC(ledgerName){
 function nameOf(r,key){
   return r.siteName || ALIAS[r.siteKey] || ALIAS[key] || r.siteKey;
 }
+function seqTag(r){return (r && r.seq)?'<span class="seq-no">#'+r.seq+'</span>':'';}
 
 function historyOf(key, upTo){
   return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}).map(function(i){
@@ -261,7 +263,7 @@ function detailHtml(key,r,upTo){
     return '<tr><td>'+h.issue+'期</td><td>开'+actual+'</td><td>'+zcell+'</td>'+
       '<td><span class="'+hitCls+'">'+hitTx+'</span>'+chg+'</td></tr>';
   }).join('');
-  return '<div class="det-title">'+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
+  return '<div class="det-title">'+seqTag(r)+nameOf(r,key)+'（'+r.system+' · '+r.siteKey+'）逐期明细，共 '+hist.length+' 期</div>'+
     '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐杀三肖（原序）</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
@@ -462,7 +464,7 @@ function renderPendingKill(){
     var tr=document.createElement('tr');
     tr.className='rowlink'+alertCls;
     tr.dataset.sk=s.siteKey;
-    tr.innerHTML='<td class="pend-site"><div class="site">'+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
+    tr.innerHTML='<td class="pend-site"><div class="site">'+seqTag(s)+nameOf(s,s.siteKey)+'</div><div class="sys">'+s.siteKey+' · '+s.system+'</div>'+histHtml+'</td>'+
       '<td class="pend-z">'+zsHtml(s.killZodiacs)+trailHtml+'</td>';
     tb.appendChild(tr);
   });
@@ -603,7 +605,7 @@ function render(){
     }).join('');
 
     if(r.status==='无三肖栏目'){
-      tr.innerHTML='<td class="tot na">'+cur+'期</td><td><div class="site">'+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
+      tr.innerHTML='<td class="tot na">'+cur+'期</td><td><div class="site">'+seqTag(r)+nameOf(r,k)+'</div><div class="sys">'+r.system+'</div></td>'+
         '<td class="empty">（无三肖栏目）</td><td class="na">—</td><td class="na">—</td><td class="streak na">—</td><td class="streak na">—</td>'+
         '<td class="tot na">—</td><td class="tot na">—</td><td><div class="trail">'+trail+'</div></td>';
     } else {
@@ -619,7 +621,7 @@ function render(){
       else if(cs.l===1){ lCell='<span class="streak l">1</span>'; }
       else { lCell='<span class="streak na">0</span>'; }
       var nm=nameOf(r,k);
-      var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+nm+'</div><div class="sys">'+r.system+'</div>');
+      var nmHtml=(ALIAS[r.siteKey]||ALIAS[k])?('<div class="alias">'+seqTag(r)+nm+'</div><div class="sys">'+r.siteKey+' · '+r.system+'</div>'):('<div class="site">'+seqTag(r)+nm+'</div><div class="sys">'+r.system+'</div>');
       if(cs.l>=2){
         tr.classList.add('rowalert');
         var chip='<button type="button" class="alert-chip" data-key="'+k+'">'+nm+'（连错'+cs.l+'）</button>';

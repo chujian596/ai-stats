@@ -45,6 +45,7 @@
   td{padding:7px 12px;border-top:1px solid var(--line);vertical-align:middle}
   td.site{font-weight:600;white-space:nowrap}
   td.site .sys{display:block;font-size:10px;color:var(--sub);font-weight:400}
+  .seq-no{display:inline-block;margin-right:5px;padding:0 6px;border-radius:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
   .zods{color:var(--ink);letter-spacing:.5px}
   .empty{color:var(--sub)}
   .zchip{display:inline-block;background:#f0f2f5;border-radius:6px;padding:1px 5px;margin:1px 2px;font-size:11px}
@@ -127,6 +128,7 @@ function siteName(s){
   var k=s.system+':'+s.siteKey;
   return ALIAS[k]||ALIAS[s.siteKey]||s.siteKey;
 }
+function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+s.seq+'</span>':'';}
 function chips(zs){ return (zs||[]).map(function(z){return '<span class="zchip">'+z+'</span>';}).join('')||'<span class="empty">—</span>'; }
 
 function renderNinePending(){
@@ -167,7 +169,7 @@ function renderSiteTables(){
     else if(s.status==='无九肖栏目'){ zcell='<span class="empty">无九肖栏目</span>'; }
     else { zcell='<span class="zods">'+chips(s.zodiacs)+'</span>'; }
     var tr=document.createElement('tr');
-    tr.innerHTML='<td class="site">'+siteName(s)+'<span class="sys">'+s.siteKey+' · '+s.system+'</span></td><td>'+zcell+'</td>';
+    tr.innerHTML='<td class="site">'+seqTag(s)+siteName(s)+'<span class="sys">'+s.siteKey+' · '+s.system+'</span></td><td>'+zcell+'</td>';
     n9.appendChild(tr);
   });
   var nk=document.getElementById('killSites');
@@ -176,7 +178,7 @@ function renderSiteTables(){
   killSites.sort(function(a,b){return siteName(a).localeCompare(siteName(b),'zh');});
   killSites.forEach(function(s){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td class="site">'+siteName(s)+'<span class="sys">'+s.siteKey+' · '+s.system+'</span></td><td><span class="zods">'+chips(s.killZodiacs)+'</span></td>';
+    tr.innerHTML='<td class="site">'+seqTag(s)+siteName(s)+'<span class="sys">'+s.siteKey+' · '+s.system+'</span></td><td><span class="zods">'+chips(s.killZodiacs)+'</span></td>';
     nk.appendChild(tr);
   });
   if(!killSites.length){ nk.innerHTML='<tr><td class="empty">暂无杀三肖推荐</td></tr>'; }

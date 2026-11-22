@@ -48,6 +48,10 @@ def attach(rec, system=None):
     rec["siteName"] = site["name"]
     rec["displayName"] = site["displayName"]
     rec["nameSource"] = site["nameSource"]
+    # 身份分组字段：全局序号 / 批次 / 基线或追加，供档位截取与新旧分组展示。
+    for f in ("seq", "cohort", "tier", "firstSeen", "locked"):
+        if f in site:
+            rec[f] = site[f]
     if system or rec.get("siteSystem"):
         rec.setdefault("siteSystem", site["system"])
     return rec

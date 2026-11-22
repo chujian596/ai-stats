@@ -72,6 +72,7 @@ td.name{font-weight:600}
 td .sid{display:block;color:var(--muted);font-size:10px;font-weight:400;margin-top:1px}
 td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 .chg-badge{display:inline-block;margin-left:6px;background:var(--redbg);color:var(--red);border:1px solid #f3c9c5;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:700;vertical-align:middle}
+.seq-no{display:inline-block;margin-right:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;border-radius:7px;padding:0 6px;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;vertical-align:middle}
 .chg-sub{color:var(--red);font-size:10px}
 .note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:10px}
 .note b{color:var(--ink)}
@@ -147,6 +148,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 (function(){
   var state={current:null,history:{},map:{},period:null};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';}
   var DIM_TXT={kill:'杀肖',pingte:'平特',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
   function pct(n,d){return d?Math.round(n/d*1000)/10:0;}
   function fetchJson(u){
@@ -160,7 +162,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     Object.keys(stations).forEach(function(k){
       var s=stations[k]||{};
       if(Array.isArray(s.zodiacs) && s.zodiacs.length===9){
-        sites.push({siteId:s.siteId||k,siteName:s.siteName||'',displayName:s.displayName||s.siteName||s.siteId||k,column:s.column||'',zodiacs:s.zodiacs});
+        sites.push({siteId:s.siteId||k,siteName:s.siteName||'',displayName:s.displayName||s.siteName||s.siteId||k,siteKey:s.siteKey||k,system:s.system||'',seq:s.seq,column:s.column||'',zodiacs:s.zodiacs});
       }
     });
     return {period:Number(v.issue||period),status:'drawn',actual:v.actual||null,specialNum:v.specialNum,sites:sites,emptyStations:[],emptyCount:Object.keys(stations).length-sites.length,source:'max-zodiac-ledger.json'};
@@ -267,7 +269,10 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
         badge='<span class="chg-badge" title="本期有改动 · '+esc(dims)+'">改料·'+esc(dims)+'</span>';
         sub='<br><span class="chg-sub">补 '+(s.changedAdded||[]).join(' ')+' · 换 '+(s.changedRemoved||[]).join(' ')+'</span>';
       }
-      return '<tr><td class="name">'+esc(s.displayName||s.siteName||s.siteId)+badge+'<span class="sid">'+esc(s.siteId||'')+'</span></td><td class="picks">'+esc((s.zodiacs||[]).join(' '))+'<br>'+esc(s.column||'')+sub+'</td></tr>';
+    var nm=s.siteName||s.displayName||s.siteId||'';
+    var sysKey=s.system?s.system.replace('wanpz-',''):'';
+    var subId=esc((s.siteKey?(s.siteKey+(sysKey?' · '+sysKey:'')):(s.siteId||'')));
+    return '<tr><td class="name">'+seqTag(s)+esc(nm)+badge+'<span class="sid">'+subId+'</span></td><td class="picks">'+esc((s.zodiacs||[]).join(' '))+'<br>'+esc(s.column||'')+sub+'</td></tr>';
     }).join('') || '<tr><td colspan="2" style="color:var(--muted)">暂无</td></tr>';
 
     var kill=(d.pendingKill||[]).slice(0,5);

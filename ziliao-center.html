@@ -120,6 +120,7 @@
   .site-card-body{padding:11px 12px}
   .site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
   .site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-word}
+  .seq-no{display:inline-block;margin-right:5px;padding:0 6px;border-radius:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
   .site-name .tag{display:inline-block;font-size:8.5px;font-weight:800;border-radius:5px;padding:2px 4px;margin-left:4px;vertical-align:1px;background:var(--accent-soft);color:var(--accent-2)}
   .site-name .tag.carry{background:var(--amber-soft);color:var(--amber)}
   .site-name .tag.change{background:var(--amber-soft);color:var(--amber)}
@@ -784,6 +785,7 @@
   var $=function(id){return document.getElementById(id);};
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function num(v){var n=Number(v);return isFinite(n)?n:0;}
+  function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';}
   function fetchJson(u){
     return fetch(u+(u.indexOf('?')>=0?'&':'?')+'t='+Date.now(),{cache:'no-cache'}).then(function(r){
       if(!r.ok) throw new Error(u+' 读取失败 ('+r.status+')');
@@ -975,7 +977,7 @@
       return '<div class="mini-dim"><em>'+d.label+'</em><b title="'+esc(picks.join('、'))+'">'+(picks.length?esc(picks.join('、')):'—')+'</b></div>';
     }).join('');
     return '<div class="site-card"><div class="site-card-body">'+
-      '<div class="site-top"><div><div class="site-name">'+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right"><span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>'+
+      '<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right"><span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>'+
       '<div class="mini-block"><div class="mini-label">九肖 <span class="n">'+z.length+' 肖</span></div>'+picksHtml(z,'',s.status==='无九肖栏目'?'无九肖栏目':'未更新')+'</div>'+
       '<div class="mini-block"><div class="mini-label">杀三肖 <span class="n">'+kl.length+' 肖</span></div>'+picksHtml(kl,'kill',s.column===null?'无杀三肖':'无杀三肖')+'</div>'+
       '<div class="mini-dims">'+six+'</div>'+
@@ -1506,7 +1508,7 @@
     var detail = detailFor(kind,e.key,base,mode==='pending'?{zodiacs:z}:null,mode==='pending'?(S.pend?S.pend.period:''):mode);
     var tier=kind==='kill'?tierBadge(e):'';
     return '<details class="site-card ledger-card" data-key="'+esc(e.key)+'"><summary>'+
-      '<div class="site-top"><div><div class="site-name">'+esc(e.name)+tags+'</div><div class="site-sub">'+esc(subOf(e.r))+'</div></div><div class="site-right">'+badge+tier+'<span class="tag-count">'+(z.length||0)+' 肖</span></div></div>'+
+      '<div class="site-top"><div><div class="site-name">'+seqTag(e.r)+esc(e.name)+tags+'</div><div class="site-sub">'+esc(subOf(e.r))+'</div></div><div class="site-right">'+badge+tier+'<span class="tag-count">'+(z.length||0)+' 肖</span></div></div>'+
       '<div class="mini-block" style="margin-top:8px">'+picks+'</div>'+
       '<div class="trail-line"><span class="trail-label">近7期</span>'+trailHtml(e.trail)+'</div>'+
       metrics+

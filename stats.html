@@ -131,6 +131,7 @@
   .site-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;width:100%;border:0;background:transparent;padding:0;text-align:left}
   .site-main{min-width:0;flex:1}
   .site-name{font-size:14px;font-weight:700;line-height:1.35;word-break:break-all}
+  .seq-no{display:inline-block;margin-right:5px;padding:0 6px;border-radius:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
   .site-id{display:block;font-size:10px;color:var(--faint);letter-spacing:.02em;margin-top:2px;word-break:break-all}
   .site-picks{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:52%}
   .tag{display:inline-block;border-radius:6px;padding:3px 6px;font-size:10.5px;line-height:1.3;font-weight:650;white-space:nowrap}
@@ -347,6 +348,7 @@ function esc(s){
   });
 }
 function fmtTime(s){ return String(s||'').replace('T',' ').slice(0,16); }
+function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';}
 function num(n){ return Number(n||0); }
 
 function fetchJson(path, timeout){
@@ -659,13 +661,13 @@ function moreSites(){ state.stationLimit+=40; renderSiteList(); }
 function toggleSite(id){ state.openSite=state.openSite===id?'':id; renderSiteList(); }
 function siteRow(s){
   var id=s.siteId||s.siteKey||'';
-  var name=s.displayName||((s.siteName||'未登记站')+(s.siteKey?'（'+s.siteKey+'）':''));
+  var name=s.siteName||s.displayName||'未登记站';
   var nine=s.zodiacs||[], kill=s.killZodiacs||[];
   var pingte=(s.pingte&&s.pingte.picks)||[];
   var open=state.openSite===id;
   var h='<div class="site-item'+(open?' open':'')+'">'
     +'<button class="site-head" onclick="toggleSite(\''+esc(id).replace(/'/g,"\\'")+'\')">'
-      +'<div class="site-main"><div class="site-name">'+esc(name)+'</div><div class="site-id">'+esc(id)+'</div></div>'
+      +'<div class="site-main"><div class="site-name">'+seqTag(s)+esc(name)+'</div><div class="site-id">'+esc(id)+'</div></div>'
       +'<div class="site-picks">'
         +(nine.length?'<span class="tag blue">九 '+nine.length+'</span>':'<span class="tag gray">无九肖</span>')
         +(kill.length?'<span class="tag red">杀 '+kill.length+'</span>':'<span class="tag gray">无杀三</span>')

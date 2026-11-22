@@ -139,6 +139,7 @@
   .site-card summary:hover{background:var(--card)}
   .site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
   .site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-all}
+  .seq-no{display:inline-block;margin-right:5px;padding:0 6px;border-radius:6px;background:#eef2f8;color:#5b6675;border:1px solid #dde5ef;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
   .site-name .tag{display:inline-block;font-size:8.5px;font-weight:800;border-radius:5px;padding:2px 4px;margin-left:4px;vertical-align:1px;background:var(--accent-soft);color:var(--accent-2)}
   .site-name .tag.carry{background:var(--amber-soft);color:var(--amber)}
   .site-sub{font-size:9.5px;color:var(--faint);margin-top:3px;line-height:1.35;word-break:break-all}
@@ -368,6 +369,7 @@ function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok) throw new Error(u); return r.json();});}
 function nameOf(r,key){ return r && r.siteName || ALIAS[r && r.siteKey] || ALIAS[key] || (r && r.siteKey) || key; }
+function seqTag(r){return (r && r.seq)?'<span class="seq-no">#'+esc(r.seq)+'</span>':'';}
 function issues(){ return Object.keys(LG.periods).sort(function(a,b){return +a-+b;}); }
 function lastIssue(){ var i=issues(); return i[i.length-1]; }
 function dimCfg(){ return DIMS[dim]; }
@@ -528,7 +530,7 @@ function renderPendSites(allSites){
     var carryTag=s.carried?'<span class="tag carry">沿用</span>':'<span class="tag">新料</span>';
     return '<details class="site-card">'+
       '<summary>'+
-        '<div class="site-top"><div><div class="site-name">'+esc(nameOf(s,s.siteKey))+carryTag+'</div><div class="site-sub">'+esc(s.siteKey)+' · '+esc(s.system||'—')+'</div></div>'+
+        '<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(nameOf(s,s.siteKey))+carryTag+'</div><div class="site-sub">'+esc(s.siteKey)+' · '+esc(s.system||'—')+'</div></div>'+
         '<div class="site-right"><span class="tag-count">'+e.picks.length+' 项</span></div></div>'+
         '<div class="picks">'+picks+'</div>'+
         histHtml+
@@ -583,7 +585,7 @@ function detailHtml(key,cur){
     return '<tr><td>'+esc(h)+'期</td><td>开'+esc(actual)+'</td><td><div class="zp">'+picks+'</div>'+raw+'</td><td><span class="hit-badge '+hitCls+'">'+hitTx+'</span></td></tr>';
   }).join('');
   var r=LG.periods[cur]&&LG.periods[cur].stations[key];
-  return '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+esc(nameOf(r,key))+'（'+esc(r&&r.system||'—')+' · '+esc(r&&r.siteKey||key)+'）共 '+hist.length+' 期</div>'+
+  return '<div style="font-size:10px;color:var(--muted);margin-bottom:6px">'+seqTag(r)+esc(nameOf(r,key))+'（'+esc(r&&r.system||'—')+' · '+esc(r&&r.siteKey||key)+'）共 '+hist.length+' 期</div>'+
     '<table class="detail-table"><thead><tr><th style="width:13%">期号</th><th style="width:12%">开奖</th><th>推荐</th><th style="width:14%">结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
@@ -652,7 +654,7 @@ function renderReviewSites(keys,per){
     var hitCls=r.hit===true?'hit':(r.hit===false?'miss':'unk');
     var hitTx=r.hit===true?'中':(r.hit===false?'错':'未判');
     return '<details class="site-card">'+
-      '<summary><div class="site-top"><div><div class="site-name">'+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
+      '<summary><div class="site-top"><div><div class="site-name">'+seqTag(r)+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
       '<div class="site-right"><span class="tag-count">'+(r.picks||[]).length+' 项</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+
       '<div class="picks">'+picks+'</div>'+histHtml+'</summary>'+
       '<div class="site-detail">'+detailHtml(x.key,currentPeriod)+'</div>'+
