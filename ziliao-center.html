@@ -287,6 +287,21 @@
   .change-trace-row span{word-break:break-all}
   .change-trace-row em{font-style:normal;white-space:nowrap;color:var(--faint)}
   .change-trace-row.now em{color:var(--accent-2);font-weight:750}
+  .change-rollback{margin:14px 2px 4px;border-top:1px dashed var(--line);padding-top:10px}
+  .change-rollback summary{cursor:pointer;list-style:none;font-size:10.5px;font-weight:750;color:var(--faint);padding:2px 0}
+  .change-rollback summary::-webkit-details-marker{display:none}
+  .change-rollback-row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:7px 2px;border-bottom:1px dashed var(--line-soft);font-size:10px;line-height:1.5}
+  .change-rollback-row:last-child{border-bottom:0}
+  .change-rollback-row b{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px}
+  .change-rollback-row span{color:var(--faint);word-break:break-all}
+  .change-rollback-row em{font-style:normal;color:var(--faint);white-space:nowrap}
+  .change-rollback-sites{margin:10px 2px 4px;border-top:1px dashed var(--line);padding-top:10px}
+  .change-rollback-sites summary{cursor:pointer;list-style:none;font-size:10.5px;font-weight:750;color:var(--faint);padding:2px 0}
+  .change-rollback-sites summary::-webkit-details-marker{display:none}
+  .change-rollback-site{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 2px;border-bottom:1px dashed var(--line-soft);cursor:pointer}
+  .change-rollback-site:last-child{border-bottom:0}
+  .change-rollback-site b{font-size:11px;color:var(--muted);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .change-rollback-site span{font-size:9.5px;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
   .change-entry-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
   .change-entry-meta{font-size:10px;color:var(--faint);line-height:1.5}
   .change-entry-col{font-size:11px;color:var(--muted);margin-top:2px;word-break:break-word}
@@ -710,7 +725,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.5</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.6</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -723,7 +738,7 @@
       <p><b>摘要：</b>自动汇总本期采集覆盖、共识焦点、最近成绩、连错风险、改料待检；点“复制摘要”可生成一段纯文字。摘要只做记录，不推下期。</p>
       <p><b>本期资料：</b>每站本期公开资料的原样汇总。九肖看“哪 9 个肖被写进推荐”，杀三肖看“哪 3 个肖被杀”；下面六维是平特、波色、尾数、头数、大小、单双。</p>
       <p><b>九肖 / 杀三肖：</b>点顶部第二、第三个标签进入逐站台账；期号选“待开”看本期原始推荐，选已开奖期看中错、连对连错、近 7 期轨迹和最近 10 期明细。</p>
-      <p><b>改料跟踪：</b>点第四个标签看同一期不同快照间的改动。先按维度/期号筛，再点站点看每组“原值 → 最终”和净补进/换掉。同一站+同栏目+同期的多次快照归为一组，每组只出一张卡、只按当前版本计成绩；早快照收进「过程」只作审计，流水条数不等于独立改料组数。</p>
+      <p><b>改料跟踪：</b>点第四个标签看同一期不同快照间的改动。先按维度/期号筛，再点站点看每组“原值 → 最终”和净补进/换掉。同一站+同栏目+同期的多次快照归为一组；最终回到原值的算回滚，集合相同仅写法/顺序不同的算同义，两者都不算改料、不出卡、不计成绩；只有净变化组才出一张卡、按当前版本计一次成绩。早快照收进「过程」只作审计，流水条数不等于独立改料组数。</p>
       <p><b>票数口径：</b>1 个站、1 个栏目算 1 票（站次），不是金额，也不是下注量。九肖每站 9 个肖，杀三肖每站 3 个肖。</p>
       <p><b>命中规则：</b>九肖：开奖特肖在 9 肖内记“中”；杀三肖：开奖特肖不在所杀 3 肖内记“杀中”。历史命中率只做描述，不构成下期结论。</p>
       <p><b>数据来源：</b>本期汇总读 <b>data/current-recommend.json</b>；九肖台账读 <b>data/max-zodiac-ledger.json</b>；杀三肖台账读 <b>data/kill3-ledger.json</b>；改料跟踪读 <b>data/change-ledger.json</b>；站名对照读 <b>data/site-aliases.json</b>。</p>
@@ -997,16 +1012,18 @@
     var nr=ni?riskOf('nine',ni):{l3:[],l2:[],l1:[]};
     var kr=ki?riskOf('kill',ki):{l3:[],l2:[],l1:[]};
     var ce=(S.change&&S.change.entries)||[];
-    var cp=ce.filter(function(e){return !e.result;}).length;
-    var cr=ce.filter(function(e){return changeKind(e)==='right';}).length;
-    var cw=ce.filter(function(e){return changeKind(e)==='wrong';}).length;
+    var cm=changeCurrentMap(ce), cg=changeGroupList(ce,cm);
+    var cgActive=cg.filter(function(g){return g.net;}), cgRoll=cg.filter(function(g){return !g.net;});
+    var cp=cgActive.filter(function(g){return !g.cur.result;}).length;
+    var cr=cgActive.filter(function(g){return changeKind(g.cur)==='right';}).length;
+    var cw=cgActive.filter(function(g){return changeKind(g.cur)==='wrong';}).length;
     var cov=p.coverage||{};
     var trend=[];
     var issues=issuesOf('nine').slice(-5);
     issues.forEach(function(i){ trend.push({nine:issueStat('nine',i),kill:issueStat('kill',i)}); });
     return {period:p.period||ni||'—',status:p.status||'',sites:sites.length,nineSites:nineSites.length,killSites:killSites.length,pingSites:pingSites.length,
       nineVotes:sumZ(nineSites,'nine'),killVotes:sumZ(killSites,'kill'),topN:topN,topK:topK,
-      ns:ns,ks:ks,nr:nr,kr:kr,ce:ce,cp:cp,cr:cr,cw:cw,cov:cov,trend:trend,qc:S.qc};
+      ns:ns,ks:ks,nr:nr,kr:kr,ce:cgActive,cp:cp,cr:cr,cw:cw,crb:cgRoll.length,crb2:cgRoll.filter(function(g){return g.state==='rollback';}).length,csy:cgRoll.filter(function(g){return g.state==='synonym';}).length,cov:cov,trend:trend,qc:S.qc};
   }
   function riskNames(arr,withStreak){
     if(!arr.length) return '<span class="empty-mini">无</span>';
@@ -1023,7 +1040,7 @@
     if(b.kr.l2.length) risk.push('杀三连错2 '+b.kr.l2.length+' 站');
     return '<b>第 '+esc(b.period)+' 期</b> · '+b.sites+' 站采集；九肖 <b>'+b.nineSites+' 站 / '+b.nineVotes+' 票</b>，'+esc(topN)+' 居前；杀三 <b>'+b.killSites+' 站 / '+b.killVotes+' 票</b>，'+esc(topK)+' 被杀最多。'+
       (last.length?'<br>上期 '+last.join('，')+'。':'')+
-      '<br>改料 <b>'+b.ce.length+' 次</b>，其中 <b>'+b.cp+' 次待检</b>；'+(risk.length?'<span class="brief-warn">风险：'+risk.join('；')+'。</span>':'风险：暂无 ≥3 期连错。');
+      '<br>改料 <b>'+b.ce.length+' 组</b>，其中 <b>'+b.cp+' 组待检</b>；无净变化 <b>'+b.crb+' 组</b>（回滚 '+b.crb2+' · 同义 '+b.csy+'）不计入；'+(risk.length?'<span class="brief-warn">风险：'+risk.join('；')+'。</span>':'风险：暂无 ≥3 期连错。');
   }
   function briefText(){
     var b=briefData();
@@ -1037,7 +1054,7 @@
     if(b.kr.l3.length) risk.push('杀三≥3期 '+b.kr.l3.map(function(e){return e.name+e.st.l;}).join('、'));
     if(b.nr.l2.length) risk.push('九肖2期 '+b.nr.l2.map(function(e){return e.name;}).join('、'));
     if(b.kr.l2.length) risk.push('杀三2期 '+b.kr.l2.map(function(e){return e.name;}).join('、'));
-    if(b.cp) risk.push('改料待检'+b.cp+'次');
+    if(b.cp) risk.push('改料待检'+b.cp+'组');
     t.push('风险：'+(risk.length?risk.join('；'):'暂无')+'。');
     t.push('口径：按站次记录，只做资料汇总，不构成投注建议。');
     return t.join('\n');
@@ -1064,7 +1081,7 @@
     $('briefLast').innerHTML=
       (b.ns?briefKv('九肖 第'+b.ns.issue+'期',b.ns.hit+' 中 · '+b.ns.miss+' 错 · '+b.ns.rate+'%'):'')+
       (b.ks?briefKv('杀三 第'+b.ks.issue+'期',b.ks.hit+' 中 · '+b.ks.miss+' 错 · '+b.ks.rate+'%'):'')+
-      briefKv('改料总结',b.ce.length+' 次 · 改对 '+b.cr+' · 改错 '+b.cw+' · 待检 '+b.cp);
+      briefKv('改料总结',b.ce.length+' 组 · 改对 '+b.cr+' · 改错 '+b.cw+' · 待检 '+b.cp+' · 无净变化 '+b.crb+'（回滚 '+b.crb2+' · 同义 '+b.csy+'）');
     $('briefRisk').innerHTML='<div class="brief-risk">'+
       '<div class="rl"><span>九肖 ≥3</span><div class="rn">'+riskNames(b.nr.l3,true)+'</div></div>'+
       '<div class="rl"><span>九肖 2期</span><div class="rn">'+riskNames(b.nr.l2,false)+'</div></div>'+
@@ -1510,40 +1527,48 @@
   function changeFilter(curMap){
     var es=(S.change&&S.change.entries)||[];
     var q=(S.q.change||'').trim().toLowerCase();
-    return es.filter(function(e){
+    var base=es.filter(function(e){
       if(S.c.dim!=='all' && e.dim!==S.c.dim) return false;
       if(S.c.period!=='all' && String(e.period)!==String(S.c.period)) return false;
-      if(S.c.status!=='all' && (!curMap || !changeIsCurrent(e,curMap))) return false;
-      if(S.c.status==='pending' && e.result) return false;
-      if(S.c.status==='settled' && !e.result) return false;
       if(q){
         var hay=[changeSiteName(e),changeSiteKey(e),e.column,e.dim,CHANGE_DIM_LABEL[e.dim]||''].join(' ').toLowerCase();
         if(hay.indexOf(q)<0) return false;
       }
       return true;
     });
+    if(S.c.status==='all') return base;
+    var allowed={};
+    changeGroupList(base,curMap).forEach(function(g){
+      var pending=!g.cur.result;
+      if(S.c.status==='pending' && !pending) return;
+      if(S.c.status==='settled' && pending) return;
+      allowed[g.key]=1;
+    });
+    return base.filter(function(e){return allowed[changeGroupKey(e)];});
   }
   function changeAgg(es,curMap){
     var map={};
-    es.forEach(function(e){
-      var key=changeSiteKey(e);
-      if(!map[key]) map[key]={sid:key,name:changeSiteName(e),entries:[],right:0,wrong:0,neutral:0,pending:0,periods:{},dims:{},groups:{}};
-      var s=map[key]; s.entries.push(e);
-      if(!s.name || s.name==='未知站点') s.name=changeSiteName(e);
-      s.groups[changeGroupKey(e)]=1;
-      if(!curMap || changeIsCurrent(e,curMap)){
-        var k=changeKind(e);
+    changeGroupList(es,curMap).forEach(function(g){
+      var key=changeSiteKey(g.first);
+      if(!map[key]) map[key]={sid:key,name:changeSiteName(g.first),entries:[],flowN:0,right:0,wrong:0,neutral:0,pending:0,periods:{},dims:{},groups:{},activeGroups:0,rollbackGroups:0,rollbackFlows:0};
+      var s=map[key];
+      s.entries=s.entries.concat(g.arr); s.flowN+=g.arr.length;
+      if(!s.name || s.name==='未知站点') s.name=changeSiteName(g.first);
+      s.groups[g.key]=1;
+      if(g.net){
+        s.activeGroups++;
+        var k=changeKind(g.cur);
         if(k==='right')s.right++; else if(k==='wrong')s.wrong++; else if(k==='pending')s.pending++; else s.neutral++;
-      }
-      s.periods[e.period]=1; s.dims[e.dim]=1;
+      } else { s.rollbackGroups++; s.rollbackFlows+=g.arr.length; }
+      g.arr.forEach(function(e){ s.periods[e.period]=1; s.dims[e.dim]=1; });
     });
     return Object.keys(map).map(function(k){return map[k];});
   }
   function changeSiteRank(a,b){
     // 逐站个人成绩：只按改对次数排序，不做对减错净分；改错如实计数，不压后、不定论
     if(b.right!==a.right) return b.right-a.right;
-    var bg=Object.keys(b.groups||{}).length, ag=Object.keys(a.groups||{}).length;
-    if(bg!==ag) return bg-ag;
+    if(b.activeGroups!==a.activeGroups) return b.activeGroups-a.activeGroups;
+    if(b.rollbackGroups!==a.rollbackGroups) return b.rollbackGroups-a.rollbackGroups;
     return a.wrong-b.wrong;
   }
   function buildChangePeriods(){
@@ -1566,24 +1591,31 @@
     }
     buildChangePeriods();
     var all=S.change.entries, curMap=changeCurrentMap(all), es=changeFilter(curMap);
-    var allSites=changeAgg(all,curMap), sites=changeAgg(es,curMap).sort(function(a,b){
+    var allGroups=changeGroupList(all,curMap), activeAll=allGroups.filter(function(g){return g.net;});
+    var rollbackAll=allGroups.filter(function(g){return g.state==='rollback';}), synAll=allGroups.filter(function(g){return g.state==='synonym';});
+    var siteAgg=changeAgg(es,curMap), allSiteAgg=changeAgg(all,curMap);
+    var allActiveSites=allSiteAgg.filter(function(s){return s.activeGroups>0;});
+    var allRollbackSites=allSiteAgg.filter(function(s){return !s.activeGroups && s.rollbackGroups>0;});
+    var sites=siteAgg.filter(function(s){return s.activeGroups>0;}).sort(function(a,b){
       if(S.c.sort==='name') return a.name.localeCompare(b.name,'zh-Hans-CN');
-      if(S.c.sort==='count') return (b.entries.length-a.entries.length)||(b.right-a.right);
+      if(S.c.sort==='count') return (b.flowN-a.flowN)||(b.right-a.right);
       return changeSiteRank(a,b);
     });
-    var groupTotal=changeGroupCount(all);
-    var currentPending=all.filter(function(e){return changeIsCurrent(e,curMap)&&!e.result;}).length;
-    var currentSettled=groupTotal-currentPending;
-    $('tabChangeCount').textContent=groupTotal+' 组';
-    badge.textContent=currentPending?('当前待检 '+currentPending):'当前已检';
-    badge.className='badge '+(currentPending?'pending':'done');
-    $('changeSub').textContent='同一期多份快照按栏目归为一组；每组只出一张卡，只按当前版本计成绩，过程快照收进卡内。';
-    $('changeChips').innerHTML='<span class="chip accent"><span class="dot"></span>更新 '+esc(S.change.updatedAt||'—')+'</span><span class="chip">流水 '+all.length+' 条</span><span class="chip">独立 '+groupTotal+' 组</span><span class="chip">'+allSites.length+' 站</span>';
+    var rollbackSites=siteAgg.filter(function(s){return !s.activeGroups && s.rollbackGroups>0;}).sort(function(a,b){return (b.rollbackGroups-a.rollbackGroups)||(b.flowN-a.flowN);});
+    var activePending=activeAll.filter(function(g){return !g.cur.result;}).length;
+    var activeRight=activeAll.filter(function(g){return changeKind(g.cur)==='right';}).length;
+    var activeWrong=activeAll.filter(function(g){return changeKind(g.cur)==='wrong';}).length;
+    var activeNeutral=activeAll.filter(function(g){return changeKind(g.cur)==='neutral';}).length;
+    $('tabChangeCount').textContent=activeAll.length+' 组';
+    badge.textContent=activePending?('当前待检 '+activePending):'当前已检';
+    badge.className='badge '+(activePending?'pending':'done');
+    $('changeSub').textContent='先比原值和最终：回到原值的算回滚，集合相同仅写法/顺序不同的是同义；两者都不算改料，只对净变化组出卡、计成绩。';
+    $('changeChips').innerHTML='<span class="chip accent"><span class="dot"></span>更新 '+esc(S.change.updatedAt||'—')+'</span><span class="chip">流水 '+all.length+' 条</span><span class="chip">独立 '+activeAll.length+' 组</span><span class="chip">无净变化 '+(rollbackAll.length+synAll.length)+' 组（回滚 '+rollbackAll.length+' · 同义 '+synAll.length+'）</span><span class="chip">'+allActiveSites.length+' 站改料</span>'+(allRollbackSites.length?'<span class="chip">'+allRollbackSites.length+' 站仅无净变化</span>':'')+(activeNeutral?'<span class="chip">无差异 '+activeNeutral+' 组</span>':'');
     $('changeStats').innerHTML=
-      statCard('独立改料',groupTotal,'组','站+期+栏目去重')+
-      statCard('改料流水',all.length,'条','含历史快照')+
-      statCard('当前已检',currentSettled,'组','当前版本有结果')+
-      statCard('当前待检',currentPending,'组','等开奖补检');
+      statCard('独立改料',activeAll.length,'组','原值≠最终')+
+      statCard('当前改对',activeRight,'组','只计当前版本')+
+      statCard('当前改错',activeWrong,'组','只计当前版本')+
+      statCard('当前待检',activePending,'组','等开奖补检');
     // 维度 / 状态
     var dc=$('changeDimChips');
     dc.innerHTML=CHANGE_DIMS.map(function(d){return '<button type="button" class="filter-chip'+(S.c.dim===d[0]?' on':'')+'" data-d="'+d[0]+'">'+d[1]+'</button>';}).join('');
@@ -1592,31 +1624,26 @@
     // 明细
     if(S.c.view==='site' && S.c.site){
       var siteEntries=es.filter(function(e){return changeSiteKey(e)===S.c.site;});
-      var s=changeAgg(siteEntries,curMap)[0]||{name:S.c.site,sid:S.c.site,entries:siteEntries,right:0,wrong:0,pending:0,neutral:0,groups:{}};
-      var groupN=changeGroupCount(siteEntries);
-      var groupMap={};
-      siteEntries.forEach(function(e){ var k=changeGroupKey(e); (groupMap[k]||(groupMap[k]=[])).push(e); });
-      var groupKeys=Object.keys(groupMap).sort(function(a,b){
-        var aa=groupMap[a], bb=groupMap[b];
-        var ta=changeTime(aa[aa.length-1]), tb=changeTime(bb[bb.length-1]);
-        if(tb!==ta) return tb.localeCompare(ta);
-        return String(aa[0].column||'').localeCompare(String(bb[0].column||''),'zh-Hans-CN');
-      });
-      var body=groupKeys.map(function(k){
-        var arr=groupMap[k].sort(function(a,b){return changeTime(a).localeCompare(changeTime(b));});
-        var cur=curMap[k]&&curMap[k].entry;
-        var currTxt=cur?changeVerdict(cur):'—';
-        return '<div class="change-group-head"><b>'+esc(arr[0].column||'')+'</b><span>'+arr.length+' 条快照 · 当前 '+esc(currTxt)+' · 只计此条</span></div>'
-          +changeGroupCard(arr,curMap);
+      var siteGroups=changeGroupList(siteEntries,curMap);
+      var activeGroups=siteGroups.filter(function(g){return g.net;});
+      var rollbackGroups=siteGroups.filter(function(g){return !g.net;});
+      var s=changeAgg(siteEntries,curMap)[0]||{name:S.c.site,sid:S.c.site,flowN:siteEntries.length,right:0,wrong:0,pending:0,neutral:0,activeGroups:0,rollbackGroups:0,groups:{}};
+      var body=activeGroups.map(function(g){
+        return '<div class="change-group-head"><b>'+esc(g.first.column||'')+'</b><span>'+g.arr.length+' 条快照 · 当前 '+esc(changeVerdict(g.cur))+' · 只计此条</span></div>'
+          +changeGroupCard(g);
       }).join('');
-      list.innerHTML='<div class="change-detail-head"><button type="button" class="change-back">← 返回站点榜</button><span class="change-detail-title">'+esc(s.name)+'</span><span class="change-detail-sub">'+esc(s.sid)+' · 共 '+siteEntries.length+' 条流水 · '+groupN+' 组独立改料</span></div>'
-        +'<div class="change-site-nums" style="justify-content:flex-start;margin:0 2px 10px"><span class="change-num">流水 '+siteEntries.length+' 条 · 独立 '+groupN+' 组</span><span class="change-num g">当前改对 '+s.right+'</span><span class="change-num r">当前改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">当前待检 '+s.pending+'</span>':'')+'</div>'
-        +'<div class="change-ver-note">每组只把「当前版本」计一次成绩；同组更早的快照收进「过程」，只留过程，不计改对、改错、待检。流水条数不等于独立改料组数，卡片每组只出一张。</div>'
-        +(siteEntries.length?body:'<div class="empty">该站在当前筛选下没有改料记录</div>');
+      var rollbackHtml=changeRollbackSection(rollbackGroups);
+      list.innerHTML='<div class="change-detail-head"><button type="button" class="change-back">← 返回站点榜</button><span class="change-detail-title">'+esc(s.name)+'</span><span class="change-detail-sub">'+esc(s.sid)+' · 共 '+siteEntries.length+' 条流水 · '+activeGroups.length+' 组独立改料'+(rollbackGroups.length?' · '+rollbackGroups.length+' 组无净变化':'')+'</span></div>'
+        +'<div class="change-site-nums" style="justify-content:flex-start;margin:0 2px 10px"><span class="change-num">流水 '+siteEntries.length+' 条 · 独立 '+activeGroups.length+' 组'+(rollbackGroups.length?' · 无净变化 '+rollbackGroups.length+' 组':'')+'</span><span class="change-num g">当前改对 '+s.right+'</span><span class="change-num r">当前改错 '+s.wrong+'</span>'+(s.neutral?'<span class="change-num">无差异 '+s.neutral+'</span>':'')+(s.pending?'<span class="change-num a">当前待检 '+s.pending+'</span>':'')+'</div>'
+        +'<div class="change-ver-note">原值=最终的是回滚；集合相同仅写法/顺序不同的是同义；两者都不算改料、不出成绩，只在下方无净变化区留痕。净变化组每组只出一张卡、只按当前版本计一次；过程快照收进「过程」，当时结果不计分。原值取本组最早一条快照的改前；若快照断档，首见值可能已不是当天原始值，只按可见快照审计。</div>'
+        +(activeGroups.length?body:(rollbackGroups.length?'':'<div class="empty">该站当前筛选下没有净变化改料</div>'))
+        +rollbackHtml;
       $('changeMore').innerHTML='';
       return;
     }
-    $('changeList').innerHTML=(sites.length?sites.slice(0,S.limit.change).map(changeSiteCard).join(''):'<div class="empty">没有符合条件的改料记录</div>');
+    var listHtml=(sites.length?sites.slice(0,S.limit.change).map(changeSiteCard).join(''):(rollbackSites.length?'':'<div class="empty">该筛选下没有净变化改料</div>'));
+    if(rollbackSites.length) listHtml+=changeRollbackSites(rollbackSites);
+    $('changeList').innerHTML=listHtml;
     if(sites.length>S.limit.change){
       $('changeMore').innerHTML='<button class="btn" type="button" data-more="change">显示全部 '+sites.length+' 站</button>';
     } else if(S.limit.change>30 && sites.length>30){
@@ -1625,23 +1652,25 @@
     var mb=$('changeMore').querySelector('button');
     if(mb) mb.onclick=function(){S.limit.change=mb.dataset.more?9999:30;renderChange();};
   }
+  function changeRollbackSites(sites){
+    var prefix=(S.c.status!=='all'||S.c.dim!=='all'||S.c.period!=='all'||(S.q.change||'').trim())?'筛选下':'';
+    return '<details class="change-rollback-sites"><summary>'+prefix+'仅无净变化站点 '+sites.length+' 个 · 不计改料 · 点开查看</summary>'
+      +sites.map(function(s){
+        return '<div class="change-rollback-site" data-site="'+esc(s.sid)+'"><b>'+esc(s.name)+'</b><span>流水 '+s.flowN+' · 无净变化 '+s.rollbackGroups+' 组</span></div>';
+      }).join('')+'</details>';
+  }
   function changeSiteCard(s){
     var dims=Object.keys(s.dims).map(function(d){return '<span class="change-tag">'+esc(CHANGE_DIM_LABEL[d]||d)+'</span>';}).join('');
     var periods=Object.keys(s.periods).sort(function(a,b){return +b-+a;}).map(function(p){return '第'+p+'期';}).join('、');
     return '<div class="change-site" data-site="'+esc(s.sid)+'">'
       +'<div class="change-site-top"><div><div class="change-site-name">'+esc(s.name)+'<span>'+esc(s.sid)+'</span></div></div>'
-      +'<div class="change-site-nums"><span class="change-num">流水 '+s.entries.length+' · 独立 '+Object.keys(s.groups||{}).length+' 组</span><span class="change-num g">当前改对 '+s.right+'</span><span class="change-num r">当前改错 '+s.wrong+'</span>'+(s.pending?'<span class="change-num a">当前待检 '+s.pending+'</span>':'')+'</div></div>'
+      +'<div class="change-site-nums"><span class="change-num">流水 '+s.flowN+' · 独立 '+s.activeGroups+' 组</span>'+(s.rollbackGroups?'<span class="change-num">无净变化 '+s.rollbackGroups+' 组</span>':'')+'<span class="change-num g">当前改对 '+s.right+'</span><span class="change-num r">当前改错 '+s.wrong+'</span>'+(s.neutral?'<span class="change-num">无差异 '+s.neutral+'</span>':'')+(s.pending?'<span class="change-num a">当前待检 '+s.pending+'</span>':'')+'</div></div>'
       +'<div class="change-tags">'+dims+'</div>'
       +'<div class="change-periods">'+esc(periods)+'</div>'
       +'<div class="change-go">查看历次改料 ›</div></div>';
   }
   function changeGroupKey(e){ return changeSiteKey(e)+'|'+e.period+'|'+(e.dim||'')+'|'+(e.column||''); }
   function changeTime(e){ return String(e.at||'')+'|'+String(e.to_snapshot||''); }
-  function changeGroupCount(es){
-    var seen={};
-    (es||[]).forEach(function(e){ seen[changeGroupKey(e)]=1; });
-    return Object.keys(seen).length;
-  }
   function changeCurrentMap(es){
     var map={};
     (es||[]).forEach(function(e){
@@ -1657,8 +1686,8 @@
   }
   function changeSet(e,which){
     var a=which==='before'?e.beforeSet:e.afterSet;
-    if(a&&a.length) return a.slice();
-    return String((which==='before'?e.before:e.after)||'').split(/[·,\s]+/).filter(Boolean);
+    var raw=(a&&a.length)?a:String((which==='before'?e.before:e.after)||'').split(/[·,\s]+/).filter(Boolean);
+    return raw.map(function(x){return String(x).trim();}).filter(Boolean);
   }
   function changeSetTxt(e,which){
     var a=changeSet(e,which);
@@ -1670,40 +1699,61 @@
   }
   function sameChangeSet(a,b){
     if(a.length!==b.length) return false;
-    var x=a.slice().sort().join('·'), y=b.slice().sort().join('·');
+    var x=a.map(String).sort().join('·'), y=b.map(String).sort().join('·');
     return x===y;
   }
-  function changeGroupCard(arr,curMap){
+  function changeGroupInfo(arr,curMap){
     var sorted=arr.slice().sort(function(a,b){return changeTime(a).localeCompare(changeTime(b));});
     var first=sorted[0], key=changeGroupKey(first);
     var cur=(curMap&&curMap[key]&&curMap[key].entry)||sorted[sorted.length-1];
     var before=changeSet(first,'before'), after=changeSet(cur,'after');
     var added=after.filter(function(x){return before.indexOf(x)<0;});
     var removed=before.filter(function(x){return after.indexOf(x)<0;});
-    var net=added.length||removed.length;
-    var beforeTxt=changeSetTxt(first,'before'), afterTxt=changeSetTxt(cur,'after');
-    var sets=(added.length||removed.length)?'<div class="change-sets">'+(added.length?'<span class="change-num g">补进 '+added.length+'</span>'+added.map(function(x){return '<span class="change-chip add">'+esc(x)+'</span>';}).join(''):'')+(removed.length?'<span class="change-num r">换掉 '+removed.length+'</span>'+removed.map(function(x){return '<span class="change-chip rem">'+esc(x)+'</span>';}).join(''):'')+'</div>':'';
-    var netNote=net?'':'<div class="change-net-none">两次快照回到原值 · 无净变化；只按当前版本判结果。</div>';
+    var net=!sameChangeSet(before,after);
+    var rawSame=String(first.before||'').replace(/\s/g,'')===String(cur.after||'').replace(/\s/g,'');
+    return {key:key,arr:sorted,first:first,cur:cur,before:before,after:after,added:added,removed:removed,net:net,state:net?'net':(rawSame?'rollback':'synonym')};
+  }
+  function changeGroupList(es,curMap){
+    var map={};
+    (es||[]).forEach(function(e){ var k=changeGroupKey(e); (map[k]||(map[k]=[])).push(e); });
+    return Object.keys(map).map(function(k){return changeGroupInfo(map[k],curMap);}).sort(function(a,b){
+      var ta=changeTime(a.arr[a.arr.length-1]), tb=changeTime(b.arr[b.arr.length-1]);
+      if(tb!==ta) return tb.localeCompare(ta);
+      return String(a.first.column||'').localeCompare(String(b.first.column||''),'zh-Hans-CN');
+    });
+  }
+  function changeGroupCard(g){
+    var beforeTxt=changeSetTxt(g.first,'before'), afterTxt=changeSetTxt(g.cur,'after');
+    var sets=(g.added.length||g.removed.length)?'<div class="change-sets">'+(g.added.length?'<span class="change-num g">补进 '+g.added.length+'</span>'+g.added.map(function(x){return '<span class="change-chip add">'+esc(x)+'</span>';}).join(''):'')+(g.removed.length?'<span class="change-num r">换掉 '+g.removed.length+'</span>'+g.removed.map(function(x){return '<span class="change-chip rem">'+esc(x)+'</span>';}).join(''):'')+'</div>':'';
     var trace='';
-    if(sorted.length>1){
-      trace='<details class="change-trace"><summary>过程 '+sorted.length+' 次快照 · 点开看每次改动</summary>'
-        +sorted.map(function(e){
-          var isCur=changeIsCurrent(e,curMap);
+    if(g.arr.length>1){
+      trace='<details class="change-trace"><summary>过程 '+g.arr.length+' 次快照 · 点开看每次改动</summary>'
+        +g.arr.map(function(e){
+          var isCur=(e===g.cur);
           var v=e.result?(e.result.verdict||'无差异'):'待检';
           return '<div class="change-trace-row'+(isCur?' now':'')+'"><time>'+esc(changeShortTime(e))+'</time><span>'+esc(changeSetTxt(e,'before'))+' → '+esc(changeSetTxt(e,'after'))+'</span><em>'+(isCur?'当前 · ':'当时 · ')+esc(v)+'</em></div>';
         }).join('')+'</details>';
     }
-    var raw=((first.before&&/[0-9]/.test(first.before))||(cur.after&&/[0-9]/.test(cur.after))
-      ? '<details class="change-raw"><summary>查看原值</summary><div>'+esc(first.before||'—')+' → '+esc(cur.after||'—')+'</div></details>'
+    var raw=((g.first.before&&/[0-9]/.test(g.first.before))||(g.cur.after&&/[0-9]/.test(g.cur.after))
+      ? '<details class="change-raw"><summary>查看原值</summary><div>'+esc(g.first.before||'—')+' → '+esc(g.cur.after||'—')+'</div></details>'
       : '');
-    var flag=(cur.flag||first.flag)?'<div class="change-flag">标记：'+esc(cur.flag||first.flag)+'</div>':'';
-    var draw=(cur.result&&cur.result.drawZod)?'<div class="change-sub"><span>开奖 '+esc(cur.result.drawZod)+'</span></div>':'';
-    return '<div class="change-entry'+(net?'':' net-none')+'">'
-      +'<div class="change-entry-top"><div><div class="change-entry-meta">第'+esc(first.period)+'期 · '+esc(CHANGE_DIM_LABEL[first.dim]||first.dim)+'</div><div class="change-entry-col">'+esc(first.column||'')+'</div></div>'
-      +'<div class="change-badges"><span class="change-ver now">当前版本</span>'+changeBadge(cur,true)+'</div></div>'
+    var flag=(g.cur.flag||g.first.flag)?'<div class="change-flag">标记：'+esc(g.cur.flag||g.first.flag)+'</div>':'';
+    var draw=(g.cur.result&&g.cur.result.drawZod)?'<div class="change-sub"><span>开奖 '+esc(g.cur.result.drawZod)+'</span></div>':'';
+    return '<div class="change-entry">'
+      +'<div class="change-entry-top"><div><div class="change-entry-meta">第'+esc(g.first.period)+'期 · '+esc(CHANGE_DIM_LABEL[g.first.dim]||g.first.dim)+'</div><div class="change-entry-col">'+esc(g.first.column||'')+'</div></div>'
+      +'<div class="change-badges"><span class="change-ver now">当前版本</span>'+changeBadge(g.cur,true)+'</div></div>'
       +'<div class="change-flow"><span class="change-before"><i>原值</i>'+esc(beforeTxt)+'</span><span class="change-arrow">→</span><span class="change-after"><i>最终</i>'+esc(afterTxt)+'</span></div>'
-      +sets+netNote+flag+draw+trace+raw
+      +sets+flag+draw+trace+raw
       +'</div>';
+  }
+  function changeRollbackSection(groups){
+    if(!groups.length) return '';
+    var rb=groups.filter(function(g){return g.state==='rollback';}).length, sy=groups.length-rb;
+    var rows=groups.map(function(g){
+      var path=g.arr.map(function(e){return changeSetTxt(e,'before');}).concat(changeSetTxt(g.cur,'after')).join(' → ');
+      return '<div class="change-rollback-row"><div><b>第'+esc(g.first.period)+'期 · '+esc(CHANGE_DIM_LABEL[g.first.dim]||g.first.dim)+' · '+esc(g.first.column||'')+'</b><span>'+esc(path)+'</span></div><em>'+(g.state==='synonym'?'同义':'回滚')+' · '+g.arr.length+' 次快照</em></div>';
+    }).join('');
+    return '<details class="change-rollback"><summary>无净变化 '+groups.length+' 组（回滚 '+rb+' · 同义 '+sy+'）· 不计改料 · 点开看过程</summary>'+rows+'</details>';
   }
   // ===== 交互 =====
   function switchTab(t){
@@ -1725,7 +1775,7 @@
     $('changeSort').addEventListener('change',function(){S.c.sort=this.value;renderChange();});
     $('changePeriod').addEventListener('change',function(){S.c.period=this.value;S.c.view='list';S.c.site=null;renderChange();});
     $('changeList').addEventListener('click',function(e){
-      var site=e.target.closest('.change-site');
+      var site=e.target.closest('.change-site')||e.target.closest('.change-rollback-site');
       if(site){S.c.site=site.dataset.site;S.c.view='site';renderChange();return;}
       var back=e.target.closest('.change-back');
       if(back){S.c.view='list';S.c.site=null;renderChange();}
@@ -1774,7 +1824,7 @@
       $('tabBriefCount').textContent=((S.pend&&S.pend.period)||'总览')+'期';
       $('tabNineCount').textContent=(S.nine?Object.keys(S.nine.periods).length:0)+' 期';
       $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
-      $('tabChangeCount').textContent=S.change?(S.change.entries||[]).length+' 次':'—';
+      $('tabChangeCount').textContent=S.change?(changeGroupList(S.change.entries||[],changeCurrentMap(S.change.entries||[])).filter(function(g){return g.net;}).length+' 组'):'—';
       buildPeriod('nine'); buildPeriod('kill'); buildChangePeriods();
       renderNow();
       renderBrief();
