@@ -725,7 +725,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.6</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.7</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1575,7 +1575,11 @@
     var sel=$('changePeriod'); if(!sel) return;
     var ps={};
     ((S.change&&S.change.entries)||[]).forEach(function(e){ps[e.period]=1;});
-    var opts=[['all','全部期号']].concat(Object.keys(ps).sort(function(a,b){return +b-+a;}).map(function(p){return [p,'第'+p+'期'];}));
+    var pendingOpt=[];
+    if(S.pend && S.pend.changeStatus==='no_baseline' && S.pend.period && !ps[S.pend.period]){
+      pendingOpt=[[String(S.pend.period),'第'+S.pend.period+'期（无基线）']];
+    }
+    var opts=[['all','全部期号']].concat(pendingOpt).concat(Object.keys(ps).sort(function(a,b){return +b-+a;}).map(function(p){return [p,'第'+p+'期'];}));
     sel.innerHTML=opts.map(function(o){return '<option value="'+o[0]+'">'+esc(o[1])+'</option>';}).join('');
     if(!opts.some(function(o){return String(o[0])===String(S.c.period);})) S.c.period='all';
     sel.value=S.c.period;
@@ -1606,16 +1610,23 @@
     var activeRight=activeAll.filter(function(g){return changeKind(g.cur)==='right';}).length;
     var activeWrong=activeAll.filter(function(g){return changeKind(g.cur)==='wrong';}).length;
     var activeNeutral=activeAll.filter(function(g){return changeKind(g.cur)==='neutral';}).length;
+    var noBaseline=S.pend && S.pend.changeStatus==='no_baseline' && (S.c.period==='all'||String(S.c.period)===String(S.pend.period));
     $('tabChangeCount').textContent=activeAll.length+' 组';
-    badge.textContent=activePending?('当前待检 '+activePending):'当前已检';
-    badge.className='badge '+(activePending?'pending':'done');
-    $('changeSub').textContent='先比原值和最终：回到原值的算回滚，集合相同仅写法/顺序不同的是同义；两者都不算改料，只对净变化组出卡、计成绩。';
-    $('changeChips').innerHTML='<span class="chip accent"><span class="dot"></span>更新 '+esc(S.change.updatedAt||'—')+'</span><span class="chip">流水 '+all.length+' 条</span><span class="chip">独立 '+activeAll.length+' 组</span><span class="chip">无净变化 '+(rollbackAll.length+synAll.length)+' 组（回滚 '+rollbackAll.length+' · 同义 '+synAll.length+'）</span><span class="chip">'+allActiveSites.length+' 站改料</span>'+(allRollbackSites.length?'<span class="chip">'+allRollbackSites.length+' 站仅无净变化</span>':'')+(activeNeutral?'<span class="chip">无差异 '+activeNeutral+' 组</span>':'');
+    if(noBaseline && !activePending){
+      badge.textContent='无基线 · 未比对'; badge.className='badge pending';
+    }else{
+      badge.textContent=activePending?('当前待检 '+activePending):'当前已检';
+      badge.className='badge '+(activePending?'pending':'done');
+    }
+    $('changeSub').textContent=(noBaseline && !activePending)
+      ? '本期只有一版快照，尚无早版基线，改料尚未比对；不能写成“已检 0 条”。'
+      : '先比原值和最终：回到原值的算回滚，集合相同仅写法/顺序不同的是同义；两者都不算改料，只对净变化组出卡、计成绩。';
+    $('changeChips').innerHTML='<span class="chip accent"><span class="dot"></span>更新 '+esc(S.change.updatedAt||'—')+'</span><span class="chip">流水 '+all.length+' 条</span><span class="chip">独立 '+activeAll.length+' 组</span><span class="chip">无净变化 '+(rollbackAll.length+synAll.length)+' 组（回滚 '+rollbackAll.length+' · 同义 '+synAll.length+'）</span><span class="chip">'+allActiveSites.length+' 站改料</span>'+(allRollbackSites.length?'<span class="chip">'+allRollbackSites.length+' 站仅无净变化</span>':'')+(activeNeutral?'<span class="chip">无差异 '+activeNeutral+' 组</span>':'')+(noBaseline&&!activePending?'<span class="chip">本期无基线，未比对</span>':'');
     $('changeStats').innerHTML=
       statCard('独立改料',activeAll.length,'组','原值≠最终')+
       statCard('当前改对',activeRight,'组','只计当前版本')+
       statCard('当前改错',activeWrong,'组','只计当前版本')+
-      statCard('当前待检',activePending,'组','等开奖补检');
+      statCard('当前待检',noBaseline&&!activePending?'—':activePending,'组',noBaseline&&!activePending?'无早版基线':'等开奖补检');
     // 维度 / 状态
     var dc=$('changeDimChips');
     dc.innerHTML=CHANGE_DIMS.map(function(d){return '<button type="button" class="filter-chip'+(S.c.dim===d[0]?' on':'')+'" data-d="'+d[0]+'">'+d[1]+'</button>';}).join('');
