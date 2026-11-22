@@ -46,20 +46,20 @@ a.card:active{transform:scale(.99)}
   <div class="inner">
     <div class="kicker">PUBLIC SOURCE STATS</div>
     <h1>AI资料统计</h1>
-    <p class="sub">100 站公开资料 · 本期口径 325 期</p>
+    <p class="sub"><span id="dashSubSites">194</span> 站公开资料 · 本期口径 <span id="dashPeriod">327</span> 期</p>
     <div class="kpis">
-      <div class="kpi"><b>100</b><span>启用站点</span></div>
-      <div class="kpi"><b>104</b><span>登记站点</span></div>
-      <div class="kpi"><b>87</b><span>九肖覆盖</span></div>
-      <div class="kpi"><b>70</b><span>杀三覆盖</span></div>
+      <div class="kpi"><b id="kpiActive">194</b><span>启用站点</span></div>
+      <div class="kpi"><b id="kpiRegistered">194</b><span>登记站点</span></div>
+      <div class="kpi"><b id="kpiNine">168</b><span>九肖覆盖</span></div>
+      <div class="kpi"><b id="kpiKill">121</b><span>杀三覆盖</span></div>
     </div>
   </div>
 </header>
 <main class="wrap">
-  <div class="section-title"><h2>本期入口</h2><small>325 期 · pending</small></div>
+  <div class="section-title"><h2>本期入口</h2><small><span id="dashPeriod2">327</span> 期 · <span id="dashStatus">pending</span></small></div>
   <div class="grid">
     <a class="card" href="sources.html">
-      <div class="card-top"><h3>来源名单</h3><span class="tag blue">100 / 104</span></div>
+      <div class="card-top"><h3>来源名单</h3><span class="tag blue" id="tagSites">194 / 194</span></div>
       <p>站点启用、空站、论坛池和 316 后历史成绩；先看来源是否稳定。</p>
     </a>
     <a class="card" href="stats.html">
@@ -68,10 +68,10 @@ a.card:active{transform:scale(.99)}
     </a>
     <a class="card" href="engine.html">
       <div class="card-top"><h3>研判引擎</h3><span class="tag amber">群众方向验证</span></div>
-      <p>拥挤度、同站重叠和群众方向验证；325 期仍在收集中，不生成投注指令。</p>
+      <p>拥挤度、同站重叠和群众方向验证；当期仍在收集中，不生成投注指令。</p>
     </a>
     <a class="card" href="site-registry.html">
-      <div class="card-top"><h3>站点名录</h3><span class="tag green">100 站</span></div>
+      <div class="card-top"><h3>站点名录</h3><span class="tag green" id="tagDir">194 站</span></div>
       <p>固定 ID、站号、路径和九肖/杀三栏目；查一个站是否有当期数据。</p>
     </a>
   </div>
@@ -79,11 +79,11 @@ a.card:active{transform:scale(.99)}
   <div class="section-title"><h2>分维度台账</h2><small>有历史才显示成绩</small></div>
   <div class="grid">
     <a class="card" href="nine-zodiac.html">
-      <div class="card-top"><h3>九肖台账</h3><span class="tag gray">87 当期</span></div>
-      <p>逐期看九肖票数；新增站在 325 只有当期，没有历史回测。</p>
+      <div class="card-top"><h3>九肖台账</h3><span class="tag gray" id="tagNine">168 当期</span></div>
+      <p>逐期看九肖票数；候选站从 327 当期起计，没有历史回测。</p>
     </a>
     <a class="card" href="kill3-ledger.html">
-      <div class="card-top"><h3>杀三台账</h3><span class="tag gray">47 有历史</span></div>
+      <div class="card-top"><h3>杀三台账</h3><span class="tag gray">有历史</span></div>
       <p>杀特三肖的逐期命中与改料；历史只覆盖有快照的旧站。</p>
     </a>
     <a class="card" href="extra-ledger.html">
@@ -106,9 +106,26 @@ a.card:active{transform:scale(.99)}
 
   <div class="note">
     <b>口径提醒</b>
-    <p>当期名单按 100 站展示；历史成绩按“有记录的站”计算。23 个新增站目前只有 325 一期，不能冒充完整历史样本。</p>
+    <p>当期名单按 194 站展示（基线 100 + 候选 94）；历史成绩按“有记录的站”计算。候选站从 327 当期起计、无历史回测，样本不足 30 期只标待定；历史期次口径保留为 316–324 按 77 站、325–326 按 100 站，不随当期改动。</p>
   </div>
-  <div class="footer">AI资料统计 v1.1 · 只做公开资料统计，不接私盘，不生成投注指令</div>
+  <div class="footer">AI资料统计 v1.2 · 只做公开资料统计，不接私盘，不生成投注指令</div>
 </main>
+<script>
+(function(){
+  function set(id,v){var el=document.getElementById(id); if(el!=null) el.textContent=String(v);}
+  fetch('data/current-recommend.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(d){
+    var cov=d.coverage||{}, sites=(d.sites||[]);
+    var per=d.period||'—', st=d.status||'—';
+    var active=cov.sites||sites.length||'—', nine=cov.nine||'—', kill=cov.kill||'—';
+    set('dashPeriod',per); set('dashPeriod2',per); set('dashStatus',st);
+    set('kpiActive',active); set('kpiNine',nine); set('kpiKill',kill);
+    set('tagSites',active+' / '+(cov.registered||active));
+    set('tagDir',active+' 站'); set('tagNine',nine+' 当期');
+  }).catch(function(){});
+  fetch('data/site-directory.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(dir){
+    var reg=dir.total||((dir.sites||[]).length); if(reg) set('kpiRegistered',reg);
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>

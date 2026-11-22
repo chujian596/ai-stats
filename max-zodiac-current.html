@@ -106,7 +106,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <div>
       <div class="label"><span id="periodLabel">327 期</span> · 九肖推荐第一</div>
       <div class="z" id="topZ">—</div>
-      <div class="n" id="topN">正在读取当期 100 站数据…</div>
+      <div class="n" id="topN">正在读取当期数据…</div>
     </div>
     <div class="badge">
       <b id="topPct">—</b>
@@ -254,7 +254,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     if(d.status==='drawn'){
       base+=' 历史期按当时快照站点数计算，开奖 <b>'+esc(d.actual||'—')+'</b>'+(d.specialNum!=null?'（'+String(d.specialNum).padStart(2,'0')+' 号）':'')+'；不同期站点数不同，不混在一起比。';
     }else{
-      base+=' 杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入 100 站：'+emptyList.join(' / ')+'。':'');
+      base+=' 杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入有效统计：'+emptyList.join(' / ')+'。':'');
     }
     base+=' 最大生肖不是开奖结果，也不是投注指令。';
     document.getElementById('noteText').innerHTML=base;

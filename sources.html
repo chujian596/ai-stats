@@ -160,8 +160,8 @@ footer{text-align:center;color:var(--faint);font-size:10.5px;padding:14px 0 0;li
 
   <div class="tabs" id="tabs">
     <button data-view="home" class="on">概览</button>
-    <button data-view="sites">站点 104</button>
-    <button data-view="forum">论坛池 811</button>
+    <button data-view="sites">站点 198</button>
+    <button data-view="forum">论坛池 785</button>
     <button data-view="scores">成绩</button>
     <button data-view="chain">数据链</button>
   </div>
@@ -316,7 +316,7 @@ function renderHome(){
   var maxSite=Math.max.apply(null,Object.keys(perSite).map(function(p){return perSite[p];}).concat([1]));
   var html='';
   html+='<section class="card"><div class="eyebrow">来源总账 · 第 '+state.base.dataThrough+' 期</div><h2>不是随机抽样，是固定池 + 当期可用集合</h2>'+
-    '<p class="lead">站点侧 325 期起启用 <b>'+s.siteActive+' 站</b>（'+s.siteFixed+' 固定 + '+(s.siteActive-s.siteFixed)+' 新增观察）；论坛侧不是固定 '+s.forumCurrent+' 人，而是 <b>'+s.forumUnique+' 个发帖化名</b>的轮换池。每期变化来自抓取时间窗、有效帖、站点连通性，不是代码随机抽人。</p>'+
+    '<p class="lead">站点侧当期启用 <b>'+s.siteActive+' 站</b>（'+s.siteFixed+' 固定 + '+(s.siteActive-s.siteFixed)+' 新增观察）；论坛侧不是固定 '+s.forumCurrent+' 人，而是 <b>'+s.forumUnique+' 个发帖化名</b>的轮换池。每期变化来自抓取时间窗、有效帖、站点连通性，不是代码随机抽人。</p>'+
     '<div class="kpis">'+kpi(s.siteActive+'/'+s.siteRegistered,'站点启用 / 登记',s.siteFixed+' 个固定')+kpi(s.forumUnique,'论坛发帖名',s.forumCore+' 常驻 · '+s.forumOneoff+' 一次性')+kpi(s.forumCurrent,CUR()+' 期有效名',s.forumRepeatFromPrev+' 留存 · '+s.forumNewThisPeriod+' 新出现')+kpi(s.effectiveEndpoints,'有效抓取点',s.siteActive+' 站 + '+s.forumPages+' 页')+'</div>'+
     '<div class="chip-row"><span class="chip green">启用站点 '+s.siteActive+'</span><span class="chip amber">空站 '+s.siteEmpty+'</span><span class="chip blue">论坛常驻覆盖 '+s.forumCoreVoteCoverage+'% 票</span><span class="chip">核心杀基线 '+s.coreKillSites+' 站</span></div>'+
     '<div class="tip">'+esc(state.base.notes[0]||'')+'<br>'+esc(state.base.notes[1]||'')+'</div></section>';
