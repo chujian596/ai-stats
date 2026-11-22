@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.71-Pro';
+var APP_VER = 'v59.72-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6211,6 +6211,17 @@ function normalizeComboLine(line){
   line = String(line || '');
   var defs = [['二中二', 2], ['三中二', 3], ['三中三', 3]];
   var SEP = '[\\s,，、\\-\\u2010-\\u2015\\/]+';
+  // 复式冒号写法：三中三复式:09,45,... / 复式三中三:09,45,...
+  // 先把“复式”挪到产品名后面，并把冒号后的整串号码用空格分开，
+  // 交给下面的复式展开逻辑；否则只会匹配前 3 个号码、把“复式:”留给 parseLine 报无法识别。
+  var _prods = '二中二|三中二|三中三';
+  var _numGroup = '\\d{1,2}(?:' + SEP + '\\d{1,2})+';
+  line = line.replace(new RegExp('复(?:式)?\\s*(' + _prods + ')\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
+  line = line.replace(new RegExp('(' + _prods + ')\\s*复(?:式)?\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
   defs.forEach(function(d){
     var prod = d[0], n = d[1];
     var seq = '\\d{2}(?:' + SEP + '\\d{2}){' + (n - 1) + '}';
@@ -6230,6 +6241,42 @@ function normalizeComboLine(line){
     return prod + '复式' + nums + '各' + amt;
   });
   return line.replace(/\s+/g, ' ').trim();
+}
+// 多行组合块：首行「三中三09-30-31」给出产品，后续几行只有纯号码组合，
+// 金额可能写在最后一行「04-36-07各组5」。逐行独立解析时，后续行没有产品名会报
+// 「无法识别：-」；这里把整块补成每行「三中三:09,30,31 各组5」再交给 parseLine。
+function comboBlockInfo(line){
+  var s = String(line || '').trim().replace(/[\s,，、;；.。]+$/, '');
+  var m = s.match(/^(?:(香港|澳门|澳|港)\s*)?(?:(三中三|三中二|二中二)\s*(?:复(?:式)?)?\s*[:：]?\s*)?((?:\d{2}[\s,，、.\-–—―－+·/]+){1,2}\d{2})(?:\s*(?:各|每)\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?))?$/);
+  if(!m) return null;
+  var nums = m[3].match(/\d{2}/g) || [];
+  if(nums.length < 2 || nums.length > 3) return null;
+  return { prefix: m[1] || '', prod: m[2] || '', nums: nums, price: m[4] ? parseFloat(m[4]) : null };
+}
+function normalizeComboBlocks(lines){
+  var out = lines.slice();
+  for(var i = 0; i < out.length; i++){
+    var h = comboBlockInfo(out[i]);
+    if(!h || !h.prod) continue;
+    var need = h.prod === '二中二' ? 2 : 3;
+    if(h.nums.length !== need) continue;
+    var members = [i], j = i + 1, price = h.price;
+    while(j < out.length){
+      var b = comboBlockInfo(out[j]);
+      if(!b || b.prod || b.nums.length !== need) break;
+      members.push(j);
+      if(b.price && !price) price = b.price;
+      j++;
+    }
+    if(members.length < 2 || !(price > 0)) continue;
+    for(var k = 0; k < members.length; k++){
+      var bk = comboBlockInfo(out[members[k]]);
+      var p = bk.price || price;
+      out[members[k]] = (h.prefix ? h.prefix + ' ' : '') + h.prod + ':' + bk.nums.join(',') + ' 各组' + p;
+    }
+    i = members[members.length - 1];
+  }
+  return out;
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
@@ -8329,7 +8376,7 @@ renderAll();
     if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
   }
   // 多行组合：前面几行纯号码组合，最后一行"三中三各组20"给类型和每组金额
-  let workLines = mergedLines;
+  let workLines = normalizeComboBlocks(mergedLines);
   let comboProduct = null, comboPrice = null;
   for(const ln of mergedLines){
     const mc = ln.match(/^(三中三|二中二|三中二)\s*(?:各(?:组|数|号|个)?\s*)?([0-9]+(?:\.[0-9]+)?)\s*$/);
@@ -8338,7 +8385,7 @@ renderAll();
   if(comboProduct && comboPrice){
     const nNums = comboProduct === '二中二' ? 2 : 3;
     const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
-    workLines = mergedLines.map(ln=>{
+    workLines = workLines.map(ln=>{
       const t = ln.trim();
       if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
       if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;

@@ -21,6 +21,8 @@ _e=s.find('\n\nfunction codeSalesForOrder', _s) if _s >= 0 else -1
 attr=s[_s:_e] if _s >= 0 and _e > _s else ''
 cnToNum=grab(r'function cnToNum\(')
 norm=grab(r'function normalizeComboLine\(')
+comboInfo=grab(r'function comboBlockInfo\(', optional=True) or 'function comboBlockInfo(){return null;}'
+comboBlocks=grab(r'function normalizeComboBlocks\(', optional=True) or 'function normalizeComboBlocks(x){return x;}'
 hkLine=grab(r'function isHKLine\('); hkStrip=grab(r'function stripHKMark\(')
 fix=grab(r'function showFixDialog\(rawLine, msg\)', optional=True) or 'function showFixDialog(){return false;}'
 i2=s.index('return [{"code": "01"')
@@ -48,7 +50,7 @@ var shop='A';  // 店铺桩：A=澳门 B=香港，港单默认分流要用
 function saveOrders(){} function saveRoster(){} function restoreIfNeeded(){} function renderAll(){} function switchTab(){} function exportBackup(){} function autoPayout(){}
 const NUM2ZODIAC_REV={'马':[1,13,25,37,49],'蛇':[2,14,26,38],'龙':[3,15,27,39],'兔':[4,16,28,40],'虎':[5,17,29,41],'牛':[6,18,30,42],'鼠':[7,19,31,43],'猪':[8,20,32,44],'狗':[9,21,33,45],'鸡':[10,22,34,46],'猴':[11,23,35,47],'羊':[12,24,36,48]};
 const products = """ + prods + """;
-""" + norm + """
+""" + norm + "\n" + comboInfo + "\n" + comboBlocks + """
 function toPriceNum(x){const n=parseFloat(x);if(!isNaN(n))return n;const cn={零:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};const m=String(x).match(/(十|[一二两三四五六七八九][千百十]?[一二两三四五六七八九]?十?[一二两三四五六七八九]?)/);if(!m)return 0;const t=m[1];let v=0,p=0;while(p<t.length){const c=t[p];if(cn[c]!==undefined){v+=cn[c];p++;}else if(c==='十'){v=(v||1)*10;p++;}else if(c==='百'){v*=100;p++;}else if(c==='千'){v*=1000;p++;}else p++;}return v||0;}
 """
 

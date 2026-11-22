@@ -90,5 +90,25 @@ const sum2=all2.reduce((s,o)=>s+num(o.amount),0);
 add('弹窗落单金额=选项标注', Number.isFinite(sel) && Math.abs(sum2-sel)<0.02, {sel,sum:sum2,label});
 add('弹窗保存消息含金额', Number.isFinite(sel) && ((document.getElementById('saveMsg')||{}).innerText||'').indexOf(sel.toFixed(2))>=0, {sel});
 
+// 5) 本次录入故障回归：复式冒号两种语序 + 多行横杠组合续行
+async function comboCase(name, text, expAmt, expCodes){
+  reset();
+  inp.value=text;
+  window.__failedLines=[];
+  let threw='';
+  try{ doSave(); }catch(e){ threw=e.message||String(e); }
+  await WAIT(80);
+  const all=[...orders,...hkOrders];
+  const sum=all.reduce((s,o)=>s+num(o.amount),0);
+  const codes=(all[0]||{}).codes||[];
+  add(name+' 落单1张', all.length===1 && !threw, {n:all.length,threw});
+  add(name+' 金额='+expAmt, Math.abs(sum-expAmt)<0.02, {sum});
+  add(name+' 组数='+expCodes, codes.length===expCodes, {codes:codes.length});
+  add(name+' 无失败行', (window.__failedLines||[]).length===0, {failed:window.__failedLines});
+}
+await comboCase('三中三复式冒号', '三中三复式:09,45,04，16，03，15，07，31，30，36，34，各组1', 165, 165);
+await comboCase('复式三中三冒号', '复式三中三:09,45,04 ，16，03，15，07，31，30，36，34，各组1', 165, 165);
+await comboCase('横杠组合续行', '三中三09-30-31\n30-31-34\n04-07-34\n09-36-45\n04-36-07各组5', 25, 5);
+
 window.__orderAmtQA={tested:results.length,pass:results.filter(r=>r.status==='PASS').length,fail:fails.length,fails:fails.slice(0,12),results};
 })();

@@ -31,7 +31,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
-<title>AI云统计系统</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>录单Pro · v59.71</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -69,6 +70,289 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 .chip{border:1px solid #ccc;color:#333;background:#fff;border-radius:999px;padding:5px 12px;font-size:15px;font-weight:600}
 .chip.on{background:#333;border-color:#333;color:#fff}
 .chip .cnt{font-size:15px;font-weight:400;opacity:.7;margin-left:4px}
+
+/* ===== PRO PREVIEW SKIN v59.67: record-first ===== */
+:root{--pro-blue:#2457d6;--pro-blue2:#16325c;--pro-ink:#17202b;--pro-muted:#6e7a89;--pro-line:#e4e9f1;--pro-bg:#f4f7fc}
+body{font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;background:linear-gradient(180deg,#edf2fa 0%,#f6f8fc 30%,#eef2f8 100%)!important;color:var(--pro-ink)!important;padding-bottom:150px!important;font-size:var(--pro-fs,15px)!important}
+main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px + env(safe-area-inset-bottom))!important}
+.pro-hero{position:relative;margin:0 -12px 12px;padding:max(env(safe-area-inset-top),18px) 15px 12px;background:
+ radial-gradient(420px 220px at 88% -20%,rgba(120,170,255,.36),rgba(120,170,255,0) 65%),
+ linear-gradient(145deg,#12294d 0%,#1b3f7d 52%,#2457d6 100%);color:#fff;border-radius:0 0 24px 24px;box-shadow:0 10px 28px rgba(18,41,77,.2);overflow:hidden}
+.pro-hero:after{content:"";position:absolute;right:-30px;top:-60px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(120,170,255,.2),rgba(120,170,255,0));pointer-events:none}
+.pro-brand{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:relative;z-index:1}
+.pro-kicker{font-size:9px;font-weight:750;letter-spacing:.18em;color:#bdd3ff;line-height:1.2}
+.pro-h1{font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1.1;margin-top:2px}
+.pro-preview{font-size:9px;font-weight:750;color:#ffe0a3;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:4px 8px;white-space:nowrap}
+#billBar{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:8px 0 0!important;position:relative;z-index:1}
+#billDateTxt{color:#fff!important;font-size:15px!important;font-weight:750!important;letter-spacing:-.01em}
+#billDayStat{color:#cfe0ff!important;font-size:10.5px!important;margin-left:4px}
+#topVer{color:#cfe0ff!important;font-size:9.5px!important;background:rgba(255,255,255,.11)!important;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:3px 7px!important;white-space:nowrap}
+.pro-toolbar{background:transparent!important;border:0!important;border-top:1px solid rgba(255,255,255,.16)!important;border-radius:0!important;margin:9px 0 0!important;padding:9px 0 0!important;position:relative;z-index:1}
+.pro-toolbar>div:first-child{gap:7px!important}
+.pro-toolbar button{background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.22)!important;color:#fff!important;border-radius:9px!important;padding:6px 9px!important;font-size:12px!important;font-weight:650!important}
+.pro-toolbar button:active{background:rgba(255,255,255,.24)!important}
+#liveClock{color:#fff!important;font-size:16px!important;font-weight:800!important;letter-spacing:.01em}
+#shopBox{background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:10px!important;padding:8px!important}
+#shopBox>div:first-child{color:#e1ebff!important}
+#shopBox button{background:#fff!important;border-color:#fff!important;color:#16325c!important}
+#billRollTip,#storageWarn,#storageQuotaWarn{position:relative;z-index:1}
+.pro-entry{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:18px!important;padding:13px!important;margin:0 0 10px!important;box-shadow:0 4px 14px rgba(16,35,70,.06)!important}
+.pro-input-wrap{background:#f7f9fd!important;border:1px solid #e6ebf3!important;border-radius:14px!important;padding:11px!important}
+.pro-input-wrap>div:first-child span:first-child{font-size:12px!important;font-weight:750!important;color:#334155!important}
+#orderSummary{font-size:10px!important;color:#8b97a6!important}
+#input{min-height:126px!important;border:1px solid #dfe6f0!important;border-radius:11px!important;padding:10px!important;font-size:15px!important;line-height:1.7!important;background:#fff!important;color:#17202b!important;resize:none!important}
+#input:focus{outline:none!important;border-color:#9db8f0!important;box-shadow:0 0 0 3px rgba(36,87,214,.08)!important}
+#drawInfoBar{font-size:10px!important;color:#8b97a6!important;margin:7px 1px 0!important}
+#drawFetchBtn{border:1px solid #dfe6f0!important;background:#fff!important;color:#2457d6!important;border-radius:8px!important;padding:5px 8px!important;font-size:10px!important;font-weight:700}
+.pro-entry .btn-row{display:grid!important;grid-template-columns:1.25fr 1fr 1fr!important;gap:7px!important}
+.pro-entry .btn{min-height:40px!important;border-radius:10px!important;font-size:13px!important;font-weight:750!important;padding:8px 6px!important}
+.pro-save{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important;box-shadow:0 5px 14px rgba(36,87,214,.24)!important}
+.pro-manual{background:#fff!important;border-color:#cfd9ea!important;color:#2457d6!important}
+.pro-clear{background:#f4f6fa!important;border-color:#e3e8f1!important;color:#7b8797!important}
+#saveMsg{font-size:12px!important;line-height:1.6!important;color:#475569!important;margin-top:8px!important}
+#liveBalls{padding:6px 0!important;min-height:54px!important}
+.pro-tabs{display:grid!important;grid-template-columns:1fr 1fr!important;gap:4px!important;background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:14px!important;padding:4px!important;margin:0 0 9px!important;box-shadow:0 2px 8px rgba(16,35,70,.04)!important}
+.pro-tabs .tab{flex:none!important;border:0!important;background:transparent!important;color:#758294!important;border-radius:10px!important;padding:9px 4px!important;font-size:13px!important;font-weight:700!important;min-width:0!important}
+.pro-tabs .tab.active{background:#e9efff!important;color:#2457d6!important;border:0!important}
+.pro-panel{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:16px!important;padding:12px!important;margin-bottom:10px!important;box-shadow:0 4px 14px rgba(16,35,70,.055)!important}
+#tab-rank>div:first-child,#tab-rank>div:nth-child(2){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;margin-bottom:7px!important}
+.rank-btn{display:flex!important;align-items:center!important;justify-content:center!important;background:#f7f9fd!important;border:1px solid #e5eaf2!important;border-radius:10px!important;min-height:38px!important;padding:6px 3px!important;font-size:12px!important;font-weight:700!important;color:#3d4b5e!important;box-shadow:none!important;margin:0!important;line-height:1.2!important}
+.rank-btn:active{background:#e9efff!important;color:#2457d6!important}
+.rank-btn.on{background:#e9efff!important;border-color:#a9c2f5!important;color:#2457d6!important;box-shadow:inset 0 0 0 1px rgba(36,87,214,.12)!important}
+#tab-rank table{font-size:12px!important}
+#tab-rank th,#tab-rank td{padding:5px 3px!important}
+#riskBody,#rank-singles,#rank-split,#rank-pay{font-size:12px!important;line-height:1.6!important}
+#rank-singles:empty,#rank-split:empty,#rank-pay:empty{display:none!important}
+#sidePayResult:empty,#rank-singles:empty,#rank-split:empty,#rank-pay:empty{display:none!important}
+#tab-orders>div:first-child{font-size:14px!important;font-weight:800!important;color:#334155!important}
+#tab-orders>div:first-child button{font-size:10.5px!important;padding:5px 7px!important;border-radius:8px!important;background:#f8fafc!important;font-weight:700!important}
+#orderSearch,#orderDay{border:1px solid #dfe6f0!important;border-radius:9px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;padding:9px 9px!important}
+.order-cust-card{border:1px solid #e5eaf2!important;border-radius:14px!important;margin-bottom:8px!important;background:#fff!important;overflow:hidden!important}
+.order-cust-card>div:first-child{background:#f7f9fd!important;padding:9px!important}
+.order-cust-card>div:first-child span{font-size:12px!important}
+.order-cust-card>div:first-child button{background:#fff!important;border:1px solid #e1e7f0!important;border-radius:8px!important;padding:4px 8px!important;font-size:11px!important}
+#ordersList>div:first-child{border:1px solid #e5eaf2!important;border-radius:12px!important;background:#f8fafc!important;padding:8px 10px!important}
+#ordersList{font-size:12px!important}
+#ordersList .od-toggle-text{color:#2457d6!important;font-weight:650}
+#tab-pay,#tab-split,#tab-settings{font-size:12px!important}
+#tab-pay table,#tab-split pre,#tab-settings table{font-size:12px!important}
+.pro-settings-dock{bottom:calc(76px + env(safe-area-inset-bottom))!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:calc(100% - 24px)!important;max-width:536px!important;z-index:80!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.pro-settings-toggle{display:none!important}
+#bottomBtns{display:none;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;background:#fff!important;border:1px solid #e5eaf2!important;border-radius:16px!important;padding:9px!important;box-shadow:0 12px 30px rgba(16,35,70,.16)!important;margin-bottom:4px!important}
+#bottomBtns .btn{min-height:38px!important;border:1px solid #e5eaf2!important;background:#f8fafc!important;border-radius:9px!important;font-size:11px!important;padding:5px 4px!important;color:#475569!important}
+#bottomBtns .btn:last-child{grid-column:span 3}
+.pro-nav{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);width:calc(100% - 20px);max-width:540px;height:58px;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border:1px solid #e5eaf2;border-radius:18px;box-shadow:0 10px 30px rgba(16,35,70,.13);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding:4px;z-index:100}
+.pro-nav-item{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9.5px;color:#8c98a7;font-weight:650;border-radius:12px;padding:4px 0;height:48px}
+.pro-nav-item .pro-nav-ico{font-size:14px;font-weight:800;line-height:1;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#f0f3f8;color:#7c8998}
+.pro-nav-item.active{color:#2457d6;background:#e9efff}
+.pro-nav-item.active .pro-nav-ico{background:#2457d6;color:#fff}
+@media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
+@media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
+
+
+/* ===== 系统日/夜模式 + 浅色字对比度增强（v59.70） ===== */
+/* 浅色模式：把偏浅的说明字加深，避免灰到看不清 */
+#orderSummary,#drawInfoBar,.hint{color:#64748b!important}
+html:not([data-system-theme="dark"]) .pro-nav-item{color:#6c7a8b}
+html:not([data-system-theme="dark"]) #saveMsg{color:#334155!important}
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#999"],
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#bbb"],
+html:not([data-system-theme="dark"]) #riskBody [style*="color:#ccc"]{color:#5f6b7a!important}
+
+html[data-system-theme="dark"]{
+  --pro-ink:#e7effc; --pro-muted:#a9b8cb; --pro-line:#2a3a52; --pro-bg:#0b1220;
+  color-scheme:dark; background:#0b1220!important;
+}
+html[data-system-theme="dark"] body{
+  background:radial-gradient(600px 300px at 80% -10%,rgba(47,84,150,.22),rgba(47,84,150,0) 60%),linear-gradient(180deg,#0a1120 0%,#0d1728 45%,#0a1220 100%)!important;
+  color:var(--pro-ink)!important;
+}
+html[data-system-theme="dark"] .pro-hero{
+  background:radial-gradient(420px 220px at 88% -20%,rgba(80,140,255,.28),rgba(80,140,255,0) 65%),linear-gradient(145deg,#061225 0%,#0b2450 52%,#12408f 100%)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.42)!important;
+}
+html[data-system-theme="dark"] .pro-kicker{color:#a9c6ff!important}
+html[data-system-theme="dark"] .pro-preview{color:#ffe0a3!important;background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.22)!important}
+html[data-system-theme="dark"] #billBar{background:transparent!important;border-color:transparent!important}
+html[data-system-theme="dark"] #billDateTxt{color:#fff!important}
+html[data-system-theme="dark"] #billDayStat,#topVer{color:#b6cdff!important}
+html[data-system-theme="dark"] .pro-toolbar{background:transparent!important;border-color:rgba(255,255,255,.16)!important}
+html[data-system-theme="dark"] .pro-toolbar button{
+  background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.22)!important;color:#fff!important
+}
+html[data-system-theme="dark"] #liveClock{color:#fff!important}
+html[data-system-theme="dark"] #shopBox{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important}
+html[data-system-theme="dark"] #shopBox>div:first-child{color:#dbe8ff!important}
+html[data-system-theme="dark"] #shopBox button{background:#fff!important;border-color:#fff!important;color:#16325c!important}
+
+html[data-system-theme="dark"] .pro-entry,
+html[data-system-theme="dark"] .pro-tabs,
+html[data-system-theme="dark"] .pro-panel,
+html[data-system-theme="dark"] .card,
+html[data-system-theme="dark"] #bottomBtns,
+html[data-system-theme="dark"] .order-cust-card,
+html[data-system-theme="dark"] .order-cust-card>div:first-child,
+html[data-system-theme="dark"] #ordersList>div:first-child{
+  background:#111c2e!important;background-color:#111c2e!important;
+  border-color:#2a3a52!important;color:#e7effc!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.25)!important;
+}
+html[data-system-theme="dark"] .pro-input-wrap{
+  background:#0f1a2b!important;border-color:#2a3a52!important;color:#e7effc!important
+}
+html[data-system-theme="dark"] #input,
+html[data-system-theme="dark"] .input,
+html[data-system-theme="dark"] .textarea,
+html[data-system-theme="dark"] #customerName,
+html[data-system-theme="dark"] #orderSearch,
+html[data-system-theme="dark"] #orderDay,
+html[data-system-theme="dark"] input,
+html[data-system-theme="dark"] textarea,
+html[data-system-theme="dark"] select{
+  background:#0b1626!important;color:#f1f5f9!important;border-color:#354762!important
+}
+html[data-system-theme="dark"] input::placeholder,
+html[data-system-theme="dark"] textarea::placeholder{color:#8192a8!important}
+html[data-system-theme="dark"] #drawFetchBtn{background:#14243a!important;color:#9dc0ff!important;border-color:#354762!important}
+html[data-system-theme="dark"] #drawInfoBar,
+html[data-system-theme="dark"] #orderSummary,
+html[data-system-theme="dark"] #drawRecBox,
+html[data-system-theme="dark"] #saveMsg{color:#cbd8ea!important}
+html[data-system-theme="dark"] #saveMsg{color:#cbd8ea!important}
+html[data-system-theme="dark"] .pro-manual{background:#14243a!important;border-color:#354762!important;color:#9dc0ff!important}
+html[data-system-theme="dark"] .pro-clear{background:#162131!important;border-color:#2a3a52!important;color:#aab8ca!important}
+html[data-system-theme="dark"] .pro-save{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .pro-tabs .tab{color:#9aaac0!important}
+html[data-system-theme="dark"] .pro-tabs .tab.active{background:#1b3b72!important;color:#a9c6ff!important}
+html[data-system-theme="dark"] .rank-btn{background:#14243a!important;border-color:#2a3a52!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .rank-btn.on{background:#1b3b72!important;border-color:#4e7bc9!important;color:#bcd6ff!important}
+html[data-system-theme="dark"] #tab-orders>div:first-child{color:#cbd8ea!important}
+html[data-system-theme="dark"] #tab-orders>div:first-child button{background:#14243a!important;border-color:#354762!important;color:#bcd6ff!important}
+html[data-system-theme="dark"] #bottomBtns .btn{background:#14243a!important;border-color:#2a3a52!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .pro-nav{background:rgba(10,18,32,.96)!important;border-color:#2a3a52!important;box-shadow:0 10px 30px rgba(0,0,0,.5)!important}
+html[data-system-theme="dark"] .pro-nav-item{color:#90a2b8!important}
+html[data-system-theme="dark"] .pro-nav-item .pro-nav-ico{background:#182538!important;color:#9fb3ca!important}
+html[data-system-theme="dark"] .pro-nav-item.active{color:#a9c6ff!important;background:#17325f!important}
+html[data-system-theme="dark"] .pro-nav-item.active .pro-nav-ico{background:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .lbl{color:#aab8ca!important}
+html[data-system-theme="dark"] .pro-input-wrap>div:first-child span:first-child{color:#cbd8ea!important}
+html[data-system-theme="dark"] .last{color:#cbd8ea!important}
+html[data-system-theme="dark"] table th{background:#162436!important;color:#cbd8ea!important;border-color:#2a3a52!important}
+html[data-system-theme="dark"] table td{border-color:#223147!important;color:#e7effc!important}
+html[data-system-theme="dark"] .table-wrap{border-color:#2a3a52!important}
+html[data-system-theme="dark"] .chip{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .chip.on{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .btn{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .btn.primary{background:#2457d6!important;border-color:#2457d6!important;color:#fff!important}
+html[data-system-theme="dark"] .btn.danger{background:#3a1720!important;border-color:#7f2635!important;color:#ff9b9b!important}
+html[data-system-theme="dark"] .pro-settings-dock,
+html[data-system-theme="dark"] #settingsModal>div,
+html[data-system-theme="dark"] .ai-ov>div{background:#111c2e!important;border-color:#2a3a52!important;color:#e7effc!important}
+html[data-system-theme="dark"] #lockScreen{background:#0a1120!important}
+html[data-system-theme="dark"]{color-scheme:dark}
+html[data-system-theme="dark"] input,html[data-system-theme="dark"] select,html[data-system-theme="dark"] textarea{accent-color:#3b82f6}
+html[data-system-theme="dark"] #lockScreen>div>div:first-child{color:#e7effc!important}
+html[data-system-theme="dark"] #lockMsg{color:#aab8ca!important}
+html[data-system-theme="dark"] #lockCodeWrap>div{color:#90a2b8!important}
+html[data-system-theme="dark"] #backupTxt{background:#0b1626!important;color:#dce8f8!important;border-color:#354762!important}
+html[data-system-theme="dark"] #bgStyles button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #settingsModal button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #settingsModal button[style*="color: rgb(207, 19, 34)"],
+html[data-system-theme="dark"] #settingsModal button[style*="color:#cf1322"]{color:#ff8a8a!important}
+html[data-system-theme="dark"] .order-cust-card>div:first-child button,
+html[data-system-theme="dark"] #ordersList button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] .ai-ov button{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #billRollTip,
+html[data-system-theme="dark"] #hkDrawBar{background:#332a15!important;border-color:#7a5b1c!important;color:#f6d48a!important}
+
+/* 兜底：动态生成的白色卡片/浅灰底与深色文字统一压暗 */
+html[data-system-theme="dark"] [style*="background:#fff"],
+html[data-system-theme="dark"] [style*="background:#ffffff"],
+html[data-system-theme="dark"] [style*="background:#f8f9fa"],
+html[data-system-theme="dark"] [style*="background:#f3f4f6"],
+html[data-system-theme="dark"] [style*="background: rgb(243, 244, 246)"],
+html[data-system-theme="dark"] [style*="background:#f1f5f9"],
+html[data-system-theme="dark"] [style*="background:#eceff3"],
+html[data-system-theme="dark"] [style*="background:#f0f3f8"],
+html[data-system-theme="dark"] [style*="background:#f2f4f7"],
+html[data-system-theme="dark"] [style*="background:#fafafa"],
+html[data-system-theme="dark"] [style*="background:#f4f6fa"],
+html[data-system-theme="dark"] [style*="background:#eef0f3"],
+html[data-system-theme="dark"] [style*="background:#f2f2f2"],
+html[data-system-theme="dark"] [style*="background:#f0f0f0"],
+html[data-system-theme="dark"] [style*="background:#f7f9fd"],
+html[data-system-theme="dark"] [style*="background:#f8fafc"],
+html[data-system-theme="dark"] [style*="background:#f5f5f5"],
+html[data-system-theme="dark"] [style*="background:#fafbfc"],
+html[data-system-theme="dark"] [style*="background:#f7f7f7"],
+html[data-system-theme="dark"] [style*="background:#f9f9f9"],
+html[data-system-theme="dark"] [style*="background: rgb(255, 255, 255)"],
+html[data-system-theme="dark"] [style*="background: rgb(248, 249, 250)"],
+html[data-system-theme="dark"] [style*="background: rgb(245, 245, 245)"],
+html[data-system-theme="dark"] [style*="background: rgb(247, 249, 253)"],
+html[data-system-theme="dark"] [style*="background: rgb(248, 250, 252)"],
+html[data-system-theme="dark"] [style*="background: rgb(249, 249, 249)"],
+html[data-system-theme="dark"] [style*="background: rgb(240, 243, 248)"],
+html[data-system-theme="dark"] [style*="background: rgb(233, 239, 255)"],
+html[data-system-theme="dark"] [style*="background: rgb(247, 247, 247)"],
+html[data-system-theme="dark"] [style*="background: rgb(250, 251, 252)"],
+html[data-system-theme="dark"] [style*="background: rgb(238, 240, 243)"],
+html[data-system-theme="dark"] [style*="background:#e9efff"]{
+  background:#111c2e!important;background-color:#111c2e!important;
+  color:#e7effc!important;border-color:#2a3a52!important
+}
+html[data-system-theme="dark"] [style*="color:#333"],
+html[data-system-theme="dark"] [style*="color:#1f2329"],
+html[data-system-theme="dark"] [style*="color:#17202b"],
+html[data-system-theme="dark"] [style*="color:#1a1a1a"],
+html[data-system-theme="dark"] [style*="color:#000"],
+html[data-system-theme="dark"] [style*="color:#555"],
+html[data-system-theme="dark"] [style*="color:#666"],
+html[data-system-theme="dark"] [style*="color:#888"],
+html[data-system-theme="dark"] [style*="color:#999"],
+html[data-system-theme="dark"] [style*="color:#334155"],
+html[data-system-theme="dark"] [style*="color:#475569"],
+html[data-system-theme="dark"] [style*="color:#8b97a6"],
+html[data-system-theme="dark"] [style*="color:#7b8797"],
+html[data-system-theme="dark"] [style*="color:#758294"],
+html[data-system-theme="dark"] [style*="color:#8c98a7"],
+html[data-system-theme="dark"] [style*="color:#64748b"],
+html[data-system-theme="dark"] [style*="color: rgb(51, 51, 51)"],
+html[data-system-theme="dark"] [style*="color: rgb(31, 35, 41)"],
+html[data-system-theme="dark"] [style*="color: rgb(23, 32, 43)"],
+html[data-system-theme="dark"] [style*="color: rgb(85, 85, 85)"],
+html[data-system-theme="dark"] [style*="color: rgb(102, 102, 102)"],
+html[data-system-theme="dark"] [style*="color: rgb(136, 136, 136)"],
+html[data-system-theme="dark"] [style*="color: rgb(153, 153, 153)"],
+html[data-system-theme="dark"] [style*="color: rgb(187, 187, 187)"],
+html[data-system-theme="dark"] [style*="color: rgb(204, 204, 204)"],
+html[data-system-theme="dark"] [style*="color: rgb(100, 116, 139)"],
+html[data-system-theme="dark"] [style*="color:#bbb"],
+html[data-system-theme="dark"] [style*="color:#ccc"]{
+  color:#cbd8ea!important
+}
+html[data-system-theme="dark"] [style*="color:#cf1322"],
+html[data-system-theme="dark"] [style*="color:#e74c3c"],
+html[data-system-theme="dark"] [style*="color:red"]{color:#ff8a8a!important}
+html[data-system-theme="dark"] [style*="color:#16a34a"],
+html[data-system-theme="dark"] [style*="color:#059669"],
+html[data-system-theme="dark"] [style*="color:#22c55e"],
+html[data-system-theme="dark"] [style*="color:green"]{color:#6ee7b7!important}
+html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
+
+
+/* 动态内容夜间兜底：JS 扫描后加类，浅色切换时只移除类即可复原 */
+.tdark-bg{background-color:#111c2e!important;border-color:#2a3a52!important}
+.tdark-bg-green{background-color:#10261f!important;border-color:#2f5e4a!important}
+.tdark-bg-blue{background-color:#10213a!important;border-color:#31527e!important}
+.tdark-bg-amber{background-color:#2e2410!important;border-color:#7a5b1c!important}
+.tdark-bg-red{background-color:#2c1519!important;border-color:#7f2635!important}
+.tdark-border{border-color:#2a3a52!important}
+.tdark-border-green{border-color:#2f5e4a!important}
+.tdark-border-blue{border-color:#31527e!important}
+.tdark-border-amber{border-color:#7a5b1c!important}
+.tdark-border-red{border-color:#7f2635!important}
+
 </style>
 </head>
 <body>
@@ -95,6 +379,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
   <div id="memInfo"></div>
 </header>
 <main>
+<div class="pro-hero">
+<div class="pro-brand"><div><div class="pro-kicker">PRO ORDER · RECORD FIRST</div><div class="pro-h1">录单</div></div><span class="pro-preview" style="display:none"></span></div>
 <div id="billBar" style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
   <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap">
     <span id="billDateTxt" style="font-size:15px;font-weight:700;color:#333">--</span>
@@ -105,7 +391,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
 <div id="billRollTip" style="display:none;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:13px;line-height:1.5;color:#613400"></div>
   <div id="storageWarn" style="display:none;background:#fff2f0;color:#cf1322;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
   <div id="storageQuotaWarn" style="display:none;border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.3;margin-bottom:10px"></div>
-  <div style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
+  <div class="pro-toolbar" style="background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:4px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <button type="button" style="border:1px solid #ddd;background:#f7f7f7;border-radius:6px;padding:6px 12px;font-size:14px;font-weight:600" onclick="toggleCust()">客户:<span id="custLabel">散客</span>▾</button>
       <span id="liveClock" style="font-size:16px;font-weight:700;color:#333;font-variant-numeric:tabular-nums"></span>
@@ -120,7 +406,8 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       </div>
     </div>
   </div>
-  <section class="card">
+</div>
+  <section class="card pro-entry">
     <div id="custBox" style="display:none">
     <label class="lbl">客户名称（新客户直接打字；老客户点下面的名字）</label>
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
@@ -132,7 +419,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button id="mode-btn-bundle" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #7c3aed;background:#7c3aed;color:#fff" onclick="setMode('bundle')" ontouchstart="modePressTimer=setTimeout(editBundleLabel,600)" ontouchend="clearTimeout(modePressTimer)">套餐模式</button>
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
-    <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
+    <div class="pro-input-wrap" style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span style="font-size:12px;color:#666">订单输入区</span>
         <span id="orderSummary" style="font-size:11px;color:#999"></span>
@@ -148,15 +435,15 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
         <span id="hkDrawTxt"></span>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
-        <button class="btn" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
+        <button class="btn pro-save" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
+        <button class="btn pro-manual" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
+        <button class="btn pro-clear" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
       </div>
     </div>
     <div id="saveMsg" style="margin-top:6px;font-size:15px;color:#333"></div>
   </section>
 
-  <div class="tabs">
+  <div class="tabs pro-tabs">
     <button class="tab active" id="tab-btn-rank" onclick="switchTab('rank')">排行榜</button>
     <!-- <button class="tab" id="tab-btn-all" onclick="switchTab('all')">产品累计</button> -->
     <button class="tab" id="tab-btn-cust" onclick="switchTab('cust')" style="display:none">客户统计</button>
@@ -175,19 +462,19 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-rank" class="card tab-panel">
+  <section id="tab-rank" class="card tab-panel pro-panel">
     <div style="display:flex;gap:6px;margin-bottom:6px">
-      <div onclick="var e=document.getElementById('rankTableBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
+      <div data-rank-section="rank" onclick="openRankSection('rank')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
       <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
 
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
-      <div onclick="var e=document.getElementById('riskBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
-      <div onclick="var e=document.getElementById('splitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
-      <div onclick="var e=document.getElementById('profitBody');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
-      <div onclick="var e=document.getElementById('singlesList');e.style.display=e.style.display==='none'?'':'none'" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
+      <div data-rank-section="risk" onclick="openRankSection('risk')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
+      <div data-rank-section="split" onclick="openRankSection('split')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
+      <div data-rank-section="profit" onclick="openRankSection('profit')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
+      <div data-rank-section="singles" onclick="openRankSection('singles')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
     </div>
     <div id="rankTableBody" style="display:none;text-align:left">
     <div style="display:flex;gap:4px">
@@ -213,11 +500,11 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="riskBody" style="display:none;text-align:left"></div>
   </section>
 
-  <section id="tab-cust" class="card tab-panel" style="display:none">
+  <section id="tab-cust" class="card tab-panel pro-panel" style="display:none">
     <div id="tbody-cust"></div>
   </section>
 
-  <section id="tab-orders" class="card tab-panel" style="display:none">
+  <section id="tab-orders" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-weight:700;font-size:15px">订单对账</div>
       <div style="display:flex;gap:6px"><button onclick="showLastOrder()" style="border:1px solid #fa8c16;background:#fff7e6;color:#d46b08;border-radius:6px;padding:4px 10px;font-size:12px">本次订单</button><button onclick="showTodayRecon()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 10px;font-size:12px">今日对账</button><button onclick="copyAllOrders()" style="border:1px solid #7c3aed;background:#fff;color:#7c3aed;border-radius:6px;padding:4px 10px;font-size:12px">复制汇总</button></div>
@@ -248,7 +535,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-pay" class="card tab-panel" style="display:none">
+  <section id="tab-pay" class="card tab-panel pro-panel" style="display:none">
     <div style="font-size:17px;margin-bottom:8px">
       销售总额：<b id="paySales">0.00</b> 元 |
       总赔付：<b style="color:#cf1322" id="payTotal">0.00</b> 元 |
@@ -270,7 +557,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section id="tab-split" class="card tab-panel" style="display:none">
+  <section id="tab-split" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
       <span style="font-size:17px">阈值：</span>
       <input id="splitTakeAll" type="number" placeholder="如100" style="width:120px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:18px" oninput="setFlyTh(this.value,0,this.id)" onchange="setFlyTh(this.value,1,this.id)">
@@ -302,7 +589,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     <div id="autoCustPay" style="margin-top:8px"></div>
   </section>
 
-  <section id="tab-settings" class="card tab-panel" style="display:none">
+  <section id="tab-settings" class="card tab-panel pro-panel" style="display:none">
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <input id="newProductCode" class="input" placeholder="添加主产品名，如：手机壳（不要填数字）" style="flex:1">
       <button class="btn primary" style="min-width:80px" onclick="addProduct()">添加主产品</button>
@@ -335,9 +622,9 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
     </div>
   </section>
 
-  <section class="card" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border:none;box-shadow:none;background:transparent !important;padding:0 0 4px">
+  <section class="card pro-settings-dock" style="position:fixed;bottom:0;left:0;right:0;margin:0 auto;max-width:600px;z-index:100;border:none;box-shadow:none;background:transparent !important;padding:0 0 4px">
     <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
-    <div onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:2px;cursor:pointer;font-size:11px;color:#999;line-height:1.2">
+    <div class="pro-settings-toggle" onclick="var b=document.getElementById('bottomBtns');b.style.display=b.style.display==='none'?'':'none';this.querySelector('.arrow').textContent=b.style.display==='none'?'▲':'▼'" style="text-align:center;padding:2px;cursor:pointer;font-size:11px;color:#999;line-height:1.2">
       功能设置 <span class="arrow">▼</span>
     </div>
     <div id="bottomBtns" class="btn-row" style="display:none">
@@ -522,7 +809,7 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">九、数据备份（重要）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. 数据存本机，并<b style="color:var(--modalText,#fff)">自动双备份</b>（localStorage + IndexedDB），清缓存不容易丢<br>
-        2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把全部数据导出成文件，建议每天存一份<br>
+        2. <b style="color:var(--modalText,#fff)">备份JSON</b>：把活动订单、历史归档、客户名单、产品、赔付、飞单配置、主题导出成一个文件，建议每天存一份<br>
         3. <b style="color:var(--modalText,#fff)">导入备份</b>：换手机/重装后选JSON文件恢复；手机选不了文件就用旁边的<b style="color:var(--modalText,#fff)">粘贴导入</b>，把备份内容直接粘进窗口<br>
         4. <b style="color:var(--modalText,#fff)">一键恢复上次备份</b>：误操作后快速回滚<br>
         5. <b style="color:var(--modalText,#fff)">清空全部数据</b>：全部清零且不可恢复，非必要别点
@@ -606,9 +893,159 @@ td.cust{max-width:100px;overflow:hidden;text-overflow:ellipsis;text-align:left;w
       <button onclick="closeHelp()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--modalBtn,#3a3a3c);color:var(--modalBtnText,#fff);font-size:16px;font-weight:600;margin-top:20px">知道了</button>
     </div>
   </div>
+<div class="pro-nav">
+  <button class="pro-nav-item active" onclick="proGo('entry',this)"><span class="pro-nav-ico">录</span><span>录单</span></button>
+  <button class="pro-nav-item" onclick="proGo('rank',this)"><span class="pro-nav-ico">排</span><span>排行</span></button>
+  <button class="pro-nav-item" onclick="proGo('orders',this)"><span class="pro-nav-ico">单</span><span>订单</span></button>
+  <button class="pro-nav-item" onclick="event.stopPropagation();proGo('more',this)"><span class="pro-nav-ico">⋯</span><span>功能</span></button>
+</div>
 </main>
 
 <script>
+
+// ===== 系统日/夜模式：跟随手机系统（APK 原生会主动调用） =====
+(function(){
+  function sysDark(){
+    try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; }
+  }
+  var mo = null, timer = null, normalizing = false;
+  function parseColor(c){
+    var m = String(c||'').match(/rgba?\(([^)]+)\)/);
+    if(!m) return null;
+    var a = m[1].split(',').map(function(x){ return parseFloat(x); });
+    return {r:a[0],g:a[1],b:a[2],a:(a.length>3?a[3]:1)};
+  }
+  function hueSat(r,g,b){
+    var max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    var l=(max+min)/510;
+    var s=d===0?0:d/(1-Math.abs(2*l-1));
+    var h=0;
+    if(d!==0){
+      if(max===r) h=60*(((g-b)/d)%6);
+      else if(max===g) h=60*(((b-r)/d)+2);
+      else h=60*(((r-g)/d)+4);
+      if(h<0) h+=360;
+    }
+    return {h:h,s:s,l:l};
+  }
+  function bgClass(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.10){
+      if(hs.h>=70 && hs.h<170) return 'tdark-bg-green';
+      if(hs.h>=190 && hs.h<260) return 'tdark-bg-blue';
+      if(hs.h>=15 && hs.h<70) return 'tdark-bg-amber';
+      if(hs.h>=330 || hs.h<15) return 'tdark-bg-red';
+    }
+    return 'tdark-bg';
+  }
+  function borderClass(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.10){
+      if(hs.h>=70 && hs.h<170) return 'tdark-border-green';
+      if(hs.h>=190 && hs.h<260) return 'tdark-border-blue';
+      if(hs.h>=15 && hs.h<70) return 'tdark-border-amber';
+      if(hs.h>=330 || hs.h<15) return 'tdark-border-red';
+    }
+    return 'tdark-border';
+  }
+  function textColor(r,g,b){
+    var hs=hueSat(r,g,b);
+    if(hs.s>0.30){
+      if(hs.h>=345 || hs.h<15) return '#ff8a8a';
+      if(hs.h>=15 && hs.h<70) return '#fcd34d';
+      if(hs.h>=70 && hs.h<170) return '#6ee7b7';
+      if(hs.h>=190 && hs.h<260) return '#9dc0ff';
+      if(hs.h>=260 && hs.h<330) return '#c4b5fd';
+    }
+    return '#cbd8ea';
+  }
+  function restore(){
+    var all=document.querySelectorAll('.tdark-bg,.tdark-bg-green,.tdark-bg-blue,.tdark-bg-amber,.tdark-bg-red,.tdark-border,.tdark-border-green,.tdark-border-blue,.tdark-border-amber,.tdark-border-red');
+    for(var i=0;i<all.length;i++) all[i].classList.remove('tdark-bg','tdark-bg-green','tdark-bg-blue','tdark-bg-amber','tdark-bg-red','tdark-border','tdark-border-green','tdark-border-blue','tdark-border-amber','tdark-border-red');
+    var txt=document.querySelectorAll('[data-tdark-color]');
+    for(var j=0;j<txt.length;j++){
+      var el=txt[j], v=el.getAttribute('data-tdark-color')||'', p=el.getAttribute('data-tdark-color-p')||'';
+      if(v) el.style.setProperty('color',v,p); else el.style.removeProperty('color');
+      el.removeAttribute('data-tdark-color'); el.removeAttribute('data-tdark-color-p');
+    }
+  }
+  function apply(){
+    if(!document.body){ return; }
+    if(document.documentElement.getAttribute('data-system-theme') !== 'dark'){
+      restore();
+      if(mo){ mo.disconnect(); mo=null; }
+      return;
+    }
+    if(normalizing) return;
+    normalizing=true;
+    try{
+      var nodes=document.body.querySelectorAll('*');
+      for(var i=0;i<nodes.length;i++){
+        var el=nodes[i];
+        if(el.tagName==='SCRIPT'||el.tagName==='STYLE'||el.tagName==='IMG'||el.tagName==='SVG'||el.tagName==='VIDEO'||el.tagName==='CANVAS') continue;
+        if(el.closest && el.closest('.pro-hero')) continue;
+        var cs=getComputedStyle(el);
+        if(cs.display==='none'||cs.visibility==='hidden') continue;
+        var bg=parseColor(cs.backgroundColor);
+        if(bg && bg.a>0.05 && hueSat(bg.r,bg.g,bg.b).l>0.62 && cs.backgroundImage==='none'){
+          if(!el.classList.contains('tdark-bg') && !el.classList.contains('tdark-bg-green') && !el.classList.contains('tdark-bg-blue') && !el.classList.contains('tdark-bg-amber') && !el.classList.contains('tdark-bg-red')){
+            el.classList.add(bgClass(bg.r,bg.g,bg.b));
+          }
+        }
+        var _hasBgClass = el.classList.contains('tdark-bg') || el.classList.contains('tdark-bg-green') || el.classList.contains('tdark-bg-blue') || el.classList.contains('tdark-bg-amber') || el.classList.contains('tdark-bg-red');
+        if(!_hasBgClass && !el.classList.contains('tdark-border') && !el.classList.contains('tdark-border-green') && !el.classList.contains('tdark-border-blue') && !el.classList.contains('tdark-border-amber') && !el.classList.contains('tdark-border-red')){
+          var bd=null;
+          var _sides=['Top','Right','Bottom','Left'];
+          for(var si=0;si<4;si++){
+            if((parseFloat(cs['border'+_sides[si]+'Width'])||0)>0){
+              var _bc=parseColor(cs['border'+_sides[si]+'Color']);
+              if(_bc && _bc.a>0.05){ bd=_bc; break; }
+            }
+          }
+          if(bd && hueSat(bd.r,bd.g,bd.b).l>0.62){
+            el.classList.add(borderClass(bd.r,bd.g,bd.b));
+          }
+        }
+        if(el.textContent && el.textContent.trim()){
+          var fg=parseColor(cs.color);
+          if(fg && fg.a>0.05 && hueSat(fg.r,fg.g,fg.b).l<0.55 && !el.hasAttribute('data-tdark-color')){
+            el.setAttribute('data-tdark-color', el.style.getPropertyValue('color')||'');
+            el.setAttribute('data-tdark-color-p', el.style.getPropertyPriority('color')||'');
+            el.style.setProperty('color', textColor(fg.r,fg.g,fg.b), 'important');
+          }
+        }
+      }
+    }catch(e){}
+    normalizing=false;
+    if(!mo && document.body){
+      mo=new MutationObserver(function(){ schedule(); });
+      mo.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class']});
+    }
+  }
+  function schedule(){
+    if(timer) clearTimeout(timer);
+    timer=setTimeout(function(){ timer=null; apply(); },60);
+  }
+  window.__applySystemTheme = function(mode){
+    var dark = String(mode||'').toLowerCase() === 'dark';
+    try{
+      document.documentElement.setAttribute('data-system-theme', dark ? 'dark' : 'light');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', dark ? '#0b1220' : '#ffffff');
+    }catch(e){}
+    schedule();
+  };
+  window.__normalizeSystemDark = schedule;
+  window.__applySystemTheme(sysDark() ? 'dark' : 'light');
+  try{
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onChange = function(e){ window.__applySystemTheme(e.matches ? 'dark' : 'light'); };
+    if(mq.addEventListener) mq.addEventListener('change', onChange);
+    else if(mq.addListener) mq.addListener(onChange);
+  }catch(e){}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', schedule);
+  else schedule();
+})();
 // === IndexedDB自动备份（比localStorage更持久，清缓存不丢） ===
 let _db = null;
 function openDB(){
@@ -669,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.66-Pro';
+var APP_VER = 'v59.72-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5774,6 +6211,17 @@ function normalizeComboLine(line){
   line = String(line || '');
   var defs = [['二中二', 2], ['三中二', 3], ['三中三', 3]];
   var SEP = '[\\s,，、\\-\\u2010-\\u2015\\/]+';
+  // 复式冒号写法：三中三复式:09,45,... / 复式三中三:09,45,...
+  // 先把“复式”挪到产品名后面，并把冒号后的整串号码用空格分开，
+  // 交给下面的复式展开逻辑；否则只会匹配前 3 个号码、把“复式:”留给 parseLine 报无法识别。
+  var _prods = '二中二|三中二|三中三';
+  var _numGroup = '\\d{1,2}(?:' + SEP + '\\d{1,2})+';
+  line = line.replace(new RegExp('复(?:式)?\\s*(' + _prods + ')\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
+  line = line.replace(new RegExp('(' + _prods + ')\\s*复(?:式)?\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
   defs.forEach(function(d){
     var prod = d[0], n = d[1];
     var seq = '\\d{2}(?:' + SEP + '\\d{2}){' + (n - 1) + '}';
@@ -5793,6 +6241,42 @@ function normalizeComboLine(line){
     return prod + '复式' + nums + '各' + amt;
   });
   return line.replace(/\s+/g, ' ').trim();
+}
+// 多行组合块：首行「三中三09-30-31」给出产品，后续几行只有纯号码组合，
+// 金额可能写在最后一行「04-36-07各组5」。逐行独立解析时，后续行没有产品名会报
+// 「无法识别：-」；这里把整块补成每行「三中三:09,30,31 各组5」再交给 parseLine。
+function comboBlockInfo(line){
+  var s = String(line || '').trim().replace(/[\s,，、;；.。]+$/, '');
+  var m = s.match(/^(?:(香港|澳门|澳|港)\s*)?(?:(三中三|三中二|二中二)\s*(?:复(?:式)?)?\s*[:：]?\s*)?((?:\d{2}[\s,，、.\-–—―－+·/]+){1,2}\d{2})(?:\s*(?:各|每)\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?))?$/);
+  if(!m) return null;
+  var nums = m[3].match(/\d{2}/g) || [];
+  if(nums.length < 2 || nums.length > 3) return null;
+  return { prefix: m[1] || '', prod: m[2] || '', nums: nums, price: m[4] ? parseFloat(m[4]) : null };
+}
+function normalizeComboBlocks(lines){
+  var out = lines.slice();
+  for(var i = 0; i < out.length; i++){
+    var h = comboBlockInfo(out[i]);
+    if(!h || !h.prod) continue;
+    var need = h.prod === '二中二' ? 2 : 3;
+    if(h.nums.length !== need) continue;
+    var members = [i], j = i + 1, price = h.price;
+    while(j < out.length){
+      var b = comboBlockInfo(out[j]);
+      if(!b || b.prod || b.nums.length !== need) break;
+      members.push(j);
+      if(b.price && !price) price = b.price;
+      j++;
+    }
+    if(members.length < 2 || !(price > 0)) continue;
+    for(var k = 0; k < members.length; k++){
+      var bk = comboBlockInfo(out[members[k]]);
+      var p = bk.price || price;
+      out[members[k]] = (h.prefix ? h.prefix + ' ' : '') + h.prod + ':' + bk.nums.join(',') + ' 各组' + p;
+    }
+    i = members[members.length - 1];
+  }
+  return out;
 }
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
@@ -7892,7 +8376,7 @@ renderAll();
     if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
   }
   // 多行组合：前面几行纯号码组合，最后一行"三中三各组20"给类型和每组金额
-  let workLines = mergedLines;
+  let workLines = normalizeComboBlocks(mergedLines);
   let comboProduct = null, comboPrice = null;
   for(const ln of mergedLines){
     const mc = ln.match(/^(三中三|二中二|三中二)\s*(?:各(?:组|数|号|个)?\s*)?([0-9]+(?:\.[0-9]+)?)\s*$/);
@@ -7901,7 +8385,7 @@ renderAll();
   if(comboProduct && comboPrice){
     const nNums = comboProduct === '二中二' ? 2 : 3;
     const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
-    workLines = mergedLines.map(ln=>{
+    workLines = workLines.map(ln=>{
       const t = ln.trim();
       if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
       if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;
@@ -10646,6 +11130,7 @@ function renderStatsSections(stats){
     });
   }
   document.getElementById('tbody-cust').innerHTML = custHtml;
+  try { applyRankSectionState(); } catch(e){}
 }
 
 function renderAll(){
@@ -10716,6 +11201,31 @@ function renderAll(){
   try { renderStorageQuotaWarning(); } catch(e){}
 }
 
+var _rankOpen = '';
+function applyRankSectionState(){
+  var p = {rank:'rankTableBody', singles:'rank-singles', split:'rank-split', profit:'rank-pay', risk:'riskBody'};
+  Object.keys(p).forEach(function(k){
+    var el = document.getElementById(p[k]);
+    if(el) el.style.display = (k === _rankOpen ? 'block' : 'none');
+  });
+  if(_rankOpen === 'singles'){ var l = document.getElementById('singlesList'); if(l) l.style.display = 'block'; }
+  if(_rankOpen === 'split'){ var sp = document.getElementById('splitBody'); if(sp) sp.style.display = 'block'; }
+  if(_rankOpen === 'profit'){ var pb = document.getElementById('profitBody'); if(pb) pb.style.display = 'block'; }
+  var btns = document.querySelectorAll('.rank-btn[data-rank-section]');
+  for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-rank-section') === _rankOpen);
+}
+function openRankSection(key){
+  _rankOpen = (_rankOpen === key ? '' : key);
+  if(_rankOpen === 'split'){
+    try { calcSplit(); refreshFlySummary(); } catch(e){}
+  }
+  applyRankSectionState();
+  if(_rankOpen){
+    var anchor = document.querySelector('.pro-tabs') || document.getElementById('tab-rank');
+    if(anchor) anchor.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+
 function switchTab(name){
   _activeTab = name;
   ['all','rank','cust','orders','pay','split','settings'].forEach(k => {
@@ -10777,21 +11287,52 @@ function exportCSV(){
   download('产品统计_' + dateStr() + '.csv', csv, 'text/csv;charset=utf-8');
 }
 
+function buildBackupPayload(){
+  var theme = null;
+  try { theme = JSON.parse(localStorage.getItem('app_theme')||'null'); } catch(e){ theme = null; }
+  return {
+    version: 5,
+    exportedAt: new Date().toISOString(),
+    orders: orders || [],
+    hkOrders: hkOrders || [],
+    roster: roster || [],
+    products: products || [],
+    billArchive: billArchive || {},
+    pays: pays || [],
+    custpays: custpays || [],
+    payMult: Number(payMult)||0,
+    splitTakeAll: Number(splitTakeAll)||0,
+    pteFlyTakeAll: Number(pteFlyTakeAll)||0,
+    lxFlyAmt: Number(lxFlyAmt)||0,
+    autoFlyOn: !!autoFlyOn,
+    flyRoundOn: (typeof flyRoundOn === 'function' ? flyRoundOn() : false),
+    flownPerPos: flownPerPos || {},
+    flownReal: flownReal || {},
+    hkModes: hkModeMap(),
+    hkGlobalMode: hkGlobalMode(),
+    shop: shop,
+    theme: theme
+  };
+}
+
 function exportBackup(){
-  const data = JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() });
+  const payload = buildBackupPayload();
+  const data = JSON.stringify(payload);
+  const pretty = JSON.stringify(payload, null, 2);
+  const dayCount = Object.keys(payload.billArchive||{}).length;
+  const custCount = (payload.roster||[]).length;
+  const orderCount = (payload.orders||[]).length + (payload.hkOrders||[]).length;
   // 同时在app内部存一份最近备份，方便"一键恢复"，不用找下载文件夹
   try { localStorage.setItem('_lastBackup', data); localStorage.setItem('_lastBackupTime', new Date().toLocaleString('zh-CN')); } catch(e){}
   // 先尝试下载
   try {
-    download('订单备份_' + dateStr() + '.json',
-      JSON.stringify({ version: 3, orders, hkOrders, roster, products, hkModes: hkModeMap(), hkGlobalMode: hkGlobalMode() }, null, 2),
-      'application/json');
+    download('完整备份_' + dateStr() + '.json', pretty, 'application/json');
   } catch(e){}
   // 同时弹窗显示内容+复制按钮（手机端下载经常打不开）
   const ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">'
-    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 数据备份（共'+activeOrders().length+'单）</div>'
+    + '<div style="padding:14px;font-size:16px;font-weight:700;text-align:center;color:#333;border-bottom:1px solid #eee">📦 完整备份<br><span style="font-size:12px;color:#888;font-weight:400">'+orderCount+'单 · 归档'+dayCount+'天 · 客户'+custCount+'人</span></div>'
     + '<div style="margin:12px 12px 0;padding:10px;background:#e8f7ee;color:#16a34a;border-radius:8px;font-size:14px;font-weight:700;text-align:center;line-height:1.5">✓ 已自动存到 app 内部<br><span style="font-weight:400;font-size:12px">以后点绿色「一键恢复上次备份」即可找回，不用找文件</span></div>'
     + '<div style="padding:12px;flex:1;overflow:auto;background:#f9f9f9;margin:10px;border-radius:6px"><textarea id="backupTxt" style="width:100%;height:160px;border:1px solid #ddd;border-radius:4px;padding:6px;font-size:11px;font-family:monospace;color:#333;resize:none">'+data.replace(/</g,'&lt;')+'</textarea></div>'
     + '<div style="display:flex;gap:8px;padding:0 14px 14px">'
@@ -10803,6 +11344,8 @@ function exportBackup(){
 
 function applyBackup(data){
   let newOrders, newHKOrders = null, newRoster = null, newProducts = null, newHKModes = null, newHKGlobalMode = null;
+  let newArchive = null, newPays = null, newCustPays = null, newPayMult = null, newSplit = null, newPte = null, newLx = null;
+  let newAutoFly = null, newFlyRound = null, newFlownPerPos = null, newFlownReal = null, newTheme = null, newShop = null;
   if(Array.isArray(data)){
     newOrders = data;
   } else if(data && Array.isArray(data.orders)){
@@ -10812,21 +11355,51 @@ function applyBackup(data){
     if(Array.isArray(data.products)) newProducts = data.products;
     if(data.hkModes && typeof data.hkModes === 'object') newHKModes = data.hkModes;
     if(data.hkGlobalMode === 'all' || data.hkGlobalMode === 'rule' || data.hkGlobalMode === 'none') newHKGlobalMode = data.hkGlobalMode;
+    if(data.billArchive && typeof data.billArchive === 'object' && !Array.isArray(data.billArchive)) newArchive = data.billArchive;
+    if(Array.isArray(data.pays)) newPays = data.pays;
+    if(Array.isArray(data.custpays)) newCustPays = data.custpays;
+    if(isFinite(Number(data.payMult)) && Number(data.payMult) > 0) newPayMult = Number(data.payMult);
+    if(isFinite(Number(data.splitTakeAll))) newSplit = Number(data.splitTakeAll);
+    if(isFinite(Number(data.pteFlyTakeAll))) newPte = Number(data.pteFlyTakeAll);
+    if(isFinite(Number(data.lxFlyAmt))) newLx = Number(data.lxFlyAmt);
+    if(typeof data.autoFlyOn === 'boolean') newAutoFly = data.autoFlyOn;
+    if(typeof data.flyRoundOn === 'boolean') newFlyRound = data.flyRoundOn;
+    if(data.flownPerPos && typeof data.flownPerPos === 'object') newFlownPerPos = data.flownPerPos;
+    if(data.flownReal && typeof data.flownReal === 'object') newFlownReal = data.flownReal;
+    if(data.theme && typeof data.theme === 'object') newTheme = data.theme;
+    if(data.shop === 'A' || data.shop === 'B') newShop = data.shop;
   } else {
     throw new Error('备份格式不正确');
   }
   const _total = newOrders.length + (newHKOrders ? newHKOrders.length : 0);
-  myConfirm(`将用备份中的 ${_total} 条订单（澳门${newOrders.length} / 香港${newHKOrders ? newHKOrders.length : 0}）替换当前 ${activeOrders().length} 条活动订单，确定？`, function(){
+  const _archDays = newArchive ? Object.keys(newArchive).length : 0;
+  const _custN = newRoster ? newRoster.length : 0;
+  const _payN = newPays ? newPays.length : 0;
+  myConfirm(`将用备份中的 ${_total} 条活动订单、${_archDays} 天归档、${_custN} 个客户、${_payN} 条赔付覆盖当前数据，确定？`, function(){
   orders = newOrders.map(normalizeOrder);
   if(newHKOrders) hkOrders = newHKOrders.map(normalizeOrder);
   if(newRoster){ roster = newRoster; saveRoster(); }
   if(newProducts && newProducts.length){ products = newProducts; saveProducts(); }
+  if(newArchive){ billArchive = newArchive; billSaveArchive(); }
+  if(newPays){ pays = newPays; if(typeof savePays === 'function') savePays(); }
+  if(newCustPays){ custpays = newCustPays; if(typeof saveCP === 'function') saveCP(); }
+  if(newPayMult != null){ payMult = newPayMult; try{ localStorage.setItem(PAY_MULT_KEY, payMult); }catch(e){} }
+  if(newSplit != null){ splitTakeAll = newSplit; try{ localStorage.setItem(SPLIT_KEY, JSON.stringify(splitTakeAll)); }catch(e){} }
+  if(newPte != null){ pteFlyTakeAll = newPte; try{ localStorage.setItem(sk('pteFlyTakeAll'), String(pteFlyTakeAll)); }catch(e){} }
+  if(newLx != null){ lxFlyAmt = newLx; try{ localStorage.setItem(sk('lxFlyAmt'), String(lxFlyAmt)); }catch(e){} }
+  if(newAutoFly != null){ autoFlyOn = newAutoFly; try{ localStorage.setItem(sk('autoFlyOn'), autoFlyOn?'1':'0'); localStorage.setItem(sk('emFlyOn'), autoFlyOn?'1':'0'); }catch(e){} }
+  if(newFlyRound != null){ try{ localStorage.setItem(sk('flyRoundOn'), newFlyRound?'1':'0'); }catch(e){} }
+  if(newFlownPerPos){ flownPerPos = newFlownPerPos; try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); }catch(e){} }
+  if(newFlownReal){ flownReal = newFlownReal; try{ localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){} }
+  if(newTheme){ try{ localStorage.setItem('app_theme', JSON.stringify(newTheme)); }catch(e){}; try{ applyTheme(); }catch(e){} }
+  if(newShop){ try{ localStorage.setItem('current_shop', newShop); }catch(e){}; shop = newShop; var _sl=document.getElementById('shopLabel'); if(_sl) _sl.textContent = shopNames[shop]; }
   if(newHKModes){ try{ localStorage.setItem(HK_MODE_KEY, JSON.stringify(newHKModes)); }catch(e){} }
   if(newHKGlobalMode){ try{ localStorage.setItem(HK_GLOBAL_MODE_KEY, newHKGlobalMode); }catch(e){} }
   saveOrders();
   restoreIfNeeded();
   renderAll();
-  myAlert('导入成功');
+  if(typeof billRefreshBar === 'function') billRefreshBar();
+  myAlert('导入成功：' + _total + ' 单，归档 ' + _archDays + ' 天，客户 ' + _custN + ' 人');
   });
 }
 function importBackup(ev){
@@ -11457,12 +12030,9 @@ function applyTheme(){
       }
     `;
   }
-  st.textContent = `
-    .last { color: ${color} !important; }
-    ${darkCss}
-    ${lightCss}
-  `;
-  const fs = t.fontSize || 17;
+  st.textContent = '';
+  const fs = t.fontSize || 15;
+  document.documentElement.style.setProperty('--pro-fs', fs+'px');
   document.body.style.fontSize = fs+'px';
 }
 
@@ -12153,6 +12723,29 @@ setInterval(function(){
     if(r && r.ok) location.replace(url);
   }).catch(function(){});
 })();
+</script>
+
+<script>
+function proGo(name, el){
+  try{
+    if(name === 'entry'){
+      window.scrollTo({top:0, behavior:'smooth'});
+      var inp = document.getElementById('input');
+      if(inp) setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 260);
+    } else if(name === 'rank' || name === 'orders'){
+      if(typeof switchTab === 'function') switchTab(name);
+      var tabs = document.querySelector('.pro-tabs');
+      if(tabs) tabs.scrollIntoView({behavior:'smooth', block:'start'});
+    } else if(name === 'more'){
+      var b = document.getElementById('bottomBtns');
+      if(b) b.style.display = (b.style.display === 'none' || !b.style.display) ? 'grid' : 'none';
+    }
+    if(el){
+      document.querySelectorAll('.pro-nav-item').forEach(function(x){ x.classList.remove('active'); });
+      el.classList.add('active');
+    }
+  }catch(e){}
+}
 </script>
 </body>
 </html>
