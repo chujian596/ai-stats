@@ -56,6 +56,9 @@ def main():
         cand_rows = cand.get("rows") or []
     except Exception:
         cand_rows = []
+    # 候选站身份统一由下方候选段登记（带 grade/cols/flags/pending）；
+    # 候选进快照后也会出现在 registry 里，这里跳过以免重复建条目。
+    cand_id_set = {f"{c.get('system') or 'unknown'}:{c.get('siteKey') or ''}" for c in cand_rows}
     # 批次/锁定状态来自 source-registry（按 siteId 关联），重跑不丢身份判定。
     try:
         src = load("source-registry.json")
@@ -67,6 +70,8 @@ def main():
         system = system_of(s.get("path", ""))
         key = str(s.get("id") or "")
         site_id = f"{system}:{key}"
+        if site_id in cand_id_set:
+            continue
         name = (s.get("name") or "").strip()
         source = "registry"
         if not name:
