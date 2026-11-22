@@ -42,9 +42,20 @@ def cohort_of(first_seen, locked, status):
     return str(first_seen) if first_seen else "unknown"
 
 
+def host_of(system):
+    """wanpz-h8 -> h8；bdmijg 原样。"""
+    return system[len("wanpz-"):] if system.startswith("wanpz-") else system
+
+
 def main():
     reg = load("site-registry.json")
     aliases = (load("site-aliases.json") or {}).get("aliases") or {}
+    # 候选池：已取名、分级，尚未抓当期快照；先登记身份层，tier=added、status=pending，不进 core 基线、不回填历史。
+    try:
+        cand = load("candidates.json")
+        cand_rows = cand.get("rows") or []
+    except Exception:
+        cand_rows = []
     # 批次/锁定状态来自 source-registry（按 siteId 关联），重跑不丢身份判定。
     try:
         src = load("source-registry.json")
@@ -96,8 +107,50 @@ def main():
             "aliases": sorted(set(x for x in [key, site_id, name, display, s.get("base_name") or ""] if x)),
         })
 
-    # 全局连续固定序号：core 基线在前、added 新站在后；同一 tier 内按 system,siteKey 稳定排序。
-    sites.sort(key=lambda x: (0 if x["tier"] == "core" else 1, x["system"], x["siteKey"]))
+    # 候选追加段：保持 candidates.json 既有分级顺序（A→B→Cn→Ck→D），不按站号重排。
+    for idx, c in enumerate(cand_rows):
+        system = c.get("system") or "unknown"
+        key = str(c.get("siteKey") or "")
+        site_id = f"{system}:{key}"
+        name = (c.get("banner") or "").strip() or f"候选{key}"
+        host = host_of(system)
+        sites.append({
+            "siteId": site_id,
+            "siteKey": key,
+            "system": system,
+            "siteName": name,
+            "name": name,
+            "displayName": c.get("displayName") or f"{name}（{key}）",
+            "nameSource": "candidate",
+            "baseName": "",
+            "path": f"{host}/{key}",
+            "host": f"https://{host}.wanpz.com",
+            "script": f"https://{host}.wanpz.com/script/{key}/",
+            "hasNine": bool(c.get("nine")),
+            "hasKill3": bool(c.get("kill3")),
+            "hasPt1": bool(c.get("pt1")),
+            "aggregator": False,
+            "grade": c.get("grade") or "",
+            "cols": c.get("cols") or 0,
+            "flags": c.get("flags") or [],
+            "firstSeen": 327,
+            "locked": False,
+            "status": "pending",
+            "cohort": "added",
+            "tier": "added",
+            "_cand_idx": idx,
+            "aliases": sorted(set(x for x in [key, site_id, name, c.get("displayName") or ""] if x)),
+        })
+
+    # 全局连续固定序号：core 基线在前、added 新站在后；core 内按 system,siteKey，added 内按候选原序。
+    def _sort_key(x):
+        if x["tier"] == "core":
+            return (0, x["system"], x["siteKey"], 0)
+        return (1, "", "", x.get("_cand_idx", 0))
+
+    sites.sort(key=_sort_key)
+    for s in sites:
+        s.pop("_cand_idx", None)
     for i, s in enumerate(sites, 1):
         s["seq"] = i
     out = {

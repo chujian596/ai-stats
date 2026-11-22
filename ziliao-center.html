@@ -51,6 +51,14 @@
   .top-actions{display:flex;align-items:center;gap:6px}
   .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:7px 9px;color:var(--muted);font-size:12px;white-space:nowrap}
   .ghost:hover{color:var(--text);border-color:var(--faint)}
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--card-2)}
+  .tier-bar .tier-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+  .tier-btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text)}
+  .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
+  .tier-btn .nm{color:var(--muted);font-size:10px;margin-left:3px}
+  .tier-btn.active{border-color:var(--text);background:var(--text);color:var(--bg)}
+  .tier-btn.active .nm{color:rgba(255,255,255,.72)}
+  .tier-hint{font-size:10px;color:var(--muted);margin-left:auto}
   .hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(135deg,#10264c 0%,#173b6b 52%,#0f223f 100%);color:#fff;padding:24px 22px 20px;margin-bottom:12px;box-shadow:0 20px 45px rgba(16,38,76,.22)}
   .hero::after{content:"";position:absolute;right:-62px;top:-82px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(123,168,255,.38),rgba(123,168,255,0) 68%);pointer-events:none}
   .hero-grid{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:relative;z-index:1}
@@ -425,6 +433,8 @@
     </div>
   </header>
 
+  <div class="tier-bar" id="tierBar" role="tablist" aria-label="站点档位"></div>
+
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
@@ -786,6 +796,41 @@
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function num(v){var n=Number(v);return isFinite(n)?n:0;}
   function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';}
+  // ===== 站点档位：按分级累计截断；core 基线始终包含，added 按 grade 白名单 =====
+  var TIERS=[
+    {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
+    {key:'139', name:'三齐全', grades:['A'], desc:'九肖+杀三+平特都有'},
+    {key:'147', name:'双覆盖', grades:['A','B'], desc:'九肖+杀三，缺平特'},
+    {key:'151', name:'仅杀三', grades:['A','B','Ck'], desc:'再加只有杀三栏目'},
+    {key:'192', name:'仅九肖', grades:['A','B','Ck','Cn'], desc:'再加只有九肖栏目'},
+    {key:'194', name:'全量', grades:['A','B','Ck','Cn','D'], desc:'含无核心栏目的站'}
+  ];
+  var TIER_KEY='site-tier';
+  function curTierKey(){ try{return localStorage.getItem(TIER_KEY)||'100';}catch(e){return '100';} }
+  function tierDef(){ var k=curTierKey(); return TIERS.find(function(t){return t.key===k;})||TIERS[0]; }
+  var DIR={sites:[],byId:{},byKey:{}};
+  function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
+  function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+  function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
+  function refreshAll(){
+    if(S.tab==='brief') renderBrief();
+    else if(S.tab==='now') renderNow();
+    else if(S.tab==='nine'||S.tab==='kill') renderLedger(S.tab);
+    else if(S.tab==='change') renderChange();
+  }
+  function renderTierBar(){
+    var bar=$('tierBar'); if(!bar) return;
+    var cur=curTierKey();
+    bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+      var n=tierCount(t), act=t.key===cur?' active':'';
+      return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+esc(t.desc)+'"><span class="n">'+n+'</span><span class="nm">'+esc(t.name)+'</span></button>';
+    }).join('')+'<span class="tier-hint" id="tierHint"></span>';
+    Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+      b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); refreshAll(); });
+    });
+    var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
+    var hint=$('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+  }
   function fetchJson(u){
     return fetch(u+(u.indexOf('?')>=0?'&':'?')+'t='+Date.now(),{cache:'no-cache'}).then(function(r){
       if(!r.ok) throw new Error(u+' 读取失败 ('+r.status+')');
@@ -916,7 +961,7 @@
   // ===== 本期资料 =====
   function renderNow(){
     if(!S.pend){ $('nowCards').innerHTML='<div class="empty">本期资料读取失败或还没出。</div>'; return; }
-    var p=S.pend, sites=p.sites||[];
+    var p=S.pend, sites=(p.sites||[]).filter(tierAllowed);
     setHero(p.period,p.status==='pending'?'待开':'已归档',p.updatedAt);
     var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
     var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
@@ -1010,7 +1055,7 @@
     }).join('')+'</div>';
   }
   function briefData(){
-    var p=S.pend||{}, sites=p.sites||[];
+    var p=S.pend||{}, sites=(p.sites||[]).filter(tierAllowed);
     var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
     var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
     var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
@@ -1858,10 +1903,12 @@
       fetchJson('data/site-aliases.json').catch(function(){return {aliases:{}};}),
       fetchJson('data/zodiac-position-stats.json').catch(function(){return null;}),
       fetchJson('data/kill-rank-stats.json').catch(function(){return null;}),
-      fetchJson('data/quality-report.json').catch(function(){return null;})
+      fetchJson('data/quality-report.json').catch(function(){return null;}),
+      fetchJson('data/site-directory.json').catch(function(){return null;})
     ]).then(function(r){
       S.pend=r[0]; S.nine=r[1]; S.kill=r[2]; S.change=r[3]; S.aliases=(r[4]&&(r[4].aliases||r[4]))||{};
       S.pos=r[5]; S.kr=r[6]; S.qc=r[7];
+      var dir=r[8]||{}; DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{};
       if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
       var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
       setHero(per,S.pend&&S.pend.status==='pending'?'待开':'已归档',(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
@@ -1870,6 +1917,7 @@
       $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
       $('tabChangeCount').textContent=S.change?(changeGroupList(S.change.entries||[],changeCurrentMap(S.change.entries||[])).filter(function(g){return g.net;}).length+' 组'):'—';
       buildPeriod('nine'); buildPeriod('kill'); buildChangePeriods();
+      renderTierBar();
       renderNow();
       renderBrief();
       renderQC();
