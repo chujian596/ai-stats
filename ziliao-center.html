@@ -253,12 +253,21 @@
   .change-row .period-box{border-right:0;margin-right:0;padding-right:0}
   .change-dim-chips,.change-status-chips{display:flex;flex-wrap:wrap;gap:5px}
   .change-list{display:grid;grid-template-columns:1fr;gap:8px}
-  .change-site{background:var(--card-2);border:1px solid var(--line-soft);border-radius:14px;padding:12px 13px;min-width:0;cursor:pointer}
+  .change-site{background:var(--card-2);border:1px solid var(--line-soft);border-radius:14px;padding:12px 13px;min-width:0}
   .change-site:hover{border-color:var(--line)}
-  .change-site-top{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
-  .change-site-name{font-size:13px;font-weight:800;line-height:1.35;word-break:break-word}
-  .change-site-name span{font-size:9.5px;color:var(--faint);font-weight:500;margin-left:5px}
-  .change-site-nums{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+  .change-site-top{display:block}
+  .change-site-name{font-size:15px;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .change-site-name span{display:block;font-size:9.5px;color:var(--faint);font-weight:500;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .change-site-nums{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-start;margin-top:7px}
+  .change-inline{margin-top:9px;border-top:1px dashed var(--line-soft);padding-top:9px;display:flex;flex-direction:column;gap:7px}
+  .change-inline-group{background:var(--card);border:1px solid var(--line-soft);border-radius:10px;padding:8px 9px}
+  .change-inline-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+  .change-inline-meta{font-size:10px;font-weight:800;color:var(--text)}
+  .change-inline-col{font-size:9.5px;color:var(--faint);margin-top:2px;line-height:1.4}
+  .change-inline-flow{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap;margin-top:5px;font-size:10px;line-height:1.55}
+  .change-inline-flow .change-before,.change-inline-flow .change-after{min-width:0;flex:1 1 40%}
+  .change-inline-sets{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+  .change-inline-more{font-size:9.5px;color:var(--faint);line-height:1.5;margin-top:4px}
   .change-num{font-size:9.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px;white-space:nowrap}
   .change-num.g{color:var(--green);border-color:transparent;background:var(--green-soft)}
   .change-num.r{color:var(--red);border-color:transparent;background:var(--red-soft)}
@@ -266,7 +275,6 @@
   .change-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
   .change-tag{font-size:9px;font-weight:700;border-radius:5px;padding:2px 5px;background:var(--accent-soft);color:var(--accent-2)}
   .change-periods{font-size:9.5px;color:var(--faint);margin-top:7px;line-height:1.5}
-  .change-go{font-size:10px;color:var(--accent);margin-top:8px;font-weight:700}
   .change-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 10px}
   .change-back{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 9px;color:var(--accent);font-size:11px;font-weight:700}
   .change-detail-title{font-size:14px;font-weight:800}
@@ -725,7 +733,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.7</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.8</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1652,7 +1660,7 @@
       $('changeMore').innerHTML='';
       return;
     }
-    var listHtml=(sites.length?sites.slice(0,S.limit.change).map(changeSiteCard).join(''):(rollbackSites.length?'':'<div class="empty">该筛选下没有净变化改料</div>'));
+    var listHtml=(sites.length?sites.slice(0,S.limit.change).map(function(s){return changeSiteCard(s,curMap);}).join(''):(rollbackSites.length?'':'<div class="empty">该筛选下没有净变化改料</div>'));
     if(rollbackSites.length) listHtml+=changeRollbackSites(rollbackSites);
     $('changeList').innerHTML=listHtml;
     if(sites.length>S.limit.change){
@@ -1670,15 +1678,39 @@
         return '<div class="change-rollback-site" data-site="'+esc(s.sid)+'"><b>'+esc(s.name)+'</b><span>流水 '+s.flowN+' · 无净变化 '+s.rollbackGroups+' 组</span></div>';
       }).join('')+'</details>';
   }
-  function changeSiteCard(s){
+  function changeInlineGroup(g){
+    var beforeTxt=changeSetTxt(g.first,'before'), afterTxt=changeSetTxt(g.cur,'after');
+    var sets=(g.added.length||g.removed.length)?'<div class="change-inline-sets">'+(g.added.length?'<span class="change-num g">补进 '+g.added.length+'</span>'+g.added.map(function(x){return '<span class="change-chip add">'+esc(x)+'</span>';}).join(''):'')+(g.removed.length?'<span class="change-num r">换掉 '+g.removed.length+'</span>'+g.removed.map(function(x){return '<span class="change-chip rem">'+esc(x)+'</span>';}).join(''):'')+'</div>':'';
+    var trace='';
+    if(g.arr.length>1){
+      trace='<details class="change-trace"><summary>过程 '+g.arr.length+' 次快照 · 点开看每次改动</summary>'
+        +g.arr.map(function(e){
+          var isCur=(e===g.cur), v=e.result?(e.result.verdict||'无差异'):'待检';
+          return '<div class="change-trace-row'+(isCur?' now':'')+'"><time>'+esc(changeShortTime(e))+'</time><span>'+esc(changeSetTxt(e,'before'))+' → '+esc(changeSetTxt(e,'after'))+'</span><em>'+(isCur?'当前 · ':'当时 · ')+esc(v)+'</em></div>';
+        }).join('')+'</details>';
+    }
+    var flag=(g.cur.flag||g.first.flag)?'<div class="change-flag">标记：'+esc(g.cur.flag||g.first.flag)+'</div>':'';
+    var draw=(g.cur.result&&g.cur.result.drawZod)?'<div class="change-sub"><span>开奖 '+esc(g.cur.result.drawZod)+'</span></div>':'';
+    return '<div class="change-inline-group">'
+      +'<div class="change-inline-head"><div><div class="change-inline-meta">第'+esc(g.first.period)+'期 · '+esc(CHANGE_DIM_LABEL[g.first.dim]||g.first.dim)+'</div><div class="change-inline-col">'+esc(g.first.column||'')+'</div></div>'+changeBadge(g.cur,true)+'</div>'
+      +'<div class="change-inline-flow"><span class="change-before"><i>原值</i>'+esc(beforeTxt)+'</span><span class="change-arrow">→</span><span class="change-after"><i>最终</i>'+esc(afterTxt)+'</span></div>'
+      +sets+flag+draw+trace+'</div>';
+  }
+  function changeSiteCard(s,curMap){
     var dims=Object.keys(s.dims).map(function(d){return '<span class="change-tag">'+esc(CHANGE_DIM_LABEL[d]||d)+'</span>';}).join('');
     var periods=Object.keys(s.periods).sort(function(a,b){return +b-+a;}).map(function(p){return '第'+p+'期';}).join('、');
-    return '<div class="change-site" data-site="'+esc(s.sid)+'">'
-      +'<div class="change-site-top"><div><div class="change-site-name">'+esc(s.name)+'<span>'+esc(s.sid)+'</span></div></div>'
+    var groups=changeGroupList(s.entries,curMap), active=groups.filter(function(g){return g.net;}), rollback=groups.filter(function(g){return !g.net;});
+    var body=active.map(changeInlineGroup).join('');
+    var rb=rollback.length?'<details class="change-rollback"><summary>无净变化 '+rollback.length+' 组 · 不计改料 · 点开看过程</summary>'+rollback.map(function(g){
+      var path=g.arr.map(function(e){return changeSetTxt(e,'before');}).concat(changeSetTxt(g.cur,'after')).join(' → ');
+      return '<div class="change-rollback-row"><div><b>第'+esc(g.first.period)+'期 · '+esc(CHANGE_DIM_LABEL[g.first.dim]||g.first.dim)+' · '+esc(g.first.column||'')+'</b><span>'+esc(path)+'</span></div><em>'+(g.state==='synonym'?'同义':'回滚')+' · '+g.arr.length+' 次快照</em></div>';
+    }).join('')+'</details>':'';
+    return '<div class="change-site">'
+      +'<div class="change-site-top"><div class="change-site-name">'+esc(s.name)+'<span>'+esc(s.sid)+'</span></div>'
       +'<div class="change-site-nums"><span class="change-num">流水 '+s.flowN+' · 独立 '+s.activeGroups+' 组</span>'+(s.rollbackGroups?'<span class="change-num">无净变化 '+s.rollbackGroups+' 组</span>':'')+'<span class="change-num g">当前改对 '+s.right+'</span><span class="change-num r">当前改错 '+s.wrong+'</span>'+(s.neutral?'<span class="change-num">无差异 '+s.neutral+'</span>':'')+(s.pending?'<span class="change-num a">当前待检 '+s.pending+'</span>':'')+'</div></div>'
       +'<div class="change-tags">'+dims+'</div>'
       +'<div class="change-periods">'+esc(periods)+'</div>'
-      +'<div class="change-go">查看历次改料 ›</div></div>';
+      +'<div class="change-inline">'+body+'</div>'+rb+'</div>';
   }
   function changeGroupKey(e){ return changeSiteKey(e)+'|'+e.period+'|'+(e.dim||'')+'|'+(e.column||''); }
   function changeTime(e){ return String(e.at||'')+'|'+String(e.to_snapshot||''); }
@@ -1785,9 +1817,8 @@
     $('changeSearch').addEventListener('input',function(){S.q.change=this.value;S.limit.change=30;S.c.view='list';S.c.site=null;renderChange();});
     $('changeSort').addEventListener('change',function(){S.c.sort=this.value;renderChange();});
     $('changePeriod').addEventListener('change',function(){S.c.period=this.value;S.c.view='list';S.c.site=null;renderChange();});
+    // 改料明细直接展开在站点卡内；不再做二级详情页，避免移动端侧滑返回直接退出页面。
     $('changeList').addEventListener('click',function(e){
-      var site=e.target.closest('.change-site')||e.target.closest('.change-rollback-site');
-      if(site){S.c.site=site.dataset.site;S.c.view='site';renderChange();return;}
       var back=e.target.closest('.change-back');
       if(back){S.c.view='list';S.c.site=null;renderChange();}
     });
