@@ -87,7 +87,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 <main class="wrap">
   <section class="hero" id="hero">
     <div>
-      <div class="label"><span id="periodLabel">325 期</span> · 九肖推荐第一</div>
+      <div class="label"><span id="periodLabel">327 期</span> · 九肖推荐第一</div>
       <div class="z" id="topZ">—</div>
       <div class="n" id="topN">正在读取当期 100 站数据…</div>
     </div>
@@ -119,10 +119,10 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 
   <div class="note">
     <b>口径</b>
-    <p>只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。100 站中当前有九肖 87 站，杀三 70 站。新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。</p>
-    <p><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。87 站平均 65.3 票；猪 69 票只是 79.3%（+4.3pp），牛 59 票是 67.8%（−7.2pp）。单个生肖的粗略 95% 抽样波动约 ±9pp，猪和牛的区间仍重叠，所以首末差 10 票现在只能算噪声，不能当方向。</p>
+    <p id="noteText">只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。有效站数与杀三站数以本页实时数据为准；新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。</p>
+    <p id="statNote"><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。票数、首末差和抽样波动以本页实时统计为准，不能拿旧期数字代替。</p>
   </div>
-  <div class="footer">AI资料统计 · 最大生肖 v1.1 · 325 期 · 只做公开资料统计</div>
+  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.2 · 327 期 · 只做公开资料统计</div>
 </main>
 
 <script>
@@ -161,7 +161,8 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var gapPct=gapVotes/nineSites*100;
     var oneVote=100/nineSites;
     var noise=1.96*Math.sqrt(0.75*0.25/nineSites)*100;
-    document.getElementById('periodLabel').textContent=(d.period||325)+' 期';
+    document.getElementById('periodLabel').textContent=(d.period||327)+' 期';
+    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.2 · '+(d.period||327)+' 期 · 只做公开资料统计';
     document.getElementById('topZ').textContent=topZ;
     document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站 · 平均 '+Math.round(avg*10)/10+' 票';
     document.getElementById('topPct').textContent=pct(top,nineSites)+'%';
@@ -182,6 +183,9 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
         '<div class="dev-val"><b>'+x.n+'</b><span>'+(delta>0?'+':'')+delta.toFixed(1)+'pp</span></div></div>';
     }).join('');
     document.getElementById('meta').innerHTML='<b>'+nineSites+'</b> 个有效九肖站 · 合计 '+total+' 票 · 平均 '+Math.round(avg*10)/10+' 票（'+avgPct.toFixed(1)+'% 基线）· 首末差 '+gapVotes+' 票 / '+gapPct.toFixed(1)+'pp · 1 票≈'+oneVote.toFixed(1)+'pp · 数据源 '+esc(d.source||'current-recommend.json');
+    var emptyList=(d.emptyStations||[]).map(function(x){return esc(x.siteKey||x.siteId||'?');});
+    document.getElementById('noteText').innerHTML='只统计当期有效九肖栏目的站；同站出现重复生肖只记 1 票。本期有效九肖 <b>'+nineSites+'</b> 站，杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入 100 站：'+emptyList.join(' / ')+'。':'')+' 新增 23 站只有 325 当期，没有历史回测；最大生肖不是开奖结果，也不是投注指令。';
+    document.getElementById('statNote').innerHTML='<b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。本期合计 '+total+' 票，平均 '+Math.round(avg*10)/10+' 票；第一 '+esc(topZ)+' '+top+' 票（'+pct(top,nineSites)+'%），末位 '+esc(arr[arr.length-1].z)+' '+low+' 票。单个生肖的粗略 95% 抽样波动约 ±'+noise.toFixed(1)+'pp，首末差 '+gapVotes+' 票 / '+gapPct.toFixed(1)+'pp，当前只能算噪声，不能当方向。';
 
     var topSites=sites.filter(function(s){return tops.some(function(z){return s.zodiacs.indexOf(z)>=0;});});
     document.getElementById('listSub').textContent=tops.join('、')+' · '+topSites.length+' 站';
@@ -196,7 +200,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     }).join('') || '<tr><td colspan="2" style="color:var(--muted)">暂无</td></tr>';
 
     var kill=(d.pendingKill||[]).slice(0,5);
-    document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(d.killSites||70)+'</b></div>';
+    document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(d.killSites!=null?d.killSites:'—')+'</b></div>';
   }
   fetchJson('data/current-recommend.json').then(function(d){
     if(!d || !Array.isArray(d.sites)) throw new Error('数据结构不符');
