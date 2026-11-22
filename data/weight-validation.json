@@ -1,16 +1,17 @@
 {
  "schema": "weight-validation/v1",
- "updatedAt": "2026-11-22 18:03:21",
+ "updatedAt": "2026-11-22 22:11:21",
  "cohortStart": 325,
  "periods": [
-  325
+  325,
+  326
  ],
- "n": 1,
- "lastPeriod": 325,
+ "n": 2,
+ "lastPeriod": 326,
  "status": "COLLECTING",
  "arms": {
   "equal": {
-   "n": 1,
+   "n": 2,
    "top3": {
     "hits": 0,
     "rate": 0.0
@@ -20,56 +21,56 @@
     "rate": 0.0
    },
    "bottom3": {
-    "avoids": 1,
+    "avoids": 2,
     "rate": 1.0
    },
    "meanRank": 5.0,
-   "meanPointBiserial": 0.0722,
+   "meanPointBiserial": 0.1127,
    "deltaVsEqual": {
     "top3": 0,
     "meanRank": 0.0
    }
   },
   "full_cap": {
-   "n": 1,
+   "n": 2,
    "top3": {
-    "hits": 0,
-    "rate": 0.0
+    "hits": 1,
+    "rate": 0.5
    },
    "top1": {
     "hits": 0,
     "rate": 0.0
    },
    "bottom3": {
-    "avoids": 1,
+    "avoids": 2,
     "rate": 1.0
    },
-   "meanRank": 6.0,
-   "meanPointBiserial": 0.0778,
+   "meanRank": 4.5,
+   "meanPointBiserial": 0.1492,
    "deltaVsEqual": {
-    "top3": 0,
-    "meanRank": 1.0
+    "top3": 0.5,
+    "meanRank": -0.5
    }
   },
   "dim_cap": {
-   "n": 1,
+   "n": 2,
    "top3": {
     "hits": 1,
-    "rate": 1.0
+    "rate": 0.5
    },
    "top1": {
     "hits": 0,
     "rate": 0.0
    },
    "bottom3": {
-    "avoids": 1,
+    "avoids": 2,
     "rate": 1.0
    },
-   "meanRank": 2.0,
-   "meanPointBiserial": 0.4075,
+   "meanRank": 3.5,
+   "meanPointBiserial": 0.2858,
    "deltaVsEqual": {
-    "top3": 1.0,
-    "meanRank": -3.0
+    "top3": 0.5,
+    "meanRank": -1.5
    }
   }
  },
