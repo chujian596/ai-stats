@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v59.72</title>
+<title>录单Pro · v59.73</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.72-Pro';
+var APP_VER = 'v59.73-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1421,6 +1421,9 @@ function showParseFailDialog(fails, errors){
   ov.id = 'pfMask';
   ov.className = 'ai-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  var _onlyMissing = list.length > 0 && list.every(function(f){ return /尾数没写目标|头数没写目标|平特后面没写生肖/.test(String(f.msg || '')); });
+  var _title = _onlyMissing ? ('有 ' + n + ' 行没写全') : ('有 ' + n + ' 行没识别');
+  var _hint = _onlyMissing ? '缺投注目标，补上尾数或生肖后再保存。<br>整批未入账，不会只存一部分。' : '整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。';
   var rows = list.length ? list.map(function(f, i){
     return '<div style="padding:8px 0;border-bottom:1px solid #eee">'
       + '<div style="font-size:11px;color:#999">第 ' + esc(String(f.idx || (i+1))) + ' 行</div>'
@@ -1432,8 +1435,8 @@ function showParseFailDialog(fails, errors){
       + '</div></div>';
   }).join('') : ('<div style="padding:18px 0;color:#999;text-align:center">' + esc((errors||[]).join('\n')) + '</div>');
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:430px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
-    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。</div>'
+    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">' + _title + '</div>'
+    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">' + _hint + '</div>'
     + '<div style="max-height:48vh;overflow:auto;background:#fafafa;padding:0 12px 6px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">' + rows + '</div>'
     + (list.length >= 200 ? '<div style="padding:6px 16px;font-size:11px;color:#999;text-align:center">只显示前 200 行；完整失败批次已另存并上报。</div>' : '')
     + '<div style="border-top:1px solid #eee;display:flex;flex-wrap:wrap">'
@@ -6295,6 +6298,11 @@ function parseLine(text){
     var max = kind === '尾' ? 9 : 4;
     body = String(body || '').trim();
     if(!body) return null;
+    // 只写金额、没写尾数/头数目标：例如「尾1000」「头1000」不是解析故障，
+    // 属于输入不完整；不要拿它去当尾数列表，直接提示补目标。
+    if(/^\d{2,}$/.test(body)){
+      throw new Error(kind === '尾' ? '尾数没写目标，请补尾数（如 尾0各1000 或 0尾各1000）' : '头数没写目标，请补头数（如 头0各1000 或 0头各1000）');
+    }
     var priceText = null, listText = body, explicit = false;
     var am = body.match(/^(.*?)(?:各|每)(?:号|数|码|个|注|组|只|数各)?\s*([0-9零〇一二两三四五六七八九十百千万]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?$/);
     if(am){ listText = am[1]; priceText = am[2]; explicit = true; }
@@ -6674,6 +6682,10 @@ function parseLine(text){
         }
       }
       if(!found){
+        // 只写「平特」没写肖：属于缺投注目标，不猜全肖，也不报成未知产品。
+        if(rest.indexOf('平特') === 0 && !/^平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(rest)){
+          throw new Error('平特后面没写生肖，请补具体肖（如 平特马5）');
+        }
         const m = rest.match(/^(\d{1,2})(?!\d)/);
         if(m){
           codes.push(m[1].padStart(2,'0'));
