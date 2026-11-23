@@ -146,6 +146,17 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 .pro-nav-item .pro-nav-ico{font-size:14px;font-weight:800;line-height:1;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#f0f3f8;color:#7c8998}
 .pro-nav-item.active{color:#2457d6;background:#e9efff}
 .pro-nav-item.active .pro-nav-ico{background:#2457d6;color:#fff}
+/* 键盘操作条：安卓 WebView 键盘弹出时把“保存”顶到键盘上方 */
+#kbSaveBar{position:fixed;left:50%;bottom:8px;transform:translateX(-50%) translateY(14px);width:calc(100% - 20px);max-width:540px;z-index:130;display:flex;align-items:center;gap:7px;padding:8px 9px;background:rgba(255,255,255,.98);border:1px solid #dbe4f0;border-radius:15px;box-shadow:0 10px 30px rgba(16,35,70,.2);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+#kbSaveBar.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+#kbSaveBar .kb-tip{flex:0 0 auto;font-size:10px;font-weight:750;color:#64748b;padding-left:3px;white-space:nowrap}
+#kbSaveBar .kb-hide{flex:0 0 auto;border:1px solid #dbe4f0;background:#f8fafc;color:#64748b;border-radius:9px;padding:8px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+#kbSaveBar .kb-save{flex:1;border:1px solid #2457d6;background:#2457d6;color:#fff;border-radius:10px;padding:10px 8px;font-size:14px;font-weight:800;box-shadow:0 4px 12px rgba(36,87,214,.22)}
+#kbSaveBar .kb-save:active{opacity:.8}
+body.kb-open .pro-nav{opacity:0;pointer-events:none;transition:opacity .12s ease}
+html[data-system-theme="dark"] #kbSaveBar{background:rgba(10,18,32,.98)!important;border-color:#2a3a52!important;box-shadow:0 10px 30px rgba(0,0,0,.55)!important}
+html[data-system-theme="dark"] #kbSaveBar .kb-tip{color:#9fb3ca!important}
+html[data-system-theme="dark"] #kbSaveBar .kb-hide{background:#14243a!important;border-color:#2a3a52!important;color:#cbd8ea!important}
 @media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
 @media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
 
@@ -898,6 +909,11 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
   <button class="pro-nav-item" onclick="proGo('rank',this)"><span class="pro-nav-ico">排</span><span>排行</span></button>
   <button class="pro-nav-item" onclick="proGo('orders',this)"><span class="pro-nav-ico">单</span><span>订单</span></button>
   <button class="pro-nav-item" onclick="event.stopPropagation();proGo('more',this)"><span class="pro-nav-ico">⋯</span><span>功能</span></button>
+</div>
+<div id="kbSaveBar" role="toolbar" aria-label="键盘操作栏">
+  <span class="kb-tip">键盘已打开</span>
+  <button type="button" class="kb-hide" id="kbHideBtn">收起</button>
+  <button type="button" class="kb-save" id="kbSaveBtn">保存</button>
 </div>
 </main>
 
@@ -7458,23 +7474,118 @@ function openManualEntry(){
   document.getElementById('mtSave').onclick = function(){ manualSave(ov); };
   updateManualPreview();
 }
+/* ===== 主录入框键盘操作条：把“保存”顶到键盘上方，避免被遮住 ===== */
+(function(){
+  var bar=null, input=null, hideBtn=null, saveBtn=null, open=false;
+
+  function visualKb(){
+    var vv = window.visualViewport;
+    if(!vv) return 0;
+    return Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+  }
+  function kbNow(){
+    var kb = Math.max(0, Number(window.__kbRaw) || 0, visualKb());
+    // 极少数 WebView 原生桥没回传高度：输入框聚焦且确实在 App 内时，保守抬到屏幕中下部
+    if(open && kb < 20 && typeof AndroidAi !== 'undefined'){
+      kb = Math.min(360, Math.round(window.innerHeight * 0.42));
+    }
+    return kb;
+  }
+  function sync(){
+    if(!bar) return;
+    var kb = kbNow();
+    var show = !!(open && kb >= 20);
+    bar.classList.toggle('show', show);
+    try{ document.body.classList.toggle('kb-open', show); }catch(e){}
+    bar.style.bottom = (kb + 8) + 'px';
+    if(show){
+      bar.style.maxHeight = Math.max(54, (window.visualViewport ? window.visualViewport.height : window.innerHeight) - 12) + 'px';
+    }
+  }
+  window.__syncKbSaveBar = sync;
+
+  function revealSaveRow(){
+    setTimeout(function(){
+      try{
+        var row = document.querySelector('.pro-entry .btn-row');
+        if(!row) return;
+        var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        var r = row.getBoundingClientRect();
+        if(r.bottom > vh - 76){ row.scrollIntoView({block:'center'}); }
+      }catch(e){}
+    }, 420);
+  }
+  function showBar(){
+    open = true;
+    sync();
+    setTimeout(sync, 120);
+    setTimeout(sync, 320);
+    revealSaveRow();
+  }
+  function hideBar(){
+    open = false;
+    sync();
+  }
+  function init(){
+    bar = document.getElementById('kbSaveBar');
+    input = document.getElementById('input');
+    hideBtn = document.getElementById('kbHideBtn');
+    saveBtn = document.getElementById('kbSaveBtn');
+    if(!bar || !input) return;
+    input.addEventListener('focus', showBar);
+    input.addEventListener('blur', function(){
+      setTimeout(function(){
+        if(document.activeElement === input) return;
+        hideBar();
+      }, 160);
+    });
+    if(hideBtn){
+      hideBtn.addEventListener('click', function(){
+        try{ input.blur(); }catch(e){}
+        hideBar();
+      });
+    }
+    if(saveBtn){
+      saveBtn.addEventListener('click', function(){
+        try{ input.blur(); }catch(e){}
+        hideBar();
+        setTimeout(function(){
+          try{
+            if(typeof handleSave === 'function') handleSave();
+            else if(window.handleSave) window.handleSave();
+          }catch(e){}
+        }, 80);
+      });
+    }
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', sync);
+      window.visualViewport.addEventListener('scroll', sync);
+    }
+    window.addEventListener('resize', sync);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
 /* 键盘适配：安卓 WebView 的 adjustResize 在弹层上常不生效，用 visualViewport 把弹层顶到键盘上方 */
 
 /* 键盘高度由 App 原生层量好传进来（安卓 WebView 不会随键盘缩小自身视口，页面自己感知不到） */
 window.__kbFix = function(kb){
   try{
     kb = Number(kb) || 0;
+    window.__kbRaw = kb;
     window.__kbFixActive = kb > 0;
     var vv = window.visualViewport;
     if(vv && (window.innerHeight - vv.height) > 40){ kb = 0; }   // 视口已随键盘缩小，无需额外补偿
     var ov = document.getElementById('manualOverlay');
-    if(!ov) return;
-    ov.style.top = '0';
-    ov.style.bottom = kb + 'px';
-    var box = ov.firstElementChild;
-    if(box){
-      box.style.maxHeight = Math.max(220, window.innerHeight - kb - 16) + 'px';
+    if(ov){
+      ov.style.top = '0';
+      ov.style.bottom = kb + 'px';
+      var box = ov.firstElementChild;
+      if(box){
+        box.style.maxHeight = Math.max(220, window.innerHeight - kb - 16) + 'px';
+      }
     }
+    if(window.__syncKbSaveBar) window.__syncKbSaveBar();
   }catch(e){}
 };
 function mtKbFix(ov){
