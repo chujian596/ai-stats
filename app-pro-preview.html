@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.84-Pro';
+var APP_VER = 'v59.85-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3322,6 +3322,7 @@ function renderSideCustPay(){
         // 全部按「已飞清单」算：真付出去多少、上家就按多少赔回
         const sales0=getSplitSales();
         const fk=new Set(Object.keys(flownPerPos));
+        // 统一口径：飞出去的钱＝「已飞清单」实付额（flownRealOf），跟风险面板/上家对账同一张表
         Object.keys(sales0).forEach(k=>fk.add(k));
         fk.forEach(function(k){
           if(k==='_em_total'||k.indexOf('平特')===0||k.indexOf('连肖')===0||k.indexOf('二中二')===0) return;
@@ -3329,21 +3330,31 @@ function renderSideCustPay(){
         });
         flySpecBack+=flownRealOf(String(_drawS.specialNum).padStart(2,'0'))*payMult;
 
-        const pteAgg={};
-        _listS.forEach(o=>{eachUniqueOrderCode(o,function(c,amt){if(c.startsWith('平特')){const z=c.replace('平特','');pteAgg[z]=(pteAgg[z]||0)+amt;}});});
         const drawZ2=new Set([...(_drawS.regularNums||[]),_drawS.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean));
-        Object.entries(pteAgg).forEach(([z,amt])=>{
-          const extra=pteFlyTakeAll>0?Math.max(0,amt-pteFlyTakeAll):amt;
-          const flown=Math.min(extra, flownPerPos['平特'+z]||0);
-          flyPte+=flown;
-          if(flown>0&&drawZ2.has(z)) flyPteBack+=flown*(z==='马'?1.8:payMultSingle);
+        // 平特：按已飞清单里每个「平特X」实付额累计（以前按阈值差额算，手动登记的直接漏掉）
+        Object.keys(flownPerPos||{}).forEach(function(k){
+          if(k.indexOf('平特')!==0) return;
+          const amt2=flownRealOf(k); if(!(amt2>0)) return;
+          const z=k.slice(2);
+          if(!z) return;
+          flyPte+=amt2;
+          if(drawZ2.has(z)) flyPteBack+=amt2*(z==='马'?1.8:payMultSingle);
         });
-
-        if(lxFlyAmt>0){
-          const flown=autoFlyOn?lxFlyAmt:Math.min(lxFlyAmt, flownPerPos['连肖'+(lxFlyName||'')]||0);
-          flyLx+=flown;
+        // 连肖：按已飞清单里每个「连肖XX」实付额累计（以前只认单一的 lxFlyAmt/lxFlyName）
+        let _lxSeen=false;
+        Object.keys(flownPerPos||{}).forEach(function(k){
+          if(k.indexOf('连肖')!==0) return;
+          const amt2=flownRealOf(k); if(!(amt2>0)) return;
+          _lxSeen=true;
+          flyLx+=amt2;
+          const lz=k.slice(2).replace(/[0-9连]+$/,'');
+          if(lz && lz.split('').every(function(z){ return drawZ2.has(z); })) flyLxBack+=amt2*lxOddsOf(lz);
+        });
+        // 即时飞：勾了自动飞且清单里没有对应记录，也按阈值额算已飞（跟风险面板一致）
+        if(autoFlyOn && lxFlyAmt>0 && !_lxSeen){
+          flyLx+=lxFlyAmt;
           const lz=(lxFlyName||'').replace(/[0-9连]+$/,'');
-          if(flown>0&&lz.split('').every(z=>drawZ2.has(z))) flyLxBack+=flown*lxOddsOf(lz);
+          if(lz && lz.split('').every(function(z){ return drawZ2.has(z); })) flyLxBack+=lxFlyAmt*lxOddsOf(lz);
         }
 
         let emOn=true;try{emOn=localStorage.getItem(sk('emFlyOn'))!=='0';}catch(e){}
@@ -3356,16 +3367,20 @@ function renderSideCustPay(){
               emTotalAll+=amt;
             }
           });});
-          const emTot=(autoFlyOn ? emTotalAll : (flownPerPos['_em_total']||0));
-          _listS.forEach(o=>{eachUniqueOrderCode(o,function(c,amt){
-            if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){
-              const flown=Math.min(amt, emTot);
-              flyEm+=flown;
-              const nums=c.split(':')[1].split(',');
-              const mult=c.indexOf('二中二:')===0?60:(c.indexOf('三中三:')===0?600:20);
-              if(flown>0&&emHitOf(c,function(n){return allN.has(Number(n));})) flyEmBack+=flown*mult;
-            }
-          });});
+          // 实付额：清单里有就按清单（凑整多付的 5 元也算真付出去），没有则按自动飞全飞
+          let emPaid=flownRealOf('_em_total');
+          if(!(emPaid>0) && autoFlyOn) emPaid=emTotalAll;
+          if(emPaid>0){
+            flyEm+=emPaid;
+            _listS.forEach(o=>{eachUniqueOrderCode(o,function(c,amt){
+              if(c.indexOf('二中二:')===0||c.indexOf('三中三:')===0||c.indexOf('三中二:')===0){
+                const share = emTotalAll>0 ? (amt/emTotalAll) : 0;
+                const flown = emPaid*share;
+                const mult=c.indexOf('二中二:')===0?60:(c.indexOf('三中三:')===0?600:20);
+                if(flown>0&&emHitOf(c,function(n){return allN.has(Number(n));})) flyEmBack+=flown*mult;
+              }
+            });});
+          }
         }
       }catch(e){}
     }
