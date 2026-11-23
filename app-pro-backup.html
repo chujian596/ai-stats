@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.86-Pro';
+var APP_VER = 'v59.87-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1374,6 +1374,16 @@ function _copyText(txt, ok, fail){
   } else fb();
 }
 
+/* 从任意一行原文里抽号码（01-49）：没识别成功也要能把号码留进日志 */
+function extractNumsFromLine(raw){
+  var out = [], seen = {};
+  String(raw || '').replace(/\d{1,2}/g, function(t){
+    var n = parseInt(t, 10);
+    if(t.length <= 2 && n >= 1 && n <= 49 && !seen[n]){ seen[n] = 1; out.push(String(n).padStart(2, '0')); }
+    return t;
+  });
+  return out;
+}
 /* 无法识别清单：把 parse 日志按“原文 + 错误”归并，便于看出到底哪些词录不进。 */
 function parseFailGroups(){
   var logs = readErrLog().filter(function(r){ return r && r.type === 'parse'; });
@@ -1384,7 +1394,9 @@ function parseFailGroups(){
     if(!raw) return;
     withRaw++;
     var key = raw + '\n' + String(r.msg || '');
-    if(!map[key]) map[key] = {raw:raw, msg:String(r.msg || ''), count:0, lastDay:'', lastAt:0};
+    var _nums = [];
+    try{ _nums = (r.meta && r.meta.nums && r.meta.nums.length) ? r.meta.nums.slice() : extractNumsFromLine(raw); }catch(e){ _nums = []; }
+    if(!map[key]) map[key] = {raw:raw, msg:String(r.msg || ''), nums:_nums, count:0, lastDay:'', lastAt:0};
     map[key].count++;
     if(r.day) map[key].lastDay = String(r.day);
     map[key].lastAt = Math.max(map[key].lastAt, Number(r.at || 0));
@@ -1401,7 +1413,9 @@ function parseFailText(){
   pf.groups.forEach(function(g, i){
     h += (i+1) + '. [' + g.count + '次]' + (g.lastDay ? ' ' + g.lastDay : '') + '\n'
       + '原文：' + g.raw + '\n'
-      + '错误：' + g.msg + '\n\n';
+      + '错误：' + g.msg + '\n'
+      + ((g.nums && g.nums.length) ? ('号码：' + g.nums.join('.') + '\n') : '号码：（这一行没有 01–49 的号码）\n')
+      + '\n';
   });
   return h;
 }
@@ -9279,10 +9293,14 @@ renderAll();
     // 整批原子：一行失败，整批不落账；但失败原文要全量留存，不能只留前10行
     var _allFails = (window.__failedLines || []).slice(0, 200);
     window.__failedLines = [];
-    var _logFails = _allFails.slice(0, 10);
+    var _logFails = _allFails.slice(0, 30);
     if(_allFails.length){
       _logFails.forEach(function(f){
-        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,500), day: (billBookDate() || billToday()), failedTotal: errors.length});
+        // 原文里的号码一律先抽出来存进日志：没识别成功也要留痕，不能日志里“没有号码”
+        var _rawS = String(f.raw || '');
+        var _nums = [];
+        try{ _nums = (typeof extractNumsFromLine === 'function') ? extractNumsFromLine(_rawS) : []; }catch(e){ _nums = []; }
+        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: _rawS.length, raw: _rawS.slice(0,500), nums: _nums, numsText: _nums.join('.'), day: (billBookDate() || billToday()), failedTotal: errors.length});
       });
       if(_allFails.length > _logFails.length){
         logErr('parse', '本批共 ' + _allFails.length + ' 行无法识别，错误日志仅列前 ' + _logFails.length + ' 行；完整原文见失败批次上报', {day: (billBookDate() || billToday()), failedTotal: errors.length});
