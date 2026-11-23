@@ -78,6 +78,7 @@ def main():
         "max-zodiac-ledger.json", "kill3-ledger.json", "pingte-ledger.json",
         "wave-ledger.json", "tail-ledger.json", "head-ledger.json",
         "size-ledger.json", "parity-ledger.json",
+        "six-zodiac-ledger.json", "seven-zodiac-ledger.json",
     ]
     for name in ledgers:
         p = os.path.join(DATA, name)

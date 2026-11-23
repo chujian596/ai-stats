@@ -97,6 +97,23 @@ def pick_parity(cols):
 EXTRA_PICKERS = {'pingte': pick_pingte, 'wave': pick_wave, 'tail': pick_tail,
                  'head': pick_head, 'size': pick_size, 'parity': pick_parity}
 
+# 六肖 / 七肖择栏口径与 build_six_seven_ledgers.py 完全一致（1期 + 带码主推栏）
+try:
+    from build_six_seven_ledgers import pick_column as _pick_n
+except Exception:
+    _pick_n = None
+
+
+def pick_six_seven(cols, n):
+    if _pick_n is None:
+        return None
+    p = _pick_n(cols, n)
+    if not p:
+        return None
+    title, zs, nums = p
+    return {'column': title, 'zodiacs': zs, 'codes': nums,
+            'raw': (cols.get(title) or {}).get('value', '')}
+
 
 def pick_kill(columns):
     for cn in KILL_COLS:
@@ -287,12 +304,21 @@ def main():
             "pendingWave": [],
             "pendingTail": [],
             "pendingHead": [],
+            "pendingSix": {"zodiacs": [], "codes": []},
+            "pendingSeven": {"zodiacs": [], "codes": []},
+            "sixSites": 0,
+            "sevenSites": 0,
             "extraSites": {},
+            "coverage": {"sites": 0, "nine": 0, "kill": 0, "six": 0, "seven": 0},
             "prevSnapshot": {"file": None, "updatedAt": None, "nine": 0},
             "missingStations": [],
             "missingCount": 0,
             "prevFirstMap": {},
             "carriedCount": 0,
+            "emptyStations": [],
+            "emptyCount": 0,
+            "changeStatus": "no_baseline",
+            "changeBaseline": None,
         }
     else:
         issue = max(pending.keys())
@@ -322,6 +348,8 @@ def main():
         kill_sites = 0
         extra_agg = {dim: {} for dim in EXTRA_PICKERS}
         extra_sites = {dim: 0 for dim in EXTRA_PICKERS}
+        six_zod, six_code, seven_zod, seven_code = {}, {}, {}, {}
+        six_sites = seven_sites = 0
         for _sk, sd in merged_sites.items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
@@ -331,6 +359,20 @@ def main():
             pick = pick_column(cols)
             kill = pick_kill(cols)
             extra = {dim: pk(cols) for dim, pk in EXTRA_PICKERS.items()}
+            six = pick_six_seven(cols, 6)
+            seven = pick_six_seven(cols, 7)
+            if six:
+                six_sites += 1
+                for z in six['zodiacs']:
+                    six_zod[z] = six_zod.get(z, 0) + 1
+                for c in six['codes']:
+                    six_code[c] = six_code.get(c, 0) + 1
+            if seven:
+                seven_sites += 1
+                for z in seven['zodiacs']:
+                    seven_zod[z] = seven_zod.get(z, 0) + 1
+                for c in seven['codes']:
+                    seven_code[c] = seven_code.get(c, 0) + 1
             for dim, e in extra.items():
                 if e:
                     extra_sites[dim] += 1
@@ -353,6 +395,8 @@ def main():
                 "head": extra['head'] or {},
                 "size": extra['size'] or {},
                 "parity": extra['parity'] or {},
+                "six": six or {},
+                "seven": seven or {},
             }
             site_id = f"{system}-{site_key}"
             ch = change_map.get(site_id)
@@ -377,14 +421,22 @@ def main():
         # 补齐没进 sites 的失败站：区分「抓取失败（连接/抓取问题）」与「还没更新（站点未放料）」
         have_keys = {f"{s['system']}-{s['siteKey']}" for s in sites}
         known_keys = load_known_site_keys()
-        skipped_empty = []
+        empty_stations = []
         for fk, fr in fail_map.items():
             if fk in have_keys:
                 continue
             kind = fr.get("failKind", "fetch_error")
-            # 常态空站（目录里无名字的站）：不计入榜单，避免 100 站口径被撑成 104 并出现「未登记站」
+            # 常态空站（目录里无名字的站）：不计入 100 站榜单，但单独登记，供待开视图复查
             if kind == "not_updated" and fk not in known_keys:
-                skipped_empty.append(fk)
+                empty_stations.append({
+                    "system": fr.get("system", ""),
+                    "siteKey": str(fr.get("siteKey", "")),
+                    "siteId": fk,
+                    "status": "空站未放料",
+                    "failKind": kind,
+                    "error": fr.get("error"),
+                    "counted": False,
+                })
                 continue
             status = "抓取失败" if kind == "fetch_error" else "还没更新"
             sites.append({
@@ -394,8 +446,10 @@ def main():
                 "changed": False,
                 "column": None, "zodiacs": [], "killZodiacs": [],
                 "pingte": {}, "wave": {}, "tail": {}, "head": {}, "size": {}, "parity": {},
+                "six": {}, "seven": {},
             })
         sites.sort(key=lambda x: (x["status"] != "有九肖", x["siteKey"]))
+        empty_stations.sort(key=lambda x: x["siteKey"])
         carried_count = sum(1 for s in sites if s.get("carried"))
 
         # 上一份快照参照：识别既没抓到、也未沿用兜底的站（仅作缺站对照；沿用站已计入榜单）
@@ -431,6 +485,19 @@ def main():
             rows.sort(key=lambda x: -x['n'])
             return rows
 
+        def zod_rank(agg):
+            rows = [{"p": z, "n": n} for z, n in agg.items()]
+            rows.sort(key=lambda x: (-x["n"], Z.index(x["p"])))
+            return rows
+
+        def code_rank(agg):
+            rows = [{"p": c, "n": n} for c, n in agg.items()]
+            rows.sort(key=lambda x: (-x["n"], int(x["p"])))
+            return rows
+
+        def six_seven_rank(zod_agg, code_agg):
+            return {"zodiacs": zod_rank(zod_agg), "codes": code_rank(code_agg)}
+
         out = {
             "period": issue,
             "status": "pending",
@@ -444,6 +511,7 @@ def main():
                 "noNine": sum(1 for s in sites if s.get("status") == "无九肖栏目"),
                 "notUpdated": sum(1 for s in sites if s.get("status") == "还没更新"),
                 "fetchFail": sum(1 for s in sites if s.get("status") == "抓取失败"),
+                "empty": len(empty_stations),
                 "kill": kill_sites,
                 "pingte": extra_sites.get("pingte", 0),
                 "wave": extra_sites.get("wave", 0),
@@ -451,6 +519,8 @@ def main():
                 "head": extra_sites.get("head", 0),
                 "size": extra_sites.get("size", 0),
                 "parity": extra_sites.get("parity", 0),
+                "six": six_sites,
+                "seven": seven_sites,
             },
             "sites": sites,
             "pendingKill": pending_kill,
@@ -461,12 +531,20 @@ def main():
             "pendingHead": agg_list('head'),
             "pendingSize": agg_list('size'),
             "pendingParity": agg_list('parity'),
+            "pendingSix": six_seven_rank(six_zod, six_code),
+            "pendingSeven": six_seven_rank(seven_zod, seven_code),
+            "sixSites": six_sites,
+            "sevenSites": seven_sites,
             "extraSites": extra_sites,
             "prevSnapshot": {"file": prev_sp, "updatedAt": (prev or {}).get("generated_at"), "nine": prev_nine},
             "missingStations": missing,
             "missingCount": len(missing),
             "prevFirstMap": prev_first_map,
             "carriedCount": carried_count,
+            "emptyStations": empty_stations,
+            "emptyCount": len(empty_stations),
+            "changeStatus": "compared" if prev_sp else "no_baseline",
+            "changeBaseline": prev_sp,
         }
 
     with open(OUT, "w", encoding="utf-8") as f:

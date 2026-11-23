@@ -653,6 +653,7 @@ function renderNow(){
     +'<a class="quick-card" href="sources.html"><div class="quick-top"><h3>来源名单</h3><span class="quick-tag">'+sites.length+' 站</span></div><p>站点启用、空站、论坛池和历史成绩；先看来源是否稳定。</p></a>'
     +'<a class="quick-card" href="nine-zodiac.html"><div class="quick-top"><h3>九肖台账</h3><span class="quick-tag">'+nineDen+' 覆盖</span></div><p>逐期看九肖票数与逐站命中；新增站只有当期，没有历史回测。</p></a>'
     +'<a class="quick-card" href="kill3-ledger.html"><div class="quick-top"><h3>杀三台账</h3><span class="quick-tag">'+killDen+' 覆盖</span></div><p>杀特三肖的逐期命中与改料；历史只覆盖有快照的旧站。</p></a>'
+    +'<a class="quick-card" href="six-seven-ledger.html"><div class="quick-top"><h3>六肖 · 七肖台账</h3><span class="quick-tag green">生肖榜 + 号码榜</span></div><p>带码主推六肖 / 七肖逐期复盘；生肖共识与号码共识分列，肖中号必中。</p></a>'
     +'<a class="quick-card" href="engine.html"><div class="quick-top"><h3>研判引擎</h3><span class="quick-tag amber">群众方向</span></div><p>拥挤度、同站重叠和群众方向验证；不生成投注指令。</p></a>'
     +'</section>';
 
@@ -691,7 +692,7 @@ function renderNow(){
 
   h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">07</span><h3>数据质量</h3></div><span class="card-note">可复查</span></div>'
     +'<div class="chips"><span class="chip blue">固定 ID '+sites.length+' 站</span><span class="chip rec">站名 '+named+' 站</span><span class="chip">匿名 '+(sites.length-named)+' 站</span><span class="chip">来源 '+esc(cur.source||'—')+'</span><span class="chip">合并 '+esc(cur.mergeMode||'same-period-union')+'</span></div>'
-    +'<div class="links"><a href="nine-zodiac.html">九肖逐站台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖逐站台账 <span>查看</span></a><a href="extra-ledger.html">平特/波色/尾/头/大小/单双 <span>查看</span></a><a href="site-registry.html">站点总目录 · 固定ID/站名 <span>查看</span></a></div>'
+    +'<div class="links"><a href="nine-zodiac.html">九肖逐站台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖逐站台账 <span>查看</span></a><a href="six-seven-ledger.html">六肖/七肖台账 <span>查看</span></a><a href="extra-ledger.html">平特/波色/尾/头/大小/单双 <span>查看</span></a><a href="site-registry.html">站点总目录 · 固定ID/站名 <span>查看</span></a></div>'
     +'</section>';
 
   h+=closureSection();
@@ -920,7 +921,7 @@ function reviewShell(cfg, body){
     + '<div class="dim-tabs">'+DIMS.map(function(d){ return '<button class="'+(d.key===cfg.key?'on':'')+'" onclick="setDim(\''+d.key+'\')">'+esc(d.short)+'</button>'; }).join('')+'</div>'
     + '<div class="fine" style="margin-bottom:8px">'+esc(cfg.label)+'：覆盖站数、中/错、命中率；只统计有明确站方栏目且已开奖的期。'+note+'</div>'
     + body
-    + '<div class="links"><a href="nine-zodiac.html">九肖完整台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖完整台账 <span>查看</span></a><a href="extra-ledger.html">六维完整台账 <span>查看</span></a><a href="site-registry.html">站点目录 <span>查看</span></a></div></div>';
+    + '<div class="links"><a href="nine-zodiac.html">九肖完整台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖完整台账 <span>查看</span></a><a href="six-seven-ledger.html">六肖/七肖完整台账 <span>查看</span></a><a href="extra-ledger.html">六维完整台账 <span>查看</span></a><a href="site-registry.html">站点目录 <span>查看</span></a></div></div>';
 }
 function reviewError(cfg, msg, retry){
   return '<div class="error">'+esc(msg)+'</div>'+(retry?'<button class="retry" onclick="loadLedger(\''+cfg.key+'\',true)">重新读取</button>':'');

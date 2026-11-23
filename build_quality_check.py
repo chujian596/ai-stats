@@ -74,6 +74,28 @@ def pick_kill(columns):
     return None
 
 
+# 六肖 / 七肖择栏复用台账统一选栏函数（1 期 + 带码主推栏）；模块在下方 _iu 加载后赋值
+_ss = None
+
+
+def _pick_n(columns, n):
+    if _ss is None:
+        return None
+    p = _ss.pick_column(columns or {}, n)
+    if not p:
+        return None
+    title, _zs, _nums = p
+    return (columns or {}).get(title, {}).get('value', '')
+
+
+def pick_six(columns):
+    return _pick_n(columns, 6)
+
+
+def pick_seven(columns):
+    return _pick_n(columns, 7)
+
+
 def snapshot_map(snap, picker):
     out = {}
     for _k, rec in (snap.get('sites') or {}).items():
@@ -90,6 +112,8 @@ snaps = {}  # issue -> {'early': {sk: raw}, 'late': {sk: raw}}
 import importlib.util as _iu
 _spec = _iu.spec_from_file_location('mzl', str(PARENT / 'max_zodiac_ledger.py'))
 _mzl = _iu.module_from_spec(_spec); _spec.loader.exec_module(_mzl)
+_spec_ss = _iu.spec_from_file_location('ss', str(ROOT / 'build_six_seven_ledgers.py'))
+_ss = _iu.module_from_spec(_spec_ss); _spec_ss.loader.exec_module(_ss)
 
 _issues = set()
 for sp in glob.glob(os.path.join(PARENT, 'snapshots', 'snapshot-*.json')):
@@ -102,10 +126,12 @@ for iss in sorted(_issues):
     slot = snaps.setdefault(iss, {})
     if ep:
         d = _mzl.load_snapshot(ep)
-        slot['early'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill)}
+        slot['early'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill),
+                         'six': snapshot_map(d, pick_six), 'seven': snapshot_map(d, pick_seven)}
     if lp:
         d = _mzl.load_snapshot(lp)
-        slot['late'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill)}
+        slot['late'] = {'nine': snapshot_map(d, pick_nine), 'kill': snapshot_map(d, pick_kill),
+                        'six': snapshot_map(d, pick_six), 'seven': snapshot_map(d, pick_seven)}
 
 
 anomalies = []
@@ -122,10 +148,11 @@ def add(issue, ledger, siteKey, system, typ, detail, zodiacs=None, actual=None, 
     by_type[typ] = by_type.get(typ, 0) + 1
 
 
-def check_ledger(fn, ledger, expect, hit_rule):
+def check_ledger(fn, ledger, expect, hit_rule, snap_key=None, status_ok=('有九肖', '有三肖'), check_codes=False):
     global checked
     L = load(ROOT / 'data' / fn)
-    snap_key = 'nine' if ledger == '九肖' else 'kill'
+    if snap_key is None:
+        snap_key = 'nine' if ledger == '九肖' else 'kill'
     for iss, per in L['periods'].items():
         iss_i = int(iss)
         actual = per.get('actual')
@@ -136,7 +163,7 @@ def check_ledger(fn, ledger, expect, hit_rule):
                 f"开奖源特肖 {dr['zod']} 与台账特肖 {actual} 不符", actual=actual)
         slot = snaps.get(iss_i, {})
         for sid, r in per.get('stations', {}).items():
-            if r.get('status') not in ('有九肖', '有三肖'):
+            if r.get('status') not in status_ok:
                 continue
             checked += 1
             zs = r.get('zodiacs') or []
@@ -148,6 +175,12 @@ def check_ledger(fn, ledger, expect, hit_rule):
             # 2 重复
             if len(set(zs)) != len(zs):
                 add(iss, ledger, sk, sys, 'NUM_DUP', '肖组存在重复生肖', zs, actual)
+            # 2b 号码生肖自洽（六/七肖带码栏）
+            if check_codes:
+                codes = r.get('codes') or []
+                bad = [c for c in codes if zchar_of(c) not in set(zs)]
+                if bad:
+                    add(iss, ledger, sk, sys, 'CODE_ZOD', f"号码 {bad} 生肖不在推荐肖内", zs, actual)
             # 3 台账原文解析自洽
             raw = r.get('raw') or ''
             if raw:
@@ -184,6 +217,8 @@ def check_ledger(fn, ledger, expect, hit_rule):
 
 check_ledger('max-zodiac-ledger.json', '九肖', 9, 'in')
 check_ledger('kill3-ledger.json', '杀三肖', 3, 'not_in')
+check_ledger('six-zodiac-ledger.json', '六肖', 6, 'in', snap_key='six', status_ok=('有6肖',), check_codes=True)
+check_ledger('seven-zodiac-ledger.json', '七肖', 7, 'in', snap_key='seven', status_ok=('有7肖',), check_codes=True)
 
 
 WAVE_C = '红蓝绿'
