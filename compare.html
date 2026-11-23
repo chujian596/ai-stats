@@ -189,12 +189,19 @@ function renderNinePending(){
 }
 
 function renderKillPending(){
-  var rows=(PEND.pendingKill||[]).map(function(r){return {z:r.z,n:r.kill};});
+  var kagg={}; var killN=0;
+  (PEND.sites||[]).forEach(function(s){
+    if(tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length){
+      killN++;
+      s.killZodiacs.forEach(function(z){kagg[z]=(kagg[z]||0)+1;});
+    }
+  });
+  var rows=Object.keys(kagg).map(function(z){return {z:z,n:kagg[z]};}).sort(function(a,b){return b.n-a.n||a.z.localeCompare(b.z,'zh');});
   document.getElementById('killTitle').textContent='待开被杀排行 · 第'+PEND.period+'期';
   var carryN=(PEND.sites||[]).filter(function(s){return s.carried;}).length;
   var carryTxt=carryN?('；上版沿用 '+carryN+' 站（计入票数）'):'';
   var missTxt=(PEND.missingCount||0)?('；本轮未纳入 '+(PEND.missingCount||0)+' 站（不计入票数，非改料）'):'';
-  document.getElementById('killSub').textContent='第 '+PEND.period+' 期 · '+PEND.killSites+' 站有杀三肖；待开推荐 · 未对账'+carryTxt+missTxt+'。';
+  document.getElementById('killSub').textContent='第 '+PEND.period+' 期 · '+killN+' 站有杀三肖；待开推荐 · 未对账'+carryTxt+missTxt+'。';
   document.getElementById('killRank').innerHTML=rowsHtml(rows, null, '票', 'right');
 }
 
@@ -267,7 +274,7 @@ Promise.all([
   document.getElementById('nineRank').innerHTML='<div class="rc-sub">数据加载失败：'+e+'</div>';
 });
 </script>
-<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-108 · 逐站九肖 / 杀三肖栏目可折叠展开</div>
+<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-109 · 逐站九肖 / 杀三肖栏目可折叠展开</div>
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>

@@ -134,7 +134,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.2</span></h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.3</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -465,9 +465,13 @@ function renderPendingKill(){
   var carryN=(PEND.sites||[]).filter(function(s){return s.carried;}).length;
   var carryTxt=carryN?(' · 上版沿用 '+carryN+' 站（计入票数）'):'';
   var missTxt=missN?(' · 本轮未纳入 '+missN+' 站（不计入本轮票数，非改料）'):'';
-  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+(PEND.killSites||0)+' 站有杀三肖'+carryTxt+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。　·　档位/连对连错/累计中错 在「往期复盘台账」：把上方期号切到已开奖期（如323）即可看到';
+  // 过滤后有杀三肖的站；杀三票数按本档站点现场重算，不沿用全量预算聚合
+  var killSites=(PEND.sites||[]).filter(function(s){return tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length;});
+  var kagg={};
+  killSites.forEach(function(s){(s.killZodiacs||[]).forEach(function(z){kagg[z]=(kagg[z]||0)+1;});});
+  var rows=Object.keys(kagg).map(function(z){return {z:z,kill:kagg[z]};}).sort(function(a,b){return b.kill-a.kill||a.z.localeCompare(b.z,'zh');});
+  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+killSites.length+' 站有杀三肖'+carryTxt+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。　·　档位/连对连错/累计中错 在「往期复盘台账」：把上方期号切到已开奖期（如323）即可看到';
   var rankEl=document.getElementById('pendRank');
-  var rows=PEND.pendingKill||[];
   if(rows.length){
     var max=rows[0].kill||1;
     rankEl.innerHTML=rows.map(function(r,i){
@@ -481,13 +485,11 @@ function renderPendingKill(){
   } else { rankEl.innerHTML=''; }
   var nagg={}, ntot=0;
   (PEND.sites||[]).forEach(function(s){ if(tierAllowed(s)&&s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length){ nagg[s.zodiacs[0]]=(nagg[s.zodiacs[0]]||0)+1; ntot++; }});
-  var kagg={}; rows.forEach(function(r){kagg[r.z]=r.kill;});
   document.getElementById('miniNine').innerHTML=miniRows(nagg, ntot, '站');
-  document.getElementById('miniKill').innerHTML=miniRows(kagg, PEND.killSites, '票');
+  document.getElementById('miniKill').innerHTML=miniRows(kagg, killSites.length, '票');
   renderPendingMiss();
   var wrap=document.getElementById('pendTableWrap');
   var tb=document.getElementById('pendRows');
-  var killSites=(PEND.sites||[]).filter(function(s){return tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length;});
   killSites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
   tb.innerHTML='';
   killSites.forEach(function(s){
@@ -764,6 +766,6 @@ fetchJson('data/kill3-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
-<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.2 · 2026-11-23</div>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.3 · 2026-11-23</div>
 </body>
 </html>

@@ -150,7 +150,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <p id="noteText">只统计所选期有效九肖栏目的站；同站出现重复生肖只记 1 票。不同期站点数不同，不混在一起比；最大生肖不是开奖结果，也不是投注指令。</p>
     <p id="statNote"><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。票数、首末差和抽样波动以本页实时统计为准，不能拿旧期数字代替。</p>
   </div>
-  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.4 · 327 期 · 只做公开资料统计</div>
+  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.5 · 327 期 · 只做公开资料统计</div>
 </main>
 
 <script>
@@ -248,6 +248,11 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var tops=arr.filter(function(x){return x.n===top;}).map(function(x){return x.z;});
     var topZ=tops.join(' / ');
     var nineSites=sites.length;
+    var kg={}, kn=null;
+    if(d.status==='pending'){
+      kn=0;
+      (d.sites||[]).forEach(function(s){ if(tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length){ kn++; s.killZodiacs.forEach(function(z){kg[z]=(kg[z]||0)+1;}); }});
+    }
     var total=arr.reduce(function(a,b){return a+b.n;},0);
     var avg=total/12;
     var avgPct=avg/nineSites*100;
@@ -258,7 +263,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var noise=1.96*Math.sqrt(0.75*0.25/nineSites)*100;
 
     document.getElementById('periodLabel').textContent=d.period+' 期';
-    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.4 · '+d.period+' 期 · 只做公开资料统计';
+    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.5 · '+d.period+' 期 · 只做公开资料统计';
     document.getElementById('periodHint').textContent=d.status==='drawn'?'已开 · '+(d.actual||'—'):'待开';
     document.getElementById('topZ').textContent=topZ;
     document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站 · 平均 '+Math.round(avg*10)/10+' 票';
@@ -297,7 +302,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     if(d.status==='drawn'){
       base+=' 历史期按当时快照站点数计算，开奖 <b>'+esc(d.actual||'—')+'</b>'+(d.specialNum!=null?'（'+String(d.specialNum).padStart(2,'0')+' 号）':'')+'；不同期站点数不同，不混在一起比。';
     }else{
-      base+=' 杀三 <b>'+(d.killSites!=null?d.killSites:'—')+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入有效统计：'+emptyList.join(' / ')+'。':'');
+      base+=' 杀三 <b>'+(kn!=null?kn:(d.killSites!=null?d.killSites:'—'))+'</b> 站。'+(emptyList.length?'另有 <b>'+emptyList.length+'</b> 个空站未放料，未计入有效统计：'+emptyList.join(' / ')+'。':'');
     }
     base+=' 最大生肖不是开奖结果，也不是投注指令。';
     document.getElementById('noteText').innerHTML=base;
@@ -318,11 +323,14 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     return '<tr><td class="name">'+seqTag(s)+esc(nm)+badge+'<span class="sid">'+subId+'</span></td><td class="picks">'+esc((s.zodiacs||[]).join(' '))+'<br>'+esc(s.column||'')+sub+'</td></tr>';
     }).join('') || '<tr><td colspan="2" style="color:var(--muted)">暂无</td></tr>';
 
-    var kill=(d.pendingKill||[]).slice(0,5);
-    var hasKill=kill.length>0 || d.killSites!=null;
+    var kill=(d.status==='pending')
+      ? Object.keys(kg).map(function(z){return {z:z,kill:kg[z]};}).sort(function(a,b){return b.kill-a.kill;}).slice(0,5)
+      : (d.pendingKill||[]).slice(0,5);
+    var killN=kn!=null?kn:d.killSites;
+    var hasKill=kill.length>0 || killN!=null;
     document.getElementById('killSection').style.display=hasKill?'block':'none';
     if(hasKill){
-      document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(d.killSites!=null?d.killSites:'—')+'</b></div>';
+      document.getElementById('killBox').innerHTML=kill.map(function(k,i){return '<div class="i">'+esc(k.z)+' <b>'+k.kill+'</b> 票'+(i===0?' · 最集中':'')+'</div>';}).join('')+'<div class="i">杀三有效站 <b>'+(killN!=null?killN:'—')+'</b></div>';
     }
   }
   function show(period){

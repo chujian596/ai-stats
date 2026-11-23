@@ -223,7 +223,7 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">EXTENDED LEDGER · v2.0.2 / 06 DIMENSIONS</div>
+        <div class="kicker">EXTENDED LEDGER · v2.0.3 / 06 DIMENSIONS</div>
         <h1>扩展维度台账</h1>
         <p>逐站逐期记录推荐，开奖后自动复盘。看清共识，也看清偏差。</p>
       </div>
@@ -353,7 +353,7 @@
 
   <footer class="foot">
     <span id="ruleNote">—</span>
-    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.2</b></span>
+    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.3</b></span>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -526,7 +526,9 @@ function renderPending(){
     {text:sites.length+' 站有推荐'},
     {text:updated,tone:'warn'}
   ]);
-  var rankRows=(PEND[cfg.pend]||[]).slice();
+  var agg={};
+  sites.forEach(function(s){ var e=pendExt(s); (e&&e.picks||[]).forEach(function(p){agg[p]=(agg[p]||0)+1;}); });
+  var rankRows=Object.keys(agg).map(function(p){return {p:p,n:agg[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
   var totalVotes=rankRows.reduce(function(a,x){return a+(Number(x.n)||0);},0);
   var coverage=rankRows.length;
   var hits=0; sites.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
