@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.82-Pro';
+var APP_VER = 'v59.83-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5338,8 +5338,26 @@ function applyManualFlyList(){
   if(!txt){ myAlert('先把清单贴进输入框'); return; }
   const rows = txt.split(/\n+/).map(s => s.trim()).filter(Boolean);
   let cnt = 0, sum = 0, bad = [];
+  // 事务快照：只要有一行认不出，就把已飞记录还原，绝不半个单子落账
+  const _snapPer = Object.assign({}, flownPerPos), _snapReal = Object.assign({}, flownReal);
+  function _rollbackFly(){
+    Object.keys(flownPerPos).forEach(function(k){ delete flownPerPos[k]; });
+    Object.keys(_snapPer).forEach(function(k){ flownPerPos[k] = _snapPer[k]; });
+    Object.keys(flownReal).forEach(function(k){ delete flownReal[k]; });
+    Object.keys(_snapReal).forEach(function(k){ flownReal[k] = _snapReal[k]; });
+  }
 
+  const _ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪';
   rows.forEach(function(line){
+    // 裸生肖写法直接补成「连肖」：马500 / 马蛇300 / 马蛇狗100 / 马蛇各300
+    (function(){
+      const re = new RegExp('^([' + _ZOD + ']+)(?:\\s*(各|每)?\\s*)([0-9]+(?:\\.?[0-9]+)?)(?:元)?$');
+      const m = line.match(re);
+      if(m){
+        const zs = m[1].split('').filter(ch => _ZOD.indexOf(ch) >= 0);
+        if(zs.length >= 1 && zs.length <= 6) line = '连肖' + zs.join('') + (m[2] || '') + m[3];
+      }
+    })();
     // 波色/大小/单双/头尾/合数 这类玩法不按号码飞，直接提示写号码
     if(/[波]|大[单双小]|^大|^小|单双|合数|[头尾][0-9]/.test(line) && !/平特|连肖/.test(line)){
       bad.push(line + '（波色/大小/头尾类不能直接飞，请按号码写）');
@@ -5386,7 +5404,14 @@ function applyManualFlyList(){
   });
 
   if(cnt === 0){
-    myAlert('没认出来。可写：\n22 140\n22 34 各140\n平特虎 1000\n连肖马蛇 400\n二中二 500' + (bad.length ? '\n\n没认出的行：\n' + bad.slice(0,5).join('\n') : ''));
+    myAlert('没认出来。可写：\n22 140\n22 34 各140\n平特虎 1000\n连肖马蛇 400\n二中二 500\n马蛇狗 100' + (bad.length ? '\n\n没认出的行：\n' + bad.slice(0,5).join('\n') : ''));
+    return;
+  }
+  // 有一行认不出来就整单不落账：避免「认出几条先存了、剩下的悄悄丢」
+  if(bad.length){
+    try{ _rollbackFly(); }catch(e){}
+    myAlert('有 ' + bad.length + ' 行没认出来，本次一分钱都没登记（输入框内容原样保留）：\n\n' + bad.slice(0,8).join('\n') + (bad.length > 8 ? '\n…' : '') + '\n\n可写：连肖马蛇 400 / 马蛇各300 / 平特虎 1000 / 22 140 / 二中二 500');
+    if(el) el.value = txt;
     return;
   }
   try { localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); } catch(e){}
@@ -5394,9 +5419,7 @@ function applyManualFlyList(){
   window._manualFlyBuf = '';
   if(el) el.value = '';
   afterFlyFlagChange();
-  let msg = '已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元';
-  if(bad.length) msg += '\n\n有 ' + bad.length + ' 行没认出来，已跳过：\n' + bad.slice(0,5).join('\n') + (bad.length > 5 ? '\n…' : '');
-  myAlert(msg);
+  myAlert('已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元');
 }
 
 function showGroupDetail(group){
