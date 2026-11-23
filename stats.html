@@ -227,6 +227,14 @@
     .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .card,.hero{padding-left:18px;padding-right:18px}
   }
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+  .tier-bar .tier-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+  .tier-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
+  .tier-btn .nm{color:var(--muted);font-size:10px;margin-left:3px}
+  .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+  .tier-btn.active .nm{color:rgba(255,255,255,.72)}
+  .tier-hint{font-size:10px;color:var(--muted);margin-left:auto}
 </style>
 </head>
 <body>
@@ -244,7 +252,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.05</span>
+      <span class="version">v59.06</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -256,6 +264,7 @@
     <button class="tab" data-tab="history">历期复盘</button>
     <button class="tab" data-tab="draws">开奖记录</button>
   </nav>
+  <div class="tier-bar" id="tierBar"></div>
 
   <section class="panel active" id="panel-now"></section>
   <section class="panel" id="panel-stations"></section>
@@ -320,6 +329,39 @@ var state = {
   ledgers:{}, ledgerPending:{}, activeTab:'now', dim:'nine',
   stationQuery:'', stationLimit:30, openSite:'', expanded:{}
 };
+
+// ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于逐站明细列表 =====
+var TIERS=[
+  {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
+  {key:'139', name:'三齐全', grades:['A'], desc:'九肖+杀三+平特都有'},
+  {key:'147', name:'双覆盖', grades:['A','B'], desc:'九肖+杀三，缺平特'},
+  {key:'151', name:'仅杀三', grades:['A','B','Ck'], desc:'再加只有杀三栏目'},
+  {key:'192', name:'仅九肖', grades:['A','B','Ck','Cn'], desc:'再加只有九肖栏目'},
+  {key:'194', name:'全量', grades:['A','B','Ck','Cn','D'], desc:'含无核心栏目的站'}
+];
+var TIER_KEY='site-tier', DIR={sites:[],byId:{},byKey:{}};
+function curTierKey(){ try{return localStorage.getItem(TIER_KEY)||'100';}catch(e){return '100';} }
+function tierDef(){ var k=curTierKey(); return TIERS.find(function(t){return t.key===k;})||TIERS[0]; }
+function keyOf(s){ return s.siteId || ((s.system||'')+':'+(s.siteKey||'')); }
+function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
+function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
+function renderTierBar(){
+  var bar=document.getElementById('tierBar'); if(!bar) return;
+  if(state.activeTab!=='stations' || !state.current || !Array.isArray(state.current.sites) || !state.current.sites.length){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  var cur=curTierKey();
+  bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+    var n=tierCount(t), act=t.key===cur?' active':'';
+    return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+t.desc+'"><span class="n">'+n+'</span><span class="nm">'+t.name+'</span></button>';
+  }).join('')+'<span class="tier-hint" id="tierHint"></span>';
+  Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+    b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); renderSiteList(); });
+  });
+  var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
+  var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+}
+function loadDir(){ return fetchJson('data/site-directory.json',9000).then(function(dir){ DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{}; }).catch(function(){}); }
 var LEDGER_FILES = {
   nine:'data/max-zodiac-ledger.json',
   kill:'data/kill3-ledger.json',
@@ -409,7 +451,8 @@ function loadBase(){
     safe(fetchJson('data/latest-period.json',6000)),
     safe(fetchJson('data/periods.json',6000)),
     safe(fetchJson('official-history.json',8000)),
-    safe(fetchJson('data/draws-recent.json',8000))
+    safe(fetchJson('data/draws-recent.json',8000)),
+    loadDir()
   ]).then(function(r){
     state.current=r[0]; state.latest=r[1]||{}; state.periods=(r[2]&&r[2].periods)||[];
     state.official=r[3]||{}; state.draws=r[4];
@@ -419,6 +462,7 @@ function loadBase(){
     if(state.activeTab==='stations') renderStations();
     if(state.activeTab==='history') loadHistory();
     if(state.activeTab==='draws') renderDraws();
+    renderTierBar();
   }).catch(function(e){
     if(nowP) nowP.innerHTML='<div class="error">本期资料读取失败：'+esc(e.message||e)+'</div>';
   });
@@ -648,6 +692,7 @@ function renderSiteList(){
   var sites=(cur.sites||[]).slice().sort(function(a,b){
     return String(a.displayName||a.siteName||a.siteId||'').localeCompare(String(b.displayName||b.siteName||b.siteId||''),'zh-Hans-CN');
   }).filter(function(s){
+    if(!tierAllowed(s)) return false;
     if(!q) return true;
     return [s.siteName,s.displayName,s.siteId,s.siteKey,s.system].join(' ').toLowerCase().indexOf(q)>=0;
   });
@@ -806,6 +851,7 @@ function switchTab(t){
   if(t==='stations') renderStations();
   if(t==='history') loadHistory();
   if(t==='draws') renderDraws();
+  renderTierBar();
 }
 document.getElementById('tabs').addEventListener('click',function(e){
   var b=e.target.closest('.tab'); if(!b) return;

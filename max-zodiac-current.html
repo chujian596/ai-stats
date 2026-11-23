@@ -83,6 +83,14 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 .kill .i b{font-size:15px;color:#7a3e00}
 .footer{text-align:center;color:var(--muted);font-size:11px;padding:22px 10px 0;line-height:1.7}
 @media(max-width:380px){.hero .z{font-size:40px}.dev-row{grid-template-columns:22px 40px 1fr 76px;gap:6px}}
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+  .tier-bar .tier-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+  .tier-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
+  .tier-btn .nm{color:var(--muted);font-size:10px;margin-left:3px}
+  .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+  .tier-btn.active .nm{color:rgba(255,255,255,.72)}
+  .tier-hint{font-size:10px;color:var(--muted);margin-left:auto}
 </style>
 </head>
 <body>
@@ -101,6 +109,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <select id="periodSelect" aria-label="选择期号"><option>正在读取…</option></select>
     <span class="period-hint" id="periodHint">—</span>
   </div>
+  <div class="tier-bar" id="tierBar"></div>
   <div class="result-line" id="resultLine" style="display:none"></div>
   <section class="hero" id="hero">
     <div>
@@ -141,12 +150,46 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <p id="noteText">只统计所选期有效九肖栏目的站；同站出现重复生肖只记 1 票。不同期站点数不同，不混在一起比；最大生肖不是开奖结果，也不是投注指令。</p>
     <p id="statNote"><b>为什么看起来平均：</b>每站固定选 9 个生肖，任一生肖的理论基线就是 9/12=75%，不是 0。票数、首末差和抽样波动以本页实时统计为准，不能拿旧期数字代替。</p>
   </div>
-  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.3 · 327 期 · 只做公开资料统计</div>
+  <div class="footer" id="pageFooter">AI资料统计 · 最大生肖 v1.4 · 327 期 · 只做公开资料统计</div>
 </main>
 
 <script>
 (function(){
   var state={current:null,history:{},map:{},period:null};
+
+  // ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于当期待开推荐 =====
+  var TIERS=[
+    {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
+    {key:'139', name:'三齐全', grades:['A'], desc:'九肖+杀三+平特都有'},
+    {key:'147', name:'双覆盖', grades:['A','B'], desc:'九肖+杀三，缺平特'},
+    {key:'151', name:'仅杀三', grades:['A','B','Ck'], desc:'再加只有杀三栏目'},
+    {key:'192', name:'仅九肖', grades:['A','B','Ck','Cn'], desc:'再加只有九肖栏目'},
+    {key:'194', name:'全量', grades:['A','B','Ck','Cn','D'], desc:'含无核心栏目的站'}
+  ];
+  var TIER_KEY='site-tier', DIR={sites:[],byId:{},byKey:{}};
+  function curTierKey(){ try{return localStorage.getItem(TIER_KEY)||'100';}catch(e){return '100';} }
+  function tierDef(){ var k=curTierKey(); return TIERS.find(function(t){return t.key===k;})||TIERS[0]; }
+  function keyOf(s){ return s.siteId || ((s.system||'')+':'+(s.siteKey||'')); }
+  function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
+  function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+  function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
+  function renderTierBar(){
+    var bar=document.getElementById('tierBar'); if(!bar) return;
+    var d=state.map[state.period];
+    if(!d || d.status!=='pending'){ bar.style.display='none'; return; }
+    bar.style.display='flex';
+    var cur=curTierKey();
+    bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+      var n=tierCount(t), act=t.key===cur?' active':'';
+      return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+t.desc+'"><span class="n">'+n+'</span><span class="nm">'+t.name+'</span></button>';
+    }).join('')+'<span class="tier-hint" id="tierHint"></span>';
+    Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+      b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); show(state.period); });
+    });
+    var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
+    var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+  }
+  function loadDir(){ return fetchJson('data/site-directory.json').then(function(dir){ DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{}; }).catch(function(){}); }
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function seqTag(s){return (s && s.seq)?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';}
   var DIM_TXT={kill:'杀肖',pingte:'平特',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
@@ -193,7 +236,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     return keys;
   }
   function render(d){
-    var sites=(d.sites||[]).filter(function(s){return s && Array.isArray(s.zodiacs) && s.zodiacs.length===9;});
+    var sites=(d.sites||[]).filter(function(s){return s && Array.isArray(s.zodiacs) && s.zodiacs.length===9 && (d.status!=='pending' || tierAllowed(s));});
     if(!sites.length) throw new Error('该期没有有效九肖数据');
     var counts={}; ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'].forEach(function(z){counts[z]=0;});
     sites.forEach(function(s){
@@ -215,7 +258,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var noise=1.96*Math.sqrt(0.75*0.25/nineSites)*100;
 
     document.getElementById('periodLabel').textContent=d.period+' 期';
-    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.3 · '+d.period+' 期 · 只做公开资料统计';
+    document.getElementById('pageFooter').textContent='AI资料统计 · 最大生肖 v1.4 · '+d.period+' 期 · 只做公开资料统计';
     document.getElementById('periodHint').textContent=d.status==='drawn'?'已开 · '+(d.actual||'—'):'待开';
     document.getElementById('topZ').textContent=topZ;
     document.getElementById('topN').textContent=tops.join('、')+' · '+top+' 站推荐 / '+nineSites+' 个有效九肖站 · 平均 '+Math.round(avg*10)/10+' 票';
@@ -288,11 +331,13 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     state.period=String(period);
     try{ history.replaceState(null,'','?period='+encodeURIComponent(state.period)); }catch(e){}
     render(d);
+    renderTierBar();
   }
   document.getElementById('periodSelect').addEventListener('change',function(){ show(this.value); });
   Promise.all([
     fetchJson('data/current-recommend.json').catch(function(){return null;}),
-    fetchJson('data/max-zodiac-ledger.json').catch(function(){return null;})
+    fetchJson('data/max-zodiac-ledger.json').catch(function(){return null;}),
+    loadDir()
   ]).then(function(res){
     var current=res[0], ledger=res[1];
     if(!current && !ledger) throw new Error('当期与历史数据都没读到');

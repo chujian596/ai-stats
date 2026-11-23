@@ -55,6 +55,14 @@
   @media(max-width:900px){
     .ledger{grid-template-columns:1fr}
   }
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  .tier-bar .tier-label{font-size:11px;color:var(--sub);font-weight:700;margin-right:2px}
+  .tier-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
+  .tier-btn .nm{color:var(--sub);font-size:10px;margin-left:3px}
+  .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+  .tier-btn.active .nm{color:rgba(255,255,255,.72)}
+  .tier-hint{font-size:10px;color:var(--sub);margin-left:auto}
 </style>
 </head>
 <body>
@@ -69,6 +77,7 @@
     <span class="hint" id="barHint"></span>
   </div>
   <div class="hint" id="issueNote" style="margin:2px 0 8px;color:#222"></div>
+  <div class="tier-bar" id="tierBar"></div>
 
   <div class="cmp">
     <div class="rcard left">
@@ -105,6 +114,37 @@
 var ZOD=['马','蛇','龙','兔','虎','牛','鼠','猪','狗','鸡','猴','羊'];
 var PEND=null, ALIAS={};
 
+// ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于当期待开推荐 =====
+var TIERS=[
+  {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
+  {key:'139', name:'三齐全', grades:['A'], desc:'九肖+杀三+平特都有'},
+  {key:'147', name:'双覆盖', grades:['A','B'], desc:'九肖+杀三，缺平特'},
+  {key:'151', name:'仅杀三', grades:['A','B','Ck'], desc:'再加只有杀三栏目'},
+  {key:'192', name:'仅九肖', grades:['A','B','Ck','Cn'], desc:'再加只有九肖栏目'},
+  {key:'194', name:'全量', grades:['A','B','Ck','Cn','D'], desc:'含无核心栏目的站'}
+];
+var TIER_KEY='site-tier', DIR={sites:[],byId:{},byKey:{}};
+function curTierKey(){ try{return localStorage.getItem(TIER_KEY)||'100';}catch(e){return '100';} }
+function tierDef(){ var k=curTierKey(); return TIERS.find(function(t){return t.key===k;})||TIERS[0]; }
+function keyOf(s){ return s.siteId || ((s.system||'')+':'+(s.siteKey||'')); }
+function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
+function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
+function renderTierBar(){
+  var bar=document.getElementById('tierBar'); if(!bar) return;
+  var cur=curTierKey();
+  bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+    var n=tierCount(t), act=t.key===cur?' active':'';
+    return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+t.desc+'"><span class="n">'+n+'</span><span class="nm">'+t.name+'</span></button>';
+  }).join('')+'<span class="tier-hint" id="tierHint"></span>';
+  Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+    b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); render(); });
+  });
+  var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
+  var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+}
+function loadDir(){ return fetchJson('data/site-directory.json').then(function(dir){ DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{}; }).catch(function(){}); }
+
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 function rowsHtml(rows, actual, unit, side){
@@ -134,7 +174,7 @@ function chips(zs){ return (zs||[]).map(function(z){return '<span class="zchip">
 function renderNinePending(){
   var agg={}, total=0;
   (PEND.sites||[]).forEach(function(s){
-    if(s.status==='有九肖' && s.zodiacs && s.zodiacs.length){
+    if(tierAllowed(s) && s.status==='有九肖' && s.zodiacs && s.zodiacs.length){
       var z=s.zodiacs[0]; agg[z]=(agg[z]||0)+1; total++;
     }
   });
@@ -159,7 +199,7 @@ function renderKillPending(){
 }
 
 function renderSiteTables(){
-  var sites=(PEND.sites||[]).slice();
+  var sites=(PEND.sites||[]).filter(tierAllowed).slice();
   sites.sort(function(a,b){return siteName(a).localeCompare(siteName(b),'zh');});
   var n9=document.getElementById('nineSites');
   n9.innerHTML='';
@@ -214,18 +254,20 @@ function refreshAll(){
   var n=Date.now();
   Promise.all([
     fetchJson('data/current-recommend.json?v='+n).then(function(d){PEND=d;}).catch(function(){PEND=null;}),
-    fetchJson('data/site-aliases.json?v='+n).then(function(d){ALIAS=d.aliases||{};}).catch(function(){ALIAS={};})
-  ]).then(render);
+    fetchJson('data/site-aliases.json?v='+n).then(function(d){ALIAS=d.aliases||{};}).catch(function(){ALIAS={};}),
+    loadDir()
+  ]).then(function(){ render(); renderTierBar(); });
 }
 
 Promise.all([
   fetchJson('data/current-recommend.json').then(function(d){PEND=d;}).catch(function(){PEND=null;}),
-  fetchJson('data/site-aliases.json').then(function(d){ALIAS=d.aliases||{};}).catch(function(){ALIAS={};})
-]).then(render).catch(function(e){
+  fetchJson('data/site-aliases.json').then(function(d){ALIAS=d.aliases||{};}).catch(function(){ALIAS={};}),
+  loadDir()
+]).then(function(){ render(); renderTierBar(); }).catch(function(e){
   document.getElementById('nineRank').innerHTML='<div class="rc-sub">数据加载失败：'+e+'</div>';
 });
 </script>
-<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-107 · 逐站九肖 / 杀三肖栏目可折叠展开</div>
+<div class="meta" style="margin-top:14px;text-align:center;color:var(--sub);font-size:11px">版本 F-108 · 逐站九肖 / 杀三肖栏目可折叠展开</div>
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>

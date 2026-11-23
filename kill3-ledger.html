@@ -121,12 +121,20 @@
   .tier.tD{background:#fdecec;color:#a42121;border:1px solid #f3c9c6}
   .tier.tOBS{background:#f4f5f7;color:#888;border:1px solid #e2e4e8}
   .tier-warn{display:block;font-size:10px;color:#a08a4a;margin-top:2px}
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  .tier-bar .tier-label{font-size:11px;color:var(--sub);font-weight:700;margin-right:2px}
+  .tier-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
+  .tier-btn .nm{color:var(--sub);font-size:10px;margin-left:3px}
+  .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+  .tier-btn.active .nm{color:rgba(255,255,255,.72)}
+  .tier-hint{font-size:10px;color:var(--sub);margin-left:auto}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.1</span></h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.2</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -141,6 +149,7 @@
   <div class="qc-note" id="qcNote"></div>
 
   <div class="card" id="pendCard" style="display:none;border-color:#f3c9c6;background:#fffafa">
+    <div class="tier-bar" id="tierBar"></div>
     <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html?v=2">完整对比 ↗</a></div>
     <div class="rc-sub" id="pendSub"></div>
     <div class="cmp2">
@@ -201,6 +210,37 @@
 <script>
 var LG=null, KR=null, ALIAS={}, PEND=null, MISS2=false, TIERHI=false, PROF={};
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
+
+// ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于当期待开推荐 =====
+var TIERS=[
+  {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
+  {key:'139', name:'三齐全', grades:['A'], desc:'九肖+杀三+平特都有'},
+  {key:'147', name:'双覆盖', grades:['A','B'], desc:'九肖+杀三，缺平特'},
+  {key:'151', name:'仅杀三', grades:['A','B','Ck'], desc:'再加只有杀三栏目'},
+  {key:'192', name:'仅九肖', grades:['A','B','Ck','Cn'], desc:'再加只有九肖栏目'},
+  {key:'194', name:'全量', grades:['A','B','Ck','Cn','D'], desc:'含无核心栏目的站'}
+];
+var TIER_KEY='site-tier', DIR={sites:[],byId:{},byKey:{}};
+function curTierKey(){ try{return localStorage.getItem(TIER_KEY)||'100';}catch(e){return '100';} }
+function tierDef(){ var k=curTierKey(); return TIERS.find(function(t){return t.key===k;})||TIERS[0]; }
+function keyOf(s){ return s.siteId || ((s.system||'')+':'+(s.siteKey||'')); }
+function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
+function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
+function renderTierBar(){
+  var bar=document.getElementById('tierBar'); if(!bar) return;
+  var cur=curTierKey();
+  bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+    var n=tierCount(t), act=t.key===cur?' active':'';
+    return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+t.desc+'"><span class="n">'+n+'</span><span class="nm">'+t.name+'</span></button>';
+  }).join('')+'<span class="tier-hint" id="tierHint"></span>';
+  Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+    b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); renderPendingKill(); });
+  });
+  var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
+  var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+}
+function loadDir(){ return fetchJson('data/site-directory.json').then(function(dir){ DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{}; }).catch(function(){}); }
 function loadQC(ledgerName){
   fetchJson('data/quality-report.json').then(function(q){
     var el=document.getElementById('qcNote'); if(!el||!q) return;
@@ -440,14 +480,14 @@ function renderPendingKill(){
     }).join('');
   } else { rankEl.innerHTML=''; }
   var nagg={}, ntot=0;
-  (PEND.sites||[]).forEach(function(s){ if(s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length){ nagg[s.zodiacs[0]]=(nagg[s.zodiacs[0]]||0)+1; ntot++; }});
+  (PEND.sites||[]).forEach(function(s){ if(tierAllowed(s)&&s.status==='有九肖'&&s.zodiacs&&s.zodiacs.length){ nagg[s.zodiacs[0]]=(nagg[s.zodiacs[0]]||0)+1; ntot++; }});
   var kagg={}; rows.forEach(function(r){kagg[r.z]=r.kill;});
   document.getElementById('miniNine').innerHTML=miniRows(nagg, ntot, '站');
   document.getElementById('miniKill').innerHTML=miniRows(kagg, PEND.killSites, '票');
   renderPendingMiss();
   var wrap=document.getElementById('pendTableWrap');
   var tb=document.getElementById('pendRows');
-  var killSites=(PEND.sites||[]).filter(function(s){return s.killZodiacs&&s.killZodiacs.length;});
+  var killSites=(PEND.sites||[]).filter(function(s){return tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length;});
   killSites.sort(function(a,b){return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');});
   tb.innerHTML='';
   killSites.forEach(function(s){
@@ -675,7 +715,7 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){ALIAS={};});
   var pRank=fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;}).catch(function(){});
   var pPend=fetchJson('data/current-recommend.json').then(function(p){PEND=p;}).catch(function(){PEND=null;});
-  return Promise.all([pAlias,pRank,pPend]);
+  return Promise.all([pAlias,pRank,pPend, loadDir()]);
 }).then(function(){
   var issues=buildSelect();
   var sel=document.getElementById('periodSel');
@@ -707,7 +747,7 @@ fetchJson('data/kill3-ledger.json').then(function(d){
       var pAlias=fetchJson('data/site-aliases.json').then(function(a){ALIAS=a.aliases||{};}).catch(function(){});
       var pRank=fetchJson('data/kill-rank-stats.json').then(function(k){KR=k;}).catch(function(){});
       var pPend=fetchJson('data/current-recommend.json').then(function(p){PEND=p;}).catch(function(){PEND=null;});
-      return Promise.all([pAlias,pRank,pPend]);
+      return Promise.all([pAlias,pRank,pPend, loadDir()]);
     }).then(function(){
       buildSelect();
       if(keep!=='pending' && issues.indexOf(keep)>=0){ enterReview(keep); } else { enterPending(); }
@@ -715,6 +755,7 @@ fetchJson('data/kill3-ledger.json').then(function(d){
     }).catch(function(){rb.textContent='刷新失败';});
   });
   if(PEND && PEND.status==='pending'){ enterPending(); } else { enterReview(issues[issues.length-1]); }
+  renderTierBar();
   renderPendingKill();
 }).catch(function(e){
   document.getElementById('rows').innerHTML='<tr><td colspan="10" class="empty">台账数据加载失败：'+e+'</td></tr>';
@@ -723,6 +764,6 @@ fetchJson('data/kill3-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
-<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.1 · 2026-11-22</div>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.2 · 2026-11-23</div>
 </body>
 </html>
