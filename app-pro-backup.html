@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.87-Pro';
+var APP_VER = 'v59.88-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -11680,8 +11680,10 @@ function renderRisk(){
   const _shouldAll = Number(_fr2.totalFly) || 0;   // 按当前阈值应飞的原额，不是「已飞+待飞」
   const _stillNeed = Math.max(0, Number(_fr2.thisRound) || 0);   // 按原额扣掉已飞后还要补的
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　已飞累计 ${_alreadyReal.toFixed(0)}（含早前确认过的）· 按现阈值还该飞 ${_shouldAll.toFixed(0)}，扣掉已飞还要补 ${_stillNeed.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
-  if(_alreadyReal > _shouldAll + 20 && _shouldAll > 0){
-    h += `<div style="font-size:12px;color:#cf1322;line-height:1.6;padding:3px 0 3px 4px">已飞 ${_alreadyReal.toFixed(0)} 元，比按现阈值该飞的 ${_shouldAll.toFixed(0)} 元还多 ${(_alreadyReal-_shouldAll).toFixed(0)} 元 —— 这批已飞跟当前单/当前阈值对不上（改过单、或调过阈值后才出现的）。数字打架就是这个原因。要让账干净：点「重置飞单」清零，再按当前阈值飞一遍。</div>`;
+  if(_alreadyReal > _shouldAll + 0.5 && _shouldAll > 0){
+    const _overAll = _alreadyReal - _shouldAll;
+    const _residual = _overAll - _roundGap;   // 多出来的钱里，凑整之外的部分＝改过单/调过阈值的旧飞单残留
+    h += `<div style="font-size:12px;color:#cf1322;line-height:1.6;padding:3px 0 3px 4px">已飞 ${_alreadyReal.toFixed(0)} 元，比按现阈值该飞的 ${_shouldAll.toFixed(0)} 元还多 ${_overAll.toFixed(0)} 元 ＝ 凑整多飞 ${_roundGap.toFixed(0)} ＋ 旧飞单残留 ${_residual.toFixed(0)}（${_residual>0?'改过单/调过阈值前飞出去的，不在当前这盘的应飞里':'少飞自己留的'}）。要让账干净：点「重置飞单」清零，再按当前阈值飞一遍。</div>`;
   }
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　补飞完总飞（含待飞 ${_pendingReal.toFixed(0)}）</span><span>${_totalRealFly.toFixed(0)}</span></div>`;
   const _roundNowOn = (function(){ try{ return (parseFloat(getFlyRoundMode())||0) > 0; }catch(e){ return false; } })();
@@ -11711,6 +11713,7 @@ function renderRisk(){
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　待飞 ${_pendingReal.toFixed(0)} 还没付出去，不算进已结算盈亏</span><span></span></div>`;
   // 开奖后用实际值，否则用最坏预测
   let dSpecPayout = specialPayout, dPtePayout = ptePayout, dLxPayout = lxPayout, dNet = afterFlyNet;
+  var _custSpec = 0, _custPte = 0, _custLx = 0;
   if(_riskDraw && _riskDraw.specialNum){
     const dn2 = _riskDraw.specialNum;
     const dz2 = NUM2ZODIAC[dn2];
@@ -11738,14 +11741,35 @@ function renderRisk(){
       }
     }); });
 
+    // 客户总赔付（未扣上家赔回）：与「结算明细」的赔付明细同一口径，便于两边对账
+    _custSpec = _betHit * payMult;
+    Object.entries(pteBetByZod).forEach(([z,amt]) => {
+      if(dzSet2.has(z)) _custPte += amt * (z==='马' ? 1.8 : payMultSingle);
+    });
+    _riskList.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
+      if(c.startsWith('连肖')){
+        const zod = c.replace('连肖','');
+        if(zod.split('').every(z => dzSet2.has(z))){
+          const n = zod.length; let odds = n===2?4:(n===3?10:30);
+          if(zod.includes('马')) odds -= 0.5;
+          _custLx += amt * odds;
+        }
+      }
+    }); });
     dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;   // 3055 - 4055 = -1000
   }
   const dPayout = dSpecPayout + dPtePayout + dLxPayout;
   const isDraw = !!(_riskDraw && _riskDraw.specialNum);
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 特号赔付${isDraw?'(实际)':''}</span><span>${dSpecPayout.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 平特赔付${isDraw?'(实际)':''}</span><span>${dPtePayout.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>└ 连肖赔付${isDraw?'(实际)':''}</span><span>${dLxPayout.toFixed(0)}</span></div>`;
-  h += `<div style="display:flex;justify-content:space-between"><span>总赔付${isDraw?'(实际)':'风险'}</span><b>${dPayout.toFixed(0)}</b></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 特号自留赔付${isDraw?'(实际)':''}</span><span>${dSpecPayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>├ 平特自留赔付${isDraw?'(实际)':''}</span><span>${dPtePayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>└ 连肖自留赔付${isDraw?'(实际)':''}</span><span>${dLxPayout.toFixed(0)}</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between"><span>自留总赔付${isDraw?'(实际)':'风险'}</span><b>${dPayout.toFixed(0)}</b></div>`;
+  if(isDraw){
+    const _custAll = _custSpec + _custPte + _custLx;
+    if(Math.abs(_custAll) > 0.01){
+      h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#999"><span>　客户总赔付 ${_custAll.toFixed(0)} ＝ 自留 ${dPayout.toFixed(0)} ＋ 上家赔回 ${(_custAll-dPayout).toFixed(0)}</span><span></span></div>`;
+    }
+  }
   h += `<div style="display:flex;justify-content:space-between"><span>自留后${isDraw?'实际':'最坏'}净盈亏</span><b style="color:${dNet>=0?'#16a34a':'#cf1322'}">${dNet>=0?'+':''}${dNet.toFixed(0)}</b></div>`;
   h += `</div>`;
   h += '</div>';
