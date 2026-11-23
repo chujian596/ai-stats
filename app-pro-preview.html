@@ -99,6 +99,9 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 .pro-entry{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:18px!important;padding:13px!important;margin:0 0 10px!important;box-shadow:0 4px 14px rgba(16,35,70,.06)!important}
 .pro-input-wrap{background:#f7f9fd!important;border:1px solid #e6ebf3!important;border-radius:14px!important;padding:11px!important}
 .pro-input-wrap>div:first-child span:first-child{font-size:12px!important;font-weight:750!important;color:#334155!important}
+#quickSaveBtn{flex:none;border:1px solid #2457d6!important;background:#2457d6!important;color:#fff!important;border-radius:8px!important;padding:4px 9px!important;font-size:11px!important;font-weight:800!important;line-height:1.5!important;box-shadow:0 3px 9px rgba(36,87,214,.18)!important}
+#quickSaveBtn:active{opacity:.78}
+html[data-system-theme="dark"] #quickSaveBtn{background:#2457d6!important;border-color:#4f7fe8!important;color:#fff!important}
 #orderSummary{font-size:10px!important;color:#8b97a6!important}
 #input{min-height:126px!important;border:1px solid #dfe6f0!important;border-radius:11px!important;padding:10px!important;font-size:15px!important;line-height:1.7!important;background:#fff!important;color:#17202b!important;resize:none!important}
 #input:focus{outline:none!important;border-color:#9db8f0!important;box-shadow:0 0 0 3px rgba(36,87,214,.08)!important}
@@ -431,9 +434,12 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
     <div class="pro-input-wrap" style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:12px;color:#666">订单输入区</span>
-        <span id="orderSummary" style="font-size:11px;color:#999"></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:12px;color:#666;flex:none">订单输入区</span>
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
+          <span id="orderSummary" style="font-size:11px;color:#999;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button id="quickSaveBtn" type="button" onclick="quickSaveFromHeader()">保存</button>
+        </div>
       </div>
       <div id="liveBalls" style="display:none;flex-wrap:nowrap;gap:3px;padding:8px 0;justify-content:center;align-items:flex-start;min-height:56px;overflow-x:auto"></div>
       
@@ -7503,6 +7509,15 @@ function openManualEntry(){
     }
   }
   window.__syncKbSaveBar = sync;
+  window.quickSaveFromHeader = function(){
+    try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+    setTimeout(function(){
+      try{
+        if(typeof handleSave === 'function') handleSave();
+        else if(window.handleSave) window.handleSave();
+      }catch(e){}
+    }, 110);
+  };
 
   function revealSaveRow(){
     setTimeout(function(){
