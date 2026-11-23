@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.78-Pro';
+var APP_VER = 'v59.79-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4774,7 +4774,9 @@ function flyClusterTier(items, keptOf, opt){
       if(distinct > 1 && span > p.pairGap + 1e-9) break;
       const g = list.slice(i, j+1);
       if(g.length === 1){
-        arr.push({j:i, target:g[0].amt, deltas:[{code:g[0].code, amt:g[0].amt, kept:g[0].kept, d:0}], dev:0, absDev:0, span:0});
+        // 单号独自成档时也必须 ≥ 必飞下限（四舍五入可能把下限舍掉了）
+        var d0 = (g[0].min > 1e-9 && g[0].amt < g[0].min - 1e-9) ? (g[0].min - g[0].amt) : 0;
+        arr.push({j:i, target:g[0].amt + d0, deltas:[{code:g[0].code, amt:g[0].amt, kept:g[0].kept, d:d0}], dev:d0, absDev:Math.abs(d0), span:0});
         continue;
       }
       // 组内每一号都有下限：目标档必须 ≥ 组内最小的必飞额
@@ -4938,7 +4940,8 @@ function flyClusterAlloc(){
     Object.keys(selfOf).forEach(kk => {
       const full = Math.max(0, selfOf[kk] - CAP);
       if(full < 0.01) return;
-      items.push({code: kk, amt: flyShowAmt(full)});
+      // 基准档＝必飞下限：向上取 10 元档，保证「注额 − 飞额 ≤ 自留上限」
+      items.push({code: kk, amt: Math.max(10, Math.ceil(full / 10 - 1e-9) * 10)});
     });
     items.forEach(it => { baseAmt[it.code] = it.amt; });
     // 这一号最少要飞多少：自留 ≤ 上限 → 飞 ≥ 注额−上限，再向上取 10 元档
@@ -4978,13 +4981,18 @@ function buildFlyGroups(lines, useFull){
   let showSum = 0;
   let _alloc = null;
   try { if(_flyClusterOn && !useFull) _alloc = flyClusterAlloc(); } catch(e){ _alloc = null; }
+  const bookedSum = {};
+  lines.forEach(l => {
+    if(useFull) return;
+    const code = String(l.code).replace(':', ' ');
+    if(l.booked > 0.01) bookedSum[code] = (bookedSum[code] || 0) + l.booked;
+  });
   Object.keys(codeSum).forEach(c => {
     let show = flyShowAmt(codeSum[c]);
     const _ck = (/^\d{1,2}$/.test(String(c)) ? String(c).padStart(2, '0') : c);
     if(_alloc && _alloc[_ck] !== undefined){
-      const _base = (_flyClusterCache.base || {})[_ck];
-      // 这一号还没开飞、档位就是聚档前的档 → 用聚档额；飞过一部分的号按实付
-      if(_base === undefined || Math.abs(show - _base) < 0.01) show = _alloc[_ck];
+      // 这一号还没开飞 → 用聚档额；飞过一部分的号按实付，不硬套
+      if(!(bookedSum[c] > 0.01)) show = _alloc[_ck];
     }
     showSum += show;
     const k = show.toFixed(2);
