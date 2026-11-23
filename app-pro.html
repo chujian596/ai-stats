@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.77-Pro';
+var APP_VER = 'v59.78-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4756,11 +4756,14 @@ function _medianOf(arr){ const s = arr.slice().sort((a,b)=>a-b), n = s.length; r
 
 function flyClusterTier(items, keptOf, opt){
   const p = Object.assign({win:10, step:10, maxAdj:10, tol:10, pairGap:5, mode:'auto'}, opt || {});
+  // minOf(code)：这一号最少要飞多少——由「每号自留上限」反推，低于它就等于把自留顶破上限
+  const minOf = p.minOf || function(){ return 0; };
   const list = items.filter(it => it.amt > 0.01)
-        .map(it => ({code:it.code, amt:it.amt, kept: keptOf ? (keptOf(it.code)||0) : 0}))
+        .map(it => ({code:it.code, amt:it.amt, kept: keptOf ? (keptOf(it.code)||0) : 0,
+                     min: Math.max(0, Number(minOf(it.code)) || 0)}))
         .sort((a,b) => b.amt - a.amt);
   const n = list.length;
-  if(!n) return {alloc:{}, groups:[], beforeSum:0, afterSum:0, dev:0, params:p, list:list};
+  if(!n) return {alloc:{}, groups:[], beforeSum:0, afterSum:0, dev:0, params:p, list:list, capped:0};
   const cands = new Map();
   for(let i = 0; i < n; i++){
     const arr = [];
@@ -4774,6 +4777,9 @@ function flyClusterTier(items, keptOf, opt){
         arr.push({j:i, target:g[0].amt, deltas:[{code:g[0].code, amt:g[0].amt, kept:g[0].kept, d:0}], dev:0, absDev:0, span:0});
         continue;
       }
+      // 组内每一号都有下限：目标档必须 ≥ 组内最小的必飞额
+      let maxMin = 0;
+      g.forEach(x => { if(x.min > maxMin) maxMin = x.min; });
       const wsum = g.reduce((a,x)=> a + Math.max(1, x.kept + x.amt), 0);
       const wavg = g.reduce((a,x)=> a + x.amt * Math.max(1, x.kept + x.amt), 0) / wsum;
       const base = (p.mode === 'median') ? _medianOf(g.map(x=>x.amt)) : wavg;
@@ -4786,23 +4792,27 @@ function flyClusterTier(items, keptOf, opt){
       let bestC = null;
       targets.forEach(t => {
         if(t <= 0) return;
+        if(t < maxMin - 1e-9) return;                        // 压到别人上限以下 → 直接不可行
         if(protect && t < heaviest.amt - 1e-9) return;
         const deltas = g.map(x => {
           let d = t - x.amt;
           if(d > p.maxAdj) d = p.maxAdj;
           if(d < -p.maxAdj) d = -p.maxAdj;
+          if(x.min > 1e-9 && x.amt + d < x.min - 1e-9) d = x.min - x.amt;   // 不许破自留上限
           return {code:x.code, amt:x.amt, kept:x.kept, d:d};
         });
         let sum = deltas.reduce((a,x)=> a + x.d, 0);
+        // 组内一加一减把总额拉回：优先动自留小（风险轻）的号，但不许越过各自下限
         if(Math.abs(sum) > p.tol + 1e-9){
           deltas.slice().sort((a,b)=> a.kept - b.kept).forEach(c => {
             if(Math.abs(sum) <= p.tol + 1e-9) return;
-            const room = p.maxAdj - Math.abs(c.d), need = -sum;
-            const move = Math.max(-room, Math.min(room, need));
+            const need = -sum;
+            const roomUp = p.maxAdj - c.d;
+            const roomDown = c.d - ((list.find(x=>x.code===c.code)||{}).min > 0 ? (list.find(x=>x.code===c.code).min - c.amt) : -p.maxAdj);
+            const move = Math.max(-Math.max(0, roomDown), Math.min(roomUp, need));
             c.d += move; sum += move;
           });
         }
-        if(Math.abs(sum) > p.tol + 1e-9) return;
         const score = {j:j, target:t, deltas:deltas, dev:sum, absDev:Math.abs(sum), span:span};
         if(!bestC || score.absDev < bestC.absDev - 1e-9
            || (Math.abs(score.absDev-bestC.absDev) < 1e-9 && score.span < bestC.span)) bestC = score;
@@ -4815,12 +4825,14 @@ function flyClusterTier(items, keptOf, opt){
   cur.set(0, {groups:0, choice:[]});
   const iMap = new Map();
   function key(d){ return Math.round(d / 5) * 5; }
+  const devBound = Math.max(p.tol, 10) + 30;   // 防状态爆炸：允许多飞一点，但不无限
   for(let i = n - 1; i >= 0; i--){
     const nextState = new Map();
     (cands.get(i) || []).forEach(c => {
-      const rest = iMap.get(c.j + 1) || new Map([[0, {groups:0, choice:[]}]]);
+      const rest = iMap.get(c.j + 1) || new Map([[0, {ex:0, groups:0, dev:0, gapSum:0, choice:[]}]]);
       rest.forEach((st, k) => {
         const dev = c.dev + st.dev, g = st.groups + 1;
+        if(Math.abs(dev) > devBound + 1e-9) return;
         const gap = (c.span || 0) + (st.gapSum || 0);
         const kk = key(dev);
         const prev = nextState.get(kk);
@@ -4849,7 +4861,7 @@ function flyClusterTier(items, keptOf, opt){
     groups.push({codes: g.map(x=>x.code), before: g.map(x=>x.amt), after: c.deltas.map(x=>x.amt + x.d),
                  target: c.target, merged: g.length > 1, dev: c.dev});
   });
-  // 收尾：相邻两档贴得近就并（替换后总额仍不越界才并）
+  // 收尾：相邻两档贴得近就并（替换后总额仍不越界、且不破任何号下限，才并）
   let changed = true;
   while(changed){
     changed = false;
@@ -4857,30 +4869,26 @@ function flyClusterTier(items, keptOf, opt){
     for(let k = 0; k + 1 < gs.length; k++){
       const g1 = gs[k], g2 = gs[k+1];
       if(Math.abs(g1.after[0] - g2.after[0]) > p.win + 1e-9) continue;
-      const members = g1.codes.map((c, idx) => ({code:c, amt:g1.before[idx], kept:(list.find(x=>x.code===c)||{}).kept||0}))
-                     .concat(g2.codes.map((c, idx) => ({code:c, amt:g2.before[idx], kept:(list.find(x=>x.code===c)||{}).kept||0})));
+      const members = g1.codes.map((c, idx) => ({code:c, amt:g1.before[idx], kept:(list.find(x=>x.code===c)||{}).kept||0, min:(list.find(x=>x.code===c)||{}).min||0}))
+                     .concat(g2.codes.map((c, idx) => ({code:c, amt:g2.before[idx], kept:(list.find(x=>x.code===c)||{}).kept||0, min:(list.find(x=>x.code===c)||{}).min||0})));
       const span = Math.max.apply(null, members.map(m=>m.amt)) - Math.min.apply(null, members.map(m=>m.amt));
       if(span > p.win + 1e-9) continue;
+      const maxMin = members.reduce((a,m)=> Math.max(a, m.min || 0), 0);
       const w = members.reduce((a,m)=> a + Math.max(1, m.kept + m.amt), 0);
       const wavg = members.reduce((a,m)=> a + m.amt*Math.max(1, m.kept + m.amt), 0) / w;
       const tset = new Set([_snapStep(wavg, p.step)]);
       members.forEach(m => { if(m.amt % p.step === 0) tset.add(m.amt); });
       let picked = null;
       tset.forEach(t => {
-        if(t <= 0) return;
+        if(t <= 0 || t < maxMin - 1e-9) return;
         const ds = members.map(m => {
           let d = t - m.amt;
           if(d > p.maxAdj) d = p.maxAdj;
           if(d < -p.maxAdj) d = -p.maxAdj;
+          if(m.min > 1e-9 && m.amt + d < m.min - 1e-9) d = m.min - m.amt;
           return {code:m.code, amt:m.amt, kept:m.kept, d:d};
         });
         let sum = ds.reduce((a,x)=> a + x.d, 0);
-        ds.slice().sort((a,b)=> a.kept - b.kept).forEach(c => {
-          if(Math.abs(sum) <= p.tol + 1e-9) return;
-          const room = p.maxAdj - Math.abs(c.d), need = -sum;
-          c.d += Math.max(-room, Math.min(room, need)); sum = ds.reduce((a,x)=> a + x.d, 0);
-        });
-        if(Math.abs(sum) > p.tol + 1e-9) return;
         const newTotal = best.dev - (g1.dev||0) - (g2.dev||0) + sum;
         if(Math.abs(newTotal) > p.tol + 1e-9) return;
         if(!picked || Math.abs(sum) < Math.abs(picked.dev)) picked = {t:t, ds:ds, dev:sum};
@@ -4899,7 +4907,12 @@ function flyClusterTier(items, keptOf, opt){
   }
   const beforeSum = list.reduce((a,x)=> a + x.amt, 0);
   const afterSum = Object.keys(alloc).reduce((a,c)=> a + alloc[c], 0);
-  return {alloc, groups, beforeSum, afterSum, dev: afterSum - beforeSum, params:p, list:list};
+  let capped = 0;
+  Object.keys(alloc).forEach(c => {
+    const it = list.find(x=>x.code===c);
+    if(it && it.min > 1e-9 && alloc[c] < it.min - 1e-9) capped++;
+  });
+  return {alloc, groups, beforeSum, afterSum, dev: afterSum - beforeSum, params:p, list:list, capped:capped};
 }
 
 // 当前盘「特号」聚档结果（按号码、缓存到销售快照变化为止）
@@ -4911,7 +4924,9 @@ function flyClusterAlloc(){
     + Object.keys(sales).map(k => k + ':' + sales[k]).join(',');
   if(_flyClusterCache.sig === sig) return _flyClusterCache.alloc;
   let alloc = {}, info = null, baseAmt = {};
-  if(_flyClusterOn){
+  // 每号自留上限＝阈值；没设阈值（0）就是全额自留、一分不飞，聚档也不该动
+  const CAP = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+  if(_flyClusterOn && CAP > 0){
     const items = [];
     const selfOf = {};   // 号码统一补两位，号和键写法（2 / 02）都能对上
     Object.keys(sales).forEach(k => {
@@ -4921,17 +4936,27 @@ function flyClusterAlloc(){
       selfOf[kk] = (selfOf[kk] || 0) + v;
     });
     Object.keys(selfOf).forEach(kk => {
-      const full = Math.max(0, selfOf[kk] - (splitTakeAll || 0));
+      const full = Math.max(0, selfOf[kk] - CAP);
       if(full < 0.01) return;
       items.push({code: kk, amt: flyShowAmt(full)});
     });
     items.forEach(it => { baseAmt[it.code] = it.amt; });
+    // 这一号最少要飞多少：自留 ≤ 上限 → 飞 ≥ 注额−上限，再向上取 10 元档
+    function minFlyOf(c){
+      const need = Math.max(10, (selfOf[c] || 0) - CAP);
+      return Math.max(10, Math.ceil(need / 10 - 1e-9) * 10);
+    }
     if(items.length > 1){
-      const r = flyClusterTier(items, c => Math.max(0, (selfOf[c]||0) - (baseAmt[c]||0)), p);
+      const r = flyClusterTier(items, c => Math.max(0, (selfOf[c]||0) - (baseAmt[c]||0)), Object.assign({}, p, {minOf: minFlyOf}));
       alloc = r.alloc; info = r;
     } else if(items.length === 1){
-      alloc[items[0].code] = items[0].amt;
+      alloc[items[0].code] = Math.max(items[0].amt, minFlyOf(items[0].code));
     }
+    // 兜底：任何号都不许低于下限（破自留上限）
+    Object.keys(alloc).forEach(c => {
+      const mf = minFlyOf(c);
+      if(alloc[c] < mf) alloc[c] = mf;
+    });
   }
   _flyClusterCache = {sig:sig, alloc:alloc, info:info, base:baseAmt};
   return alloc;
@@ -5048,7 +5073,18 @@ function showAllFlyDir(){
     if(_flyClusterOn){
       h += '<span>窗口<input value="' + p.win + '" onchange="setFlyClusterP(\'flyClusterWin\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
          + '<span>单号±<input value="' + p.maxAdj + '" onchange="setFlyClusterP(\'flyClusterAdj\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
-         + '<span>总额±<input value="' + p.tol + '" onchange="setFlyClusterP(\'flyClusterTol\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>';
+         + '<span>多飞≤<input value="' + p.tol + '" onchange="setFlyClusterP(\'flyClusterTol\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
+         + (function(){
+             try {
+               flyClusterAlloc();
+               var ci = _flyClusterCache.info;
+               if(!ci) return '';
+               var before = {}; (ci.list||[]).forEach(function(x){ before[x.amt] = 1; });
+               var after = {}; Object.keys(ci.alloc).forEach(function(c){ after[ci.alloc[c]] = 1; });
+               var bt = Object.keys(before).length, at = Object.keys(after).length;
+               return '<span style="color:#16a34a">档 ' + bt + '→' + at + ' · ' + (ci.dev >= 0 ? '多飞' : '省') + Math.abs(ci.dev) + ' 元 · 上限不破</span>';
+             } catch(e){ return ''; }
+           })();
     }
     h += '</div>';
   })();
@@ -11158,14 +11194,23 @@ function renderRisk(){
         var e = df > 0 ? dw / df : 0;
         if(e > bestEff){ bestEff = e; bestM = m; }
       });
+      // 号码表要和飞单明细用同一套数：聚档开时按聚档后的每号飞额反推自留
+      var _allocNum = null;
+      try{ if(_flyClusterOn && _cap > 0) _allocNum = flyClusterAlloc(); }catch(e){ _allocNum = null; }
+      function _keptOfNum(b){
+        var _k = String(b.n).length <= 2 ? String(b.n).padStart(2, '0') : String(b.n);
+        var a = _allocNum ? _allocNum[_k] : undefined;
+        if(a !== undefined) return Math.max(0, b.nb - a);
+        return Math.min(b.nb, _cap);
+      }
       var _kept = 0;
-      _bets.forEach(function(b){ _kept += Math.min(b.nb, _cap); });
+      _bets.forEach(function(b){ _kept += _keptOfNum(b); });
 
       h += `<div id="cutCard" style="display:${riskBoxOpen?'':'none'};margin-top:0;padding:2px 10px 10px;background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;font-size:13px">`;
       h += `<div style="border-top:1px dashed #e5e5e5;padding-top:8px;margin-bottom:6px;font-weight:700;color:#333">每号自留上限（就是上面那个阈值，同一个数）</div>`;
       h += `<div style="margin:-2px 0 6px;font-size:12px;color:#333">下面号码表按 <b style="color:#1677ff">每号最多留 ${_cap.toFixed(0)} 元</b> 算；改上面的阈值，这里和飞单统计一起跟着变</div>`;
       h += `<div style="font-size:11px;color:#999;line-height:1.5;margin:-2px 0 8px">数字越小＝每号自留越少、飞得越多＝越稳；数字越大＝留得越多＝赚也多大、亏也多大。下面的数只算特号；平特、连肖按各自赔率自己看（平特卡在上面单独列）。</div>`;
-      h += `<div style="font-size:10px;color:#999;line-height:1.45;margin:-4px 0 7px">飞额已按 10 元零尾凑整：先按档位算出每号应飞，再按总额就近分配到 10 的倍数，总额最多浮动 5 元；自留和最坏按凑整后的实际金额算。</div>`;
+      h += `<div style="font-size:10px;color:#999;line-height:1.45;margin:-4px 0 7px">飞额按 10 元档：先按档位算出每号应飞，再向上取到 10 的倍数（自留只会 ≤ 上限，不会顶破）；聚档开时，这里与飞单明细用同一套每号飞额，自留、最坏都按它算。</div>`;
       if(true){
         h += `<div style="margin-bottom:4px;color:#666;font-size:12px">挑一档（数字＝削到该值后特号的最坏净盈亏，只算特号；完全不削是 ${(base.worst+_othNet).toFixed(0)}）</div>`;
         h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
@@ -11223,7 +11268,7 @@ function renderRisk(){
       }
       var _half = Math.ceil(_arr.length / 2);
       function _row(b){
-        var s = Math.min(b.nb, _cap), fly = b.nb - s, net = _kept - 47 * s + _othNet;
+        var s = _keptOfNum(b), fly = b.nb - s, net = _kept - 47 * s + _othNet;
         var _gray = b.noBet ? 'color:#bbb' : '';
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid #f7f7f7;font-size:12px">`
              + `<span style="${_gray}"><b style="display:inline-block;min-width:20px;${_gray}">${b.n}</b><span style="color:#bbb">${b.nb.toFixed(0)}&rarr;${s.toFixed(0)}</span>${fly>0?'<span style="color:#cf1322"> 飞'+fly.toFixed(0)+'</span>':''}${b.noBet?'<span style="color:#bbb"> 没人买</span>':''}</span>`
