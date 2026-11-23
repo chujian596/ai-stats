@@ -71,7 +71,7 @@
   .status-pill.warn{background:rgba(232,189,102,.16);border-color:rgba(232,189,102,.4);color:#ffe2a7}
   .hero-period{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:9px}
   .hero-updated{font-size:10px;color:#a9c1e8;margin-top:3px;white-space:nowrap}
-  .tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
+  .tabbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin:0 0 12px;box-shadow:var(--shadow-sm)}
   .tabbar button{position:relative;border:0;border-radius:11px;padding:10px 5px;background:transparent;color:var(--muted);font-size:12px;font-weight:750;white-space:nowrap}
   .tabbar button.on{background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(36,86,166,.18)}
   .tabbar button .cnt{display:block;font-size:9px;font-weight:600;opacity:.72;margin-top:2px}
@@ -417,6 +417,15 @@
     .stat-card{padding:10px 11px;min-height:66px}
     .stat-card .value{font-size:21px}
   }
+  .dims{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:6px 0 10px}
+  .dim-btn{position:relative;border:1px solid var(--line);background:var(--card-2);color:var(--muted);border-radius:12px;padding:10px 6px;font-size:12.5px;font-weight:700;transition:.16s ease}
+  .dim-btn:hover{color:var(--text);border-color:var(--faint)}
+  .dim-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.ghostish{background:transparent;color:var(--muted)}
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+  .section-title h3{margin:0;font-size:13px}
+  .rank-name .hot-note{font-size:9px;font-weight:800;color:var(--red);margin-left:4px;vertical-align:1px}
+  .detail-table-wrap{overflow-x:auto}
 </style>
 </head>
 <body>
@@ -428,8 +437,6 @@
     </a>
     <div class="top-actions">
       <a class="ghost" href="stats.html">总览</a>
-      <a class="ghost" href="six-seven-ledger.html">六肖七肖</a>
-      <a class="ghost" href="extra-ledger.html">扩展维度</a>
       <button class="ghost" id="openRules" type="button">说明</button>
     </div>
   </header>
@@ -456,6 +463,8 @@
     <button type="button" data-tab="now">本期<span class="cnt" id="tabNowCount">—</span></button>
     <button type="button" data-tab="nine">九肖<span class="cnt" id="tabNineCount">—</span></button>
     <button type="button" data-tab="kill">杀三<span class="cnt" id="tabKillCount">—</span></button>
+    <button type="button" data-tab="ss">六七肖<span class="cnt" id="tabSsCount">—</span></button>
+    <button type="button" data-tab="ex">六维<span class="cnt" id="tabExCount">—</span></button>
     <button type="button" data-tab="change">改料<span class="cnt" id="tabChangeCount">—</span></button>
   </nav>
 
@@ -745,7 +754,131 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.3.8</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / change-ledger / zodiac-position-stats / kill-rank-stats / quality-report</span></div>
+  <!-- ===== 视图：六肖 · 七肖（内嵌台账） ===== -->
+  <section class="view hidden" id="view-ss">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">六肖 · 七肖 · 逐站台账</div>
+          <h2>六肖 · 七肖台账</h2>
+          <p>带码主推六肖 / 七肖逐期复盘；生肖共识与号码共识分列，页内切换维度与期号，不跳外链。</p>
+        </div>
+        <span class="badge pending" id="ssBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="ssChips"></div>
+        <div class="stats" id="ssStats"></div>
+        <div class="dims" id="ssTabs"></div>
+        <div class="change-row" style="margin:8px 0">
+          <div class="period-box"><label for="ssPeriod">期号</label><select id="ssPeriod"></select></div>
+          <button class="btn ghostish" id="ssBack" type="button">回到待开</button>
+          <button class="btn" id="ssCopy" type="button">复制本期</button>
+          <button class="btn ghostish" id="ssExpand" type="button">展开全部</button>
+        </div>
+        <div id="ssPend">
+          <div class="two-col">
+            <div class="subcard"><h3>生肖共识</h3><div class="subhint" id="ssPendZodHint"></div><div id="ssPendZodRank"></div></div>
+            <div class="subcard"><h3>号码共识</h3><div class="subhint" id="ssPendCodeHint"></div><div id="ssPendCodeRank"></div></div>
+          </div>
+          <div class="filterbar">
+            <input id="ssPendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+            <select id="ssPendSort">
+              <option value="name">按站名</option>
+              <option value="new">新料优先</option>
+              <option value="history">历史命中优先</option>
+            </select>
+            <div class="filter-chips" id="ssPendFilter">
+              <button class="filter-chip on" data-filter="all" type="button">全部</button>
+              <button class="filter-chip" data-filter="new" type="button">只看新料</button>
+              <button class="filter-chip" data-filter="carry" type="button">只看沿用</button>
+            </div>
+          </div>
+          <div id="ssPendList" class="site-grid"></div>
+        </div>
+        <div id="ssReview" class="hidden">
+          <div class="two-col">
+            <div class="subcard"><h3>生肖共识</h3><div class="subhint">标红为当期特肖</div><div id="ssZodRank"></div></div>
+            <div class="subcard"><h3>号码共识</h3><div class="subhint">标红为当期特码</div><div id="ssCodeRank"></div></div>
+          </div>
+          <div class="filterbar">
+            <input id="ssReviewSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+            <select id="ssReviewSort">
+              <option value="name">按站名</option>
+              <option value="hit">命中优先</option>
+              <option value="miss">未中优先</option>
+            </select>
+            <div class="filter-chips" id="ssReviewFilter">
+              <button class="filter-chip on" data-filter="all" type="button">全部</button>
+              <button class="filter-chip" data-filter="hit" type="button">只看命中</button>
+              <button class="filter-chip" data-filter="miss" type="button">只看未中</button>
+            </div>
+          </div>
+          <div id="ssRows" class="site-grid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 视图：六维（内嵌台账） ===== -->
+  <section class="view hidden" id="view-ex">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">六维 · 逐站台账</div>
+          <h2>平特 / 波色 / 尾数 / 头数 / 大小 / 单双</h2>
+          <p>六个扩展维度逐期复盘；页内切换维度与期号，共识榜与逐站明细随站点筛选联动。</p>
+        </div>
+        <span class="badge pending" id="exBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="summary-chips" id="exChips"></div>
+        <div class="stats" id="exStats"></div>
+        <div class="dims" id="exTabs"></div>
+        <div class="change-row" style="margin:8px 0">
+          <div class="period-box"><label for="exPeriod">期号</label><select id="exPeriod"></select></div>
+          <button class="btn ghostish" id="exBack" type="button">回到待开</button>
+          <button class="btn" id="exCopy" type="button">复制本期</button>
+          <button class="btn ghostish" id="exExpand" type="button">展开全部</button>
+        </div>
+        <div id="exPend">
+          <div class="subcard"><h3>共识票数</h3><div class="subhint" id="exPendHint"></div><div id="exPendRank"></div></div>
+          <div class="filterbar">
+            <input id="exPendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+            <select id="exPendSort">
+              <option value="name">按站名</option>
+              <option value="new">新料优先</option>
+              <option value="history">历史命中优先</option>
+            </select>
+            <div class="filter-chips" id="exPendFilter">
+              <button class="filter-chip on" data-filter="all" type="button">全部</button>
+              <button class="filter-chip" data-filter="new" type="button">只看新料</button>
+              <button class="filter-chip" data-filter="carry" type="button">只看沿用</button>
+            </div>
+          </div>
+          <div id="exPendList" class="site-grid"></div>
+        </div>
+        <div id="exReview" class="hidden">
+          <div class="subcard"><h3>共识票数</h3><div class="subhint">标红为当期开出项</div><div id="exRank"></div></div>
+          <div class="filterbar">
+            <input id="exReviewSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
+            <select id="exReviewSort">
+              <option value="name">按站名</option>
+              <option value="hit">命中优先</option>
+              <option value="miss">未中优先</option>
+            </select>
+            <div class="filter-chips" id="exReviewFilter">
+              <button class="filter-chip on" data-filter="all" type="button">全部</button>
+              <button class="filter-chip" data-filter="hit" type="button">只看命中</button>
+              <button class="filter-chip" data-filter="miss" type="button">只看未中</button>
+            </div>
+          </div>
+          <div id="exRows" class="site-grid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.4.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·tail·head·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -963,10 +1096,21 @@
   function renderNow(){
     if(!S.pend){ $('nowCards').innerHTML='<div class="empty">本期资料读取失败或还没出。</div>'; return; }
     var p=S.pend, sites=(p.sites||[]).filter(tierAllowed);
+    var q=(S.q.now||'').trim().toLowerCase();
+    function nowMatch(s){
+      var hay=[nameOf(s,keyOf(s)),s.siteKey,s.system,s.siteId,s.displayName].join(' ').toLowerCase();
+      if(q && hay.indexOf(q)<0) return false;
+      var f=S.f.now;
+      if(f==='nine' && !(s.zodiacs||[]).length) return false;
+      if(f==='kill' && !(s.killZodiacs||[]).length) return false;
+      if(f==='six' && !hasSix(s)) return false;
+      return true;
+    }
+    var visible=sites.filter(nowMatch);
+    var nineSites=visible.filter(function(s){return (s.zodiacs||[]).length;});
+    var killSites=visible.filter(function(s){return (s.killZodiacs||[]).length;});
+    var pingSites=visible.filter(function(s){return extraPicks(s,'pingte').length;});
     setHero(p.period,p.status==='pending'?'待开':'已归档',p.updatedAt);
-    var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
-    var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
-    var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
     $('nowEyebrow').textContent='第 '+p.period+' 期 · '+(p.status==='pending'?'待开':'已归档');
     $('nowSub').textContent='每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。';
     $('nowBadge').textContent=p.status==='pending'?'待开':'已归档';
@@ -984,17 +1128,8 @@
     $('nowKillHint').textContent=killSites.length+' 站 · '+sumZ(killSites,'kill')+' 票 · 按站次';
     $('nowNineRank').innerHTML=rankHtml(topRows(nAgg,8),sumZ(nineSites,'nine'),'nine');
     $('nowKillRank').innerHTML=rankHtml(topRows(kAgg,8),sumZ(killSites,'kill'),'kill');
-    // 按筛选排序
-    var q=(S.q.now||'').trim().toLowerCase();
-    var list=sites.filter(function(s){
-      var f=S.f.now;
-      var hay=[nameOf(s,keyOf(s)),s.siteKey,s.system,s.siteId,s.displayName].join(' ').toLowerCase();
-      if(q && hay.indexOf(q)<0) return false;
-      if(f==='nine' && !(s.zodiacs||[]).length) return false;
-      if(f==='kill' && !(s.killZodiacs||[]).length) return false;
-      if(f==='six' && !hasSix(s)) return false;
-      return true;
-    });
+    // 可见集已按搜索 + 筛选过滤，直接排序
+    var list=visible;
     var sort=S.sort.now;
     list.sort(function(a,b){
       if(sort==='nine') return (b.zodiacs||[]).length-(a.zodiacs||[]).length || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
@@ -1487,17 +1622,7 @@
       (mode==='pending'
         ? statCard('本期结果','待开','','开奖后自动判定')
         : statCard('本期命中',hitN+' / '+eligible.length,'站','命中率 '+(eligible.length?Math.round(hitN/eligible.length*100):0)+'%'));
-    var agg=countOf(eligible,function(e){return e.z;});
-    $(kind+'RankHint').textContent=eligible.length+' 站 · '+totalVotes+' 票 · 按站次';
-    $(kind+'Rank').innerHTML=rankHtml(topRows(agg,8),totalVotes,kind);
-    // filter chips
-    var fc=$(kind+'FilterChips');
-    var opts = kind==='nine'
-      ? [['all','全部'],['has','有九肖'],['no','无九肖']].concat(mode==='pending'?[]:[['hit','中'],['miss','错']]).concat([['alert2','连错≥2']])
-      : [['all','全部'],['has','有三肖']].concat(mode==='pending'?[['no','无三肖']]:[['hit','杀中'],['miss','杀错'],['tier','稳准档 S/A']]).concat([['alert2','连错≥2']]);
-    fc.innerHTML=opts.map(function(o){return '<button type="button" class="filter-chip'+(S.f[kind]===o[0]?' on':'')+'" data-f="'+o[0]+'">'+o[1]+'</button>';}).join('');
-    Array.prototype.forEach.call(fc.querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f[kind]=b.dataset.f;renderLedger(kind);});});
-    // list
+    // 可见集：搜索 + 筛选；卡片与共识榜共用同一集合
     var q=(S.q[kind]||'').trim().toLowerCase();
     var list=entries.filter(function(e){
       var f=S.f[kind];
@@ -1513,6 +1638,18 @@
       if(f==='tier'){ var pr=profileOf(e); if(!pr||(pr.tier!=='S'&&pr.tier!=='A')) return false; }
       return true;
     });
+    var visElig=list.filter(function(e){return e.has;});
+    var visVotes=visElig.reduce(function(a,e){return a+e.z.length;},0);
+    var agg=countOf(visElig,function(e){return e.z;});
+    $(kind+'RankHint').textContent=visElig.length+' 站 · '+visVotes+' 票 · 按站次';
+    $(kind+'Rank').innerHTML=rankHtml(topRows(agg,8),visVotes,kind);
+    // filter chips
+    var fc=$(kind+'FilterChips');
+    var opts = kind==='nine'
+      ? [['all','全部'],['has','有九肖'],['no','无九肖']].concat(mode==='pending'?[]:[['hit','中'],['miss','错']]).concat([['alert2','连错≥2']])
+      : [['all','全部'],['has','有三肖']].concat(mode==='pending'?[['no','无三肖']]:[['hit','杀中'],['miss','杀错'],['tier','稳准档 S/A']]).concat([['alert2','连错≥2']]);
+    fc.innerHTML=opts.map(function(o){return '<button type="button" class="filter-chip'+(S.f[kind]===o[0]?' on':'')+'" data-f="'+o[0]+'">'+o[1]+'</button>';}).join('');
+    Array.prototype.forEach.call(fc.querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f[kind]=b.dataset.f;renderLedger(kind);});});
     var sort=S.sort[kind];
     list.sort(function(a,b){
       if(sort==='loss') return b.st.l-a.st.l || b.st.totalL-a.st.totalL || a.name.localeCompare(b.name,'zh-Hans-CN');
@@ -1850,13 +1987,290 @@
   function switchTab(t){
     S.tab=t;
     Array.prototype.forEach.call($('tabbar').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.tab===t);});
-    ['brief','now','nine','kill','change'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
+    ['brief','now','nine','kill','ss','ex','change'].forEach(function(k){$('view-'+k).classList.toggle('hidden',k!==t);});
     try{history.replaceState(null,'','#'+t);}catch(e){}
     if(t==='brief') renderBrief();
     if(t==='nine'||t==='kill') renderLedger(t);
+    if(t==='ss') embeds.ss.render();
+    if(t==='ex') embeds.ex.render();
     if(t==='change') renderChange();
-    try{document.title='资料中心 · '+(t==='brief'?'本期摘要':(t==='now'?'本期资料':(t==='nine'?'九肖':(t==='kill'?'杀三肖':'改料跟踪'))));}catch(e){}
+    var titleMap={brief:'本期摘要',now:'本期资料',nine:'九肖',kill:'杀三肖',ss:'六肖七肖',ex:'六维',change:'改料跟踪'};
+    try{document.title='资料中心 · '+(titleMap[t]||'资料中心');}catch(e){}
   }
+  // ===== 内嵌台账工厂：六肖七肖 / 六维 复用同一套待开/复盘渲染 =====
+  function makeEmbed(cfg){
+    var P=cfg.prefix;
+    function el(id){ return $(P+id); }
+    var st={dim:cfg.dims[0].key, LG:null, mode:'pending', period:'',
+      pend:{q:'',sort:'name',filter:'all'}, rev:{q:'',sort:'name',filter:'all'}, cache:{}};
+    function dimCfg(){ return cfg.dims.find(function(d){return d.key===st.dim;})||cfg.dims[0]; }
+    function issues(){ return st.LG?Object.keys(st.LG.periods).sort(function(a,b){return +a-+b;}):[]; }
+    function lastIssue(){ var i=issues(); return i[i.length-1]; }
+    function pendSite(site){ var e=site[dimCfg().ext]; var z=e&&(e.zodiacs||e.picks); return (z&&z.length)?e:null; }
+    function zOf(r){ return cfg.dual?(r.zodiacs||[]):(r.picks||[]); }
+    function cOf(r){ return cfg.dual?(r.codes||[]):[]; }
+    function pendZ(e){ return cfg.dual?(e.zodiacs||[]):(e.picks||[]); }
+    function pendC(e){ return cfg.dual?(e.codes||[]):[]; }
+    function isPending(){ return S.pend && S.pend.status==='pending'; }
+    function ensureDim(){
+      var d=dimCfg();
+      if(st.cache[d.key]){ st.LG=st.cache[d.key]; return Promise.resolve(); }
+      return fetchJson('data/'+d.file).then(function(j){ st.LG=j; st.cache[d.key]=j; });
+    }
+    function setSummary(chips){
+      el('Chips').innerHTML=chips.map(function(c){return '<span class="chip '+(c.tone||'')+'"><span class="dot"></span>'+esc(c.text)+'</span>';}).join('');
+    }
+    function setStats(items){
+      el('Stats').innerHTML=items.map(function(x){return statCard(x.label,x.value,x.unit,x.hint);}).join('');
+    }
+    function renderRank(rows,hot,target){
+      if(!target) return;
+      var max=rows.length?Math.max.apply(null,rows.map(function(r){return Number(r.n)||0;})):1;
+      var hotStr=hot===null||hot===undefined?null:String(hot), hotPad=hotStr?hotStr.padStart(2,'0'):null;
+      target.innerHTML=rows.map(function(r,i){
+        var p=String(r.p);
+        var isHot=hotStr!==null&&(p===hotStr||p===hotPad);
+        var bar=max?Math.round((Number(r.n)||0)/max*100):0;
+        return '<div class="rank-row"><div class="rank-no'+(i<3?' top':'')+'">'+(i+1)+'</div>'+
+          '<div class="rank-name">'+esc(p)+(isHot?'<span class="hot-note">开出</span>':'')+'</div>'+
+          '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
+          '<div class="rank-count">'+esc(r.n)+' 票</div></div>';
+      }).join('')||'<div class="empty" style="padding:15px 0">暂无数据</div>';
+    }
+    function renderTabs(){
+      el('Tabs').innerHTML=cfg.dims.map(function(d){
+        return '<button type="button" class="dim-btn'+(d.key===st.dim?' on':'')+'" data-dim="'+d.key+'">'+esc(d.title)+'</button>';
+      }).join('');
+      Array.prototype.forEach.call(el('Tabs').querySelectorAll('.dim-btn'),function(b){
+        b.onclick=function(){ if(b.dataset.dim===st.dim) return; st.dim=b.dataset.dim; st.LG=null; render(); };
+      });
+    }
+    function buildSelect(){
+      var sel=el('Period'); sel.innerHTML='';
+      if(isPending()){ var op=document.createElement('option'); op.value='pending'; op.textContent='待开 · 第'+S.pend.period+'期（未开奖）'; sel.appendChild(op); }
+      issues().slice().reverse().forEach(function(i){ var o=document.createElement('option'); o.value=i; o.textContent='第'+i+'期'; sel.appendChild(o); });
+      sel.onchange=function(){ if(sel.value==='pending') enterPending(); else enterReview(sel.value); };
+    }
+    function trailOf(key,cur){
+      var hist=issues().filter(function(i){return +i<=+cur;}).slice(-7);
+      if(!hist.length) return [];
+      return hist.map(function(i){ var per=st.LG.periods[i], r=per&&per.stations[key];
+        if(!r||r.hit===null||r.hit===undefined) return {cls:'n',tx:'·'};
+        return r.hit?{cls:'w',tx:'中'}:{cls:'l',tx:'错'}; });
+    }
+    function trailHits(key,cur){ return trailOf(key,cur).filter(function(t){return t.cls==='w';}).length; }
+    function detailHtml(key,cur){
+      var hist=issues().filter(function(i){return +i<=+cur;}).reverse();
+      var rows=hist.map(function(h){
+        var rr=st.LG.periods[h].stations[key], actual=st.LG.periods[h].actual;
+        if(!rr) return '';
+        var hitTx=rr.hit?'中':'错', hitCls=rr.hit?'hit':'miss';
+        var z=(zOf(rr)||[]).map(function(p){return '<span class="pick" style="min-width:20px;height:20px;font-size:10px">'+esc(p)+'</span>';}).join('');
+        var c=(cOf(rr)||[]).map(function(p){return '<span class="pick" style="min-width:20px;height:20px;font-size:10px;background:var(--card-2)">'+esc(p)+'</span>';}).join('');
+        var raw=rr.raw?'<div class="raw">原话：'+esc(rr.raw)+'</div>':'';
+        return '<tr><td>'+esc(h)+'期</td><td>开'+esc(actual)+'</td><td><div class="zp">'+z+c+'</div>'+raw+'</td><td><span class="hit-badge '+hitCls+'">'+hitTx+'</span></td></tr>';
+      }).join('');
+      var r=st.LG.periods[cur]&&st.LG.periods[cur].stations[key];
+      return '<div class="detail-table-wrap"><table class="detail-table"><thead><tr><th style="width:13%">期号</th><th style="width:12%">开奖</th><th>推荐</th><th style="width:14%">结果</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    }
+    function pendVisible(sites){
+      var q=st.pend.q.trim().toLowerCase();
+      return sites.filter(function(s){
+        if(st.pend.filter==='new'&&s.carried) return false;
+        if(st.pend.filter==='carry'&&!s.carried) return false;
+        if(!q) return true;
+        return (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
+      });
+    }
+    function revVisible(keys,per){
+      var q=st.rev.q.trim().toLowerCase();
+      return keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
+        if(st.rev.filter==='hit'&&x.r.hit!==true) return false;
+        if(st.rev.filter==='miss'&&x.r.hit!==false) return false;
+        if(!q) return true;
+        return (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q)>=0;
+      });
+    }
+    function enterPending(){
+      if(!isPending()){ enterReview(lastIssue()); return; }
+      st.mode='pending'; st.period=S.pend.period;
+      el('Period').value='pending';
+      el('Review').classList.add('hidden'); el('Pend').classList.remove('hidden');
+      renderPending();
+    }
+    function enterReview(cur){
+      st.mode='review'; st.period=cur;
+      el('Back').style.display='inline-flex';
+      el('Period').value=cur;
+      el('Pend').classList.add('hidden'); el('Review').classList.remove('hidden');
+      renderReview();
+    }
+    function pendCard(s){
+      var e=pendSite(s), z=pendZ(e)||[], c=pendC(e)||[];
+      var zHtml=z.map(function(p){return '<span class="pick">'+esc(p)+'</span>';}).join('');
+      var cHtml=c.map(function(p){return '<span class="pick" style="background:var(--card-2);border-color:var(--line-soft)">'+esc(p)+'</span>';}).join('');
+      var trail=trailOf(s.siteKey,lastIssue());
+      var histHtml=trail.length?('<div class="trail-line"><span class="trail-label">近7期</span><div class="trail">'+trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div></div>'):'<div class="trail-line"><span class="trail-label">近7期</span><span style="font-size:9px;color:var(--faint)">暂无记录</span></div>';
+      var tag=s.carried?'<span class="tag carry">沿用</span>':'<span class="tag">新料</span>';
+      var cnt=cfg.dual?(z.length+'肖 / '+c.length+'码'):(z.length+' 项');
+      return '<details class="site-card"><summary>'+
+        '<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(nameOf(s,s.siteKey))+tag+'</div><div class="site-sub">'+esc(s.siteKey)+' · '+esc(s.system||'—')+'</div></div>'+
+        '<div class="site-right"><span class="tag-count">'+cnt+'</span></div></div>'+
+        '<div class="picks">'+zHtml+cHtml+'</div>'+histHtml+'</summary>'+
+        '<div class="site-detail"><div class="detail-table-wrap">'+detailHtml(s.siteKey,lastIssue())+'</div></div></details>';
+    }
+    function renderPending(){
+      var d=dimCfg();
+      if(!S.pend){ el('PendList').innerHTML='<div class="empty">本期资料读取失败或还没出。</div>'; return; }
+      var sites=(S.pend.sites||[]).filter(pendSite).filter(tierAllowed);
+      var visible=pendVisible(sites);
+      var carryN=sites.filter(function(s){return s.carried;}).length;
+      var updated=S.pend.updatedAt||'—';
+      el('Badge').textContent='未对账'; el('Badge').className='badge pending';
+      el('Back').style.display='none';
+      setSummary([{text:d.title,tone:'accent'},{text:'第 '+S.pend.period+' 期 · 待开'},{text:sites.length+' 站有推荐'},{text:updated,tone:'warn'}]);
+      var zodAgg={}, codeAgg={};
+      visible.forEach(function(s){ var e=pendSite(s); pendZ(e).forEach(function(p){zodAgg[p]=(zodAgg[p]||0)+1;}); pendC(e).forEach(function(p){codeAgg[p]=(codeAgg[p]||0)+1;}); });
+      var zodRows=Object.keys(zodAgg).map(function(p){return {p:p,n:zodAgg[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
+      var codeRows=Object.keys(codeAgg).map(function(p){return {p:p,n:codeAgg[p]};}).sort(function(a,b){return (b.n-a.n)||(+a.p-+b.p);});
+      var totZ=zodRows.reduce(function(a,x){return a+(Number(x.n)||0);},0), totC=codeRows.reduce(function(a,x){return a+(Number(x.n)||0);},0);
+      var hits=0; visible.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
+      setStats([
+        {label:'有推荐站点',value:visible.length,unit:'站',hint:visible.length!==sites.length?'已按筛选过滤 · 本档共 '+sites.length+' 站':'本档现场重算'},
+        {label:cfg.dual?'生肖票数':'共识票数',value:totZ,unit:'票',hint:'按当前可见站点共识汇总'},
+      ].concat(cfg.dual?[{label:'号码票数',value:totC,unit:'票',hint:'按当前可见站点共识汇总'}]:[])
+        .concat([{label:'近 7 期有命中',value:hits,unit:'站',hint:'按站历史轨迹粗筛'}]));
+      if(cfg.dual){
+        el('PendZodHint').textContent='按站次排序 · 共 '+zodRows.length+' 肖 · 基于 '+visible.length+' 站';
+        el('PendCodeHint').textContent='按站次排序 · 共 '+codeRows.length+' 码 · 基于 '+visible.length+' 站';
+        renderRank(zodRows,null,el('PendZodRank')); renderRank(codeRows,null,el('PendCodeRank'));
+      } else {
+        el('PendHint').textContent='按站次排序 · 共 '+zodRows.length+' 项 · 基于 '+visible.length+' 站';
+        renderRank(zodRows,null,el('PendRank'));
+      }
+      el('PendSearch').value=st.pend.q; el('PendSort').value=st.pend.sort;
+      applyChips('PendFilter',st.pend.filter);
+      var list=visible.slice();
+      list.sort(function(a,b){
+        if(st.pend.sort==='new'){ if(!!a.carried!==!!b.carried) return a.carried?1:-1; }
+        else if(st.pend.sort==='history'){ var ha=trailHits(a.siteKey,lastIssue()), hb=trailHits(b.siteKey,lastIssue()); if(ha!==hb) return hb-ha; }
+        return nameOf(a,a.siteKey).localeCompare(nameOf(b,b.siteKey),'zh');
+      });
+      el('PendList').innerHTML=list.map(pendCard).join('')||'<div class="empty">没有符合条件的站点</div>';
+    }
+    function reviewCard(x,per){
+      var r=x.r, z=zOf(r)||[], c=cOf(r)||[];
+      var zHtml=z.map(function(p){return '<span class="pick">'+esc(p)+'</span>';}).join('');
+      var cHtml=c.map(function(p){return '<span class="pick" style="background:var(--card-2);border-color:var(--line-soft)">'+esc(p)+'</span>';}).join('');
+      var trail=trailOf(x.key,st.period);
+      var histHtml=trail.length?('<div class="trail-line"><span class="trail-label">近7期</span><div class="trail">'+trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div></div>'):'';
+      var hitCls=r.hit===true?'hit':(r.hit===false?'miss':'unk'), hitTx=r.hit===true?'中':(r.hit===false?'错':'未判');
+      var cnt=cfg.dual?(z.length+'肖 / '+c.length+'码'):(z.length+' 项');
+      return '<details class="site-card"><summary><div class="site-top"><div><div class="site-name">'+seqTag(r)+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
+        '<div class="site-right"><span class="tag-count">'+cnt+'</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+
+        '<div class="picks">'+zHtml+cHtml+'</div>'+histHtml+'</summary>'+
+        '<div class="site-detail">'+detailHtml(x.key,st.period)+'</div></details>';
+    }
+    function renderReview(){
+      var per=st.LG.periods[st.period]; if(!per) return;
+      var d=dimCfg();
+      var allKeys=Object.keys(per.stations);
+      var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=per.stations[k];return r.hit===true||r.hit===false;}):allKeys;
+      var wins=keys.filter(function(k){return per.stations[k].hit===true;}).length;
+      var misses=keys.filter(function(k){return per.stations[k].hit===false;}).length;
+      var rate=keys.length?Math.round(wins/keys.length*100):0;
+      el('Badge').textContent='已对账'; el('Badge').className='badge done';
+      setSummary([{text:d.title,tone:'accent'},{text:'第 '+st.period+' 期 · 已开奖'},{text:keys.length+' 站有推荐'},{text:'命中率 '+rate+'%',tone:rate>=50?'':'warn'}]);
+      setStats([
+        {label:'有推荐站点',value:keys.length,unit:'站',hint:'本期参与对账'},
+        {label:'命中',value:wins,unit:'站',hint:'推荐项覆盖开奖项'},
+        {label:'未中',value:misses,unit:'站',hint:'本期未覆盖'},
+        {label:'命中率',value:rate,unit:'%',hint:'中 / 有推荐'}
+      ]);
+      var visible=revVisible(keys,per);
+      var zodCnt={}, codeCnt={};
+      visible.forEach(function(x){ zOf(x.r).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); cOf(x.r).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); });
+      var zodRows=Object.keys(zodCnt).map(function(p){return {p:p,n:zodCnt[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
+      var codeRows=Object.keys(codeCnt).map(function(p){return {p:p,n:codeCnt[p]};}).sort(function(a,b){return (b.n-a.n)||(+a.p-+b.p);});
+      var hotZ=cfg.dual?per.actual:per[d.hot];
+      if(cfg.dual){ renderRank(zodRows,per.actual,el('ZodRank')); renderRank(codeRows,per.specialNum,el('CodeRank')); }
+      else { renderRank(zodRows,per[d.hot],el('Rank')); }
+      el('ReviewSearch').value=st.rev.q; el('ReviewSort').value=st.rev.sort;
+      applyChips('ReviewFilter',st.rev.filter);
+      var list=visible.slice();
+      list.sort(function(a,b){
+        if(st.rev.sort==='hit'){ var ha=a.r.hit===true?1:0,hb=b.r.hit===true?1:0; if(ha!==hb) return hb-ha; }
+        else if(st.rev.sort==='miss'){ var ma=a.r.hit===false?1:0,mb=b.r.hit===false?1:0; if(ma!==mb) return mb-ma; }
+        return nameOf(a.r,a.key).localeCompare(nameOf(b.r,b.key),'zh');
+      });
+      el('Rows').innerHTML=list.map(function(x){return reviewCard(x,per);}).join('')||'<div class="empty">没有符合条件的站点</div>';
+    }
+    function applyChips(id,active){
+      Array.prototype.forEach.call(el(id).querySelectorAll('.filter-chip'),function(b){ b.classList.toggle('on',b.dataset.filter===active); });
+    }
+    function filteredSites(){
+      if(st.mode==='pending'){
+        var list=(S.pend.sites||[]).filter(pendSite).filter(tierAllowed);
+        return pendVisible(list);
+      }
+      var per=st.LG.periods[st.period]; if(!per) return [];
+      var allKeys=Object.keys(per.stations);
+      var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=per.stations[k];return r.hit===true||r.hit===false;}):allKeys;
+      return revVisible(keys,per);
+    }
+    function copyCurrent(){
+      var d=dimCfg(), lines=['第 '+st.period+' 期 · '+d.title];
+      filteredSites().forEach(function(x){
+        if(st.mode==='pending'){ var e=pendSite(x); lines.push(nameOf(x,x.siteKey)+'：'+(pendZ(e)||[]).join('')+(cfg.dual?' '+(pendC(e)||[]).join(','):'')); }
+        else { lines.push(nameOf(x.r,x.key)+'：'+(zOf(x.r)||[]).join('')+(cfg.dual?' '+(cOf(x.r)||[]).join(','):'')+(x.r.hit===true?'（中）':x.r.hit===false?'（错）':'')); }
+      });
+      if(lines.length===1){ showToast('当前筛选没有可复制的站点'); return; }
+      var text=lines.join('\n');
+      function done(){ showToast('已复制 '+(lines.length-1)+' 站'); }
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(function(){fallbackCopy(text);done();}); }
+      else { fallbackCopy(text); done(); }
+    }
+    function expandAll(){
+      var container=st.mode==='pending'?el('PendList'):el('Rows');
+      var all=Array.prototype.slice.call(container.querySelectorAll('details.site-card'));
+      if(!all.length){ showToast('当前没有可展开的站点'); return; }
+      var anyClosed=all.some(function(d){return !d.open;});
+      all.forEach(function(d){ d.open=anyClosed; });
+      el('Expand').textContent=anyClosed?'收起全部':'展开全部';
+    }
+    function render(){
+      ensureDim().then(function(){
+        renderTabs(); buildSelect();
+        if(st.mode==='review'&&st.period&&st.LG.periods[st.period]) enterReview(st.period);
+        else if(isPending()) enterPending(); else enterReview(lastIssue());
+      }).catch(function(){ el('PendList').innerHTML='<div class="empty">数据加载失败，请刷新重试。</div>'; });
+    }
+    function bind(){
+      el('Back').onclick=function(){ if(isPending()) enterPending(); else showToast('当前没有待开期数据'); };
+      el('Copy').onclick=copyCurrent;
+      el('Expand').onclick=expandAll;
+      el('PendSearch').addEventListener('input',function(){st.pend.q=this.value;renderPending();});
+      el('PendSort').onchange=function(){st.pend.sort=this.value;renderPending();};
+      el('PendFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; st.pend.filter=b.dataset.filter; applyChips('PendFilter',st.pend.filter); renderPending(); });
+      el('ReviewSearch').addEventListener('input',function(){st.rev.q=this.value;renderReview();});
+      el('ReviewSort').onchange=function(){st.rev.sort=this.value;renderReview();};
+      el('ReviewFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; st.rev.filter=b.dataset.filter; applyChips('ReviewFilter',st.rev.filter); renderReview(); });
+    }
+    bind();
+    return {render:render};
+  }
+  var embeds={
+    ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, dims:[
+      {key:'six',title:'六肖',file:'six-zodiac-ledger.json',ext:'six'},
+      {key:'seven',title:'七肖',file:'seven-zodiac-ledger.json',ext:'seven'}]}),
+    ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, dims:[
+      {key:'pingte',title:'平特一肖',file:'pingte-ledger.json',ext:'pingte',hot:'actual'},
+      {key:'wave',title:'波色',file:'wave-ledger.json',ext:'wave',hot:'actualWave'},
+      {key:'tail',title:'尾数',file:'tail-ledger.json',ext:'tail',hot:'actualTail'},
+      {key:'head',title:'头数',file:'head-ledger.json',ext:'head',hot:'actualHead'},
+      {key:'size',title:'大小',file:'size-ledger.json',ext:'size',hot:'actualSize'},
+      {key:'parity',title:'单双',file:'parity-ledger.json',ext:'parity',hot:'actualParity'}]})
+  };
   function bind(){
     $('tabbar').addEventListener('click',function(e){var b=e.target.closest('button[data-tab]');if(b)switchTab(b.dataset.tab);});
     $('nowSearch').addEventListener('input',function(){S.q.now=this.value;S.limit.now=30;renderNow();});
@@ -1922,10 +2336,13 @@
       renderNow();
       renderBrief();
       renderQC();
-      var h=(location.hash||'').replace('#',''); if(h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='change') switchTab(h); else switchTab('brief');
+      var h=(location.hash||'').replace('#',''); if(h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='ss'||h==='ex'||h==='change') switchTab(h); else switchTab('brief');
     }).catch(function(e){setHero('—','异常','读取失败');$('nowCards').innerHTML='<div class="empty">'+esc(e.message||e)+'</div>';});
   }
   init();
+  window.addEventListener('hashchange', function(){
+    var h=(location.hash||'').replace('#',''); if(h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='ss'||h==='ex'||h==='change') switchTab(h);
+  });
 })();
 </script>
 </body>

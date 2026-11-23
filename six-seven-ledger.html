@@ -506,9 +506,31 @@ function enterReview(cur){
 
 function pendExt(s){ var e=s[DIMS[dim].ext]; return (e&&e.zodiacs&&e.zodiacs.length)?e:null; }
 
+// 待开可见集：档位 → 新料/沿用筛选 → 搜索；榜单、统计、卡片共用同一集合
+function pendingVisible(sites){
+  var q=pendState.q.trim().toLowerCase();
+  return sites.filter(function(s){
+    if(pendState.filter==='new' && s.carried) return false;
+    if(pendState.filter==='carry' && !s.carried) return false;
+    if(!q) return true;
+    return (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
+  });
+}
+// 复盘可见集：有料站 → 命中/未中筛选 → 搜索；榜单、卡片共用同一集合
+function reviewVisible(keys,per){
+  var q=reviewState.q.trim().toLowerCase();
+  return keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
+    if(reviewState.filter==='hit' && x.r.hit!==true) return false;
+    if(reviewState.filter==='miss' && x.r.hit!==false) return false;
+    if(!q) return true;
+    return (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q)>=0;
+  });
+}
+
 function renderPending(){
   var cfg=dimCfg();
   var sites=(PEND.sites||[]).filter(pendExt).filter(tierAllowed);
+  var visible=pendingVisible(sites);
   var carryN=sites.filter(function(s){return s.carried;}).length;
   var missN=PEND.missingCount||0;
   var noRec=Math.max(0,tierCount(tierDef())-sites.length);
@@ -528,41 +550,34 @@ function renderPending(){
     {text:updated,tone:'warn'}
   ]);
   var zodAgg={}, codeAgg={};
-  sites.forEach(function(s){ var e=pendExt(s); (e.zodiacs||[]).forEach(function(p){zodAgg[p]=(zodAgg[p]||0)+1;}); (e.codes||[]).forEach(function(p){codeAgg[p]=(codeAgg[p]||0)+1;}); });
+  visible.forEach(function(s){ var e=pendExt(s); (e.zodiacs||[]).forEach(function(p){zodAgg[p]=(zodAgg[p]||0)+1;}); (e.codes||[]).forEach(function(p){codeAgg[p]=(codeAgg[p]||0)+1;}); });
   var zodRows=Object.keys(zodAgg).map(function(p){return {p:p,n:zodAgg[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
   var codeRows=Object.keys(codeAgg).map(function(p){return {p:p,n:codeAgg[p]};}).sort(function(a,b){return (b.n-a.n)||(+a.p-+b.p);});
   var totalZod=zodRows.reduce(function(a,x){return a+(Number(x.n)||0);},0);
   var totalCode=codeRows.reduce(function(a,x){return a+(Number(x.n)||0);},0);
-  var hits=0; sites.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
+  var hits=0; visible.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
   setStats([
-    {label:'有推荐站点',value:sites.length,unit:'站',hint:'本档 '+tierCount(tierDef())+' 站，'+noRec+' 站本期无此维度'},
-    {label:'生肖票数',value:totalZod,unit:'票',hint:'按生肖共识汇总'},
-    {label:'号码票数',value:totalCode,unit:'票',hint:'按号码共识汇总'},
+    {label:'有推荐站点',value:visible.length,unit:'站',hint:visible.length!==sites.length?'已按筛选过滤 · 本档共 '+sites.length+' 站':'本档 '+tierCount(tierDef())+' 站，'+noRec+' 站本期无此维度'},
+    {label:'生肖票数',value:totalZod,unit:'票',hint:'按当前可见站点共识汇总'},
+    {label:'号码票数',value:totalCode,unit:'票',hint:'按当前可见站点共识汇总'},
     {label:'近 7 期有命中',value:hits,unit:'站',hint:'按站历史轨迹粗筛'}
   ]);
-  $('pendRankHint').textContent='按站次排序 · 共 '+zodRows.length+' 肖';
-  $('pendCodeHint').textContent='按站次排序 · 共 '+codeRows.length+' 码';
+  $('pendRankHint').textContent='按站次排序 · 共 '+zodRows.length+' 肖 · 基于 '+visible.length+' 站';
+  $('pendCodeHint').textContent='按站次排序 · 共 '+codeRows.length+' 码 · 基于 '+visible.length+' 站';
   renderRank(zodRows,null,$('pendZodRank'));
   renderRank(codeRows,null,$('pendCodeRank'));
-  $('pendSiteHint').textContent='共 '+sites.length+' 站 · 点开可看近 10 期轨迹';
+  $('pendSiteHint').textContent='共 '+visible.length+' 站 · 点开可看近 10 期轨迹';
   $('pendSearch').value=pendState.q;
   $('pendSort').value=pendState.sort;
   applyFilterButtons('pendFilter',pendState.filter);
-  renderPendSites(sites);
+  renderPendSites(visible);
   $('snapNote').textContent='';
   $('ruleNote').textContent='更新时间：'+updated+'　口径：'+(LG.rule||'—')+'　当前：待开期原始推荐，未与开奖结果对账。';
 }
 
 function renderPendSites(allSites){
   var cfg=dimCfg();
-  var q=pendState.q.trim().toLowerCase();
-  var list=allSites.filter(function(s){
-    var e=pendExt(s);
-    if(pendState.filter==='new' && s.carried) return false;
-    if(pendState.filter==='carry' && !s.carried) return false;
-    if(!q) return true;
-    return (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
-  });
+  var list=allSites.slice();
   list.sort(function(a,b){
     if(pendState.sort==='new'){
       if(!!a.carried!==!!b.carried) return a.carried?1:-1;
@@ -669,8 +684,9 @@ function renderReview(){
     {label:'未中',value:misses,unit:'站',hint:'本期未覆盖'},
     {label:'命中率',value:rate,unit:'%',hint:'中 / 有推荐'}
   ]);
+  var visible=reviewVisible(keys,per);
   var zodCnt={}, codeCnt={};
-  keys.forEach(function(k){ var r=per.stations[k]; (r.zodiacs||[]).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); (r.codes||[]).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); });
+  visible.forEach(function(x){ var r=x.r; (r.zodiacs||[]).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); (r.codes||[]).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); });
   var zodRows=Object.keys(zodCnt).map(function(p){return {p:p,n:zodCnt[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
   var codeRows=Object.keys(codeCnt).map(function(p){return {p:p,n:codeCnt[p]};}).sort(function(a,b){return (b.n-a.n)||(+a.p-+b.p);});
   renderRank(zodRows,per.actual,$('zodRank'));
@@ -678,21 +694,15 @@ function renderReview(){
   $('reviewSearch').value=reviewState.q;
   $('reviewSort').value=reviewState.sort;
   applyFilterButtons('reviewFilter',reviewState.filter);
-  renderReviewSites(keys,per);
+  renderReviewSites(visible,per);
   $('snapNote').textContent=per.source==='history'?'本期为早期历史库留存，站点不全，命中率不参与快照期对比。':'';
   $('ruleNote').textContent='更新时间：'+(LG.updated_at||'—')+'　口径：'+(LG.rule||'—')+'　当前：已开奖复盘。';
 }
 
 function curTitle(title){ return title+' · 本期推荐排行'; }
 
-function renderReviewSites(keys,per){
-  var q=reviewState.q.trim().toLowerCase();
-  var list=keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
-    if(reviewState.filter==='hit' && x.r.hit!==true) return false;
-    if(reviewState.filter==='miss' && x.r.hit!==false) return false;
-    if(!q) return true;
-    return (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q)>=0;
-  });
+function renderReviewSites(visible,per){
+  var list=visible.slice();
   list.sort(function(a,b){
     if(reviewState.sort==='hit'){
       var ha=a.r.hit===true?1:0, hb=b.r.hit===true?1:0;
@@ -774,12 +784,12 @@ function bind(){
   $('backPending').onclick=function(){ if(isPending()) enterPending(); else toast('当前没有待开期数据'); };
   $('copyBtn').onclick=copyCurrent;
   $('expandBtn').onclick=expandAll;
-  $('pendSearch').addEventListener('input',function(e){pendState.q=e.target.value;renderPendSites((PEND.sites||[]).filter(pendExt).filter(tierAllowed));});
-  $('pendSort').onchange=function(e){pendState.sort=e.target.value;renderPendSites((PEND.sites||[]).filter(pendExt).filter(tierAllowed));};
-  $('pendFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; pendState.filter=b.dataset.filter; applyFilterButtons('pendFilter',pendState.filter); renderPendSites((PEND.sites||[]).filter(pendExt).filter(tierAllowed)); });
-  $('reviewSearch').addEventListener('input',function(e){reviewState.q=e.target.value; var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per);});
-  $('reviewSort').onchange=function(e){reviewState.sort=e.target.value; var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per);};
-  $('reviewFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; reviewState.filter=b.dataset.filter; applyFilterButtons('reviewFilter',reviewState.filter); var per=LG.periods[currentPeriod]; if(per) renderReviewSites(Object.keys(per.stations),per); });
+  $('pendSearch').addEventListener('input',function(e){pendState.q=e.target.value;renderPending();});
+  $('pendSort').onchange=function(e){pendState.sort=e.target.value;renderPending();};
+  $('pendFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; pendState.filter=b.dataset.filter; applyFilterButtons('pendFilter',pendState.filter); renderPending(); });
+  $('reviewSearch').addEventListener('input',function(e){reviewState.q=e.target.value; renderReview();});
+  $('reviewSort').onchange=function(e){reviewState.sort=e.target.value; renderReview();};
+  $('reviewFilter').addEventListener('click',function(e){ var b=e.target.closest('.filter-chip'); if(!b)return; reviewState.filter=b.dataset.filter; applyFilterButtons('reviewFilter',reviewState.filter); renderReview(); });
 }
 
 bind();
