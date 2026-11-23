@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.81-Pro';
+var APP_VER = 'v59.82-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3697,6 +3697,19 @@ function cutRefresh(){
 function cutPick(m){
   var i = document.getElementById('cutM');
   if(i) i.value = m;
+  // 卡片上选档 = 改阈值：阈值只有一个来源，选完飞单统计/号码表/风险面板一起跟着走
+  try{
+    var n = parseFloat(m); if(!isFinite(n) || n < 0) n = 0;
+    splitTakeAll = n;
+    if(typeof cutPickVal !== 'undefined'){ cutPickVal = n; try{ localStorage.setItem(sk('cut_pick_v1'), String(n)); }catch(e){} }
+    try{ saveSplitAll(); }catch(e){}
+    try{ localStorage.setItem(sk('autoStable'),'0'); }catch(e){}
+    try{ _flyClusterCache = {sig:'', alloc:null, info:null}; }catch(e){}
+    syncFlyThInputs('cutM');
+    try{ flyThChanged(); }catch(e){}
+    try{ renderSplit(); }catch(e){}
+    try{ renderRisk(); }catch(e){}
+  }catch(e){}
   cutRender(m);
 }
 function cutRender(M){
@@ -3866,7 +3879,7 @@ function cutByTolerance(){
     if(hit > 0){
       var r = cutCalc(hit);
       out.innerHTML = '扛 ' + tol + ' 元 → 削到 <b>' + hit + '</b>：最坏 ' + r.worst.toFixed(2) + '，自留 ' + r.kept.toFixed(2) + '，飞掉 ' + r.flown.toFixed(2)
-        + ' <button class="btn" style="font-size:13px;padding:4px 10px;margin-left:6px" onclick="cutPick('+hit+')">采用</button>';
+        + ' <button class="btn" style="font-size:13px;padding:4px 10px;margin-left:6px" onclick="cutApply('+hit+')">采用</button>';
     }else{
       out.textContent = '削到底也扛不住 ' + tol + ' 元，这单只能靠飞单或对冲。';
     }
