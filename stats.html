@@ -77,6 +77,16 @@
   .closure-foot span{font-size:10.5px;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 7px}
   .closure-foot span b{color:var(--ink);font-weight:700}
   .closure-note{font-size:12px;color:var(--muted);line-height:1.7;margin-top:8px}
+
+  .period-bar{display:flex;align-items:center;gap:6px;overflow-x:auto;margin:2px 0 10px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .period-label{flex:0 0 auto;font-size:10.5px;font-weight:750;color:var(--faint);letter-spacing:.08em}
+  .period-chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:10px;padding:5px 9px;text-align:center;line-height:1.25}
+  .period-chip b{display:block;font-size:13px;font-variant-numeric:tabular-nums}
+  .period-chip span{display:block;font-size:10px;color:var(--faint)}
+  .period-chip.active{border-color:#bcd0ff;background:#eef3ff}
+  .period-chip.active b{color:var(--blue)}
+  .period-chip.active span{color:var(--blue)}
+  .loading-dim{opacity:.6;transition:opacity .15s}
   .cons-row{display:grid;grid-template-columns:22px 1fr 92px;gap:8px;align-items:center;padding:5px 0;font-size:13px}
   .cons-val{text-align:right;white-space:nowrap;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
   .cons-val b{color:var(--ink);font-weight:700;font-size:12px}
@@ -279,7 +289,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.08</span>
+      <span class="version">v59.10</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -353,7 +363,7 @@ var ZOD = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','�
 var state = {
   current:null, latest:null, periods:[], official:{}, draws:null,
   ratio:null, core:null, forum:null, intensityLoading:false, intensitySeq:0,
-  ledgers:{}, ledgerPending:{}, closure:null, activeTab:'now', dim:'nine',
+  ledgers:{}, ledgerPending:{}, closure:null, closureView:null, closureSel:null, activeTab:'now', dim:'nine',
   stationQuery:'', stationLimit:30, openSite:'', expanded:{}
 };
 
@@ -605,6 +615,7 @@ function renderNow(){
   var p=$('panel-now'), cur=state.current;
   if(!cur || !Array.isArray(cur.sites) || !cur.sites.length){
     p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>'+closureSection()+consensusSection();
+  setTimeout(bindPeriodChips,0);
     return;
   }
   var per=cur.period|| (state.latest&&state.latest.period) || '';
@@ -685,18 +696,44 @@ function renderNow(){
 
   h+=closureSection();
   h+=consensusSection();
+  setTimeout(bindPeriodChips,0);
 
   p.innerHTML=h;
 }
 
+function closurePeriodBar(c){
+  var list=(state.closure&&state.closure.periods)||[];
+  if(list.length<2) return '';
+  var cur=(c&&c.period)||'';
+  return '<div class="period-bar"><span class="period-label">选期</span>'+list.map(function(p){
+    var act=(String(p.period)===String(cur))?' active':'';
+    return '<button type="button" class="period-chip'+act+'" data-p="'+esc(p.period)+'"><b>'+esc(p.period)+'</b><span>'+(p.drawn?esc(p.drawn):esc(p.changes)+'改')+'</span></button>';
+  }).join('')+'</div>';
+}
+function selectClosurePeriod(p){
+  var base=state.closure; if(!base) return;
+  var now=document.getElementById('panel-now');
+  if(now) now.classList.add('loading-dim');
+  fetchJson('data/closure-report-'+p+'.json',9000).then(function(d){
+    state.closureView=d; state.closureSel=String(p);
+    if(now) now.classList.remove('loading-dim');
+    renderNow();
+  }).catch(function(){
+    if(now) now.classList.remove('loading-dim');
+    state.closureView=null; state.closureSel=null;
+    var bar=document.querySelector('.period-bar');
+    if(bar) bar.insertAdjacentHTML('afterend','<div class="closure-note">第 '+esc(p)+' 期的分段档案还没生成（该期可能没有快照）。</div>');
+  });
+}
 function closureSection(){
-  var c=state.closure;
+  var c=state.closureView||state.closure;
   if(!c || !Array.isArray(c.stages) || !c.stages.length) return '';
   var done=c.stages.filter(function(s){return s.done;});
   var cov=c.coverage||{};
   var drawn=(c.drawn&&c.drawn.specialNum)?(c.drawn.specialNum+' '+c.drawn.specialZod):'';
   var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">08</span><h3>资料闭环 · 分段报告</h3></div>'
-    +'<span class="card-note">第 '+esc(c.period)+' 期 · '+done.length+'/4 段 · 并集 '+esc(c.unionSites||0)+' 站</span></div>';
+    +'<span class="card-note">第 '+esc(c.period)+' 期 · '+done.length+'/4 段 · 并集 '+esc(c.unionSites||0)+' 站</span></div>'
+    +closurePeriodBar(c);
   if(!done.length){
     h+='<div class="closure-note">本期资料还没出，四段都未执行；等首段抓取后这里自动填。</div></div>';
     return h;
@@ -732,7 +769,9 @@ function closureSection(){
     +'<span class="chip">大小 <b>'+(cov.size||0)+'</b></span>'
     +'<span class="chip">单双 <b>'+(cov.parity||0)+'</b></span></div>';
   h+='<div class="closure-foot">'
-    +'<span>在册 <b>'+esc((c.registry||{}).total||0)+'</b> = 基线 <b>'+esc((c.registry||{}).core||0)+'</b> + 候选 <b>'+esc((c.registry||{}).added||0)+'</b></span>'
+    +((c.cohort||'194')==='194'
+        ?('<span>在册 <b>'+esc((c.registry||{}).total||0)+'</b> = 基线 <b>'+esc((c.registry||{}).core||0)+'</b> + 候选 <b>'+esc((c.registry||{}).added||0)+'</b></span>')
+        :('<span>当期口径 <b>'+esc(c.cohortLabel||'')+'</b></span><span>现册 <b>'+esc((c.registry||{}).total||0)+'</b> 站</span>'))
     +'<span>空站 <b>'+(c.emptySites||0)+'</b></span>'
     +'<span>改料合计 <b>'+(c.changes?c.changes.periodTotal:0)+'</b></span>'
     +'<span>待检 <b>'+(c.changes?c.changes.pending:0)+'</b></span>'
@@ -745,13 +784,19 @@ function closureSection(){
     h+='<div class="closure-note">'+c.notes.map(function(n){return '· '+esc(n);}).join('<br>')+'</div>';
   }
   h+='<div class="method"><b>读法：</b>四段是当天真实执行记录：09:30 上午、15:30 下午、18:00 盘前封存、20:00 开奖前补充。改料只算当期并集内真实变化的栏目条数；「实质」是剔掉新站首期、模板轮换/微调、回滚后的净改动。开奖后补抓的条目不计入四段。</div>';
-  h+='<div class="links"><a href="data/closure-report.json">分段报告 JSON <span>查看</span></a><a href="change-ledger.html">改料台账 <span>查看</span></a></div>';
+  h+='<div class="links"><a href="data/closure-report-'+esc(c.period)+'.json">本期分段档案 JSON <span>查看</span></a><a href="change-ledger.html">改料台账 <span>查看</span></a></div>';
   h+='</section>';
   return h;
 }
 
+function bindPeriodChips(){
+  var bar=document.querySelector('.period-bar'); if(!bar) return;
+  Array.prototype.forEach.call(bar.querySelectorAll('.period-chip'),function(b){
+    b.addEventListener('click',function(){ selectClosurePeriod(b.dataset.p); });
+  });
+}
 function consensusSection(){
-  var c=state.closure, cons=c&&c.consensus;
+  var c=state.closureView||state.closure, cons=c&&c.consensus;
   if(!cons || cons.error || !cons.coreRows) return '';
   var core=cons.coreRows||[], pick=cons.pickRows||[], wide=cons.wideTop||{};
   var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">09</span><h3>共识明细 · 一致度</h3></div>'
@@ -779,7 +824,7 @@ function consensusSection(){
     +((cons.crowdTop3||[]).length?('<span>人群冻结 Top3 <b>'+esc(cons.crowdTop3.join('、'))+'</b></span>'):'')
     +'</div>';
   h+='<div class="method"><b>读法：</b>核心 3 肖杀只统计「杀特3肖/绝杀三肖」这类三肖栏目，分母是给出三肖杀的站；全杀层含 6 肖等宽名单，两者差距大就是假一致。单肖推荐只认每站单个肖的栏目，随机基准 8.3%。档位阈值：&lt;40% 弱、40–60% 中、60–75% 强、≥75% 极强。</div>';
-  h+='<div class="links"><a href="data/closure-report.json">一致度数据 JSON <span>查看</span></a><a href="data/core-'+esc(c.period)+'.json">站方核心杀 <span>查看</span></a><a href="data/change-ledger.json">改料台账 <span>查看</span></a></div>';
+  h+='<div class="links"><a href="data/closure-report-'+esc(c.period)+'.json">一致度数据 JSON <span>查看</span></a><a href="data/core-'+esc(c.period)+'.json">站方核心杀 <span>查看</span></a><a href="data/change-ledger.json">改料台账 <span>查看</span></a></div>';
   h+='</section>';
   return h;
 }

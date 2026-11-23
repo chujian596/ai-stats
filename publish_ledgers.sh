@@ -59,6 +59,7 @@ data/change-ledger.json
 data/draws-recent.json
 data/quality-report.json
 data/closure-report.json
+$(ls data/closure-report-*.json 2>/dev/null | tr '\n' ' ')
 data/source-registry.json
 data/site-performance.json
 data/engine.json

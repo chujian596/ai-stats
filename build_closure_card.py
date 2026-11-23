@@ -305,6 +305,9 @@ def period_report(issue):
 
     return {
         'period': int(issue),
+        'cohort': ('194' if int(issue) >= 327 else ('100' if int(issue) >= 325 else '77')),
+        'cohortLabel': ('194 站（100 基线 + 94 候选）' if int(issue) >= 327
+                        else ('100 站基线' if int(issue) >= 325 else '77 站基线')),
         'updatedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'currentStage': stages_done[-1]['key'] if stages_done else None,
         'currentStageLabel': stages_done[-1]['label'] if stages_done else '未出料',
@@ -333,7 +336,7 @@ def period_report(issue):
     }
 
 
-def history(limit=8):
+def history(limit=99):
     _, issues = latest_issue()
     ledger = load(os.path.join(DATA, 'change-ledger.json'), {}) or {}
     hist = load(os.path.join(ROOT, 'official-history.json'), {}) or {}
@@ -360,21 +363,53 @@ def history(limit=8):
     return rows
 
 
+def archive_all():
+    """每一期的分段报告单独落一份 data/closure-report-{期}.json，供页面选期复盘。"""
+    _, issues = latest_issue()
+    rows = []
+    for iss in sorted(issues):
+        rep = period_report(iss)
+        done = [x for x in rep['stages'] if x.get('done')]
+        payload = {k: rep[k] for k in (
+            'period', 'cohort', 'cohortLabel', 'updatedAt', 'currentStage', 'currentStageLabel', 'registry', 'unionSites',
+            'notUpdated', 'emptySites', 'coverage', 'stages', 'changes', 'seal', 'drawn',
+            'forum', 'top3', 'consensus', 'notes', 'snapshots')}
+        dump(os.path.join(DATA, 'closure-report-%d.json' % iss), payload)
+        rows.append({
+            'period': iss,
+            'stagesDone': len(done),
+            'unionSites': rep['unionSites'],
+            'changes': rep['changes']['periodTotal'],
+            'pending': rep['changes']['pending'],
+            'nine': (rep['coverage'] or {}).get('nine'),
+            'kill': (rep['coverage'] or {}).get('kill'),
+            'lastStage': done[-1]['key'] if done else None,
+            'lastTime': done[-1]['time'] if done else '',
+            'seal': rep['seal']['sha'],
+            'drawn': (str(rep['drawn']['specialNum']) + ' ' + rep['drawn']['specialZod'])
+            if rep['drawn']['specialNum'] else '',
+        })
+    return rows, issues
+
+
 def main():
     import sys
     iss, issues = latest_issue()
     if len(sys.argv) > 1:
         iss = int(sys.argv[1])
+    rows, all_issues = archive_all()
     rep = period_report(iss)
-    rep['history'] = history()
+    rep['history'] = [dict(r) for r in rows if r['period'] != iss][::-1][:12]
+    rep['periods'] = rows[::-1]          # 新的在前，供页面选期
     rep['nextPeriod'] = (iss + 1) if iss else None
     nxt = load(os.path.join(DATA, 'current-recommend.json'), {}) or {}
     rep['nextPending'] = str(nxt.get('period')) == str(iss + 1) and not (nxt.get('sites') or [])
     dump(os.path.join(DATA, 'closure-report.json'), rep)
-    print('closure-report.json：期 %s，完成 %d 段，并集 %d 站，改料 %d 条，封存 %s，开奖 %s' % (
-        rep['period'], sum(1 for s in rep['stages'] if s.get('done')), rep['unionSites'],
+    print('closure-report.json：期 %s，完成 %d 段，并集 %d 站，改料 %d 条，封存 %s，开奖 %s；归档 %d 期' % (
+        rep['period'], sum(1 for x in rep['stages'] if x.get('done')), rep['unionSites'],
         rep['changes']['periodTotal'], rep['seal']['sha'] or '—',
-        (str(rep['drawn']['specialNum']) + ' ' + rep['drawn']['specialZod']) if rep['drawn']['specialNum'] else '未开'))
+        (str(rep['drawn']['specialNum']) + ' ' + rep['drawn']['specialZod'])
+        if rep['drawn']['specialNum'] else '未开', len(rows)))
 
 
 if __name__ == '__main__':
