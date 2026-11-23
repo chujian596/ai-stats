@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.80-Pro';
+var APP_VER = 'v59.81-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4737,7 +4737,16 @@ let _flyClusterOn = true;
 try { _flyClusterOn = localStorage.getItem(sk('flyClusterOn')) !== '0'; } catch(e){ _flyClusterOn = true; }
 function flyClusterOpts(){
   function rd(k, d){ let v = 0; try{ v = parseFloat(localStorage.getItem(sk(k)) || ''); }catch(e){} ; return (v > 0) ? v : d; }
-  return { win: rd('flyClusterWin', 10), step: 10, maxAdj: rd('flyClusterAdj', 10), tol: rd('flyClusterTol', 10), pairGap: 5 };
+  let pretty = 0;
+  try{ pretty = (localStorage.getItem(sk('flyClusterPretty')) === '1') ? 1 : 0; }catch(e){}
+  // 配额：每期允许「多飞/让出」的总钱数，默认 50 元；tol 只作聚档内部对齐判据，保持 10
+  return { win: rd('flyClusterWin', 10), step: 10, maxAdj: rd('flyClusterAdj', 10), tol: rd('flyClusterTol', 10), pairGap: 5,
+           budget: rd('flyClusterBudget', 50), pretty: pretty };
+}
+function setFlyClusterPretty(on){
+  try{ localStorage.setItem(sk('flyClusterPretty'), on ? '1' : '0'); }catch(e){}
+  try{ afterFlyFlagChange(); }catch(e){}
+  try{ showAllFlyDir(); }catch(e){}
 }
 function setFlyClusterOn(on){
   _flyClusterOn = !!on;
@@ -4934,10 +4943,50 @@ function flyClusterTier(items, keptOf, opt){
 
 // 当前盘「特号」聚档结果（按号码、缓存到销售快照变化为止）
 let _flyClusterCache = {sig:'', alloc:null, info:null};
+// 档位重排：金额降序扫，先把「能并的档」并掉（每档只动 10 元），再美化单数档到 20 的倍数
+// 约束：单号变动 ≤10 元；每期总配额 budget（默认 50，含已多飞的钱）；破上限的号 ≤3 个、每个 ≤10 元
+function _flyReclump(allocIn, minFlyOf, budget, spent, p){
+  const B = Number(budget || 50), MAXBREAK = 3, STEP = 10;
+  let used = Math.abs(Number(spent) || 0), broke = 0;
+  const amt = Object.assign({}, allocIn);
+  const codes = Object.keys(amt);
+  for(let guard = 0; guard < 80; guard++){
+    const tm = new Map();
+    codes.forEach(c => { const v = amt[c]; if(v > 0.01) tm.set(v, (tm.get(v) || []).concat(c)); });
+    const list = [...tm.keys()].sort((a,b) => b - a);
+    const acts = [];
+    list.forEach(t => {
+      const cs = tm.get(t);
+      const up = list.find(x => x - t === STEP);
+      const dn = list.find(x => t - x === STEP);
+      if(up) acts.push({t:t, to:up, cs:cs, cost:cs.length*STEP, saves:1, up:1,
+                        dbl:(up % 20 === 0 ? 1 : 0), needBreak:0, pretty:0});
+      if(dn && dn >= 10){
+        const needB = cs.filter(c => amt[c] - STEP < minFlyOf(c) - 1e-9).length;
+        acts.push({t:t, to:dn, cs:cs, cost:cs.length*STEP, saves:1, up:0,
+                        dbl:(dn % 20 === 0 ? 1 : 0), needBreak:needB, pretty:0});
+      }
+      if(p.pretty && t % 20 === 10 && !up){   // 单数档（10/30/50…）且上方紧邻无档：抬成双数，档数不变
+        acts.push({t:t, to:t+STEP, cs:cs, cost:cs.length*STEP, saves:0, up:1,
+                        dbl:1, needBreak:0, pretty:1});
+      }
+    });
+    const ok = acts.filter(a => used + a.cost <= B + 1e-9 && broke + a.needBreak <= MAXBREAK);
+    if(!ok.length) break;
+    // 先减少档数 → 再便宜 → 再落双数 → 再少动号 → 再从最高档起
+    ok.sort((a,b) => (b.saves - a.saves) || (a.cost - b.cost) || (b.dbl - a.dbl)
+                     || (a.cs.length - b.cs.length) || (b.t - a.t));
+    const a = ok[0];
+    a.cs.forEach(c => { amt[c] = a.to; });
+    used += a.cost; broke += a.needBreak;
+  }
+  return {alloc:amt, used:used, broke:broke};
+}
+
 function flyClusterAlloc(){
   const sales = getSplitSales();
   const p = flyClusterOpts();
-  const sig = (_flyClusterOn ? '1' : '0') + '|' + (splitTakeAll||0) + '|' + p.win + '|' + p.maxAdj + '|' + p.tol + '|'
+  const sig = (_flyClusterOn ? '1' : '0') + '|' + (splitTakeAll||0) + '|' + p.win + '|' + p.maxAdj + '|' + p.tol + '|' + (p.budget||50) + '|' + (p.pretty?1:0) + '|'
     + Object.keys(sales).map(k => k + ':' + sales[k]).join(',');
   if(_flyClusterCache.sig === sig) return _flyClusterCache.alloc;
   let alloc = {}, info = null, baseAmt = {};
@@ -4970,10 +5019,16 @@ function flyClusterAlloc(){
     } else if(items.length === 1){
       alloc[items[0].code] = Math.max(items[0].amt, minFlyOf(items[0].code));
     }
-    // 兜底：任何号都不许低于下限（破自留上限）
+    // 档位重排：并档 / 美化双数档（每期配额 50，破限号 ≤3 个、每个 ≤10）
+    if(alloc && Object.keys(alloc).length){
+      const rc = _flyReclump(alloc, minFlyOf, (p.budget||50), (info ? info.dev : 0), p);
+      alloc = rc.alloc;
+      if(info) info.reclump = {used:rc.used, broke:rc.broke};
+    }
+    // 兜底：除破限额度（10 元/号）外，任何号都不许低于下限
     Object.keys(alloc).forEach(c => {
       const mf = minFlyOf(c);
-      if(alloc[c] < mf) alloc[c] = mf;
+      if(alloc[c] < mf - 10 - 1e-9) alloc[c] = mf;
     });
   }
   _flyClusterCache = {sig:sig, alloc:alloc, info:info, base:baseAmt};
@@ -5096,7 +5151,8 @@ function showAllFlyDir(){
     if(_flyClusterOn){
       h += '<span>窗口<input value="' + p.win + '" onchange="setFlyClusterP(\'flyClusterWin\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
          + '<span>单号±<input value="' + p.maxAdj + '" onchange="setFlyClusterP(\'flyClusterAdj\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
-         + '<span>多飞≤<input value="' + p.tol + '" onchange="setFlyClusterP(\'flyClusterTol\',this.value)" style="width:26px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0"></span>'
+         + '<span>配额<input value="' + p.budget + '" onchange="setFlyClusterP(\'flyClusterBudget\',this.value)" style="width:28px;font-size:10px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:0" title="每期最多多飞/让出多少钱"></span>'
+         + '<span style="cursor:pointer" onclick="setFlyClusterPretty(' + (p.pretty?0:1) + ')" title="单数档（10/30/50…）抬到 20 倍数，档数不变">美化双数' + (p.pretty ? '<b style="color:#16a34a">开</b>' : '关') + '</span>'
          + (function(){
              try {
                flyClusterAlloc();
@@ -5105,7 +5161,9 @@ function showAllFlyDir(){
                var before = {}; (ci.list||[]).forEach(function(x){ before[x.amt] = 1; });
                var after = {}; Object.keys(ci.alloc).forEach(function(c){ after[ci.alloc[c]] = 1; });
                var bt = Object.keys(before).length, at = Object.keys(after).length;
-               return '<span style="color:#16a34a">档 ' + bt + '→' + at + ' · ' + (ci.dev >= 0 ? '多飞' : '省') + Math.abs(ci.dev) + ' 元 · 上限不破</span>';
+               var rc = ci.reclump || {};
+               var brk = rc.broke || 0;
+               return '<span style="color:' + (brk>0?'#b45309':'#16a34a') + '">档 ' + bt + '→' + at + ' · ' + (ci.dev >= 0 ? '多飞' : '省') + Math.abs(ci.dev) + ' 元' + (brk>0 ? ' · 破限 ' + brk + ' 号(≤10元)' : ' · 上限不破') + '</span>';
              } catch(e){ return ''; }
            })();
     }
