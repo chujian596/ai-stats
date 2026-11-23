@@ -23,7 +23,10 @@ ROOT = os.path.dirname(HERE)
 DATA = os.path.join(HERE, 'data')
 SNAPDIR = os.path.join(ROOT, 'snapshots')
 
+import sys
+sys.path.insert(0, os.path.dirname(HERE))
 import build_current_recommend as bcr  # 复用同一套栏目口径
+import consensus_signal as cs  # 复用核心杀/单肖一致度口径
 ZOD = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
 
 STAGE_DEF = [
@@ -176,6 +179,54 @@ def latest_issue():
     return (withdata[-1] if withdata else (sorted(issues)[-1] if issues else 0)), sorted(set(issues), reverse=True)
 
 
+def consensus_block(issue, stages, files):
+    """核心3肖杀 / 全杀层 / 单肖推荐 / 假一致 / 标签，与 snapshot_analyze2 同一口径"""
+    best = None
+    done = [s for s in stages if s.get('done')]
+    if done:
+        for f in files:
+            if f['snap'].get('generated_at') == done[-1]['generated_at']:
+                best = f
+                break
+    if not best:
+        ok_files = [f for f in files if f['ok']]
+        best = ok_files[-1] if ok_files else None
+    if not best:
+        return None
+    try:
+        _, n, core, wide, pick = cs.analyze(best['file'])
+    except Exception as e:
+        return {'error': str(e)}
+    cd, krank = core
+    wd, wrank = wide
+    pd, prank = pick
+    cal = load(os.path.join(ROOT, 'signal-calibration.json'), {}) or {}
+    kill_bins = cal.get('kill') or []
+    cal_map = {b.get('bin'): b for b in kill_bins}
+
+    def hist_for(pct):
+        b = cal_map.get('0-20%' if pct < 20 else ('20-40%' if pct < 40 else '40-60%'))
+        if not b:
+            return ''
+        return '%s%%（%d/%d，%s）' % (b.get('rate'), b.get('drew'), b.get('n'), b.get('ci'))
+
+    core_rows = [{'z': z, 'sites': k, 'pct': p, 'tier': cs.tiers(p), 'hist': hist_for(p)}
+                 for z, k, p in krank]
+    pick_rows = [{'z': z, 'sites': k, 'pct': p} for z, k, p in prank]
+    wide_top = {'z': wrank[0][0], 'sites': wrank[0][1], 'pct': wrank[0][2]}
+    gap = round(wide_top['pct'] - (core_rows[0]['pct'] if core_rows else 0), 1)
+    return {
+        'snapshot': os.path.basename(best['file']),
+        'sites': n, 'coreDen': cd, 'pickDen': pd,
+        'coreRows': core_rows, 'pickRows': pick_rows[:5], 'wideTop': wide_top,
+        'coreTop': core_rows[0] if core_rows else None,
+        'gap': gap, 'fake': gap >= 15,
+        'tagHist': hist_for(core_rows[0]['pct'] if core_rows else 0),
+        'tagsPending': 12,
+        'calibrationIssues': cal.get('issues'),
+    }
+
+
 def period_report(issue):
     ledger = load(os.path.join(DATA, 'change-ledger.json'), {}) or {}
     stages, files = build_stages(issue, ledger)
@@ -237,6 +288,14 @@ def period_report(issue):
         if isinstance(cfz.get(key), list):
             top3 = [str(x) for x in cfz[key]]
 
+    cons = None
+    try:
+        cons = consensus_block(issue, stages, files)
+        if cons and not cons.get('error'):
+            cons['crowdTop3'] = top3
+    except Exception:
+        cons = None
+
     notes = []
     sig = [s['label'] for s in stages_done if s.get('significant')]
     if sig:
@@ -268,6 +327,7 @@ def period_report(issue):
         'online': {'latestPeriod': lp.get('period'), 'latestUpdatedAt': lp.get('updatedAt'),
                    'cloudflare': cf, 'githubPages': gh},
         'top3': top3,
+        'consensus': cons,
         'notes': notes,
         'snapshots': [os.path.basename(f['file']) for f in files],
     }

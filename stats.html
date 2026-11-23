@@ -77,6 +77,12 @@
   .closure-foot span{font-size:10.5px;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 7px}
   .closure-foot span b{color:var(--ink);font-weight:700}
   .closure-note{font-size:12px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .cons-row{display:grid;grid-template-columns:22px 1fr 92px;gap:8px;align-items:center;padding:5px 0;font-size:13px}
+  .cons-val{text-align:right;white-space:nowrap;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cons-val b{color:var(--ink);font-weight:700;font-size:12px}
+  .subhead{font-size:11.5px;font-weight:750;color:var(--muted);letter-spacing:.04em;margin:8px 0 5px}
+  .sig-tag2{display:inline-block;font-size:10.5px;font-weight:700;color:var(--red);background:#fff2f0;border:1px solid #efd4d1;border-radius:999px;padding:1px 6px}
+
   .closure-note b{color:var(--ink)}
 
 
@@ -273,7 +279,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.07</span>
+      <span class="version">v59.08</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -598,7 +604,7 @@ function setTopKpis(per,sites,nine,kill,ping){
 function renderNow(){
   var p=$('panel-now'), cur=state.current;
   if(!cur || !Array.isArray(cur.sites) || !cur.sites.length){
-    p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>'+closureSection();
+    p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>'+closureSection()+consensusSection();
     return;
   }
   var per=cur.period|| (state.latest&&state.latest.period) || '';
@@ -678,6 +684,7 @@ function renderNow(){
     +'</section>';
 
   h+=closureSection();
+  h+=consensusSection();
 
   p.innerHTML=h;
 }
@@ -739,6 +746,40 @@ function closureSection(){
   }
   h+='<div class="method"><b>读法：</b>四段是当天真实执行记录：09:30 上午、15:30 下午、18:00 盘前封存、20:00 开奖前补充。改料只算当期并集内真实变化的栏目条数；「实质」是剔掉新站首期、模板轮换/微调、回滚后的净改动。开奖后补抓的条目不计入四段。</div>';
   h+='<div class="links"><a href="data/closure-report.json">分段报告 JSON <span>查看</span></a><a href="change-ledger.html">改料台账 <span>查看</span></a></div>';
+  h+='</section>';
+  return h;
+}
+
+function consensusSection(){
+  var c=state.closure, cons=c&&c.consensus;
+  if(!cons || cons.error || !cons.coreRows) return '';
+  var core=cons.coreRows||[], pick=cons.pickRows||[], wide=cons.wideTop||{};
+  var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">09</span><h3>共识明细 · 一致度</h3></div>'
+    +'<span class="card-note">'+esc(cons.sites)+' 站 · 核心杀 '+esc(cons.coreDen)+' · 单肖 '+esc(cons.pickDen)+'</span></div>';
+
+  var maxPct=Math.max.apply(null, core.map(function(x){return x.pct;}).concat([1]));
+  h+='<div class="subhead">核心 3 肖杀（杀特3肖/绝杀三肖）</div>'
+    +'<div class="bar-list">'+core.map(function(x){
+      return '<div class="cons-row"><span class="bar-z">'+esc(x.z)+'</span>'
+        +'<span class="bar-track"><i class="bar-fill kill" style="width:'+Math.max(2,Math.round(x.pct/maxPct*100))+'%"></i></span>'
+        +'<span class="cons-val"><b>'+x.pct+'%</b> '+x.sites+'站 '+esc(x.tier)+'</span></div>';
+    }).join('')+'</div>';
+
+  if(wide && wide.z){
+    h+='<div class="closure-note" style="margin-top:8px">全杀层 Top1 <b>'+esc(wide.z)+' '+esc(wide.pct)+'%</b>（'+esc(wide.sites)+' 站），核心层 Top1 <b>'+esc((cons.coreTop||{}).z||'—')+' '+esc((cons.coreTop||{}).pct||0)+'%</b>，差 <b>'+esc(cons.gap)+'pt</b>'
+      +(cons.fake?'　<span class="sig-tag2">假一致</span>：高出的部分多来自 6 肖等宽名单，不代表真杀。':'')+'</div>';
+  }
+  if(pick.length){
+    h+='<div class="subhead" style="margin-top:12px">单肖推荐（每站只取 1 肖的栏目）</div><div class="chips">'
+      +pick.map(function(x){return '<span class="chip rec"><b>'+esc(x.z)+'</b><em>'+x.pct+'%</em></span>';}).join('')+'</div>';
+  }
+  h+='<div class="closure-foot">'
+    +'<span>标签 <b>'+esc(cons.tagsPending)+' 肖全部待定</b>（样本 &lt;30 期）</span>'
+    +'<span>核心杀档位历史 <b>'+esc(cons.tagHist)+'</b></span>'
+    +((cons.crowdTop3||[]).length?('<span>人群冻结 Top3 <b>'+esc(cons.crowdTop3.join('、'))+'</b></span>'):'')
+    +'</div>';
+  h+='<div class="method"><b>读法：</b>核心 3 肖杀只统计「杀特3肖/绝杀三肖」这类三肖栏目，分母是给出三肖杀的站；全杀层含 6 肖等宽名单，两者差距大就是假一致。单肖推荐只认每站单个肖的栏目，随机基准 8.3%。档位阈值：&lt;40% 弱、40–60% 中、60–75% 强、≥75% 极强。</div>';
+  h+='<div class="links"><a href="data/closure-report.json">一致度数据 JSON <span>查看</span></a><a href="data/core-'+esc(c.period)+'.json">站方核心杀 <span>查看</span></a><a href="data/change-ledger.json">改料台账 <span>查看</span></a></div>';
   h+='</section>';
   return h;
 }
