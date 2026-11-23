@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.75-Pro';
+var APP_VER = 'v59.76-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3479,7 +3479,7 @@ try {
 } catch(e){}
 
 let splitTakeAll = 100;
-try { var _sv = localStorage.getItem(SPLIT_KEY); if(_sv !== null){ var _pv = parseFloat(_sv); if(isFinite(_pv) && _pv >= 0) splitTakeAll = _pv; } } catch(e){}
+try { var _sv = localStorage.getItem(SPLIT_KEY); if(_sv !== null){ var _pv = parseFloat(_sv); if(isFinite(_pv) && _pv >= 0) splitTakeAll = (_pv === 0 ? 0 : Math.max(10, Math.round(_pv/10)*10)); } } catch(e){}
 // 已飞累计（分批飞单）：key=位置代码，value=已飞金额
 let flownPerPos = {};
 try { flownPerPos = JSON.parse(localStorage.getItem(sk('flownPerPos')) || '{}'); } catch(e){ flownPerPos = {}; }
@@ -3547,6 +3547,8 @@ function syncFlyThInputs(exceptId){
 }
 function setFlyTh(v, redraw, exceptId){
   var n=parseFloat(v); if(!isFinite(n) || n<0) return;
+  // 阈值也只留 10 的整数档，避免 67/78 这种档位再流回卡片
+  n = (n === 0 ? 0 : Math.max(10, Math.round(n/10)*10));
   splitTakeAll=n; saveSplitAll();
   // 阈值只有一个：改这里就把削峰档一起改掉，避免同一屏出现「阈值21 / 削峰档100」两个口径
   if(typeof cutPickVal !== 'undefined'){ cutPickVal = n; try{ localStorage.setItem(sk('cut_pick_v1'), String(n)); }catch(e){} }
@@ -3585,6 +3587,11 @@ function getHKSales(){
   return sales;
 }
 /* ===== 削峰测算：按当前订单算出削到哪一档最划算 ===== */
+// 卡片选择区只允许 10 的整数档，避免 21/33/47/54/63/78 这类参差档位。
+// 100 以内按 10 连续上滚；100 以上保留常用大额档，全部都是 10 的倍数。
+function cutTierOptions(){
+  return [10,20,30,40,50,60,70,80,90,100,120,150,200,250,300,400,500,600,800,1000,1200,1500,2000];
+}
 function cutBets(raw){
   var sales = getSplitSales();
   var cap = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
@@ -10148,7 +10155,7 @@ function simNeed(){
   // 先看「只削档、不补号」能不能到
   var _cutFit = 0, _fitW = null;
   try{
-    var _LA=[95,90,85,80,78,70,63,55,47,40,30,21];
+    var _LA=cutTierOptions();
     for(var _ci=0;_ci<_LA.length;_ci++){
       var _cr = cutCalc(_LA[_ci], true);
       if(_cr.worst >= t){ _cutFit = _LA[_ci]; _fitW = _cr; break; }
@@ -10555,8 +10562,11 @@ function renderRisk(){
   }
   const rec0 = findT(0);
   const _specSalesBase = Math.max(0, totalSales - pteTotalSalesSum - lxTotalSalesSum);   // 只用来判断「有没有特号注」
-  const rec20 = findT(-totalSales*0.2);   // 20% 线按「总单」算（含平特/连肖收到的钱），跟之前 107 的口径一致
-  const rec40 = findT(-totalSales*0.4);
+  const _rec20Raw = findT(-totalSales*0.2);   // 20% 线按「总单」算（含平特/连肖收到的钱），跟之前 107 的口径一致
+  const _rec40Raw = findT(-totalSales*0.4);
+  // 目标档也落到 10 的整数档；向下取整＝多飞一点、更安全，不会出现「标 20% 实际压不到」
+  const rec20 = _rec20Raw > 0 ? Math.max(10, Math.floor(_rec20Raw/10)*10) : 0;
+  const rec40 = _rec40Raw > 0 ? Math.max(10, Math.floor(_rec40Raw/10)*10) : 0;
   // 建议线：用户填了「我能扛」金额就优先按它算，没填才按总单 20%
   let _userTol = 0;
   try { _userTol = parseFloat(localStorage.getItem(sk('cut_tol_v1'))) || 0; } catch(e){}
@@ -10714,14 +10724,14 @@ function renderRisk(){
   var _curLine = _diagTop>0 ? cutCalc(_diagTop, true).line : 0;
   // 最优落点必须和「当前阈值」解耦：否则算出来的建议会随当前值变，
   // 勾选/重算一次都会自己跳（如 207→100→207）。固定按 5 元基准评估，同一盘面永远同一个落点。
-  var _dTopR = cutCalc(5, true);   // 固定基准：每号最低按 5 元评估，不受当前阈值影响
+  var _dTopR = cutCalc(10, true);   // 固定基准：每号最低按 10 元评估，不受当前阈值影响
   var _optM = 0, _optR = null, _noCut = false;
   if(_specSalesBase > 0 && _dTopR.line >= _dBase){ _optM = 100; _optR = _dTopR; _noCut = true; }
   var _maxBet0 = 0;                     // 盘里最大单号注额，阈值高于它＝一个号都削不动，这一档不能当断点
   try{ cutBets().forEach(function(b){ if(b.nb > _maxBet0) _maxBet0 = b.nb; }); }catch(e){}
   var _dbroken = false, _deepM = 0, _deepR = null;
   var _bestM = 0, _bestWorst = -1e9;     // 压不到基准时的兜底：亏得最少的那一档
-  [95,90,85,80,78,70,63,55,47,40,30,21].forEach(function(m){
+  cutTierOptions().forEach(function(m){
     if(m >= _maxBet0) return;           // 削不动的空档直接跳过（continue），不能当成「削到这就废了」
     var r=cutCalc(m, true), df=r.flown-_dTopR.flown;
     if(r.worst > _bestWorst){ _bestWorst = r.worst; _bestM = m; }
@@ -10729,7 +10739,7 @@ function renderRisk(){
     var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
     if(r.line>=_dBase && e>=5){ _optM=m; _optR=r; _deepM=m; _deepR=r; } else { _dbroken=true; }
   });
-  // 压不到安全线时，按「亏损不超过总单 20%」找最省飞的那一档（最低每号留 5 元）；连 5 元都压不住就判「拒单」
+  // 压不到安全线时，按「亏损不超过总单 20%」找最省飞的那一档（最低每号留 10 元）；连 10 元都压不住就判「拒单」
   var _sugWhy = '';
   var _needReject = false;
   if(_optM <= 0){
@@ -10737,12 +10747,14 @@ function renderRisk(){
     var _pickWhy = (_userTol > 0 ? '我能扛 ' + _userTol.toFixed(0) + ' 元' : '亏损≤总额20%');
     if(_pick === 0){ _needReject = true; }   // findT 返回 0 = 连全飞都压不到目标线，不是「不削达标」
     else if(typeof _pick === 'number' && _pick >= _maxBet0){ _optM = 100; _optR = cutCalc(100, true); _noCut = true; _sugWhy = (_userTol > 0 ? '不削也在我能扛的 ' + _userTol.toFixed(0) + ' 元以内' : '不削也在总亏 20% 以内'); }
-    else if(typeof _pick === 'number' && _pick >= 5 && _pick < _maxBet0){
+    else if(typeof _pick === 'number' && _pick >= 10 && _pick < _maxBet0){
       _optM = _pick; _optR = cutCalc(_optM, true); _sugWhy = _pickWhy;
-      if(_userTol > 0){ var _g=0; while(_optM > 5 && (cutCalc(_optM,true).worst + _othNet) < -_userTol && _g++ < 500){ _optM--; } _optR = cutCalc(_optM, true); }
+      if(_userTol > 0){ var _g=0; while(_optM > 10 && (cutCalc(_optM,true).worst + _othNet) < -_userTol && _g++ < 500){ _optM = Math.max(10, _optM-10); } _optR = cutCalc(_optM, true); }
     }
     else { _needReject = true; }
   }
+  if(_optM > 0) _optM = Math.max(10, Math.floor(_optM/10)*10);
+  if(_optM > 0) _optR = cutCalc(_optM, true);
   window.__optM = _optM>0 ? _optM : 0;
   window.__needReject = _needReject;
   // 风险体检卡片：只在本机/本手机（所有人设备）显示，别人打开看不到
@@ -10777,11 +10789,11 @@ function renderRisk(){
     var _ncR = cutCalc(100, true);
     h += `<div style="padding:3px 0 1px;font-size:12px;color:#666">建议 <b style="font-size:16px;color:#16a34a">不削</b> — 不削最坏 ${(_ncR.worst+_othNet).toFixed(0)}，已在${_userTol>0?'你能扛的 '+_userTol.toFixed(0)+' 元':'总亏 20%'}以内，再削都是白飞</div>`;
   } else if(_needReject){
-    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 5 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(5,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(5,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
+    h += `<div style="padding:3px 0 1px;font-size:12px;color:#cf1322">削到每号只留 10 元也压不到总亏 20% 以内（那档最坏 ${cutCalc(10,true).worst+_othNet > 0 ? '' : ''}${(cutCalc(10,true).worst+_othNet).toFixed(0)}）。这盘只能拒单，或把整盘飞出去，不要硬留</div>`;
   } else {
     // 守不住基准时，仍要告诉用户「性价比最好的那一档在哪、它到底差多少」，否则顶部说救不了、下面又推一档，读起来自相矛盾
     var _pm = 0, _pr = null;
-    [95,90,85,80,78,70,63,55,47,40,30,21].forEach(function(m){
+    cutTierOptions().forEach(function(m){
       if(m >= _maxBet0) return;
       var r=cutCalc(m, true), df=r.flown-_dTopR.flown;
       var e = df>0 ? (r.worst-_dTopR.worst)/df : 0;
@@ -10797,7 +10809,7 @@ function renderRisk(){
   }
   if(_optM && _optM > 0){
     var _nextUnder = 0;
-    var _LVARR=[95,90,85,80,78,70,63,55,47,40,30,21]; for(var _qi=0;_qi<_LVARR.length;_qi++){ if(_LVARR[_qi] < _optM && _LVARR[_qi] >= 21){ _nextUnder = _LVARR[_qi]; break; } }
+    var _LVARR=cutTierOptions(); for(var _qi=0;_qi<_LVARR.length;_qi++){ if(_LVARR[_qi] < _optM && _LVARR[_qi] >= 10){ _nextUnder = _LVARR[_qi]; break; } }
     if(_nextUnder){
       var _nuR = cutCalc(_nextUnder, true);
       if(_nuR.kept/47 >= _dBase){
@@ -10831,7 +10843,7 @@ function renderRisk(){
      + `<span style="color:#999;font-size:10px;white-space:nowrap">开奖后按号算</span>`
      + `<span style="color:#16a34a">纯赚 ${_noBet}<span style="color:#999;font-size:10px">号</span></span><span style="color:#16a34a">小赚 ${_winArr.length}<span style="color:#999;font-size:10px">号</span></span><span style="color:#e67e22">小亏 ${_sl}<span style="color:#999;font-size:10px">号</span></span><span style="color:#cf1322">大亏 ${_bl}<span style="color:#999;font-size:10px">号</span></span>`
      + `<span style="flex:1"></span>`
-     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){var _o=window.__optM||0;if(_o>0){try{if(localStorage.getItem(sk('prev_th_before_auto'))===null)localStorage.setItem(sk('prev_th_before_auto'),String(splitTakeAll))}catch(e){};applyTh(_o);}else{this.checked=false;try{localStorage.setItem(sk('autoStable'),'0')}catch(e){};myAlert('这盘削到每号 5 元也压不到 20% 亏损线，没有可自动削的档位；建议拒单或手动定档。');}}else{try{var p=localStorage.getItem(sk('prev_th_before_auto'));if(p!==null){var _pp=parseFloat(p);applyTh((isFinite(_pp)&&(_pp===0||_pp>=5))?_pp:0);localStorage.removeItem(sk('prev_th_before_auto'))}}catch(e){}}try{localStorage.setItem(sk('autoStable'),v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
+     + `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;color:#888"><input type="checkbox" id="autoStableChk2" ${autoStable?'checked':''} onchange="var v=this.checked;if(v){var _o=window.__optM||0;if(_o>0){try{if(localStorage.getItem(sk('prev_th_before_auto'))===null)localStorage.setItem(sk('prev_th_before_auto'),String(splitTakeAll))}catch(e){};applyTh(_o);}else{this.checked=false;try{localStorage.setItem(sk('autoStable'),'0')}catch(e){};myAlert('这盘削到每号 10 元也压不到 20% 亏损线，没有可自动削的档位；建议拒单或手动定档。');}}else{try{var p=localStorage.getItem(sk('prev_th_before_auto'));if(p!==null){var _pp=parseFloat(p);applyTh((isFinite(_pp)&&(_pp===0||_pp>=10))?_pp:0);localStorage.removeItem(sk('prev_th_before_auto'))}}catch(e){}}try{localStorage.setItem(sk('autoStable'),v?'1':'0')}catch(e){};renderSplit();renderRisk()" style="width:13px;height:13px">自动稳健（自动切到最优落点）</label>`
      + `<div style="padding:0 0 4px;font-size:11px;color:#999;line-height:1.5">自动稳健开启时，录完新单会自动重算一次；也可点 <a href="javascript:;" onclick="recalcAutoStableOnce()" style="color:#1677ff;font-weight:600;text-decoration:none">「重算一次」</a>：只按当前盘面落一次阈值，不改变自动稳健开关，也不会反复追值。</div>`
      + `</div>`;
   h += `</div>`;
@@ -10843,14 +10855,10 @@ function renderRisk(){
     _bets.forEach(function(b){ _tot += b.nb; if(b.self > _top) _top = b.self; });
     if(_top > 0){
       var _cap  = (splitTakeAll > 0) ? splitTakeAll : _top;   // 阈值只有一个：号码表、飞单统计、档位卡都用这个数
-      var _lv   = [95,90,85,80,78,70,63,55,47,40,30,21];
+      var _lv   = cutTierOptions();
       var _topRaw0 = 0; _bets.forEach(function(b){ if(b.nb > _topRaw0) _topRaw0 = b.nb; });
-      // 单号注额超过 95 时，补大额档（100/120/150/200/300/500/1000…），只在「削得动」的范围内补
-      [2000,1500,1200,1000,800,600,500,400,300,250,200,150,120,100].forEach(function(m){
-        if(m < _topRaw0 && _lv.indexOf(m) < 0) _lv.push(m);
-      });
       // 当前阈值、建议档、20%/40% 目标档也补进去，按大小排好
-      [Math.round(splitTakeAll||0), Math.round(_optM||0), Math.round(rec20||0), Math.round(rec40||0)].forEach(function(m){
+      [Math.round((splitTakeAll||0)/10)*10, Math.round((_optM||0)/10)*10, Math.round((rec20||0)/10)*10, Math.round((rec40||0)/10)*10].forEach(function(m){
         if(m > 0 && _lv.indexOf(m) < 0) _lv.push(m);
       });
       _lv.sort(function(a,b){ return b-a; });
