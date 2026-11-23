@@ -223,7 +223,7 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">EXTENDED LEDGER · v2.0.4 / 06 DIMENSIONS</div>
+        <div class="kicker">EXTENDED LEDGER · v2.0.5 / 06 DIMENSIONS</div>
         <h1>扩展维度台账</h1>
         <p>逐站逐期记录推荐，开奖后自动复盘。看清共识，也看清偏差。</p>
       </div>
@@ -256,6 +256,8 @@
     <div class="dims" id="tabs"></div>
   </section>
 
+  <div class="tier-bar" id="tierBar"></div>
+
   <section class="toolbar" id="toolbar">
     <div class="period-box">
       <label for="periodSel">期号</label>
@@ -281,7 +283,6 @@
       </div>
       <span class="badge pending" id="pendBadge">未对账</span>
     </div>
-    <div class="tier-bar" id="tierBar"></div>
     <div class="section">
       <div class="section-title"><h3>推荐共识</h3><span class="hint" id="pendRankHint">按票数排序</span></div>
       <div class="rank-list" id="pendRank"></div>
@@ -353,7 +354,7 @@
 
   <footer class="foot">
     <span id="ruleNote">—</span>
-    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.4</b></span>
+    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.5</b></span>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -395,7 +396,7 @@ function renderTierBar(){
   if(mode!=='pending'){ bar.style.display='none'; return; }
   bar.style.display='flex';
   var cur=curTierKey();
-  bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+  bar.innerHTML='<span class="tier-label">站池档位</span>'+TIERS.map(function(t){
     var n=tierCount(t), act=t.key===cur?' active':'';
     return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+t.desc+'"><span class="n">'+n+'</span><span class="nm">'+t.name+'</span></button>';
   }).join('')+'<span class="tier-hint" id="tierHint"></span>';
@@ -403,7 +404,7 @@ function renderTierBar(){
     b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); renderPending(); });
   });
   var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
-  var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+  var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站 · 当前维度现场重算'+(excluded.length?' · 未纳入 '+excluded.length:'');
 }
 function loadDir(){ return fetchJson('data/site-directory.json').then(function(dir){ DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{}; }).catch(function(){}); }
 
