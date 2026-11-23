@@ -57,15 +57,14 @@ for k, v in load(DRAW).items():
             'tail': sp % 10, 'head': sp // 10,
         }
 
-# ---- 快照归集：早 18* / 晚 20* ----
+# ---- 快照归集：早 / 晚完整版（择栏口径与台账 max_zodiac_ledger.pick_column 完全一致）----
 def pick_nine(columns):
-    for t, cd in columns.items():
-        if re.fullmatch(r'9肖加对应\d+码中特', t):
-            return cd.get('value', '')
-    for t, cd in columns.items():
-        if re.fullmatch(r'9肖中特', t):
-            return cd.get('value', '')
-    return None
+    # 复用台账统一选栏函数：同一站、同一栏目名，质检与台账挑到同一栏。
+    pick = _mzl.pick_column(columns or {})
+    if not pick:
+        return None
+    title, _zs = pick
+    return (columns or {}).get(title, {}).get('value', '')
 
 
 def pick_kill(columns):
