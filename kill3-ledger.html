@@ -134,7 +134,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.3</span></h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.4</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -425,16 +425,16 @@ function renderPendingMiss(){
   var box=document.getElementById('pendMiss');
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var lastIssue=issues[issues.length-1];
-  var missRows=(PEND.sites||[]).filter(function(s){return s.killZodiacs&&s.killZodiacs.length;})
+  var missRows=(PEND.sites||[]).filter(function(s){return tierAllowed(s)&&s.killZodiacs&&s.killZodiacs.length;})
     .map(function(s){return {s:s,h:pendHist(s)};})
     .filter(function(x){return x.h.has&&x.h.l>=1;})
     .sort(function(a,b){return b.h.l-a.h.l||(b.h.win-a.h.win);});
   if(!missRows.length){
-    box.innerHTML='<div class="pend-miss"><div class="pm-sub">截至上期 '+lastIssue+'，近期暂无连错记录。</div></div>';
+    box.innerHTML='<div class="pend-miss"><div class="pm-sub">截至上期 '+lastIssue+'，本档近期暂无连错记录。新站无历史不显示，连错 1 期起才出现。</div></div>';
     return;
   }
   var html='<div class="pend-miss"><div class="pm-title">最近连错（截至上期 '+lastIssue+'）</div>'+
-    '<div class="pm-sub">点站名跳到下方逐站表对应记录；连错 2 期橙色、≥3 期红色。</div>';
+    '<div class="pm-sub">只显示本档有历史记录的站；新站无历史暂不显示，连错 1 期起才出现。点站名跳到下方逐站表；连错 2 期橙色、≥3 期红色。</div>';
   missRows.forEach(function(x){
     var h=x.h,s=x.s,nm=nameOf(s,s.siteKey);
     var cls=h.l>=3?'l3':(h.l===2?'l2':'l1');
@@ -462,7 +462,7 @@ function renderPendingKill(){
   card.style.display='block';
   document.getElementById('pendTitle').textContent='待开期杀三肖 · 第'+PEND.period+'期（待开奖 · 未对账）';
   var missN=(PEND.missingCount||0);
-  var carryN=(PEND.sites||[]).filter(function(s){return s.carried;}).length;
+  var carryN=(PEND.sites||[]).filter(function(s){return tierAllowed(s)&&s.carried;}).length;
   var carryTxt=carryN?(' · 上版沿用 '+carryN+' 站（计入票数）'):'';
   var missTxt=missN?(' · 本轮未纳入 '+missN+' 站（不计入本轮票数，非改料）'):'';
   // 过滤后有杀三肖的站；杀三票数按本档站点现场重算，不沿用全量预算聚合
@@ -470,7 +470,8 @@ function renderPendingKill(){
   var kagg={};
   killSites.forEach(function(s){(s.killZodiacs||[]).forEach(function(z){kagg[z]=(kagg[z]||0)+1;});});
   var rows=Object.keys(kagg).map(function(z){return {z:z,kill:kagg[z]};}).sort(function(a,b){return b.kill-a.kill||a.z.localeCompare(b.z,'zh');});
-  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+killSites.length+' 站有杀三肖'+carryTxt+missTxt+'；此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。　·　档位/连对连错/累计中错 在「往期复盘台账」：把上方期号切到已开奖期（如323）即可看到';
+  var newN=killSites.filter(function(s){return !s.carried;}).length;
+  document.getElementById('pendSub').textContent='快照时间 '+(PEND.updatedAt||'—')+' · 本轮新料 '+newN+' 站有杀三肖'+carryTxt+missTxt+'；本档现场重算，历史期按原快照。此为开奖前原始推荐，未作对账判定，开奖入账后并入下方复盘台账。　·　档位/连对连错/累计中错 在「往期复盘台账」：把上方期号切到已开奖期（如323）即可看到';
   var rankEl=document.getElementById('pendRank');
   if(rows.length){
     var max=rows[0].kill||1;
@@ -766,6 +767,6 @@ fetchJson('data/kill3-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
-<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 期号倒序修复 · v1.1.3 · 2026-11-23</div>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">杀三肖台账 · 档位票数与连错口径 · v1.1.4 · 2026-11-23</div>
 </body>
 </html>

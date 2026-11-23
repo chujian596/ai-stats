@@ -223,7 +223,7 @@
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
-        <div class="kicker">EXTENDED LEDGER · v2.0.3 / 06 DIMENSIONS</div>
+        <div class="kicker">EXTENDED LEDGER · v2.0.4 / 06 DIMENSIONS</div>
         <h1>扩展维度台账</h1>
         <p>逐站逐期记录推荐，开奖后自动复盘。看清共识，也看清偏差。</p>
       </div>
@@ -353,7 +353,7 @@
 
   <footer class="foot">
     <span id="ruleNote">—</span>
-    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.3</b></span>
+    <span>资料系统 · 只记录，不定论 · <b style="font-weight:700;color:var(--muted)">v2.0.4</b></span>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -510,13 +510,13 @@ function renderPending(){
   var sites=(PEND.sites||[]).filter(pendExt).filter(tierAllowed);
   var carryN=sites.filter(function(s){return s.carried;}).length;
   var missN=PEND.missingCount||0;
-  var noRec=Math.max(0,(PEND.sites||[]).length-sites.length);
+  var noRec=Math.max(0,tierCount(tierDef())-sites.length);
   var updated=PEND.updatedAt||'—';
   setHero(PEND.period,'待开奖',updated);
   try{document.title='扩展维度台账 · '+cfg.title+' · 第'+PEND.period+'期';}catch(e){}
   $('pendEyebrow').textContent='待开期 · 原始推荐';
   $('pendTitle').textContent='第 '+PEND.period+' 期 · '+cfg.title+'推荐';
-  $('pendSub').innerHTML='快照 '+esc(updated)+' · 新料 <b>'+(sites.length-carryN)+'</b> 站 · 沿用 <b>'+carryN+'</b> 站'+(noRec?' · 本期未推荐 <b>'+noRec+'</b> 站':'')+(missN?' · 缺更 <b>'+missN+'</b> 站':'')+'。开奖前原始推荐，未作对账判定。';
+  $('pendSub').innerHTML='快照 '+esc(updated)+' · 新料 <b>'+(sites.length-carryN)+'</b> 站 · 沿用 <b>'+carryN+'</b> 站'+(noRec?' · 本档未推荐 <b>'+noRec+'</b> 站':'')+(missN?' · 缺更 <b>'+missN+'</b> 站':'')+'。本档现场重算；开奖前原始推荐，未作对账判定。';
   $('pendBadge').textContent='未对账';
   $('pendBadge').className='badge pending';
   $('backPending').style.display='none';
@@ -533,7 +533,7 @@ function renderPending(){
   var coverage=rankRows.length;
   var hits=0; sites.forEach(function(s){ if(trailHits(s.siteKey,lastIssue())>0) hits++; });
   setStats([
-    {label:'有推荐站点',value:sites.length,unit:'站',hint:'采集 '+(PEND.sites||[]).length+' 站，'+noRec+' 站本期无此维度'},
+    {label:'有推荐站点',value:sites.length,unit:'站',hint:'本档 '+tierCount(tierDef())+' 站，'+noRec+' 站本期无此维度'},
     {label:'推荐票数',value:totalVotes,unit:'票',hint:'按共识项汇总'},
     {label:'覆盖'+cfg.title,value:coverage,unit:'项',hint:'待开期去重后的项数'},
     {label:'近 7 期有命中',value:hits,unit:'站',hint:'按站历史轨迹粗筛'}

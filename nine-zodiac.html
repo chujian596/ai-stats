@@ -142,7 +142,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.3</span></h1>
+    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.4</span></h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
 
@@ -442,15 +442,15 @@ function renderPendingMiss(){
   var box=document.getElementById('pendMiss');
   var issues=Object.keys(LG.periods).sort(function(a,b){return +a-+b;});
   var lastIssue=issues[issues.length-1];
-  var missRows=(PEND.sites||[]).map(function(s){return {s:s,h:pendHist(s)};})
+  var missRows=(PEND.sites||[]).filter(function(s){return tierAllowed(s);}).map(function(s){return {s:s,h:pendHist(s)};})
     .filter(function(x){return x.h.has&&x.h.l>=1;})
     .sort(function(a,b){return b.h.l-a.h.l||(b.h.win-a.h.win);});
   if(!missRows.length){
-    box.innerHTML='<div class="pend-miss"><div class="pm-sub">截至上期 '+lastIssue+'，近期暂无连错记录。</div></div>';
+    box.innerHTML='<div class="pend-miss"><div class="pm-sub">截至上期 '+lastIssue+'，本档近期暂无连错记录。新站无历史不显示，连错 1 期起才出现。</div></div>';
     return;
   }
   var html='<div class="pend-miss"><div class="pm-title">最近连错（截至上期 '+lastIssue+'）</div>'+
-    '<div class="pm-sub">点站名跳到下方逐站表对应记录；连错 2 期橙色、≥3 期红色。</div>';
+    '<div class="pm-sub">只显示本档有历史记录的站；新站无历史暂不显示，连错 1 期起才出现。点站名跳到下方逐站表；连错 2 期橙色、≥3 期红色。</div>';
   missRows.forEach(function(x){
     var h=x.h,s=x.s,nm=ALIAS[s.siteKey]||s.siteKey;
     var cls=h.l>=3?'l3':(h.l===2?'l2':'l1');
@@ -517,7 +517,7 @@ function renderPending(){
   if(carryNine){ subTxt+=' · 上版沿用 '+carryNine+' 站（计入票数，标注沿用，非本轮新料）'; }
   if(prev.nine){ subTxt+=' · 上版 '+prev.nine+' 站'; }
   if(miss.length){ subTxt+=' · 本轮未纳入 '+miss.length+' 站（不计入本轮票数，非改料，见下方清单）'; }
-  subTxt+='；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
+  subTxt+='；本档现场重算，历史期按原快照；此为开奖前原始推荐，未作对账判定，开奖入账后并入复盘台账。';
   sub.textContent=subTxt;
   var agg={};
   var picks=sites.map(function(s){
@@ -830,6 +830,6 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
-<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">九肖追踪 · 期号倒序修复 · v1.1.3 · 2026-11-23</div>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">九肖追踪 · 档位连错口径 · v1.1.4 · 2026-11-23</div>
 </body>
 </html>
