@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.79-Pro';
+var APP_VER = 'v59.80-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4805,9 +4805,9 @@ function flyClusterTier(items, keptOf, opt){
         });
         let sum = deltas.reduce((a,x)=> a + x.d, 0);
         // 组内一加一减把总额拉回：优先动自留小（风险轻）的号，但不许越过各自下限
-        if(Math.abs(sum) > p.tol + 1e-9){
+        if(Math.abs(sum) > 1e-9){
           deltas.slice().sort((a,b)=> a.kept - b.kept).forEach(c => {
-            if(Math.abs(sum) <= p.tol + 1e-9) return;
+            if(Math.abs(sum) <= 1e-9) return;
             const need = -sum;
             const roomUp = p.maxAdj - c.d;
             const roomDown = c.d - ((list.find(x=>x.code===c.code)||{}).min > 0 ? (list.find(x=>x.code===c.code).min - c.amt) : -p.maxAdj);
@@ -4816,8 +4816,11 @@ function flyClusterTier(items, keptOf, opt){
           });
         }
         const score = {j:j, target:t, deltas:deltas, dev:sum, absDev:Math.abs(sum), span:span};
+        const dbl = (Math.abs(t % 20) < 1e-9) ? 0 : 1;
         if(!bestC || score.absDev < bestC.absDev - 1e-9
-           || (Math.abs(score.absDev-bestC.absDev) < 1e-9 && score.span < bestC.span)) bestC = score;
+           || (Math.abs(score.absDev-bestC.absDev) < 1e-9 && score.span < bestC.span)
+           || (Math.abs(score.absDev-bestC.absDev) < 1e-9 && score.span === bestC.span && dbl < (bestC.dbl||0))){ score.dbl = dbl; bestC = score; }
+        else if(score.dbl===undefined) score.dbl = dbl;
       });
       if(bestC) arr.push(bestC);
     }
@@ -4868,6 +4871,7 @@ function flyClusterTier(items, keptOf, opt){
   while(changed){
     changed = false;
     const gs = groups.slice().sort((a,b) => b.before[0] - a.before[0]);
+    let bestPair = null;
     for(let k = 0; k + 1 < gs.length; k++){
       const g1 = gs[k], g2 = gs[k+1];
       if(Math.abs(g1.after[0] - g2.after[0]) > p.win + 1e-9) continue;
@@ -4896,6 +4900,18 @@ function flyClusterTier(items, keptOf, opt){
         if(!picked || Math.abs(sum) < Math.abs(picked.dev)) picked = {t:t, ds:ds, dev:sum};
       });
       if(!picked) continue;
+      // 同一轮里挑「花得最少」的那一对，避免先遇到谁就买谁（预算大反而多花）
+      const cost = Math.abs(picked.dev);
+      const dblT = (Math.abs(picked.t % 20) < 1e-9) ? 0 : 1;
+      const sc = {cost:cost, dbl:dblT, moved:picked.ds.filter(x=>Math.abs(x.d)>1e-9).length, k:k};
+      if(!bestPair || sc.cost < bestPair.cost - 1e-9
+         || (Math.abs(sc.cost-bestPair.cost) < 1e-9 && sc.dbl < bestPair.dbl)
+         || (Math.abs(sc.cost-bestPair.cost) < 1e-9 && sc.dbl === bestPair.dbl && sc.moved < bestPair.moved))
+        bestPair = Object.assign({}, sc, {g1:g1, g2:g2, picked:picked, members:members});
+    }
+    if(!bestPair) break;
+    {
+      const g1 = bestPair.g1, g2 = bestPair.g2, picked = bestPair.picked, members = bestPair.members;
       picked.ds.forEach(x => { alloc[x.code] = x.amt + x.d; });
       const merged = {codes: members.map(m=>m.code), before: members.map(m=>m.amt), after: picked.ds.map(x=>x.amt+x.d),
                       target: picked.t, merged:true, dev: picked.dev};
@@ -4904,7 +4920,6 @@ function flyClusterTier(items, keptOf, opt){
       groups.splice(Math.min(gsIdx1, gsIdx2), 1, merged);
       best.dev = best.dev - (g1.dev||0) - (g2.dev||0) + picked.dev;
       changed = true;
-      break;
     }
   }
   const beforeSum = list.reduce((a,x)=> a + x.amt, 0);
