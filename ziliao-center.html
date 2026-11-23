@@ -825,8 +825,8 @@
       <div class="panel-head">
         <div>
           <div class="eyebrow">六维 · 逐站台账</div>
-          <h2>平特 / 波色 / 尾数 / 头数 / 大小 / 单双</h2>
-          <p>六个扩展维度逐期复盘；页内切换维度与期号，共识榜与逐站明细随站点筛选联动。</p>
+          <h2>平特 / 波色 / 头数·尾数 / 大小 / 单双</h2>
+          <p>五个扩展维度逐期复盘；头数、尾数同卡左右双榜；页内切换维度与期号，共识榜与逐站明细随站点筛选联动。</p>
         </div>
         <span class="badge pending" id="exBadge">读取中</span>
       </div>
@@ -841,7 +841,11 @@
           <button class="btn ghostish" id="exExpand" type="button">展开全部</button>
         </div>
         <div id="exPend">
-          <div class="subcard"><h3>共识票数</h3><div class="subhint" id="exPendHint"></div><div id="exPendRank"></div></div>
+          <div class="subcard" id="exPendRankWrap"><h3>共识票数</h3><div class="subhint" id="exPendHint"></div><div id="exPendRank"></div></div>
+          <div class="two-col hidden" id="exPendDualWrap">
+            <div class="subcard"><h3>头数共识</h3><div class="subhint" id="exPendZodHint"></div><div id="exPendZodRank"></div></div>
+            <div class="subcard"><h3>尾数共识</h3><div class="subhint" id="exPendCodeHint"></div><div id="exPendCodeRank"></div></div>
+          </div>
           <div class="filterbar">
             <input id="exPendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
             <select id="exPendSort">
@@ -858,7 +862,11 @@
           <div id="exPendList" class="site-grid"></div>
         </div>
         <div id="exReview" class="hidden">
-          <div class="subcard"><h3>共识票数</h3><div class="subhint">标红为当期开出项</div><div id="exRank"></div></div>
+          <div class="subcard" id="exRankWrap"><h3>共识票数</h3><div class="subhint">标红为当期开出项</div><div id="exRank"></div></div>
+          <div class="two-col hidden" id="exDualWrap">
+            <div class="subcard"><h3>头数共识</h3><div class="subhint">标红为当期开头</div><div id="exZodRank"></div></div>
+            <div class="subcard"><h3>尾数共识</h3><div class="subhint">标红为当期开尾</div><div id="exCodeRank"></div></div>
+          </div>
           <div class="filterbar">
             <input id="exReviewSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
             <select id="exReviewSort">
@@ -878,7 +886,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.4.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·tail·head·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -2004,7 +2012,11 @@
     var st={dim:cfg.dims[0].key, LG:null, mode:'pending', period:'',
       pend:{q:'',sort:'name',filter:'all'}, rev:{q:'',sort:'name',filter:'all'}, cache:{}};
     function dimCfg(){ return cfg.dims.find(function(d){return d.key===st.dim;})||cfg.dims[0]; }
-    function issues(){ return st.LG?Object.keys(st.LG.periods).sort(function(a,b){return +a-+b;}):[]; }
+    function isSplit(){ var d=dimCfg(); return !!(d&&d.split); }
+    function lgMain(){ return isSplit()?st.LG.left:st.LG; }
+    function lgOf(side){ if(!isSplit()) return st.LG; return side==='right'?st.LG.right:st.LG.left; }
+    function perOf(side,cur){ var lg=lgOf(side); return lg&&lg.periods?lg.periods[cur]:null; }
+    function issues(){ var lg=lgMain(); return lg?Object.keys(lg.periods).sort(function(a,b){return +a-+b;}):[]; }
     function lastIssue(){ var i=issues(); return i[i.length-1]; }
     function pendSite(site){ var e=site[dimCfg().ext]; var z=e&&(e.zodiacs||e.picks); return (z&&z.length)?e:null; }
     function zOf(r){ return cfg.dual?(r.zodiacs||[]):(r.picks||[]); }
@@ -2015,6 +2027,10 @@
     function ensureDim(){
       var d=dimCfg();
       if(st.cache[d.key]){ st.LG=st.cache[d.key]; return Promise.resolve(); }
+      if(d.split){
+        return Promise.all([fetchJson('data/'+d.left.file), fetchJson('data/'+d.right.file)])
+          .then(function(arr){ st.LG={left:arr[0],right:arr[1]}; st.cache[d.key]=st.LG; });
+      }
       return fetchJson('data/'+d.file).then(function(j){ st.LG=j; st.cache[d.key]=j; });
     }
     function setSummary(chips){
@@ -2054,15 +2070,16 @@
     function trailOf(key,cur){
       var hist=issues().filter(function(i){return +i<=+cur;}).slice(-7);
       if(!hist.length) return [];
-      return hist.map(function(i){ var per=st.LG.periods[i], r=per&&per.stations[key];
+      return hist.map(function(i){ var per=perOf('left',i), r=per&&per.stations[key];
         if(!r||r.hit===null||r.hit===undefined) return {cls:'n',tx:'·'};
         return r.hit?{cls:'w',tx:'中'}:{cls:'l',tx:'错'}; });
     }
     function trailHits(key,cur){ return trailOf(key,cur).filter(function(t){return t.cls==='w';}).length; }
     function detailHtml(key,cur){
       var hist=issues().filter(function(i){return +i<=+cur;}).reverse();
+      var perCur=perOf('left',cur);
       var rows=hist.map(function(h){
-        var rr=st.LG.periods[h].stations[key], actual=st.LG.periods[h].actual;
+        var pp=perOf('left',h), rr=pp&&pp.stations[key], actual=pp&&pp.actual;
         if(!rr) return '';
         var hitTx=rr.hit?'中':'错', hitCls=rr.hit?'hit':'miss';
         var z=(zOf(rr)||[]).map(function(p){return '<span class="pick" style="min-width:20px;height:20px;font-size:10px">'+esc(p)+'</span>';}).join('');
@@ -2070,7 +2087,7 @@
         var raw=rr.raw?'<div class="raw">原话：'+esc(rr.raw)+'</div>':'';
         return '<tr><td>'+esc(h)+'期</td><td>开'+esc(actual)+'</td><td><div class="zp">'+z+c+'</div>'+raw+'</td><td><span class="hit-badge '+hitCls+'">'+hitTx+'</span></td></tr>';
       }).join('');
-      var r=st.LG.periods[cur]&&st.LG.periods[cur].stations[key];
+      var r=perCur&&perCur.stations[key];
       return '<div class="detail-table-wrap"><table class="detail-table"><thead><tr><th style="width:13%">期号</th><th style="width:12%">开奖</th><th>推荐</th><th style="width:14%">结果</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
     }
     function pendVisible(sites){
@@ -2082,14 +2099,21 @@
         return (nameOf(s,s.siteKey)+' '+s.siteKey+' '+(s.system||'')).toLowerCase().indexOf(q)>=0;
       });
     }
-    function revVisible(keys,per){
+    function mergedHit(x){ var hL=x.rL&&x.rL.hit, hR=x.rR&&x.rR.hit;
+      if(hL===true||hR===true) return true; if(hL===false&&hR===false) return false; return null; }
+    function revVisible(keys){
       var q=st.rev.q.trim().toLowerCase();
-      return keys.map(function(k){return {key:k,r:per.stations[k]};}).filter(function(x){
-        if(st.rev.filter==='hit'&&x.r.hit!==true) return false;
-        if(st.rev.filter==='miss'&&x.r.hit!==false) return false;
-        if(!q) return true;
-        return (nameOf(x.r,x.key)+' '+x.key+' '+(x.r.system||'')).toLowerCase().indexOf(q)>=0;
-      });
+      var perL=perOf('left',st.period), perR=isSplit()?perOf('right',st.period):null;
+      return keys.map(function(k){
+        var rL=perL&&perL.stations[k], rR=perR&&perR.stations[k];
+        var rec=isSplit()?{key:k,rL:rL,rR:rR}:{key:k,r:rL};
+        var h=isSplit()?mergedHit(rec):(rL&&rL.hit);
+        if(st.rev.filter==='hit'&&h!==true) return null;
+        if(st.rev.filter==='miss'&&h!==false) return null;
+        var nmR=isSplit()?(rL||rR):rL;
+        if(q && (nameOf(nmR,k)+' '+k+' '+(nmR.system||'')).toLowerCase().indexOf(q)<0) return null;
+        return rec;
+      }).filter(Boolean);
     }
     function enterPending(){
       if(!isPending()){ enterReview(lastIssue()); return; }
@@ -2158,26 +2182,44 @@
       });
       el('PendList').innerHTML=list.map(pendCard).join('')||'<div class="empty">没有符合条件的站点</div>';
     }
-    function reviewCard(x,per){
-      var r=x.r, z=zOf(r)||[], c=cOf(r)||[];
+    function reviewCard(x){
+      var split=isSplit();
+      var r=split?(x.rL||x.rR):x.r;
+      var z=[], c=[];
+      if(split){ if(x.rL) z=(x.rL.picks||[]); if(x.rR) c=(x.rR.picks||[]); }
+      else { z=zOf(r)||[]; c=cOf(r)||[]; }
       var zHtml=z.map(function(p){return '<span class="pick">'+esc(p)+'</span>';}).join('');
       var cHtml=c.map(function(p){return '<span class="pick" style="background:var(--card-2);border-color:var(--line-soft)">'+esc(p)+'</span>';}).join('');
       var trail=trailOf(x.key,st.period);
       var histHtml=trail.length?('<div class="trail-line"><span class="trail-label">近7期</span><div class="trail">'+trail.map(function(t){return '<span class="t '+t.cls+'">'+t.tx+'</span>';}).join('')+'</div></div>'):'';
-      var hitCls=r.hit===true?'hit':(r.hit===false?'miss':'unk'), hitTx=r.hit===true?'中':(r.hit===false?'错':'未判');
-      var cnt=cfg.dual?(z.length+'肖 / '+c.length+'码'):(z.length+' 项');
+      var h=split?mergedHit(x):(r&&r.hit);
+      var hitCls=h===true?'hit':(h===false?'miss':'unk'), hitTx=h===true?'中':(h===false?'错':'未判');
+      var cnt=split?(z.length+'头 / '+c.length+'尾'):(cfg.dual?(z.length+'肖 / '+c.length+'码'):(z.length+' 项'));
       return '<details class="site-card"><summary><div class="site-top"><div><div class="site-name">'+seqTag(r)+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
         '<div class="site-right"><span class="tag-count">'+cnt+'</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+
         '<div class="picks">'+zHtml+cHtml+'</div>'+histHtml+'</summary>'+
         '<div class="site-detail">'+detailHtml(x.key,st.period)+'</div></details>';
     }
+    function hitOf(x){ return isSplit()?mergedHit(x):(x.r&&x.r.hit); }
+    function rankRows(cnt,numSort){
+      return Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]};}).sort(function(a,b){return (b.n-a.n)||(numSort?(+a.p-+b.p):String(a.p).localeCompare(String(b.p),'zh'));});
+    }
+    function toggleRankWrap(split){
+      var w1=el('RankWrap'), w2=el('DualWrap');
+      if(w1) w1.classList.toggle('hidden',split);
+      if(w2) w2.classList.toggle('hidden',!split);
+    }
     function renderReview(){
-      var per=st.LG.periods[st.period]; if(!per) return;
-      var d=dimCfg();
-      var allKeys=Object.keys(per.stations);
-      var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=per.stations[k];return r.hit===true||r.hit===false;}):allKeys;
-      var wins=keys.filter(function(k){return per.stations[k].hit===true;}).length;
-      var misses=keys.filter(function(k){return per.stations[k].hit===false;}).length;
+      var split=isSplit(), d=dimCfg();
+      var perL=perOf('left',st.period), perR=split?perOf('right',st.period):null;
+      if(!perL) return;
+      var keys=split?Array.from(new Set(Object.keys(perL.stations).concat(Object.keys(perR.stations)))):Object.keys(perL.stations);
+      if(cfg.reviewHasOnly) keys=keys.filter(function(k){ var r=perL.stations[k]; return r&&(r.hit===true||r.hit===false); });
+      var wins=0, misses=0;
+      keys.forEach(function(k){
+        var rL=perL.stations[k], rR=perR&&perR.stations[k], h=split?((rL&&rL.hit===true)||(rR&&rR.hit===true)?true:((rL&&rL.hit===false)&&(rR&&rR.hit===false)?false:null)):(rL&&rL.hit);
+        if(h===true) wins++; else if(h===false) misses++;
+      });
       var rate=keys.length?Math.round(wins/keys.length*100):0;
       el('Badge').textContent='已对账'; el('Badge').className='badge done';
       setSummary([{text:d.title,tone:'accent'},{text:'第 '+st.period+' 期 · 已开奖'},{text:keys.length+' 站有推荐'},{text:'命中率 '+rate+'%',tone:rate>=50?'':'warn'}]);
@@ -2187,23 +2229,28 @@
         {label:'未中',value:misses,unit:'站',hint:'本期未覆盖'},
         {label:'命中率',value:rate,unit:'%',hint:'中 / 有推荐'}
       ]);
-      var visible=revVisible(keys,per);
+      var visible=revVisible(keys);
       var zodCnt={}, codeCnt={};
-      visible.forEach(function(x){ zOf(x.r).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); cOf(x.r).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); });
-      var zodRows=Object.keys(zodCnt).map(function(p){return {p:p,n:zodCnt[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
-      var codeRows=Object.keys(codeCnt).map(function(p){return {p:p,n:codeCnt[p]};}).sort(function(a,b){return (b.n-a.n)||(+a.p-+b.p);});
-      var hotZ=cfg.dual?per.actual:per[d.hot];
-      if(cfg.dual){ renderRank(zodRows,per.actual,el('ZodRank')); renderRank(codeRows,per.specialNum,el('CodeRank')); }
-      else { renderRank(zodRows,per[d.hot],el('Rank')); }
+      visible.forEach(function(x){
+        if(split){ if(x.rL) (x.rL.picks||[]).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); if(x.rR) (x.rR.picks||[]).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); }
+        else { zOf(x.r).forEach(function(p){zodCnt[p]=(zodCnt[p]||0)+1;}); cOf(x.r).forEach(function(p){codeCnt[p]=(codeCnt[p]||0)+1;}); }
+      });
+      var zodRows=rankRows(zodCnt,false), codeRows=rankRows(codeCnt,true);
+      if(cfg.dual){ renderRank(zodRows,perL.actual,el('ZodRank')); renderRank(codeRows,perL.specialNum,el('CodeRank')); }
+      else if(split){ toggleRankWrap(true); renderRank(zodRows,perL[d.left.hot],el('ZodRank')); renderRank(codeRows,perR[d.right.hot],el('CodeRank')); }
+      else { toggleRankWrap(false); renderRank(zodRows,perL[d.hot],el('Rank')); }
       el('ReviewSearch').value=st.rev.q; el('ReviewSort').value=st.rev.sort;
       applyChips('ReviewFilter',st.rev.filter);
       var list=visible.slice();
       list.sort(function(a,b){
-        if(st.rev.sort==='hit'){ var ha=a.r.hit===true?1:0,hb=b.r.hit===true?1:0; if(ha!==hb) return hb-ha; }
-        else if(st.rev.sort==='miss'){ var ma=a.r.hit===false?1:0,mb=b.r.hit===false?1:0; if(ma!==mb) return mb-ma; }
-        return nameOf(a.r,a.key).localeCompare(nameOf(b.r,b.key),'zh');
+        var ha=hitOf(a)===true?1:0, hb=hitOf(b)===true?1:0;
+        if(st.rev.sort==='hit'&&ha!==hb) return hb-ha;
+        var ma=hitOf(a)===false?1:0, mb=hitOf(b)===false?1:0;
+        if(st.rev.sort==='miss'&&ma!==mb) return mb-ma;
+        var ra=a.r||a.rL||a.rR, rb=b.r||b.rL||b.rR;
+        return nameOf(ra,a.key).localeCompare(nameOf(rb,b.key),'zh');
       });
-      el('Rows').innerHTML=list.map(function(x){return reviewCard(x,per);}).join('')||'<div class="empty">没有符合条件的站点</div>';
+      el('Rows').innerHTML=list.map(function(x){return reviewCard(x);}).join('')||'<div class="empty">没有符合条件的站点</div>';
     }
     function applyChips(id,active){
       Array.prototype.forEach.call(el(id).querySelectorAll('.filter-chip'),function(b){ b.classList.toggle('on',b.dataset.filter===active); });
@@ -2213,16 +2260,23 @@
         var list=(S.pend.sites||[]).filter(pendSite).filter(tierAllowed);
         return pendVisible(list);
       }
-      var per=st.LG.periods[st.period]; if(!per) return [];
-      var allKeys=Object.keys(per.stations);
-      var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=per.stations[k];return r.hit===true||r.hit===false;}):allKeys;
-      return revVisible(keys,per);
+      var perL=perOf('left',st.period); if(!perL) return [];
+      var split=isSplit(), perR=split?perOf('right',st.period):null;
+      var allKeys=split?Array.from(new Set(Object.keys(perL.stations).concat(Object.keys(perR.stations)))):Object.keys(perL.stations);
+      var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=perL.stations[k];return r&&(r.hit===true||r.hit===false);}):allKeys;
+      return revVisible(keys);
     }
     function copyCurrent(){
       var d=dimCfg(), lines=['第 '+st.period+' 期 · '+d.title];
       filteredSites().forEach(function(x){
         if(st.mode==='pending'){ var e=pendSite(x); lines.push(nameOf(x,x.siteKey)+'：'+(pendZ(e)||[]).join('')+(cfg.dual?' '+(pendC(e)||[]).join(','):'')); }
-        else { lines.push(nameOf(x.r,x.key)+'：'+(zOf(x.r)||[]).join('')+(cfg.dual?' '+(cOf(x.r)||[]).join(','):'')+(x.r.hit===true?'（中）':x.r.hit===false?'（错）':'')); }
+        else {
+          var split=isSplit(), nmR=x.r||x.rL||x.rR;
+          var zp=split?((x.rL&&x.rL.picks)||[]):(zOf(x.r)||[]);
+          var cp=split?((x.rR&&x.rR.picks)||[]):(cOf(x.r)||[]);
+          var h=hitOf(x);
+          lines.push(nameOf(nmR,x.key)+'：'+zp.join('')+(cp.length?' '+cp.join(','):'')+(h===true?'（中）':h===false?'（错）':''));
+        }
       });
       if(lines.length===1){ showToast('当前筛选没有可复制的站点'); return; }
       var text=lines.join('\n');
@@ -2241,7 +2295,7 @@
     function render(){
       ensureDim().then(function(){
         renderTabs(); buildSelect();
-        if(st.mode==='review'&&st.period&&st.LG.periods[st.period]) enterReview(st.period);
+        if(st.mode==='review'&&st.period&&perOf('left',st.period)) enterReview(st.period);
         else if(isPending()) enterPending(); else enterReview(lastIssue());
       }).catch(function(){ el('PendList').innerHTML='<div class="empty">数据加载失败，请刷新重试。</div>'; });
     }
@@ -2266,8 +2320,9 @@
     ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, dims:[
       {key:'pingte',title:'平特一肖',file:'pingte-ledger.json',ext:'pingte',hot:'actual'},
       {key:'wave',title:'波色',file:'wave-ledger.json',ext:'wave',hot:'actualWave'},
-      {key:'tail',title:'尾数',file:'tail-ledger.json',ext:'tail',hot:'actualTail'},
-      {key:'head',title:'头数',file:'head-ledger.json',ext:'head',hot:'actualHead'},
+      {key:'headtail',title:'头数·尾数',split:true,
+        left:{file:'head-ledger.json',ext:'head',hot:'actualHead',label:'头数'},
+        right:{file:'tail-ledger.json',ext:'tail',hot:'actualTail',label:'尾数'}},
       {key:'size',title:'大小',file:'size-ledger.json',ext:'size',hot:'actualSize'},
       {key:'parity',title:'单双',file:'parity-ledger.json',ext:'parity',hot:'actualParity'}]})
   };
