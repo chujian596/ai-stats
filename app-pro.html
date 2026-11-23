@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.83-Pro';
+var APP_VER = 'v59.84-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5329,15 +5329,32 @@ function _flyAddAmt(key, amt){
   if(!(amt > 0)) return;
   flownPerPos[key] = (flownPerPos[key] || 0) + amt;
   flownReal[key] = (flownReal[key] || 0) + flyShowAmt(amt);
+  // 记本次新增，登记后弹窗逐条回显「加了多少 / 累计多少」，翻倍能立刻看见
+  try { if(window._flyAddLog) window._flyAddLog.push({key: key, amt: amt, now: flownPerPos[key]}); } catch(e){}
 }
 
 // 按手动清单登记已飞：先走录入词库（parseLine），认不了再退回老的「号码 金额」
+var _manualLastSubmit = null;   // 上一次成功登记的清单（防重复提交翻倍）
 function applyManualFlyList(){
   const el = document.getElementById('manualFlyInput');
   const txt = ((el && el.value) || window._manualFlyBuf || '').trim();
   if(!txt){ myAlert('先把清单贴进输入框'); return; }
+  // 防误触：同一份清单 10 分钟内重复提交＝叠加，会翻倍；先确认再登记
+  try {
+    if(_manualLastSubmit && _manualLastSubmit.txt === txt && (Date.now() - _manualLastSubmit.t) < 600000){
+      var _ago = Math.round((Date.now() - _manualLastSubmit.t) / 1000);
+      myConfirm('这份清单刚刚登记过（合计 ' + _manualLastSubmit.sum + ' 元，' + _ago + ' 秒前）。\n\n再登记一次是叠加，金额会翻倍。确定还要再登记一遍吗？', function(){ _applyManualFlyCore(txt, el); });
+      return;
+    }
+  } catch(e){}
+  _applyManualFlyCore(txt, el);
+}
+
+// 真正落账：认不出的行整单回滚（原子）
+function _applyManualFlyCore(txt, el){
   const rows = txt.split(/\n+/).map(s => s.trim()).filter(Boolean);
   let cnt = 0, sum = 0, bad = [];
+  window._flyAddLog = [];
   // 事务快照：只要有一行认不出，就把已飞记录还原，绝不半个单子落账
   const _snapPer = Object.assign({}, flownPerPos), _snapReal = Object.assign({}, flownReal);
   function _rollbackFly(){
@@ -5348,14 +5365,23 @@ function applyManualFlyList(){
   }
 
   const _ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪';
-  rows.forEach(function(line){
-    // 裸生肖写法直接补成「连肖」：马500 / 马蛇300 / 马蛇狗100 / 马蛇各300
+  // 别名：平连 = 平特连肖，跟连肖同一个玩法
+  function _flyAlias(t){
+    return String(t).replace(/平特?连肖/g, '连肖').replace(/^平特连肖/, '连肖').replace(/^平连/, '连肖');
+  }
+  let modePre = '';   // 上一行只写了玩法词（连肖 / 平特 / 平连）时，当下面几行的默认前缀
+  rows.forEach(function(rawLine){
+    let line = _flyAlias(rawLine.trim());
+    // 纯玩法标题行：不报错，只改默认前缀，下面的裸写法都按它算
+    const mTitle = line.match(/^(连肖|平特|二中二|三中二|三中三|特号?|平连)$/);
+    if(mTitle){ modePre = (mTitle[1] === '平连') ? '连肖' : mTitle[1]; return; }
+    // 裸生肖写法：马500 / 马蛇300 / 马蛇狗100 / 马蛇各300（有标题行就套标题的玩法）
     (function(){
       const re = new RegExp('^([' + _ZOD + ']+)(?:\\s*(各|每)?\\s*)([0-9]+(?:\\.?[0-9]+)?)(?:元)?$');
       const m = line.match(re);
       if(m){
         const zs = m[1].split('').filter(ch => _ZOD.indexOf(ch) >= 0);
-        if(zs.length >= 1 && zs.length <= 6) line = '连肖' + zs.join('') + (m[2] || '') + m[3];
+        if(zs.length >= 1 && zs.length <= 6) line = (modePre || '连肖') + zs.join('') + (m[2] || '') + m[3];
       }
     })();
     // 波色/大小/单双/头尾/合数 这类玩法不按号码飞，直接提示写号码
@@ -5418,8 +5444,14 @@ function applyManualFlyList(){
   try { localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); } catch(e){}
   window._manualFlyBuf = '';
   if(el) el.value = '';
+  _manualLastSubmit = {txt: txt, t: Date.now(), sum: sum.toFixed(0)};
   afterFlyFlagChange();
-  myAlert('已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元');
+  var _log = (window._flyAddLog || []);
+  var _detail = _log.slice(0, 10).map(function(x){
+    return '  ' + x.key + '  +' + x.amt.toFixed(0) + ' → 累计 ' + x.now.toFixed(0) + ' 元';
+  }).join('\n');
+  if(_log.length > 10) _detail += '\n  …共 ' + _log.length + ' 笔';
+  myAlert('已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元' + (_detail ? '\n\n本次明细：\n' + _detail : ''));
 }
 
 function showGroupDetail(group){
