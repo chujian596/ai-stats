@@ -47,6 +47,10 @@ a{color:var(--blue);text-decoration:none}
 .card .sub{color:var(--muted);font-size:12px;margin-bottom:12px}
 .sectionHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .sectionHead .tag{font-size:11px;color:var(--muted)}
+.latestSwitch{display:flex;gap:4px;align-items:center}
+.latestSwitch button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;line-height:1.4}
+.latestSwitch button.on{background:var(--blue2);border-color:#bfdbfe;color:#1d4ed8}
+.latestSwitch button:active{opacity:.75}
 
 .actualLine{display:flex;flex-direction:column;gap:7px;margin:8px 0 12px}
 .actualLine .line{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -144,7 +148,7 @@ td.actual{color:var(--blue);font-weight:800}
 <div class="wrap">
   <div class="top">
     <div class="brand">
-      <h1>研判引擎<span class="badge"><i></i>v1.02</span></h1>
+      <h1>研判引擎<span class="badge"><i></i>v1.03</span></h1>
       <p>316 后 · 公众推荐拥挤度审计 · 只筛异常，不输出方向</p>
     </div>
     <div class="links">
@@ -164,13 +168,16 @@ td.actual{color:var(--blue);font-weight:800}
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="latestCard">
     <div class="sectionHead">
       <div>
-        <h2>最近完成期 · 12肖拥挤表</h2>
+        <h2>最新期 · 12肖拥挤表</h2>
         <div class="sub" id="latestSub">九肖票、杀三票、首位票各自的名次；不是投注方向。</div>
       </div>
-      <div class="tag" id="latestTag"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="latestSwitch" id="latestSwitch"></div>
+        <div class="tag" id="latestTag"></div>
+      </div>
     </div>
     <div class="actualLine" id="actualLine"></div>
     <div class="zrow head"><div>生肖</div><div>九肖票 · 名次</div><div>杀三票 · 名次</div><div>首位票 · 名次</div></div>
@@ -262,22 +269,42 @@ function renderKpis(){
   document.getElementById('stateText').textContent=(engine.state&&engine.state.reason)||'';
 }
 
-function renderLatest(){
+let latestView='pending';
+function renderLatest(view){
   const periods=engine.periods||[];
   if(!periods.length){document.getElementById('latestSub').textContent='暂无数据';return;}
-  const p=periods[periods.length-1];
-  document.getElementById('latestTag').textContent=p.period+' 期 · 已完成';
-  document.getElementById('latestSub').textContent='实际生肖：'+p.actual+'。九肖票='+p.nineSites+'站，杀三票='+p.killSites+'站；名次越高越拥挤。';
+  const done=periods[periods.length-1];
+  const pending=engine.pending;
+  const canPending=!!(pending && Number(pending.period)>Number(done.period));
+  latestView=view||latestView;
+  const showPending=latestView==='pending' && canPending;
+  const p=showPending?pending:done;
+
+  const sw=document.getElementById('latestSwitch');
+  if(canPending){
+    sw.style.display='flex';
+    sw.innerHTML=`<button type="button" class="${showPending?'on':''}" onclick="renderLatest('pending')">待开 ${pending.period}</button><button type="button" class="${showPending?'':'on'}" onclick="renderLatest('done')">完成 ${done.period}</button>`;
+  }else{
+    sw.style.display='none'; sw.innerHTML='';
+  }
+
+  document.getElementById('latestTag').textContent=p.period+' 期 · '+(showPending?'待开奖':'已完成');
+  document.getElementById('latestSub').textContent=showPending
+    ? '开奖前抓取（'+p.updatedAt+'）：九肖票='+p.nineSites+'站，杀三票='+p.killSites+'站；名次越高越拥挤。实际生肖待开奖后补。'
+    : '实际生肖：'+p.actual+'。九肖票='+p.nineSites+'站，杀三票='+p.killSites+'站；名次越高越拥挤。';
+
   const ties=p.topTies||{nine:[p.top.nine],kill3:[p.top.kill3],first:[p.top.first]};
   const top=`<span class="pill blue">九肖第1：${ties.nine.join('/')}（${p.counts.nine[p.top.nine]}票）</span><span class="pill red">杀三第1：${ties.kill3.join('/')}（${p.counts.kill3[p.top.kill3]}票）</span><span class="pill gold">首位第1：${ties.first.join('/')}（${p.counts.first[p.top.first]}票）</span>`;
-  const actual=`<span class="lab">实际落在</span><span class="pill green">九肖 ${rankText(p.actualRanks.nine)} / ${bandText(p.actualBands.nine)}</span><span class="pill green">杀三 ${rankText(p.actualRanks.kill3)} / ${bandText(p.actualBands.kill3)}</span><span class="pill green">首位 ${rankText(p.actualRanks.first)} / ${bandText(p.actualBands.first)}</span><span class="actualTag">${p.period} ${p.actual}</span>`;
-  document.getElementById('actualLine').innerHTML='<div class="line">'+top+'</div><div class="line">'+actual+'</div>';
+  const actual=showPending
+    ? `<div class="line"><span class="lab">状态</span><span class="pill green">待开奖 · 实际生肖未出</span><span class="actualTag">${p.updatedAt||''} 抓取</span></div>`
+    : `<div class="line"><span class="lab">实际落在</span><span class="pill green">九肖 ${rankText(p.actualRanks.nine)} / ${bandText(p.actualBands.nine)}</span><span class="pill green">杀三 ${rankText(p.actualRanks.kill3)} / ${bandText(p.actualBands.kill3)}</span><span class="pill green">首位 ${rankText(p.actualRanks.first)} / ${bandText(p.actualBands.first)}</span><span class="actualTag">${p.period} ${p.actual}</span></div>`;
+  document.getElementById('actualLine').innerHTML='<div class="line">'+top+'</div>'+actual;
 
   const max9=Math.max(...ZODIACS.map(z=>p.counts.nine[z]||0));
   const maxK=Math.max(...ZODIACS.map(z=>p.counts.kill3[z]||0));
   const maxF=Math.max(...ZODIACS.map(z=>p.counts.first[z]||0));
   const rows=ZODIACS.map(z=>{
-    const isA=z===p.actual;
+    const isA=!showPending && z===p.actual;
     const c9=p.counts.nine[z]||0, ck=p.counts.kill3[z]||0, cf=p.counts.first[z]||0;
     return `<div class="zrow ${isA?'actual':''}">
       <div class="zname"><span class="dot"></span>${z}</div>
@@ -288,7 +315,6 @@ function renderLatest(){
   }).join('');
   document.getElementById('zodiacRows').innerHTML=rows;
 }
-
 function renderBacktest(){
   const periods=engine.periods||[];
   const tbl=document.getElementById('backtest');

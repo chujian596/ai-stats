@@ -172,6 +172,95 @@ def load_periods():
     return rows
 
 
+def load_pending(rows):
+    """读取当前待开期（未开奖）的九肖/杀三/首位票，供页面显示 327 等待开状态。"""
+    if not rows:
+        return None
+    latest = int(rows[-1]['period'])
+    path = os.path.join(DATA, 'current-recommend.json')
+    if not os.path.exists(path):
+        return None
+    try:
+        cr = json.load(open(path, encoding='utf-8'))
+        period = int(cr.get('period') or 0)
+        if period <= latest:
+            return None
+        kill_counts = defaultdict(int)
+        nine_counts = defaultdict(int)
+        first_counts = defaultdict(int)
+        kill_sites = nine_sites = first_sites = 0
+        for s in cr.get('sites', {}).values() if isinstance(cr.get('sites'), dict) else cr.get('sites', []):
+            kz = s.get('killZodiacs') or []
+            if len(kz) == 3:
+                kill_sites += 1
+                for x in kz:
+                    kill_counts[x] += 1
+            nz = s.get('zodiacs') or []
+            if len(nz) == 9:
+                nine_sites += 1
+                first_sites += 1
+                for x in nz:
+                    nine_counts[x] += 1
+                first_counts[nz[0]] += 1
+        if not kill_sites or not nine_sites:
+            return None
+        zk, sk = zscores(kill_counts, kill_sites)
+        zn, sn = zscores(nine_counts, nine_sites)
+        zf, sf = zscores(first_counts, first_sites)
+        crowd = {z: round(0.5 * zn[z] + 0.25 * zk[z] + 0.25 * zf[z], 3) for z in ZODIACS}
+        top_nine = top_set(nine_counts, 1)[0]
+        top_kill = top_set(kill_counts, 1)[0]
+        top_first = top_set(first_counts, 1)[0]
+        top_nine_all = [z for z in ZODIACS if nine_counts.get(z,0)==nine_counts[top_nine]]
+        top_kill_all = [z for z in ZODIACS if kill_counts.get(z,0)==kill_counts[top_kill]]
+        top_first_all = [z for z in ZODIACS if first_counts.get(z,0)==first_counts[top_first]]
+        return {
+            'period': period,
+            'status': 'pending',
+            'updatedAt': cr.get('updatedAt'),
+            'source': 'current-recommend.json',
+            'coverage': cr.get('coverage') or {},
+            'killSites': kill_sites,
+            'nineSites': nine_sites,
+            'firstSites': first_sites,
+            'counts': {
+                'kill3': {z: kill_counts.get(z, 0) for z in ZODIACS},
+                'nine': {z: nine_counts.get(z, 0) for z in ZODIACS},
+                'first': {z: first_counts.get(z, 0) for z in ZODIACS},
+            },
+            'shares': {
+                'kill3': {z: round(sk[z], 4) for z in ZODIACS},
+                'nine': {z: round(sn[z], 4) for z in ZODIACS},
+                'first': {z: round(sf[z], 4) for z in ZODIACS},
+            },
+            'zscores': {'kill3': zk, 'nine': zn, 'first': zf},
+            'crowdScore': crowd,
+            'ranks': {
+                'kill3': {z: rank_desc(kill_counts, z) for z in ZODIACS},
+                'nine': {z: rank_desc(nine_counts, z) for z in ZODIACS},
+                'first': {z: rank_desc(first_counts, z) for z in ZODIACS},
+            },
+            'top': {'nine': top_nine, 'kill3': top_kill, 'first': top_first},
+            'topTies': {'nine': top_nine_all, 'kill3': top_kill_all, 'first': top_first_all},
+            'topKill3': top_set(kill_counts, 3),
+            'top3': cr.get('top3') or [],
+            'bottom3': cr.get('bottom3') or [],
+            'entropy': {
+                'kill3': norm_entropy(kill_counts),
+                'nine': norm_entropy(nine_counts),
+                'first': norm_entropy(first_counts),
+            },
+            'topGap': {
+                'nine': nine_counts[top_nine] - sorted(nine_counts.values(), reverse=True)[1],
+                'kill3': kill_counts[top_kill] - sorted(kill_counts.values(), reverse=True)[1],
+                'first': first_counts[top_first] - sorted(first_counts.values(), reverse=True)[1],
+            },
+            'note': '开奖前抓取；实际生肖未出。',
+        }
+    except Exception:
+        return None
+
+
 def hypothesis_stats(rows):
     rng = random.Random(SEED)
     n = len(rows)
@@ -293,6 +382,7 @@ def kill_nine_overlap():
 
 def main():
     rows = load_periods()
+    pending = load_pending(rows)
     if not rows:
         print('ENGINE_SKIP no rows')
         return
@@ -378,6 +468,7 @@ def main():
             'note': '站点推荐不等于注码；镜像站只算一票，不按站点数量放大。',
         },
         'periods': rows,
+        'pending': pending,
         'notes': [
             '拥挤度=九肖收录+杀三票+首位票的标准化合分；高分是“人多”，不是“会开”。',
             '杀三/九肖的顶端未开，很大一部分是分母：3/12、9/12 的基数本身就是75%。',
@@ -390,7 +481,7 @@ def main():
         path = os.path.join(DATA, name)
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(doc, f, ensure_ascii=False, indent=1)
-    print(f'ENGINE_OK through={latest} periods={len(rows)} kill={kill_n} nine={nine_n} mirrors={len(pairs)}')
+    print(f'ENGINE_OK through={latest} periods={len(rows)} kill={kill_n} nine={nine_n} mirrors={len(pairs)} pending={pending.get("period") if pending else None}')
 
 
 if __name__ == '__main__':
