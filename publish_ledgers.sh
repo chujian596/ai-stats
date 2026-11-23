@@ -19,6 +19,8 @@ python3 ../change_ledger.py || exit 1
 python3 ../build_change_report.py || exit 1
 python3 build_draws_recent.py || exit 1
 python3 build_quality_check.py || exit 1
+# 资料闭环分段报告卡片（stats.html 08 卡；每次跑完四段任一动作后自动重建）
+python3 build_closure_card.py || exit 1
 python3 enrich_site_names.py || exit 1
 # 来源名单（站点 81 + 论坛池；保留人工改名/启停/主池标记）
 python3 tools/build_source_registry.py >/dev/null 2>&1 && echo "SOURCES_OK" || echo "SOURCES_SKIP"
@@ -56,6 +58,7 @@ data/parity-ledger.json
 data/change-ledger.json
 data/draws-recent.json
 data/quality-report.json
+data/closure-report.json
 data/source-registry.json
 data/site-performance.json
 data/engine.json

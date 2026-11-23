@@ -59,6 +59,27 @@
   .quality span{font-size:10.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 7px}
   .quality span b{color:var(--ink);font-weight:700}
 
+  .stage-list{display:flex;flex-direction:column;gap:2px;margin:2px 0 4px}
+  .stage-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px dashed #edf0f5}
+  .stage-row:last-child{border-bottom:0}
+  .stage-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#d6dce5}
+  .stage-dot.ok{background:#1d6b4f}
+  .stage-dot.pending{background:#e4e8ef;box-shadow:0 0 0 3px #f4f6fa inset}
+  .stage-main{flex:1;min-width:0}
+  .stage-main b{display:block;font-size:13.5px;letter-spacing:-.01em}
+  .stage-main span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .stage-side{flex:0 0 auto;text-align:right;min-width:52px}
+  .stage-side b{display:block;font-size:16px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .stage-side span{font-size:10.5px;color:var(--faint)}
+  .stage-side.sig b{color:var(--red)}
+  .stage-flag{display:inline;margin-left:6px;font-size:10.5px;font-weight:750;color:var(--red);letter-spacing:0}
+  .closure-foot{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .closure-foot span{font-size:10.5px;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 7px}
+  .closure-foot span b{color:var(--ink);font-weight:700}
+  .closure-note{font-size:12px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .closure-note b{color:var(--ink)}
+
+
   .quick-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}
   .quick-card{display:block;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px;text-decoration:none;color:inherit;box-shadow:0 2px 8px rgba(16,35,70,.04)}
   .quick-card:active{transform:scale(.99)}
@@ -252,7 +273,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.06</span>
+      <span class="version">v59.07</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -326,7 +347,7 @@ var ZOD = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','�
 var state = {
   current:null, latest:null, periods:[], official:{}, draws:null,
   ratio:null, core:null, forum:null, intensityLoading:false, intensitySeq:0,
-  ledgers:{}, ledgerPending:{}, activeTab:'now', dim:'nine',
+  ledgers:{}, ledgerPending:{}, closure:null, activeTab:'now', dim:'nine',
   stationQuery:'', stationLimit:30, openSite:'', expanded:{}
 };
 
@@ -452,10 +473,11 @@ function loadBase(){
     safe(fetchJson('data/periods.json',6000)),
     safe(fetchJson('official-history.json',8000)),
     safe(fetchJson('data/draws-recent.json',8000)),
+    safe(fetchJson('data/closure-report.json',8000)),
     loadDir()
   ]).then(function(r){
     state.current=r[0]; state.latest=r[1]||{}; state.periods=(r[2]&&r[2].periods)||[];
-    state.official=r[3]||{}; state.draws=r[4];
+    state.official=r[3]||{}; state.draws=r[4]; state.closure=r[5]||null;
     var intensityPer=(state.current&&state.current.period)||(state.latest&&state.latest.period)||'';
     if(intensityPer) loadIntensity(intensityPer);
     renderNow();
@@ -576,7 +598,7 @@ function setTopKpis(per,sites,nine,kill,ping){
 function renderNow(){
   var p=$('panel-now'), cur=state.current;
   if(!cur || !Array.isArray(cur.sites) || !cur.sites.length){
-    p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>';
+    p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>'+closureSection();
     return;
   }
   var per=cur.period|| (state.latest&&state.latest.period) || '';
@@ -655,7 +677,70 @@ function renderNow(){
     +'<div class="links"><a href="nine-zodiac.html">九肖逐站台账 <span>查看</span></a><a href="kill3-ledger.html">杀三肖逐站台账 <span>查看</span></a><a href="extra-ledger.html">平特/波色/尾/头/大小/单双 <span>查看</span></a><a href="site-registry.html">站点总目录 · 固定ID/站名 <span>查看</span></a></div>'
     +'</section>';
 
+  h+=closureSection();
+
   p.innerHTML=h;
+}
+
+function closureSection(){
+  var c=state.closure;
+  if(!c || !Array.isArray(c.stages) || !c.stages.length) return '';
+  var done=c.stages.filter(function(s){return s.done;});
+  var cov=c.coverage||{};
+  var drawn=(c.drawn&&c.drawn.specialNum)?(c.drawn.specialNum+' '+c.drawn.specialZod):'';
+  var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">08</span><h3>资料闭环 · 分段报告</h3></div>'
+    +'<span class="card-note">第 '+esc(c.period)+' 期 · '+done.length+'/4 段 · 并集 '+esc(c.unionSites||0)+' 站</span></div>';
+  if(!done.length){
+    h+='<div class="closure-note">本期资料还没出，四段都未执行；等首段抓取后这里自动填。</div></div>';
+    return h;
+  }
+  h+='<div class="stage-list">'+c.stages.map(function(s){
+    var dot=s.done?'ok':'pending';
+    var bits=[];
+    if(s.done){
+      bits.push(s.time);
+      bits.push(s.ok+' 站');
+      bits.push('失败 '+s.fail);
+      bits.push('未更新 '+s.notUpdated);
+      if(s.carry) bits.push('沿用 '+s.carry);
+      if(s.retry) bits.push('重试 '+s.retry+' 轮');
+      if(s.substantive!=null && s.substantive!==s.changes) bits.push('实质 '+s.substantive+'/'+s.substantiveStations+' 站');
+      if(s.changeZodiacs && s.changeZodiacs.length && s.changeZodiacs.length<=6) bits.push('动肖 '+s.changeZodiacs.join(''));
+    }
+    if(s.done && s.significant) bits.push('显著改料');
+    var meta=s.done?bits.join(' · '):'还没执行';
+    var side=s.done
+      ? ('<b>'+s.changes+'</b><span>改料条</span>')
+      : '<b>—</b><span>待执行</span>';
+    return '<div class="stage-row"><i class="stage-dot '+dot+'"></i><div class="stage-main"><b>'+esc(s.label)+'</b><span>'+esc(meta)+'</span></div>'
+      +'<div class="stage-side'+(s.done&&s.significant?' sig':'')+'">'+side+'</div></div>';
+  }).join('')+'</div>';
+  h+='<div class="chips" style="margin-top:10px">'
+    +'<span class="chip blue">九肖 <b>'+(cov.nine||0)+'</b></span>'
+    +'<span class="chip rec">杀三 <b>'+(cov.kill||0)+'</b></span>'
+    +'<span class="chip">平特 <b>'+(cov.pingte||0)+'</b></span>'
+    +'<span class="chip">波色 <b>'+(cov.wave||0)+'</b></span>'
+    +'<span class="chip">尾数 <b>'+(cov.tail||0)+'</b></span>'
+    +'<span class="chip">头数 <b>'+(cov.head||0)+'</b></span>'
+    +'<span class="chip">大小 <b>'+(cov.size||0)+'</b></span>'
+    +'<span class="chip">单双 <b>'+(cov.parity||0)+'</b></span></div>';
+  h+='<div class="closure-foot">'
+    +'<span>在册 <b>'+esc((c.registry||{}).total||0)+'</b> = 基线 <b>'+esc((c.registry||{}).core||0)+'</b> + 候选 <b>'+esc((c.registry||{}).added||0)+'</b></span>'
+    +'<span>空站 <b>'+(c.emptySites||0)+'</b></span>'
+    +'<span>改料合计 <b>'+(c.changes?c.changes.periodTotal:0)+'</b></span>'
+    +'<span>待检 <b>'+(c.changes?c.changes.pending:0)+'</b></span>'
+    +(c.seal&&c.seal.sha?('<span>封存 <b>'+esc(c.seal.sha)+'</b> · 锁 '+esc(c.seal.lockColumns||0)+' 栏</span>'):'')
+    +(drawn?('<span>开奖 <b>'+esc(drawn)+'</b></span>'):'<span>未开奖</span>')
+    +(c.forum&&c.forum.posts?('<span>论坛贴 <b>'+esc(c.forum.posts)+'</b> · 推 '+esc(c.forum.push)+' / 杀 '+esc(c.forum.kill)+'</span>'):'')
+    +(c.top3&&c.top3.length?('<span>共识 Top3 <b>'+esc(c.top3.join('、'))+'</b></span>'):'')
+  +'</div>';
+  if(c.notes&&c.notes.length){
+    h+='<div class="closure-note">'+c.notes.map(function(n){return '· '+esc(n);}).join('<br>')+'</div>';
+  }
+  h+='<div class="method"><b>读法：</b>四段是当天真实执行记录：09:30 上午、15:30 下午、18:00 盘前封存、20:00 开奖前补充。改料只算当期并集内真实变化的栏目条数；「实质」是剔掉新站首期、模板轮换/微调、回滚后的净改动。开奖后补抓的条目不计入四段。</div>';
+  h+='<div class="links"><a href="data/closure-report.json">分段报告 JSON <span>查看</span></a><a href="change-ledger.html">改料台账 <span>查看</span></a></div>';
+  h+='</section>';
+  return h;
 }
 
 function barRows(arr, cls, key){
