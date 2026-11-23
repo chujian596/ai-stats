@@ -485,7 +485,7 @@
         <div class="brief-grid">
           <div class="brief-card">
             <h3>共识焦点</h3>
-            <div class="bh">九肖、杀三肖各自票数最高的几项；票数是站次，不是金额。</div>
+            <div class="bh">九肖为 9 肖全计口径（1 站 9 票），杀三肖为 3 肖全计；票数是站次，不是金额。</div>
             <div id="briefConsensus"></div>
           </div>
           <div class="brief-card">
@@ -509,7 +509,7 @@
           <div class="bh">九肖、杀三肖逐期命中对照；同一期两边样本数不同。</div>
           <div id="briefTrend"></div>
         </div>
-        <div class="brief-note">口径：按站次统计；九肖“中”＝开奖特肖在 9 肖内，杀三“杀中”＝特肖不在所杀 3 肖内。样本不足只记录，不定论，不构成投注建议。</div>
+        <div class="brief-note">口径：按站次统计；共识榜九肖为 9 肖全计（1 站 9 票），另有「首位九肖」按主推第 1 肖计（1 站 1 票）；九肖“中”＝开奖特肖在 9 肖内，杀三“杀中”＝特肖不在所杀 3 肖内。样本不足只记录，不定论，不构成投注建议。</div>
       </div>
     </div>
   </section>
@@ -530,8 +530,8 @@
         <div class="stats" id="nowStats"></div>
         <div class="two-col">
           <div class="subcard">
-            <h3>九肖共识</h3>
-            <div class="subhint" id="nowNineHint">按站次计票，不是金额</div>
+            <h3>全集九肖 · 9 肖全计</h3>
+            <div class="subhint" id="nowNineHint">每站 9 肖各 1 票 · 不是金额</div>
             <div id="nowNineRank"><div class="empty">读取中…</div></div>
           </div>
           <div class="subcard">
@@ -585,15 +585,19 @@
         </div>
         <div class="two-col">
           <div class="subcard">
-            <h3>九肖共识</h3>
-            <div class="subhint" id="nineRankHint">按站次统计</div>
-            <div id="nineRank"></div>
+            <h3>首位九肖 · 主推第 1 肖</h3>
+            <div class="subhint" id="nineFirstTopHint">每站只取原序第 1 肖 · 1 站 1 票</div>
+            <div id="nineFirstTop"></div>
           </div>
           <div class="subcard">
-            <h3>判定说明</h3>
-            <div class="doc" style="padding-top:2px">
-              <p><b>中</b> = 开奖特肖在 9 肖内；<b>错</b> = 不在。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。样本不足只记录，不定论。</p>
-            </div>
+            <h3>全集九肖 · 9 肖全计</h3>
+            <div class="subhint" id="nineRankHint">每站 9 肖各 1 票 · 1 站 9 票</div>
+            <div id="nineRank"></div>
+          </div>
+        </div>
+        <div class="subcard" style="margin-bottom:12px">
+          <div class="doc" style="padding-top:2px">
+            <p><b>两个九肖口径：</b><b>首位九肖</b>看每站把哪一肖排在最前（主推），1 站只算 1 票；<b>全集九肖</b>看 9 个肖各自被多少站写进推荐，1 站 9 票。<b>中</b> = 开奖特肖在 9 肖内；<b>错</b> = 不在。<b>连对 / 连错</b> 从当期往前数；<b>总中 / 总错</b> 是本页已记录的累计。样本不足只记录，不定论。</p>
           </div>
         </div>
         <div class="qc-note" id="nineQC"></div>
@@ -601,8 +605,8 @@
         <div class="alert-box" id="nineAlert" style="display:none"></div>
         <div class="deep-grid">
           <div class="deep-card">
-            <h3>首肖排行</h3>
-            <div class="deep-hint">按每站九肖原序第 1 肖计；点开看是哪些站推的。</div>
+            <h3>首肖明细 · 站名下钻</h3>
+            <div class="deep-hint">与顶部「首位九肖」同口径（主推第 1 肖）；这里展开是哪些站把该肖列在第 1 位，可点站名跳转。</div>
             <div id="nineFirstRank"></div>
             <details style="margin-top:7px"><summary style="font-size:10px;color:var(--accent);cursor:pointer">历史累计参考 ▾</summary><div id="nineHistRank" style="margin-top:6px"></div></details>
             <div id="nineSpecial" class="special-lines"></div>
@@ -886,7 +890,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.2</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1134,7 +1138,7 @@
       statCard('平特覆盖',pingSites.length,'站','六维之一');
     var nAgg=countOf(nineSites,function(s){return s.zodiacs;});
     var kAgg=countOf(killSites,function(s){return s.killZodiacs;});
-    $('nowNineHint').textContent=nineSites.length+' 站 · '+sumZ(nineSites,'nine')+' 票 · 按站次';
+    $('nowNineHint').textContent=nineSites.length+' 站 · '+sumZ(nineSites,'nine')+' 票 · 9 肖全计';
     $('nowKillHint').textContent=killSites.length+' 站 · '+sumZ(killSites,'kill')+' 票 · 按站次';
     $('nowNineRank').innerHTML=rankHtml(topRows(nAgg,8),sumZ(nineSites,'nine'),'nine');
     $('nowKillRank').innerHTML=rankHtml(topRows(kAgg,8),sumZ(killSites,'kill'),'kill');
@@ -1272,7 +1276,7 @@
     $('briefBadge').className='badge '+bps.cls;
     $('briefLead').innerHTML=briefLeadHtml(b);
     $('briefStamp').textContent='数据 '+(S.pend&&S.pend.updatedAt||'—')+' · 自动汇总 '+(new Date()).toLocaleTimeString('zh-CN',{hour12:false});
-    $('briefConsensus').innerHTML='<div class="brief-cols"><div><h4>九肖 Top 5</h4>'+briefBars(b.topN,'nine')+'</div><div><h4>杀三 Top 5</h4>'+briefBars(b.topK,'kill')+'</div></div>';
+    $('briefConsensus').innerHTML='<div class="brief-cols"><div><h4>九肖 Top 5（全集）</h4>'+briefBars(b.topN,'nine')+'</div><div><h4>杀三 Top 5</h4>'+briefBars(b.topK,'kill')+'</div></div>';
     $('briefCoverage').innerHTML=
       briefKv('采集站点',b.sites+' 站')+
       briefKv('九肖覆盖',b.nineSites+' 站 · '+b.nineVotes+' 票')+
@@ -1652,8 +1656,15 @@
     var visElig=list.filter(function(e){return e.has;});
     var visVotes=visElig.reduce(function(a,e){return a+e.z.length;},0);
     var agg=countOf(visElig,function(e){return e.z;});
-    $(kind+'RankHint').textContent=visElig.length+' 站 · '+visVotes+' 票 · 按站次';
+    var voteLabel=kind==='nine'?'9 肖全计':'按站次';
+    $(kind+'RankHint').textContent=visElig.length+' 站 · '+visVotes+' 票 · '+voteLabel;
     $(kind+'Rank').innerHTML=rankHtml(topRows(agg,8),visVotes,kind);
+    if(kind==='nine'){
+      var firstAgg=countOf(visElig,function(e){return e.z.slice(0,1);});
+      var ft=$('nineFirstTop'), fth=$('nineFirstTopHint');
+      if(fth) fth.textContent=visElig.length+' 站 · 每站 1 票 · 主推第 1 肖';
+      if(ft) ft.innerHTML=rankHtml(topRows(firstAgg,8),visElig.length,'nine');
+    }
     // filter chips
     var fc=$(kind+'FilterChips');
     var opts = kind==='nine'
