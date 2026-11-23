@@ -886,7 +886,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.0</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.1</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1093,10 +1093,11 @@
     var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();
     try{document.execCommand('copy');}catch(e){} document.body.removeChild(a);
   }
+  function pendStatus(st){ if(st==='pending') return {text:'待开',cls:'pending'}; if(st==='empty') return {text:'待采集',cls:'pending'}; return {text:'已归档',cls:'done'}; }
   function setHero(period,status,updated){
     $('heroPeriod').textContent=period?('第 '+period+' 期'):'—';
     $('heroUpdated').textContent=updated||'—';
-    var st=$('heroStatus'); st.textContent=status; st.className='status-pill '+(status==='待开'?'warn':'live');
+    var st=$('heroStatus'); st.textContent=status; st.className='status-pill '+(status==='已归档'?'live':'warn');
   }
   function showToast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(showToast._t);showToast._t=setTimeout(function(){t.classList.remove('show');},1300);}
 
@@ -1118,13 +1119,14 @@
     var nineSites=visible.filter(function(s){return (s.zodiacs||[]).length;});
     var killSites=visible.filter(function(s){return (s.killZodiacs||[]).length;});
     var pingSites=visible.filter(function(s){return extraPicks(s,'pingte').length;});
-    setHero(p.period,p.status==='pending'?'待开':'已归档',p.updatedAt);
-    $('nowEyebrow').textContent='第 '+p.period+' 期 · '+(p.status==='pending'?'待开':'已归档');
+    var ps=pendStatus(p.status);
+    setHero(p.period,ps.text,p.updatedAt);
+    $('nowEyebrow').textContent='第 '+p.period+' 期 · '+ps.text;
     $('nowSub').textContent='每站九肖、杀三肖、平特、波色、尾数、头数、大小、单双；上方先看共识，下方按站核对。';
-    $('nowBadge').textContent=p.status==='pending'?'待开':'已归档';
-    $('nowBadge').className='badge '+(p.status==='pending'?'pending':'done');
+    $('nowBadge').textContent=ps.text;
+    $('nowBadge').className='badge '+ps.cls;
     $('tabNowCount').textContent=sites.length+' 站';
-    $('nowChips').innerHTML='<span class="chip accent"><span class="dot"></span>第 '+esc(p.period)+' 期 · 待开</span><span class="chip">快照 '+esc(p.updatedAt||'—')+'</span><span class="chip">采集 '+sites.length+' 站</span>'+(p.carriedCount?'<span class="chip warn">沿用 '+p.carriedCount+' 站</span>':'<span class="chip">全部新料</span>');
+    $('nowChips').innerHTML='<span class="chip accent"><span class="dot"></span>第 '+esc(p.period)+' 期 · '+ps.text+'</span><span class="chip">快照 '+esc(p.updatedAt||'—')+'</span><span class="chip">采集 '+sites.length+' 站</span>'+(p.carriedCount?'<span class="chip warn">沿用 '+p.carriedCount+' 站</span>':'<span class="chip">全部新料</span>');
     $('nowStats').innerHTML=
       statCard('采集站点',sites.length,'站','本期公开资料')+
       statCard('九肖覆盖',nineSites.length,'站','每站 9 肖')+
@@ -1265,8 +1267,9 @@
     if(!S.pend&&!S.nine&&!S.kill){ $('briefLead').innerHTML='<div class="empty">数据读取失败，摘要无法生成。</div>'; return; }
     var b=briefData();
     $('briefEyebrow').textContent='BRIEF · 第 '+b.period+' 期 · 自动汇总';
-    $('briefBadge').textContent=b.status==='pending'?'待开':'已归档';
-    $('briefBadge').className='badge '+(b.status==='pending'?'pending':'done');
+    var bps=pendStatus(b.status);
+    $('briefBadge').textContent=bps.text;
+    $('briefBadge').className='badge '+bps.cls;
     $('briefLead').innerHTML=briefLeadHtml(b);
     $('briefStamp').textContent='数据 '+(S.pend&&S.pend.updatedAt||'—')+' · 自动汇总 '+(new Date()).toLocaleTimeString('zh-CN',{hour12:false});
     $('briefConsensus').innerHTML='<div class="brief-cols"><div><h4>九肖 Top 5</h4>'+briefBars(b.topN,'nine')+'</div><div><h4>杀三 Top 5</h4>'+briefBars(b.topK,'kill')+'</div></div>';
@@ -2381,7 +2384,8 @@
       var dir=r[8]||{}; DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{};
       if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
       var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
-      setHero(per,S.pend&&S.pend.status==='pending'?'待开':'已归档',(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
+      var hps=pendStatus(S.pend?S.pend.status:'');
+      setHero(per,hps.text,(S.pend&&S.pend.updatedAt)||(S.nine&&S.nine.updated_at)||'—');
       $('tabBriefCount').textContent=((S.pend&&S.pend.period)||'总览')+'期';
       $('tabNineCount').textContent=(S.nine?Object.keys(S.nine.periods).length:0)+' 期';
       $('tabKillCount').textContent=(S.kill?Object.keys(S.kill.periods).length:0)+' 期';
