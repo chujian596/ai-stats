@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.03-Pro';
+var APP_VER = 'v60.04-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8123,40 +8123,16 @@ function openManualEntry(){
     if(!row) return;
     var sec = document.getElementById('entrySec');
     var vh = effectiveVh(kb);
-    // 录入框只做温和压缩（84~150px），不靠拉长输入框去顶键盘
+    // 录入框按键盘以上的剩余高度铺满，把按钮条顶到键盘上沿（整页下压，不留空档）
     if(input && kb > 20){
-      var spare = (sec ? sec.offsetHeight - input.offsetHeight : 0);
-      var top = (sec ? sec.getBoundingClientRect().top : 0);
-      var avail = vh - 12 - top - spare;
-      var h = Math.round(Math.max(84, Math.min(avail, 150)));
+      var ib0 = input.getBoundingClientRect();
+      var rb0 = row.getBoundingClientRect();
+      var gapFix = rb0.bottom - ib0.bottom;      // 输入框底 → 按钮条底 的固定距离
+      var h = Math.round((vh - 6) - ib0.top - gapFix);
+      h = Math.max(84, h);
       input.style.setProperty('height', h + 'px', 'important');
       input.style.setProperty('min-height', h + 'px', 'important');
     }
-    // 页面收口：把「排行榜/今日归档/历史订单/清除订单」那排的底边对到可视区底部，
-    // 整页正好在键盘上沿结束，不再出现被键盘切一半的按钮排
-    if(kb > 20){
-      // 在一组「块与块的交界」里挑离可视区底部最近的那条，把页面滚到正好收在它下面，
-      // 这样页面在键盘上沿结束，也不会把某一排按钮切掉一半
-      var cands = [];
-      try{
-        [document.getElementById('entrySec'), document.querySelector('.pro-tabs'),
-         document.getElementById('rankQuickRow'),
-         (document.getElementById('rankQuickRow') || {}).nextElementSibling].forEach(function(el){
-          if(!el) return;
-          var b = el.getBoundingClientRect().bottom;
-          if(b > 0 && b < vh + 40) cands.push(b);
-        });
-      }catch(e){}
-      if(cands.length){
-        var best = cands[0], bd = Math.abs(best - (vh - 8));
-        cands.forEach(function(b){ var d = Math.abs(b - (vh - 8)); if(d < bd){ bd = d; best = b; } });
-        var over = Math.round(best - (vh - 8));
-        if(Math.abs(over) > 2){
-          try{ window.scrollBy({top: over, behavior:'auto'}); }catch(e){ window.scrollBy(0, over); }
-        }
-      }
-    }
-    var vh = effectiveVh(kb);
     var r = row.getBoundingClientRect();
     var over = r.bottom - (vh - 12);
     // 键盘特别高、页面已经滚到底仍差几像素时，再把录入框压一点，保证按钮完整露出
@@ -10097,7 +10073,9 @@ function renderOrdersList(){
   h += `<div style="border:1px solid #eee;border-radius:8px;padding:8px;margin-bottom:8px;background:#fafafa">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-size:12px;font-weight:600;color:#666">开奖记录</span>`;
-  if(lastDraw || (shop === 'B' && (typeof hkDrawObj === 'function') && hkDrawObj())){
+  var _hasAnyDraw = false;
+  try{ _hasAnyDraw = !!(lastDraw || ((typeof hkDrawObj === 'function') ? hkDrawObj() : null)); }catch(e){ _hasAnyDraw = !!lastDraw; }
+  if(_hasAnyDraw){
     h += `<button onclick="clearDrawRecordAll()" style="border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:4px;padding:3px 10px;font-size:12px">撤销</button>`;
   }
   h += `</div>`;
@@ -13319,6 +13297,11 @@ function clearDrawRecordAll(){
   });
 }
 function clearDrawRecord(){
+  // 设置里的「撤销开奖记录」也按「港澳一起撤」，避免只撤掉当前店铺那一份、另一份还挂着
+  try{ if(typeof clearDrawRecordAll === 'function'){ clearDrawRecordAll(); return; } }catch(e){}
+  try{ if(typeof clearDrawRecordLegacy === 'function') clearDrawRecordLegacy(); }catch(e){}
+}
+function clearDrawRecordLegacy(){
   if(shop === 'B'){
     var _hc = (typeof hkDrawCache === 'function') ? hkDrawCache() : null;
     if(!_hc || !_hc.nums || !_hc.nums.length){ myAlert('当前没有香港开奖记录'); return; }
