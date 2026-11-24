@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.06-Pro';
+var APP_VER = 'v60.07-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3542,7 +3542,7 @@ function flownRealOf(k){
 // 某号实际扣掉的钱：已飞按记录、没飞的按凑整后（弹窗与明细共用这一套，避免两边打架）
 function realFlyAmount(k, bet){
   if(!(bet > 0)) return 0;   // 这个号今天没人下注，旧飞单记录不能算进来
-  const should = Math.max(0, (bet || 0) - (typeof splitTakeAll !== 'undefined' ? splitTakeAll : 0));
+  const should = flyPlanAmtOf(k, bet);
   const done = flownPerPos[k] || 0;
   // 已飞额超过「按现阈值该飞」的量 → 这条记录不是当前这盘产生的（改过单/调过阈值/上一期残留），
   // 只认当前阈值该飞的部分，不把多出来的算进今天
@@ -3653,36 +3653,18 @@ function cutBets(raw){
 }
 function cutCalc(M, raw){
   var bets = cutBets(raw);
-  var items = [], totalSelf = 0, totalRawFly = 0, full = 0, n = 0;
+  var selfOf = {}, n = 0, full = 0, totalSelf = 0, kept = 0, flown = 0, maxKeep = 0;
   bets.forEach(function(b){
     if(b.self <= 0) return;
-    n++;
-    var k = (M > 0) ? Math.min(b.self, M) : b.self;
-    var rawFly = b.self - k;
-    // 先按原档位算出每号应飞额，再统一做「总额凑整 + 最大余数分配」。
-    // 不能每个号各自四舍五入：几十个号的尾差会累加，飞总额和 最坏 会跟档位脱节。
-    var floorFly = Math.floor(rawFly / 10) * 10;
-    items.push({self:b.self, raw:rawFly, fly:floorFly, keptFloor:b.self - floorFly});
-    totalSelf += b.self;
-    totalRawFly += rawFly;
+    n++; totalSelf += b.self; selfOf[b.n] = b.self;
     if(M > 0 && b.self >= M) full++;
   });
-  var baseFly = 0;
-  items.forEach(function(it){ baseFly += it.fly; });
-  // 目标飞总额：就近凑到 10 的倍数，最多只偏离原总额 5 元
-  var targetFly = Math.round(totalRawFly / 10) * 10;
-  if(targetFly > totalSelf) targetFly = Math.floor(totalSelf / 10) * 10;   // 不可能飞得比下的还多
-  var upCount = Math.max(0, Math.round((targetFly - baseFly) / 10));
-  // 只能给「有应飞额、且自留还够 10 元」的号上浮 10 元；
-  // 上浮优先挑当前自留最多的号，等价于把最高自留压下去，最坏值最小。
-  var cand = items.filter(function(it){ return it.raw > 0.01 && it.keptFloor >= 10; });
-  if(upCount > cand.length) upCount = cand.length;
-  cand.sort(function(a,b){ return b.keptFloor - a.keptFloor; });
-  for(var i = 0; i < upCount; i++) cand[i].fly += 10;
-  var kept = 0, flown = 0, maxKeep = 0;
-  items.forEach(function(it){
-    var keep = it.self - it.fly;
-    kept += keep; flown += it.fly;
+  var plan = flyPlanMapFor(selfOf, M);
+  bets.forEach(function(b){
+    if(b.self <= 0) return;
+    var f = Number(plan[b.n]) || 0;
+    var keep = b.self - f;
+    kept += keep; flown += f;
     if(keep > maxKeep) maxKeep = keep;
   });
   var line = kept / payMult;
@@ -4767,6 +4749,20 @@ function setFlyRoundMode(m){
 }
 // 飞单金额强制零尾：一律就近凑到 10 的倍数（34→30、36→40、3→10），最少飞 10。
 // 不再使用 5 元档，避免飞出去出现 5/15/25… 这种尾数 5 的金额。
+// 每号「应飞」统一口径：聚档开＝聚档分配额；聚档关＝注额−阈值 向上取到 10 元档。
+// 显示表、飞单明细、面板「该飞」、自留/风险都必须走这一个函数，否则一个说 590 一个记 560。
+function flyPlanAmtOf(code, bet){
+  var b = Number(bet) || 0;
+  if(b <= 0.01) return 0;
+  var CAP = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+  if(!(CAP > 0)) return 0;
+  try{
+    var a = flyClusterAlloc();
+    var k = String(code).padStart(2, '0');
+    if(a && a[k] !== undefined && a[k] !== null) return Number(a[k]) || 0;
+  }catch(e){}
+  return _ceilFlyAmt(b, CAP);
+}
 function flyShowAmt(amt, modeOverride){
   const n = Number(amt) || 0;
   if(n <= 0.01) return 0;
@@ -5025,55 +5021,63 @@ function _flyReclump(allocIn, minFlyOf, budget, spent, p){
   return {alloc:amt, used:used, broke:broke};
 }
 
+function _ceilFlyAmt(bet, M){
+  var b = Number(bet) || 0, cap = Number(M) || 0;
+  if(!(cap > 0) || b <= cap + 0.01) return 0;
+  return Math.max(10, Math.ceil((b - cap) / 10 - 1e-9) * 10);
+}
+// 统一口径：给定「每号注额」和「自留上限」，算出每号应飞。
+// 逐号必飞 = 注额−上限 向上取到 10 元档（保证自留只 ≤ 上限）；聚档只在同一总额里并档，不改总额、不破上限。
+function flyPlanMapFor(selfOf, M){
+  var out = {}, total = 0;
+  Object.keys(selfOf || {}).forEach(function(c){
+    var f = _ceilFlyAmt(selfOf[c], M);
+    if(f > 0){ out[c] = f; total += f; }
+  });
+  var n = Object.keys(out).length;
+  if(!(Number(M) > 0) || !_flyClusterOn || n < 2) return out;
+  try{
+    function minFly(c){ return _ceilFlyAmt(Number(selfOf[c]) || 0, M); }
+    var items = Object.keys(out).map(function(c){ return {code:c, amt:out[c]}; });
+    var p = flyClusterOpts();
+    var r = flyClusterTier(items, function(){ return 0; }, Object.assign({}, p, {minOf:minFly}));
+    Object.keys(r.alloc || {}).forEach(function(c){ if(out[c] !== undefined) out[c] = Number(r.alloc[c]) || out[c]; });
+    Object.keys(out).forEach(function(c){
+      var b = Number(selfOf[c]) || 0, mn = minFly(c), v = Math.round(out[c] / 10) * 10;
+      if(v < mn) v = mn;
+      if(v > b) v = Math.max(mn, Math.floor(b / 10) * 10);
+      out[c] = v;
+    });
+    var sum = 0; Object.keys(out).forEach(function(c){ sum += out[c]; });
+    var guard = 0;
+    while(Math.abs(sum - total) > 1e-9 && guard++ < 400){
+      var dir = (total > sum) ? 10 : -10, moved = false;
+      var cs = Object.keys(out).sort(function(a, b){ return dir > 0 ? (out[b] - out[a]) : (out[a] - out[b]); });
+      for(var i = 0; i < cs.length; i++){
+        var c = cs[i], v = out[c] + dir, b = Number(selfOf[c]) || 0, mn = minFly(c);
+        if(dir > 0){ if(v <= b + 1e-9){ out[c] = v; sum += dir; moved = true; break; } }
+        else { if(v >= mn - 1e-9 && v >= 0){ out[c] = v; sum += dir; moved = true; break; } }
+      }
+      if(!moved) break;
+    }
+  }catch(e){}
+  return out;
+}
 function flyClusterAlloc(){
   const sales = getSplitSales();
   const p = flyClusterOpts();
   const sig = (_flyClusterOn ? '1' : '0') + '|' + (splitTakeAll||0) + '|' + p.win + '|' + p.maxAdj + '|' + p.tol + '|' + (p.budget||50) + '|' + (p.pretty?1:0) + '|'
     + Object.keys(sales).map(k => k + ':' + sales[k]).join(',');
   if(_flyClusterCache.sig === sig) return _flyClusterCache.alloc;
-  let alloc = {}, info = null, baseAmt = {};
-  // 每号自留上限＝阈值；没设阈值（0）就是全额自留、一分不飞，聚档也不该动
   const CAP = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
-  if(_flyClusterOn && CAP > 0){
-    const items = [];
-    const selfOf = {};   // 号码统一补两位，号和键写法（2 / 02）都能对上
-    Object.keys(sales).forEach(k => {
-      if(!/^\d{1,2}$/.test(String(k))) return;
-      const kk = String(k).padStart(2, '0');
-      const v = sales[k] || 0;
-      selfOf[kk] = (selfOf[kk] || 0) + v;
-    });
-    Object.keys(selfOf).forEach(kk => {
-      const full = Math.max(0, selfOf[kk] - CAP);
-      if(full < 0.01) return;
-      // 基准档＝必飞下限：向上取 10 元档，保证「注额 − 飞额 ≤ 自留上限」
-      items.push({code: kk, amt: Math.max(10, Math.ceil(full / 10 - 1e-9) * 10)});
-    });
-    items.forEach(it => { baseAmt[it.code] = it.amt; });
-    // 这一号最少要飞多少：自留 ≤ 上限 → 飞 ≥ 注额−上限，再向上取 10 元档
-    function minFlyOf(c){
-      const need = Math.max(10, (selfOf[c] || 0) - CAP);
-      return Math.max(10, Math.ceil(need / 10 - 1e-9) * 10);
-    }
-    if(items.length > 1){
-      const r = flyClusterTier(items, c => Math.max(0, (selfOf[c]||0) - (baseAmt[c]||0)), Object.assign({}, p, {minOf: minFlyOf}));
-      alloc = r.alloc; info = r;
-    } else if(items.length === 1){
-      alloc[items[0].code] = Math.max(items[0].amt, minFlyOf(items[0].code));
-    }
-    // 档位重排：并档 / 美化双数档（每期配额 50，破限号 ≤3 个、每个 ≤10）
-    if(alloc && Object.keys(alloc).length){
-      const rc = _flyReclump(alloc, minFlyOf, (p.budget||50), (info ? info.dev : 0), p);
-      alloc = rc.alloc;
-      if(info) info.reclump = {used:rc.used, broke:rc.broke};
-    }
-    // 兜底：除破限额度（10 元/号）外，任何号都不许低于下限
-    Object.keys(alloc).forEach(c => {
-      const mf = minFlyOf(c);
-      if(alloc[c] < mf - 10 - 1e-9) alloc[c] = mf;
-    });
-  }
-  _flyClusterCache = {sig:sig, alloc:alloc, info:info, base:baseAmt};
+  const selfOf = {};
+  Object.keys(sales).forEach(k => {
+    if(!/^\d{1,2}$/.test(String(k))) return;
+    const kk = String(k).padStart(2, '0');
+    selfOf[kk] = (selfOf[kk] || 0) + (Number(sales[k]) || 0);
+  });
+  const alloc = (CAP > 0) ? flyPlanMapFor(selfOf, CAP) : {};
+  _flyClusterCache = {sig:sig, alloc:alloc, info:{alloc:alloc, dev:0, list:[], reclump:{broke:0}}, base:{}};
   return alloc;
 }
 
@@ -5706,7 +5710,7 @@ function getThisRoundFly(){
   let totalFly = 0, already = 0;
   // 特号（手动分批飞）
   keys.forEach(k => {
-    const full = Math.max(0, sales[k] - splitTakeAll);
+    const full = flyPlanAmtOf(k, sales[k]);
     if(full < 0.01) return;
     // 关键：待飞按「原始已飞记账额」扣，不能按凑整后的实付额扣。
     // 例：应飞 36，凑整实付 35，记账仍是 36；若拿 35 去算会剩 1，再凑整又飞 5，造成二次飞单。
