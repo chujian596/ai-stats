@@ -153,7 +153,7 @@ html[data-system-theme="dark"] #quickSaveBtn{background:#2457d6!important;border
 body.kb-open .pro-nav{opacity:0;pointer-events:none;transition:opacity .12s ease}
 body.kb-open .pro-entry{padding:9px!important}
 body.kb-open .pro-input-wrap{padding:8px!important}
-body.kb-open #input{min-height:84px!important;height:84px!important;transition:height .16s ease}
+body.kb-open #input{min-height:var(--inpH,84px)!important;height:var(--inpH,84px)!important;transition:height .16s ease}
 body.kb-open #liveBalls{display:none!important}
 body.kb-open #liveBalls>span>span:first-child{width:32px!important;height:32px!important;font-size:15px!important}
 body.kb-open #liveBalls>span>span:last-child{font-size:9px!important;margin-top:0!important}
@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.04-Pro';
+var APP_VER = 'v60.05-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8130,8 +8130,7 @@ function openManualEntry(){
       var gapFix = rb0.bottom - ib0.bottom;      // 输入框底 → 按钮条底 的固定距离
       var h = Math.round((vh - 6) - ib0.top - gapFix);
       h = Math.max(84, h);
-      input.style.setProperty('height', h + 'px', 'important');
-      input.style.setProperty('min-height', h + 'px', 'important');
+      try{ document.documentElement.style.setProperty('--inpH', h + 'px'); }catch(e){}
     }
     var r = row.getBoundingClientRect();
     var over = r.bottom - (vh - 12);
@@ -8158,6 +8157,7 @@ function openManualEntry(){
     var wasOpen = document.body.classList.contains('kb-open');
     document.body.classList.toggle('kb-open', !!on);
     if(!on){
+      try{ document.documentElement.style.removeProperty('--inpH'); }catch(e){}
       if(input){
         try{ input.style.removeProperty('height'); input.style.removeProperty('min-height'); }catch(e){}
       }
@@ -8180,7 +8180,8 @@ function openManualEntry(){
     }
     kb = Math.max(0, kb, visualKb());
     window.__kbRaw = kb;
-    if(kb > 20) apply(true, kb);
+    var _focusIn = (document.activeElement === input);
+    if(kb > 20 && _focusIn) apply(true, kb);
     else apply(false, 0);
   };
   window.quickSaveFromHeader = function(){
@@ -8200,9 +8201,10 @@ function openManualEntry(){
     });
     input.addEventListener('blur', function(){
       setTimeout(function(){
-        if(document.activeElement === input) return;
-        window.__kbLayout(0);
-      }, 200);
+        // 键盘收起可能仍留着焦点（原生不回调 0），这里强制复位，避免输入框一直撑大
+        window.__kbRaw = 0;
+        apply(false, 0);
+      }, 220);
     });
     if(window.visualViewport){
       window.visualViewport.addEventListener('resize', function(){ window.__kbLayout(Number(window.__kbRaw) || 0); });
