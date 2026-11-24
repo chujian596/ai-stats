@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.09-Pro';
+var APP_VER = 'v60.10-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5898,18 +5898,18 @@ function flyCompareOpen(){
   var old = document.getElementById('flyCmpOv'); if(old) old.remove();
   var ov = document.createElement('div');
   ov.id = 'flyCmpOv';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
-  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:360px;width:100%;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:14px 16px 8px;font-size:16px;font-weight:700;text-align:center;color:#333">实际已飞对账</div>'
-    + '<div style="padding:0 16px 8px;font-size:12px;color:#666;line-height:1.5">把你实际飞出去的金额贴进来，一行一组：<br><span style="color:#999">19各130　31各110　／　13 30 42 各40</span></div>'
-    + '<div style="padding:0 14px"><textarea id="fcInput" placeholder="19各130 31各110 07各90 …" style="width:100%;height:84px;border:1px solid #ddd;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box"></textarea></div>'
-    + '<div style="display:flex;gap:8px;padding:10px 14px"><button id="fcGo" style="flex:1;padding:9px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:14px;font-weight:600">对比</button>'
-    + '<button id="fcClose" style="padding:9px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:14px">关闭</button></div>'
-    + '<div id="fcRes" style="flex:1;overflow-y:auto;padding:0 14px 6px;font-size:12px;color:#333"></div>'
-    + '<div id="fcAct" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 14px 14px;border-top:1px solid #f0f0f0">'
-    + '<button id="fcUse" style="flex:1;min-width:120px;padding:9px;border:0;border-radius:8px;background:#16a34a;color:#fff;font-size:13px;font-weight:600">按我录的写已飞</button>'
-    + '<button id="fcUseAll" style="flex:1;min-width:120px;padding:9px;border:1px solid #16a34a;border-radius:8px;background:#fff;color:#16a34a;font-size:13px;font-weight:600">以我录的为准（其余清零）</button>'
-    + '<button id="fcSys" style="flex:1;min-width:120px;padding:9px;border:1px solid #d97706;border-radius:8px;background:#fff;color:#b45309;font-size:13px;font-weight:600">按系统重算已飞</button>'
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:8px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;width:100%;max-width:392px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.25)">'
+    + '<div style="padding:13px 14px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">实际已飞对账</div>'
+    + '<div style="padding:0 14px 6px;font-size:11.5px;color:#666;line-height:1.5">把我实际飞出去的钱贴进来（和录单一样写，一行一组）<br><span style="color:#999">19各130　31各110　／　13 30 42 各40　／　19 130</span></div>'
+    + '<div style="padding:0 14px"><textarea id="fcInput" placeholder="19各130 31各110 07各90 …" style="width:100%;height:66px;border:1px solid #ddd;border-radius:8px;padding:7px;font-size:13px;box-sizing:border-box"></textarea></div>'
+    + '<div style="display:flex;gap:8px;padding:8px 14px 6px"><button id="fcGo" style="flex:1;padding:9px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:14px;font-weight:600">对比</button>'
+    + '<button id="fcClose" style="padding:9px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:13px">关闭</button></div>'
+    + '<div id="fcRes" style="flex:1;overflow-y:auto;padding:0 12px 4px;font-size:12px;color:#333;-webkit-overflow-scrolling:touch"></div>'
+    + '<div id="fcAct" style="display:none;flex-direction:column;gap:6px;padding:8px 12px 12px;border-top:1px solid #f0f0f0;background:#fafafa">'
+    + '<button id="fcUse" style="padding:8px 10px;border:0;border-radius:9px;background:#16a34a;color:#fff;text-align:center;line-height:1.25"><b style="font-size:14px">用我贴的数，只改不一样的号</b><br><span style="font-size:10.5px;opacity:.9">其余号保持现在的已飞，不动</span></button>'
+    + '<button id="fcUseAll" style="padding:8px 10px;border:1px solid #16a34a;border-radius:9px;background:#fff;color:#16a34a;text-align:center;line-height:1.25"><b style="font-size:14px">全按我贴的数（没贴到的清零）</b><br><span style="font-size:10.5px;opacity:.85">我贴的就是全部，没写的号当作没飞</span></button>'
+    + '<button id="fcSys" style="padding:8px 10px;border:1px solid #d97706;border-radius:9px;background:#fff;color:#b45309;text-align:center;line-height:1.25"><b style="font-size:14px">不采用我贴的，按订单重算</b><br><span style="font-size:10.5px;opacity:.85">阈值/削峰口径重算每个号该飞多少</span></button>'
     + '</div></div>';
   document.body.appendChild(ov);
   document.getElementById('fcClose').onclick = function(){ ov.remove(); };
@@ -5921,10 +5921,11 @@ function flyCompareOpen(){
 function _flyCmpData(txt){
   var sales = {};
   try{ sales = getSplitSales(); }catch(e){ sales = {}; }
-  var sys = {}, booked = {}, codes = {};
+  var sys = {}, booked = {}, bet = {}, codes = {};
   Object.keys(sales).forEach(function(k){
     if(!/^\d{1,2}$/.test(String(k))) return;
     var kk = String(k).padStart(2, '0');
+    bet[kk] = Math.round(Number(sales[k]) || 0);
     var f = 0; try{ f = flyPlanAmtOf(kk, sales[k]); }catch(e){ f = 0; }
     sys[kk] = Math.round(Number(f) || 0); codes[kk] = 1;
   });
@@ -5933,46 +5934,99 @@ function _flyCmpData(txt){
     var kk = String(k).padStart(2, '0'); codes[kk] = 1;
     try{ booked[kk] = Math.round(Number(flownRealOf(kk)) || 0); }catch(e){ booked[kk] = 0; }
   });
+  // 其他玩法（二/三合计、连肖、平特）：只读列出，本功能不改
+  var others = [];
+  Object.keys(flownPerPos || {}).forEach(function(k){
+    if(/^\d{1,2}$/.test(String(k))) return;
+    var v = Math.round(Number(flownPerPos[k]) || 0);
+    if(v > 0.01) others.push({key: k, amt: v});
+  });
+  others.sort(function(x, y){ return y.amt - x.amt; });
   var act = _flyCmpParse(txt);
   Object.keys(act).forEach(function(k){ codes[k] = 1; });
   var rows = [];
   Object.keys(codes).forEach(function(k){
-    var a = act[k], b = booked[k] || 0, sy = sys[k] || 0;
-    if(a === undefined && !b && !sy) return;
-    var ua = (a === undefined) ? null : Math.round(a);
-    var diff = (ua === null) ? -b : (ua - b);
-    rows.push({code:k, act:ua, booked:b, sys:sy, diff:diff});
+    var b = booked[k] || 0, sy = sys[k] || 0;
+    var ua = (act[k] === undefined) ? null : Math.round(act[k]);
+    if(ua === null && !b && !sy) return;
+    rows.push({code: k, bet: bet[k] || 0, act: ua, booked: b, sys: sy, diff: (ua === null) ? -b : (ua - b)});
   });
-  rows.sort(function(x, y){ return Math.abs(y.diff) - Math.abs(x.diff); });
-  var sumAct = 0, sumB = 0, sumSys = 0;
-  rows.forEach(function(r){ sumAct += (r.act || 0); sumB += r.booked; sumSys += r.sys; });
-  return {rows:rows, act:act, sumAct:sumAct, sumBooked:sumB, sumSys:sumSys};
+  rows.sort(function(x, y){ return Number(x.code) - Number(y.code); });
+  return {rows: rows, act: act, others: others};
 }
 function flyCompareRun(){
   var txt = (document.getElementById('fcInput') || {}).value || '';
   var d = _flyCmpData(txt);
   window.__flyCmpAct = d.act;
+  window.__flyCmpD = d;
+  window.__flyCmpView = 'all';
+  flyCompareRender('all');
+}
+function _fcCell(label, val, color, big){
+  return '<div style="flex:1;text-align:center"><div style="font-size:10px;color:#999">' + label + '</div>'
+    + '<div style="font-size:' + (big ? 15 : 13) + 'px;font-weight:700;color:' + color + '">' + val + '</div></div>';
+}
+function flyCompareRender(view){
+  var d = window.__flyCmpD; if(!d) return;
+  var rows = d.rows;
+  var diffs = rows.filter(function(r){ return Math.abs(r.diff) > 0.01; });
+  var sumAct = 0, sumB = 0, sumSys = 0, sumBet = 0;
+  rows.forEach(function(r){ sumAct += (r.act || 0); sumB += r.booked; sumSys += r.sys; sumBet += r.bet; });
   var html = '';
-  html += '<div style="padding:6px 0 8px;font-size:12px;color:#666">合计：你录 <b style="color:#2563eb">' + d.sumAct.toFixed(0) + '</b>　系统已飞 <b>' + d.sumBooked.toFixed(0) + '</b>　系统应飞 <b>' + d.sumSys.toFixed(0) + '</b>　差 <b style="color:' + (Math.abs(d.sumAct - d.sumBooked) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (d.sumAct - d.sumBooked > 0 ? '+' : '') + (d.sumAct - d.sumBooked).toFixed(0) + '</b></div>';
-  var diffs = d.rows.filter(function(r){ return Math.abs(r.diff) > 0.01; });
   if(!d.act || !Object.keys(d.act).length){
-    html += '<div style="color:#cf1322;font-size:12px;line-height:1.6">没认出金额。格式示例：<b>19各130 31各110</b>　或　<b>13 30 42 各40</b></div>';
-  } else if(!diffs.length){
-    html += '<div style="color:#16a34a;font-size:13px;padding:6px 0">✅ 逐号一致，不用改</div>';
-  } else {
-    html += '<div style="font-size:11px;color:#999;padding:2px 0 4px">不一致的号（按差额从大到小）：</div>';
-    html += '<div style="display:flex;font-size:11px;color:#999;border-bottom:1px solid #eee;padding-bottom:3px"><span style="width:44px">号</span><span style="width:76px">你录</span><span style="width:76px">系统已飞</span><span style="flex:1;text-align:right">差</span></div>';
-    diffs.forEach(function(r){
-      var col = r.diff > 0 ? '#2563eb' : '#cf1322';
-      html += '<div style="display:flex;padding:3px 0;border-bottom:1px solid #f7f7f7;font-size:12px"><b style="width:44px">' + r.code + '</b><span style="width:76px">' + (r.act === null ? '—' : r.act.toFixed(0)) + '</span><span style="width:76px;color:#888">' + r.booked.toFixed(0) + '</span><b style="flex:1;text-align:right;color:' + col + '">' + (r.diff > 0 ? '+' : '') + r.diff.toFixed(0) + '</b></div>';
+    html += '<div style="color:#cf1322;font-size:12px;line-height:1.7;padding:8px 0">没认出金额。写法：<b>19各130 31各110</b>　或　<b>13 30 42 各40</b>　或　<b>19 130</b>（一行一组也行）</div>';
+  }
+  html += '<div style="display:flex;padding:6px 4px 8px;background:#f7f9fc;border-radius:8px;margin:2px 0 6px">'
+    + _fcCell('注额', sumBet, '#333')
+    + _fcCell('系统应飞', sumSys, '#333')
+    + _fcCell('系统已飞', sumB, '#333')
+    + _fcCell('你贴的', sumAct, '#2563eb')
+    + _fcCell('差', (sumAct - sumB > 0 ? '+' : '') + (sumAct - sumB), Math.abs(sumAct - sumB) < 0.5 ? '#16a34a' : '#cf1322', true)
+    + '</div>';
+  if(!d.act || !Object.keys(d.act).length){
+    document.getElementById('fcRes').innerHTML = html;
+    document.getElementById('fcAct').style.display = 'none';
+    return;
+  }
+  // 视图切换
+  html += '<div style="display:flex;gap:6px;margin:0 0 6px">';
+  html += '<div onclick="flyCompareRender(\'all\')" style="flex:1;text-align:center;padding:5px;border-radius:7px;font-size:11.5px;border:1px solid ' + (view === 'all' ? '#2563eb' : '#e2e2e2') + ';background:' + (view === 'all' ? '#eff4ff' : '#fff') + ';color:' + (view === 'all' ? '#2563eb' : '#777') + ';font-weight:600">全部号 ' + rows.length + '</div>';
+  html += '<div onclick="flyCompareRender(\'diff\')" style="flex:1;text-align:center;padding:5px;border-radius:7px;font-size:11.5px;border:1px solid ' + (view === 'diff' ? '#cf1322' : '#e2e2e2') + ';background:' + (view === 'diff' ? '#fff1f0' : '#fff') + ';color:' + (view === 'diff' ? '#cf1322' : '#777') + ';font-weight:600">只看差 ' + diffs.length + '</div>';
+  html += '</div>';
+  if(view === 'diff' && !diffs.length){
+    html += '<div style="color:#16a34a;font-size:13px;padding:10px 0;text-align:center">✅ 每个号都和你贴的一样</div>';
+  }
+  var list = (view === 'diff') ? diffs : rows;
+  if(list.length){
+    html += '<div style="display:flex;font-size:10px;color:#999;padding:2px 2px 4px;border-bottom:1px solid #eee"><span style="width:26px">号</span><span style="width:34px">注额</span><span style="width:40px">应飞</span><span style="width:40px">已飞</span><span style="width:42px;color:#2563eb">你贴</span><span style="flex:1;text-align:right">差</span></div>';
+  }
+  list.forEach(function(r){
+    var hasDiff = Math.abs(r.diff) > 0.01;
+    var col = r.diff > 0.01 ? '#2563eb' : (r.diff < -0.01 ? '#cf1322' : '#bbb');
+    var bg = hasDiff ? (r.diff > 0 ? 'background:#f4f8ff' : 'background:#fff5f5') : '';
+    html += '<div style="display:flex;align-items:center;padding:3.5px 2px;border-bottom:1px solid #f5f5f5;font-size:12px;' + bg + '">'
+      + '<b style="width:26px;color:#333">' + r.code + '</b>'
+      + '<span style="width:34px;color:#aaa">' + r.bet + '</span>'
+      + '<span style="width:40px;color:#666">' + r.sys + '</span>'
+      + '<span style="width:40px;color:#888">' + r.booked + '</span>'
+      + '<span style="width:42px;color:' + (r.act === null ? '#ccc' : '#2563eb') + ';font-weight:' + (r.act === null ? 400 : 600) + '">' + (r.act === null ? '没写' : r.act) + '</span>'
+      + '<b style="flex:1;text-align:right;color:' + col + '">' + (hasDiff ? ((r.diff > 0 ? '+' : '') + r.diff) : '✓') + '</b>'
+      + '</div>';
+  });
+  var missing = rows.filter(function(r){ return r.act === null && r.booked > 0.01; });
+  if(missing.length) html += '<div style="font-size:11px;color:#b45309;padding:6px 2px 0;line-height:1.5">你没写、系统有已飞的号：' + missing.map(function(r){ return r.code + '(' + r.booked + ')'; }).join(' ') + '</div>';
+  var extra = rows.filter(function(r){ return r.act !== null && r.booked < 0.01 && r.act > 0.01; });
+  if(extra.length) html += '<div style="font-size:11px;color:#2563eb;padding:4px 2px 0;line-height:1.5">你写了、系统还没飞的号：' + extra.map(function(r){ return r.code + '(' + r.act + ')'; }).join(' ') + '</div>';
+  if(d.others && d.others.length){
+    html += '<div style="margin-top:8px;padding:6px 8px;background:#fafafa;border-radius:7px">'
+      + '<div style="font-size:10.5px;color:#999;margin-bottom:2px">其他玩法已飞（本功能不动）</div>';
+    d.others.forEach(function(o){
+      html += '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:#666;padding:1px 0"><span>' + o.key + '</span><b style="color:#888">' + o.amt + '</b></div>';
     });
-    var missing = d.rows.filter(function(r){ return r.act === null && r.booked > 0.01; });
-    if(missing.length) html += '<div style="font-size:11px;color:#b45309;padding:4px 0">你没写、系统却有已飞的号：' + missing.map(function(r){ return r.code + '(' + r.booked.toFixed(0) + ')'; }).join(' ') + '</div>';
-    var extra = d.rows.filter(function(r){ return r.act !== null && r.booked < 0.01 && r.act > 0.01; });
-    if(extra.length) html += '<div style="font-size:11px;color:#2563eb;padding:2px 0">你写了、系统还没飞的号：' + extra.map(function(r){ return r.code + '(' + r.act.toFixed(0) + ')'; }).join(' ') + '</div>';
+    html += '</div>';
   }
   document.getElementById('fcRes').innerHTML = html;
-  document.getElementById('fcAct').style.display = (d.act && Object.keys(d.act).length) ? 'flex' : 'none';
+  document.getElementById('fcAct').style.display = 'flex';
 }
 function flyCompareApply(mode){
   var act = window.__flyCmpAct || {};
@@ -5982,8 +6036,7 @@ function flyCompareApply(mode){
   var before = 0, after = 0;
   var targets = {};
   if(mode === 'full'){
-    Object.keys(d.booked).forEach(function(k){ targets[k] = 0; });
-    Object.keys(d.sys).forEach(function(k){ if(!(k in targets)) targets[k] = 0; });
+    d.rows.forEach(function(r){ targets[r.code] = 0; });
   }
   keys.forEach(function(k){ targets[k] = Math.round(Number(act[k]) || 0); });
   Object.keys(targets).forEach(function(k){ before += Number(flownPerPos[k] || 0); after += targets[k]; });
