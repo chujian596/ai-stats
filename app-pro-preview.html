@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.07-Pro';
+var APP_VER = 'v60.08-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5865,6 +5865,58 @@ function copySelectedFly(silent){
   }
 }
 
+// 实际飞单重算：把「特号已飞记账」按当前订单（走录入词库解析出的每号注额）重算一遍。
+// 只动特号（纯数字 01–49）；二/三中三、连肖、平特的已飞记录一律不动（它们是即时飞/另本账）。
+function recalcActualFly(apply){
+  var sales = {};
+  try{ sales = getSplitSales(); }catch(e){ sales = {}; }
+  var plan = {}, codes = {};
+  Object.keys(sales).forEach(function(k){
+    if(!/^\d{1,2}$/.test(String(k))) return;
+    var kk = String(k).padStart(2, '0');
+    var f = 0;
+    try{ f = flyPlanAmtOf(kk, sales[k]); }catch(e){ f = 0; }
+    plan[kk] = Math.max(0, Math.round(Number(f) || 0));
+    codes[kk] = 1;
+  });
+  var oldKeys = {};
+  Object.keys(flownPerPos || {}).forEach(function(k){
+    if(!/^\d{1,2}$/.test(String(k))) return;
+    var kk = String(k).padStart(2, '0');
+    oldKeys[kk] = 1; codes[kk] = 1;
+    if(plan[kk] === undefined) plan[kk] = 0;
+  });
+  var rows = [], diffs = [], oldSum = 0, newSum = 0;
+  Object.keys(codes).sort(function(a, b){ return (plan[b]||0) - (plan[a]||0); }).forEach(function(kk){
+    var oldV = 0;
+    try{ oldV = oldKeys[kk] ? Number(flownRealOf(kk)) || 0 : 0; }catch(e){ oldV = 0; }
+    var newV = plan[kk] || 0;
+    oldSum += oldV; newSum += newV;
+    if(Math.abs(oldV - newV) > 0.01) diffs.push(kk + '　' + oldV.toFixed(0) + ' → ' + newV.toFixed(0));
+    rows.push({code:kk, old:oldV, neo:newV});
+  });
+  var body = diffs.length ? diffs.slice(0, 24).join('\n') + (diffs.length > 24 ? '\n…共 ' + diffs.length + ' 个号有变动' : '')
+                          : '逐号都一样，不用改';
+  if(apply === false) return {rows:rows, oldSum:oldSum, newSum:newSum, diffs:diffs, plan:plan, oldKeys:oldKeys};
+  myConfirm('按当前订单重算「特号」已飞？\n\n逐号（已飞 → 重算）：\n' + body +
+    '\n\n合计 ' + oldSum.toFixed(0) + ' → ' + newSum.toFixed(0) +
+    '\n\n只动特号；二/三中三、连肖、平特的已飞不动。', function(){
+    Object.keys(flownPerPos || {}).forEach(function(k){
+      if(/^\d{1,2}$/.test(String(k))) { delete flownPerPos[k]; delete flownReal[k]; }
+    });
+    Object.keys(plan).forEach(function(kk){
+      var v = plan[kk] || 0;
+      if(v > 0.01){ flownPerPos[kk] = v; flownReal[kk] = v; }
+    });
+    try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); }catch(e){}
+    try{ localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){}
+    try{ afterFlyFlagChange(); }catch(e){ try{ refreshFlySummary(); }catch(e2){} }
+    try{ calcSplit(); }catch(e){}
+    try{ renderAll(); }catch(e){}
+    myAlert('特号已飞已按订单重算：' + oldSum.toFixed(0) + ' → ' + newSum.toFixed(0) + ' 元');
+  });
+}
+
 function confirmThisRoundFly(){
   const r = getThisRoundFly();
   if(r.thisRound < 0.01){ myAlert('本轮没有需要飞的金额'); return; }
@@ -10405,6 +10457,7 @@ function renderOrdersList(){
   h += `<div style="display:flex;gap:4px">`;
   h += `<button onclick="event.stopPropagation();copyUpstream()" style="border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;padding:4px 10px;font-size:12px">复制</button>`;
   h += `<button onclick="event.stopPropagation();confirmThisRoundFly()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:4px 8px;font-size:12px;font-weight:600;white-space:nowrap">确认本轮飞单</button>`;
+  h += `<button onclick="event.stopPropagation();recalcActualFly()" title="按当前订单重算特号已飞（二/三、连肖、平特不动）" style="border:1px solid #d97706;background:#fff;color:#b45309;border-radius:4px;padding:4px 8px;font-size:12px;font-weight:600;white-space:nowrap">重算已飞</button>`;
   h += `</div>`;
   h += `</div>`;
   h += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px">`;
