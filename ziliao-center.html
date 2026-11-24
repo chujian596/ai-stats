@@ -975,7 +975,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.13</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.14</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1217,8 +1217,8 @@
   function reviewNowSites(issue){
     var by={};
     function ensure(e){ var s=by[e.key]; if(!s){ s={siteId:e.key,system:e.system,siteKey:e.siteKey,siteName:e.name,zodiacs:[],killZodiacs:[],changed:!!e.r.changed,fresh:false,carried:false,status:e.r.status,raw:e.r.raw,hit:e.r.hit}; by[e.key]=s; } return s; }
-    entriesFor('nine',issue).forEach(function(e){ var s=ensure(e); s.zodiacs=e.z; if(e.r.hit!==undefined) s.hit=e.r.hit; });
-    entriesFor('kill',issue).forEach(function(e){ var s=ensure(e); s.killZodiacs=e.z; if(s.hit===undefined&&e.r.hit!==undefined) s.hit=e.r.hit; });
+    entriesFor('nine',issue).filter(entryAllowed).forEach(function(e){ var s=ensure(e); s.zodiacs=e.z; if(e.r.hit!==undefined) s.hit=e.r.hit; });
+    entriesFor('kill',issue).filter(entryAllowed).forEach(function(e){ var s=ensure(e); s.killZodiacs=e.z; if(s.hit===undefined&&e.r.hit!==undefined) s.hit=e.r.hit; });
     return Object.keys(by).map(function(k){return by[k];});
   }
   function renderNow(){
@@ -1306,13 +1306,13 @@
   function issueStat(kind,issue){
     var L=kind==='nine'?S.nine:S.kill;
     var per=L&&L.periods&&L.periods[issue]; if(!per) return null;
-    var rows=entriesFor(kind,issue).filter(function(e){return e.has;});
+    var rows=entriesFor(kind,issue).filter(entryAllowed).filter(function(e){return e.has;});
     var hit=rows.filter(function(e){return e.r.hit===true;}).length;
     var miss=rows.filter(function(e){return e.r.hit===false;}).length;
     return {issue:issue,actual:per.actual||'—',n:rows.length,hit:hit,miss:miss,rate:rows.length?Math.round(hit/rows.length*100):0};
   }
   function riskOf(kind,issue){
-    var rows=entriesFor(kind,issue).filter(function(e){return e.has&&e.r.hit===false;});
+    var rows=entriesFor(kind,issue).filter(entryAllowed).filter(function(e){return e.has&&e.r.hit===false;});
     return {
       l3:rows.filter(function(e){return e.st.l>=3;}).sort(function(a,b){return b.st.l-a.st.l||a.name.localeCompare(b.name,'zh-Hans-CN');}),
       l2:rows.filter(function(e){return e.st.l===2;}).sort(function(a,b){return a.name.localeCompare(b.name,'zh-Hans-CN');}),
@@ -1327,8 +1327,8 @@
     }).join('')+'</div>';
   }
   function reviewBriefData(issue){
-    var nE=entriesFor('nine',issue).filter(function(e){return e.has;});
-    var kE=entriesFor('kill',issue).filter(function(e){return e.has;});
+    var nE=entriesFor('nine',issue).filter(entryAllowed).filter(function(e){return e.has;});
+    var kE=entriesFor('kill',issue).filter(entryAllowed).filter(function(e){return e.has;});
     var nAgg=countOf(nE,function(e){return [...new Set(e.z)];});
     var kAgg=countOf(kE,function(e){return e.z;});
     var topN=allRows(nAgg), topK=allRows(kAgg);
