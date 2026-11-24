@@ -980,7 +980,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.15</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.16</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -2348,6 +2348,10 @@
         return rec;
       }).filter(Boolean);
     }
+    function revAllowed(k,perL,perR){
+      var r=(perL&&perL.stations[k])||(perR&&perR.stations[k]);
+      return tierAllowed({siteId:k,system:r&&r.system,siteKey:r&&r.siteKey});
+    }
     function enterPending(){
       if(!isPending()){ enterReview(lastIssue()); return; }
       st.mode='pending'; st.period=S.pend.period;
@@ -2452,6 +2456,7 @@
       var perL=perOf('left',st.period), perR=split?perOf('right',st.period):null;
       if(!perL) return;
       var keys=split?Array.from(new Set(Object.keys(perL.stations).concat(Object.keys(perR.stations)))):Object.keys(perL.stations);
+      keys=keys.filter(function(k){return revAllowed(k,perL,perR);});
       if(cfg.reviewHasOnly) keys=keys.filter(function(k){ var r=perL.stations[k]; return r&&(r.hit===true||r.hit===false); });
       var wins=0, misses=0;
       keys.forEach(function(k){
@@ -2501,6 +2506,7 @@
       var perL=perOf('left',st.period); if(!perL) return [];
       var split=isSplit(), perR=split?perOf('right',st.period):null;
       var allKeys=split?Array.from(new Set(Object.keys(perL.stations).concat(Object.keys(perR.stations)))):Object.keys(perL.stations);
+      allKeys=allKeys.filter(function(k){return revAllowed(k,perL,perR);});
       var keys=cfg.reviewHasOnly?allKeys.filter(function(k){var r=perL.stations[k];return r&&(r.hit===true||r.hit===false);}):allKeys;
       return revVisible(keys);
     }
