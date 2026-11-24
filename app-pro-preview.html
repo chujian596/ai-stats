@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.13-Pro';
+var APP_VER = 'v60.14-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5870,29 +5870,58 @@ function copySelectedFly(silent){
 // 只动特号（纯数字 01–49）；二/三中三、连肖、平特的已飞记录一律不动（它们是即时飞/另本账）。
 // 实际已飞对账：把「你实际飞出去的金额」贴进来 → 与订单算出来的「系统应飞」逐号对比，
 // 列出哪几个号对不上、差多少，再由你选按哪边写已飞，写完自动重算飞走/自留/最坏。
-function _flyCmpParseItems(txt){
-  // 与录单同一套写法：19各130 / 13 30 42 各40 / 19 130 / 19:130
-  var items = [];
-  function pad(c){ return String(parseInt(String(c), 10)).padStart(2, '0'); }
+function _flyCmpParseLine(raw){
+  var out = [];
   function okCode(c){ var n = parseInt(String(c), 10); return n >= 1 && n <= 49; }
+  function pushNum(c, amt){ if(okCode(c) && amt > 0) out.push({code: String(parseInt(c, 10)).padStart(2, '0'), amt: amt, isnum: true}); }
+  // ① 先抽掉「号码组 各X / 每号X」这种能直接定的段
+  var rest = String(raw).replace(/(^|[^0-9各每])([0-9]{1,2}(?:[\s.．,，、\-\/]+[0-9]{1,2})*)\s*(?:各|每号|每个|每码|每注)\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, pre, nums, amt){
+    var a = Number(amt) || 0;
+    String(nums).split(/[\s.．,，、\-\/]+/).filter(Boolean).forEach(function(c){ pushNum(c, a); });
+    return pre + ' ';
+  });
+  var leftover = rest.replace(/\s+/g, ' ').trim();
+  if(!leftover) return out;
+  // ② 剩下的带生肖/尾数/头数/平特/连肖/二三 的，交给录单词库 parseLine（和主窗口同一套）
+  var hasVocab = /[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(leftover) || /(尾|头|平特|连肖|特肖|复式|组|二中二|三中二|三中三|特)/.test(leftover);
+  var done = false;
+  if(hasVocab && typeof parseLine === 'function'){
+    try{
+      var p = parseLine((typeof normalizeComboLine === 'function') ? normalizeComboLine(leftover) : leftover);
+      if(p && p.codes && p.codes.length && Number(p.price) > 0){
+        var per = !!(p.isPer || p.codes.length === 1);
+        var each = per ? Number(p.price) : (Number(p.price) / p.codes.length);
+        p.codes.forEach(function(c){
+          var isnum = okCode(c);
+          out.push({code: isnum ? String(parseInt(c, 10)).padStart(2, '0') : String(c), amt: each, isnum: isnum});
+        });
+        done = true;
+      }
+    }catch(e){}
+  }
+  // ③ 没被词库吃掉的，再按「号 金额」成对读
+  if(!done){
+    leftover.replace(/([0-9]{1,2})\s*[:：\-]?\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, c, amt){
+      var a = Number(amt) || 0;
+      if(a >= 5) pushNum(c, a);
+      return m;
+    });
+  }
+  return out;
+}
+function _flyCmpParseItems(txt){
+  var items = [];
   String(txt || '').split(/[\n\r;；]+/).forEach(function(line){
     var raw = String(line).trim();
     if(!raw) return;
-    var parts = [];
-    var rest = raw.replace(/([0-9]{1,2}(?:[\s.．,，、\-\/]+[0-9]{1,2})*)\s*各\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, nums, amt){
-      var a = Number(amt) || 0;
-      String(nums).split(/[\s.．,，、\-\/]+/).filter(Boolean).forEach(function(c){
-        if(okCode(c) && a > 0) parts.push({code: pad(c), amt: a});
-      });
-      return ' ';
+    var parts = _flyCmpParseLine(raw);
+    var nums = parts.filter(function(p){ return p.isnum; });
+    var others = parts.filter(function(p){ return !p.isnum; });
+    items.push({
+      raw: raw, parts: nums, others: others,
+      ok: nums.length > 0,
+      sum: nums.reduce(function(t, p){ return t + p.amt; }, 0)
     });
-    rest.replace(/([0-9]{1,2})\s*[:：\-]?\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, c, amt){
-      var a = Number(amt) || 0;
-      if(a >= 5 && okCode(c)) parts.push({code: pad(c), amt: a});
-      return m;
-    });
-    items.push({raw: raw, parts: parts, ok: parts.length > 0,
-                sum: parts.reduce(function(t, p){ return t + p.amt; }, 0)});
   });
   return items;
 }
@@ -5903,7 +5932,6 @@ function _flyCmpParse(txt){
   });
   return out;
 }
-// 输入即识别：把贴进来的每一组翻译成「号 + 金额」，贴完当场能核对
 function flyComparePrev(){
   var el = document.getElementById('fcPrev'); if(!el) return;
   var txt = (document.getElementById('fcInput') || {}).value || '';
@@ -5913,7 +5941,9 @@ function flyComparePrev(){
   items.forEach(function(it){ it.parts.forEach(function(p){ agg[p.code] = (agg[p.code] || 0) + p.amt; }); });
   var codes = Object.keys(agg).sort(function(x, y){ return Number(x) - Number(y); });
   var sum = codes.reduce(function(t, c){ return t + agg[c]; }, 0);
-  var bad = items.filter(function(it){ return !it.ok; });
+  var bad = items.filter(function(it){ return !it.ok && !it.others.length; });
+  var oth = [];
+  items.forEach(function(it){ (it.others || []).forEach(function(o){ oth.push(o.code + ' ' + o.amt.toFixed(0)); }); });
   var h = '';
   h += '<div style="font-size:11px;color:#666;padding:1px 0 4px">识别到 <b style="color:#16a34a">' + codes.length + '</b> 个号　合计 <b style="color:#333">' + sum.toFixed(0) + '</b> 元</div>';
   if(codes.length){
@@ -5922,6 +5952,9 @@ function flyComparePrev(){
       h += '<span style="font-size:11px;padding:2px 6px;border-radius:6px;background:#eff6ff;color:#1d4ed8;white-space:nowrap">' + c + ' <b>' + agg[c].toFixed(0) + '</b></span>';
     });
     h += '</div>';
+  }
+  if(oth.length){
+    h += '<div style="font-size:10.5px;color:#b45309;padding:4px 0 0;line-height:1.5">另识别到 ' + oth.join(' · ') + '（本功能只改特号，这类请用「手动登记飞单」）</div>';
   }
   if(bad.length){
     h += '<div style="font-size:10.5px;color:#cf1322;padding:4px 0 0;line-height:1.5">这 ' + bad.length + ' 行没认出金额：' + bad.map(function(it){ return '「' + it.raw + '」'; }).join(' ') + '</div>';
