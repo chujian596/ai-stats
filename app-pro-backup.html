@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.10-Pro';
+var APP_VER = 'v60.11-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4073,8 +4073,9 @@ function renderHKDraw(){
   var bar = document.getElementById('hkDrawBar');
   var txt = document.getElementById('hkDrawTxt');
   if(!bar || !txt) return;
-  if(!hkOrders.length || !_hkBarVisible){ bar.style.display = 'none'; return; }   // 没港单、或本次没点获取，都不出现
   var c = hkDrawCache();
+  var _cNums = !!(c && c.nums && c.nums.length >= 7);
+  if(!hkOrders.length || (!_hkBarVisible && !_cNums)){ bar.style.display = 'none'; return; }   // 没港单不出现；已存完整港奖则刷新后照样显示
   bar.style.display = 'block';
   bar.onclick = null;
   bar.style.cursor = 'default';
@@ -7795,6 +7796,7 @@ function autoFetchDraw(){
     if(incoming === settled){
       // 同一期重复获取：只刷新显示，不重复结算；这里必须解锁按钮
       lastDraw = { specialNum: m.winner_numbers[6], regularNums: m.winner_numbers.slice(0,6), period: m.draw };
+      try{ saveLastDraw(); }catch(e){}   // 同期重复获取也要落盘，否则刷新页面开奖记录就没了
       updateDrawInfoBar();
       if(typeof renderOrdersList==='function') renderOrdersList();
       done();
@@ -10048,6 +10050,17 @@ function macDrawForOrders(){
   return lastDraw || null;
 }
 try { lastDraw = JSON.parse(localStorage.getItem(sk('lastDraw')) || 'null'); } catch(e){ lastDraw = null; }
+// 刷新兜底：本店键缺失但跨店全局缓存里还有本期澳奖（旧版遗留 / 同期重取 / 切店后），恢复回来，避免刷新后「开奖记录」消失
+try {
+  if(!lastDraw && (typeof shop === 'undefined' || shop === 'A')){
+    var _mgD = (typeof macDrawGlobal === 'function') ? macDrawGlobal() : null;
+    if(_mgD && _mgD.regularNums && _mgD.regularNums.length){
+      lastDraw = _mgD;
+      try{ localStorage.setItem(sk('lastDraw'), JSON.stringify(_mgD)); }catch(e){}
+    }
+  }
+} catch(e){}
+
 
 // 命中明细行用的短称呼：平特→平、连肖→连、三中三:→二/三、22号→特22
 function _hitLabel(c){
@@ -13001,6 +13014,7 @@ function nextPeriodAfterSettle(){
       } else {
         try{ localStorage.removeItem(sk('lastDraw')); }catch(e){}
         try{ localStorage.removeItem(sk('lastDrawPeriod')); }catch(e){}
+        try{ localStorage.removeItem(MAC_DRAW_GLOBAL_KEY); }catch(e){}
         lastDraw = null;
       }
       renderLiveBalls([]);
