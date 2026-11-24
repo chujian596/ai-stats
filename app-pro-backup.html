@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.99-Pro';
+var APP_VER = 'v60.00-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10492,7 +10492,7 @@ function renderOrdersList(){
     upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
       + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
       + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
-      + _sec('二·三中三', (emG ? (emG + ' 组' + (emN > 0 && emN < emG ? ('（同一号重叠去重 ' + emN + ' 注）') : '') + ' · ') : '') + '实付 ' + emSum.toFixed(0), emBody)
+      + _sec('二·三中三', (emG ? (emG + ' 组 · ') : '') + '实付 ' + emSum.toFixed(0), emBody)
       + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
   } catch(e){}
   h += '<div style="font-size:11px;line-height:1.7">' + upSections + '</div>';
