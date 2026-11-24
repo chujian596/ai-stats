@@ -142,7 +142,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.4</span></h1>
+    <h1>每站九肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.5</span></h1>
     <div class="meta">每站只记本站的九肖栏目（恰好9肖），排除杀栏 / 平特栏 / 图片栏 / 非九肖栏；生肖按站点原排序保留。<br>命中＝当期特肖落在九肖内；总中/总错与连对/连错由历史期推导；改料＝18点快照与当晚晚些快照九肖不一致。连错2期橙色提醒，连错≥3期红色重点提醒，顶部汇总列出。顶部「期号」下拉切换任意往期，主表即显示该期各站推荐；点任意一行可展开该站全部逐期明细（每期开奖、推荐九肖、中/错）复盘。</div>
   </header>
 
@@ -170,7 +170,7 @@
     <div class="rc-title"><span id="pendTitle"></span><a class="cmp-link" href="compare.html?v=2">完整对比 ↗</a></div>
     <div class="rc-sub" id="pendSub"></div>
     <div class="cmp2">
-      <div class="cmp2-col left"><div class="cmp2-h">九肖首肖 · Top</div><div id="miniNine"></div></div>
+      <div class="cmp2-col left"><div class="cmp2-h">首肖榜 · 1 站 1 票</div><div id="miniNine"></div></div>
       <div class="cmp2-col right"><div class="cmp2-h">被杀三肖 · Top</div><div id="miniKill"></div></div>
     </div>
     <div id="pendRank"></div>
@@ -195,7 +195,7 @@
     <div class="rc-title"><span id="perTitle"></span></div>
     <div class="rc-sub" id="perSub"></div>
     <div class="cmp2">
-      <div class="cmp2-col left"><div class="cmp2-h">九肖首肖 · Top</div><div id="perNine"></div></div>
+      <div class="cmp2-col left"><div class="cmp2-h">首肖榜 · 1 站 1 票</div><div id="perNine"></div></div>
       <div class="cmp2-col right"><div class="cmp2-h">被杀三肖 · Top</div><div id="perKill"></div></div>
     </div>
   </div>
@@ -219,8 +219,8 @@
     </div>
 
     <div class="card" id="rankCard">
-      <div class="rc-title" id="rankTitle">本期首肖排行</div>
-      <div class="rc-sub">本期各站把哪个肖放在第一位，按站次排名；点一行看是哪些站推的它。</div>
+      <div class="rc-title" id="rankTitle">首肖榜 · 1 站 1 票</div>
+      <div class="rc-sub">本期各站把哪个肖放在第一位（主推第 1 肖），按站次排名；点一行看是哪些站推的它。</div>
       <div id="curRankList"></div>
       <div id="specialNine" style="border-top:1px solid var(--line)"></div>
       <div class="cum-toggle" id="cumToggle" onclick="toggleCum()">历史累计参考 ▾</div>
@@ -598,7 +598,7 @@ function renderRank(cur){
   var curPicks=picks.filter(function(p){return p.issue===cur;});
   var curAgg={}; curPicks.forEach(function(p){ (curAgg[p.z]=curAgg[p.z]||[]).push(p); });
   var histAgg={}; picks.forEach(function(p){ (histAgg[p.z]=histAgg[p.z]||[]).push(p); });
-  document.getElementById('rankTitle').textContent='本期首肖排行 · 第'+cur+'期';
+  document.getElementById('rankTitle').textContent='首肖榜 · 1 站 1 票 · 第'+cur+'期';
   renderRankList(document.getElementById('curRankList'), pickRows(curAgg), curPicks.length,
     function(row){ return row.z+' 本期被 '+row.list.length+' 站放在第一位'; });
   renderRankList(document.getElementById('rankList'), pickRows(histAgg), picks.length,
@@ -830,6 +830,6 @@ fetchJson('data/max-zodiac-ledger.json').then(function(d){
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 </script>
-<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">九肖追踪 · 档位连错口径 · v1.1.4 · 2026-11-23</div>
+<div style="text-align:center;padding:18px 0 16px;color:var(--muted,#8a8f98);font-size:11px">九肖追踪 · 档位连错口径 · v1.1.5 · 2026-11-24</div>
 </body>
 </html>
