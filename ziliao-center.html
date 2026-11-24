@@ -835,13 +835,22 @@
               <div id="ssMixSevenZod"></div>
             </div>
           </div>
-          <div class="subcard" style="margin-bottom:12px">
-            <h3>号码共识</h3>
-            <div class="subhint" id="ssPendCodeHint"></div>
-            <div id="ssPendCodeRank"></div>
+          <div class="mix-cols">
+            <div class="subcard">
+              <h3>六肖 · 号码共识</h3>
+              <div class="subhint" id="ssMixSixCodeHint"></div>
+              <div id="ssMixSixCode"></div>
+            </div>
+            <div class="subcard">
+              <h3>七肖 · 号码共识</h3>
+              <div class="subhint" id="ssMixSevenCodeHint"></div>
+              <div id="ssMixSevenCode"></div>
+            </div>
           </div>
           <div id="ssPendZodRank" class="hidden"></div>
           <div id="ssPendZodHint" class="hidden"></div>
+          <div id="ssPendCodeRank" class="hidden"></div>
+          <div id="ssPendCodeHint" class="hidden"></div>
           <div class="filterbar">
             <input id="ssPendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
             <select id="ssPendSort">
@@ -948,7 +957,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.5</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.6</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1099,6 +1108,14 @@
       var zero=r.n===0;
       return '<div class="rank-row'+(zero?' zero':'')+'"><span class="rank-no'+(i===0&&!zero?' top':'')+'">'+(i+1)+'</span><span class="rank-name">'+esc(r.name)+'</span><span class="rank-bar'+(kind==='kill'?' kill':'')+'"><i style="width:'+(zero?0:Math.max(3,Math.round(r.n/max*100)))+'%"></i></span><span class="rank-count">'+r.n+'</span></div>';
     }).join('')+'</div><div class="subhint" style="margin-top:7px">合计 '+(total||rows.reduce(function(a,r){return a+r.n;},0))+' · 12 肖全列</div>';
+  }
+  function codeRankHtml(cnt){
+    var rows=Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]||0};}).sort(function(a,b){return b.n-a.n||(+a.p-+b.p);});
+    if(!rows.length) return '<div class="empty">暂无数据</div>';
+    var max=rows.reduce(function(m,r){return Math.max(m,r.n);},0)||1;
+    return '<div class="rank-list">'+rows.map(function(r,i){
+      return '<div class="rank-row"><span class="rank-no'+(i<3?' top':'')+'">'+(i+1)+'</span><span class="rank-name">'+esc(r.p)+'</span><span class="rank-bar"><i style="width:'+Math.max(3,Math.round(r.n/max*100))+'%"></i></span><span class="rank-count">'+r.n+'</span></div>';
+    }).join('')+'</div>';
   }
   function statCard(label,value,unit,hint){
     return '<div class="stat-card"><div class="label">'+esc(label)+'</div><div class="value">'+esc(value)+(unit?'<small>'+esc(unit)+'</small>':'')+'</div><div class="hint">'+esc(hint||'')+'</div></div>';
@@ -2172,6 +2189,7 @@
       }).join('')||'<div class="empty" style="padding:15px 0">暂无数据</div>';
     }
     function renderTabs(){
+      if(cfg.hideTabs){ el('Tabs').innerHTML=''; el('Tabs').style.display='none'; return; }
       el('Tabs').innerHTML=cfg.dims.map(function(d){
         return '<button type="button" class="dim-btn'+(d.key===st.dim?' on':'')+'" data-dim="'+d.key+'">'+esc(d.title)+'</button>';
       }).join('');
@@ -2433,20 +2451,26 @@
     return {render:render};
   }
   var embeds={
-    ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, dims:[
+    ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, hideTabs:true, dims:[
       {key:'six',title:'六肖',file:'six-zodiac-ledger.json',ext:'six'},
       {key:'seven',title:'七肖',file:'seven-zodiac-ledger.json',ext:'seven'}],
       mixPair:function(sites){
-        var sixA={}, sevA={}, sixN=0, sevN=0;
+        var sixZ={},sevZ={},sixC={},sevC={},sixN=0,sevN=0,sixCN=0,sevCN=0;
         sites.forEach(function(s){
           var sx=s.six, sv=s.seven;
-          if(sx&&(sx.zodiacs||[]).length){ sixN++; (sx.zodiacs||[]).forEach(function(p){sixA[p]=(sixA[p]||0)+1;}); }
-          if(sv&&(sv.zodiacs||[]).length){ sevN++; (sv.zodiacs||[]).forEach(function(p){sevA[p]=(sevA[p]||0)+1;}); }
+          if(sx&&(sx.zodiacs||[]).length){ sixN++; (sx.zodiacs||[]).forEach(function(p){sixZ[p]=(sixZ[p]||0)+1;}); }
+          if(sx&&(sx.codes||[]).length){ sixCN++; (sx.codes||[]).forEach(function(p){sixC[p]=(sixC[p]||0)+1;}); }
+          if(sv&&(sv.zodiacs||[]).length){ sevN++; (sv.zodiacs||[]).forEach(function(p){sevZ[p]=(sevZ[p]||0)+1;}); }
+          if(sv&&(sv.codes||[]).length){ sevCN++; (sv.codes||[]).forEach(function(p){sevC[p]=(sevC[p]||0)+1;}); }
         });
         $('ssMixSixHint').textContent=sixN+' 站 · 每站 6 肖 · 12 肖全列';
         $('ssMixSevenHint').textContent=sevN+' 站 · 每站 7 肖 · 12 肖全列';
-        $('ssMixSixZod').innerHTML=allRankHtml(sixA,'nine',sixN*6);
-        $('ssMixSevenZod').innerHTML=allRankHtml(sevA,'nine',sevN*7);
+        $('ssMixSixCodeHint').textContent=sixCN+' 站 · 号码按站次';
+        $('ssMixSevenCodeHint').textContent=sevCN+' 站 · 号码按站次';
+        $('ssMixSixZod').innerHTML=allRankHtml(sixZ,'nine',sixN*6);
+        $('ssMixSevenZod').innerHTML=allRankHtml(sevZ,'nine',sevN*7);
+        $('ssMixSixCode').innerHTML=codeRankHtml(sixC);
+        $('ssMixSevenCode').innerHTML=codeRankHtml(sevC);
       }}),
     ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, dims:[
       {key:'pingte',title:'平特一肖',file:'pingte-ledger.json',ext:'pingte',hot:'actual'},
