@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.15-Pro';
+var APP_VER = 'v60.16-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -9005,6 +9005,7 @@ function showPreviewDlg(info, onOk, onCancel){
     + '<div style="padding:16px 20px 8px;font-size:16px;font-weight:700;text-align:center;color:#333">保存前预览</div>'
     + '<div style="padding:0 20px 10px;font-size:12px;color:#666;text-align:center">' + info.customer + ' · ' + info.shop + '</div>'
     + '<div style="padding:0 20px 12px;max-height:240px;overflow:auto">' + rows + '</div>'
+    + (info.sum ? '<div style="margin:0 20px 8px;padding:6px 8px;background:#f4f1ff;border-radius:8px;font-size:12px;color:#5b21b6;text-align:center">' + info.sum + '</div>' : '')
     + '<div style="padding:10px 20px 14px;text-align:center;font-size:15px;font-weight:700;color:#7c3aed">合计 ' + Number(info.total || 0).toFixed(2) + ' 元</div>'
     + '<div style="display:flex;border-top:1px solid #eee">'
     + '<button id="pvCancel" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
@@ -9548,9 +9549,11 @@ renderAll();
   if(comboProduct && comboPrice){
     const nNums = comboProduct === '二中二' ? 2 : 3;
     const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
+    // 只删「三中三各组10」这种纯汇总行；以前用 ^三中三 一刀切，把三中三复式/三中三:xx 整行全删了（v60.16 修）
+    const sumRe = new RegExp('^' + comboProduct + '\\s*(?:各(?:组|数|号|个|款)?\\s*)?[0-9]+(?:\\.' + '[0-9]+)?\\s*$');
     workLines = workLines.map(ln=>{
       const t = ln.trim();
-      if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
+      if(sumRe.test(t)) return null;
       if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;
       return ln;
     }).filter(x=>x!==null);
@@ -9975,13 +9978,27 @@ renderAll();
       const unit = p.isPer ? p.price : (p.price / q);
       const amount = q * unit;
       _pvTotal += amount;
-      _pvLines.push((p.hk ? '香港单 ' : '') + (p.raw || p.codes.join(' ')) + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
+      var _rv = String(p.raw || p.codes.join(' '));
+      if(_rv.length > 46) _rv = _rv.slice(0, 44) + '…';
+      _pvLines.push((p.hk ? '香港单 ' : '') + _rv + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
     });
+    // 分类小结：特号 / 二三中三 / 其他（平特连肖等），让总额能一眼对上
+    var _cTe=0, _cEm=0, _cOt=0;
+    parsed.forEach(function(p){
+      const q = p.codes.length;
+      const unit = p.isPer ? p.price : (p.price / q);
+      const amount = q * unit;
+      if(q && p.codes.every(function(c){ return /^(三中三|三中二|二中二):/.test(c); })) _cEm += amount;
+      else if(q && p.codes.every(function(c){ return /^\d{2}$/.test(c); })) _cTe += amount;
+      else _cOt += amount;
+    });
+    var _cSum = '特号 ' + _cTe.toFixed(2) + ' ＋ 二三中三 ' + _cEm.toFixed(2) + (_cOt > 0.01 ? (' ＋ 其他 ' + _cOt.toFixed(2)) : '') + ' ＝ 合计 ' + (_cTe + _cEm + _cOt).toFixed(2) + ' 元';
     const _pvCustomer = document.getElementById('customerName').value.trim() || '散客';
     showPreviewDlg({
       customer: _pvCustomer,
       shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
       lines: _pvLines,
+      sum: _cSum,
       total: _pvTotal
     }, function(){
       window.__previewConfirmed = true;
