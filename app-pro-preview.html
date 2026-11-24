@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.17-Pro';
+var APP_VER = 'v60.18-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8231,10 +8231,17 @@ function _orderTs(o){
   return isNaN(t2) ? 0 : t2;
 }
 
-function findRecentDupOrder(customer, raw){
+function _orderSig(amount, codeAmts){
+  try{
+    var ks = Object.keys(codeAmts || {}).sort();
+    return Math.round((Number(amount) || 0) * 100) + '|' + ks.map(function(k){ return k + ':' + Math.round((Number(codeAmts[k]) || 0) * 100); }).join(',');
+  }catch(e){ return ''; }
+}
+
+function findRecentDupOrder(customer, raw, sig){
   var c = String(customer || '散客').trim() || '散客';
   var n = _dupNorm(raw);
-  if(!n) return null;
+  if(!n && !sig) return null;
   var now = Date.now();
   var pools = [orders || [], hkOrders || []];
   for(var pi = 0; pi < pools.length; pi++){
@@ -8245,7 +8252,9 @@ function findRecentDupOrder(customer, raw){
       if(!t || now - t > 30 * 60 * 1000) continue;
       if(new Date(t).toDateString() !== new Date(now).toDateString()) continue;
       if(String(o.customer || '散客').trim() !== c) continue;
-      if(_dupNorm(o.raw) === n) return o;
+      // 优先按「原文指纹」比对；老单没有 rawIn 时按 sig（金额+逐号金额）兜底，避免复杂行被规范化后认不出来
+      if(n && _dupNorm(o.rawIn || o.raw) === n) return o;
+      if(sig && o.sig && o.sig === sig) return o;
     }
   }
   return null;
@@ -8260,6 +8269,7 @@ function handleSave(){
     }
     // 防重复：同客户 + 同样单据内容（3 分钟内）→ 先问，避免客户改单后重复下单
     var _csm = (document.getElementById('customerName') || {}).value || '散客';
+    window.__pendingRawIn = raw0;
     var _fp = _csm + '|' + raw0.replace(/\s+/g, '');
     var _dup = window.__lastInputFp === _fp && (Date.now() - (window.__lastInputAt || 0) < 180000);
     var _sem = findRecentDupOrder(_csm, raw0);
@@ -9558,8 +9568,10 @@ function doSave(overrideText){
     // 合并后统一归一化组合码，避免号码里的逗号、横杠被后面的逻辑拆散
     line = normalizeComboLine(line);
     // 行首/行尾的港澳标注：标注只决定这一行的盘口，同时把后续未标注行带到同一段
-    const _leadHK = /^(香港|港)\s*[^:：\s]/.test(trimmed);
-    const _leadMac = /^(澳门|澳)\s*[^:：\s]/.test(trimmed) || /[\s（(]\s*(澳门|澳)\s*$/.test(trimmed);
+    // 「香港：32.35.45各60」这种盘口标记和内容同一行的写法也要认（以前只认「香港 32…」不带冒号）
+    const _sameSec = trimmed.match(/^(香港|港|澳门|澳)\s*[:：]\s*(?=\S)/);
+    const _leadHK = _sameSec ? /^(香港|港)$/.test(_sameSec[1]) : /^(香港|港)\s*[^:：\s]/.test(trimmed);
+    const _leadMac = _sameSec ? /^(澳门|澳)$/.test(_sameSec[1]) : (/^(澳门|澳)\s*[^:：\s]/.test(trimmed) || /[\s（(]\s*(澳门|澳)\s*$/.test(trimmed));
     const _trailHK = /[\s（(]\s*(香港|港)\s*$/.test(trimmed);
     if(_leadHK) _secHK = true;
     if(_leadMac) _secHK = false;
@@ -9567,6 +9579,7 @@ function doSave(overrideText){
     try {
       // 分段标题优先，其次看本行港澳标注；_secHK 已按当前店铺初始化，
       // 所以「澳门：」切回后不会再被香港店默认值拉回香港。
+      if(_sameSec){ line = line.trim().replace(/^(香港|港|澳门|澳)\s*[:：]\s*/, ''); }
       const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK));
       if(!_isHK){
         line = line.trim().replace(/^(澳门|澳)\s*/, '').replace(/[\s:：]*(澳门|澳)\s*$/, '').trim();
@@ -9855,6 +9868,8 @@ function doSave(overrideText){
     amount: totalAmount,
     codes: allCodes,
     codeAmts: codeAmts,
+    rawIn: window.__pendingRawIn || '',
+    sig: (function(am,ca){try{var ks=Object.keys(ca||{}).sort();return Math.round((Number(am)||0)*100)+'|'+ks.map(function(k){return k+':'+Math.round((Number(ca[k])||0)*100);}).join(',');}catch(e){return '';}})(totalAmount, codeAmts),
     createdAt: created
   });
   // 港澳分开：本次保存里若有香港行，单独再落一条香港订单（不进澳门池）
@@ -9883,6 +9898,8 @@ function doSave(overrideText){
         amount: hkTotal,
         codes: hkCodes,
         codeAmts: hkAmts,
+        rawIn: window.__pendingRawIn || '',
+        sig: (function(am,ca){try{var ks=Object.keys(ca||{}).sort();return Math.round((Number(am)||0)*100)+'|'+ks.map(function(k){return k+':'+Math.round((Number(ca[k])||0)*100);}).join(',');}catch(e){return '';}})(hkTotal, hkAmts),
         createdAt: created,
         hk: true,
         originShop: shop,

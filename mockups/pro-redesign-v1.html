@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#e9eef6;--ink:#17202b;--muted:#6e7a89;--faint:#98a2ae;--line:#e5e9f0;
+  --blue:#2457d6;--blue2:#16325c;--blue-soft:#e9efff;--green:#1d7a58;--green-soft:#e7f5ee;
+  --amber:#9a6b20;--amber-soft:#fbf1dc;--violet:#6941c6;--violet-soft:#f1ecfe;
+}
+body{font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:
+  radial-gradient(900px 500px at 15% 0%,rgba(255,255,255,.9),rgba(255,255,255,0) 60%),
+  linear-gradient(145deg,#e8eef8 0%,#f3f6fb 45%,#e6ecf6 100%);
+  color:var(--ink);width:1680px;height:1180px;padding:42px 52px 30px;overflow:hidden}
+.page{position:relative;height:100%}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;padding:0 12px 24px}
+.eyebrow{font-size:11px;font-weight:750;letter-spacing:.2em;color:#5d7db4;margin-bottom:8px}
+h1{font-size:31px;line-height:1.15;font-weight:800;letter-spacing:-.035em}
+.sub{font-size:13px;color:#65748a;margin-top:9px;line-height:1.7}
+.meta{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:540px}
+.chip{border:1px solid rgba(36,87,214,.16);background:rgba(255,255,255,.7);color:#3d5c90;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:650;backdrop-filter:blur(6px)}
+.chip.dark{background:#17202b;color:#fff;border-color:#17202b}
+.chip.green{background:#e7f5ee;color:#1d7a58;border-color:#cfeade}
+.phones{display:flex;justify-content:center;align-items:flex-start;gap:36px;padding-top:4px}
+.device{width:414px;flex:none}
+.phone{width:414px;height:868px;background:#0b0f16;border-radius:48px;padding:12px;box-shadow:0 30px 70px rgba(16,35,70,.24),0 8px 20px rgba(16,35,70,.14);position:relative}
+.phone:before{content:"";position:absolute;left:50%;top:16px;transform:translateX(-50%);width:112px;height:24px;border-radius:999px;background:#0b0f16;z-index:20}
+.screen{width:390px;height:844px;border-radius:38px;overflow:hidden;background:#f4f6fa;position:relative}
+.status{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:10.5px;color:#263243;font-weight:650;position:relative;z-index:10;background:#fff}
+.status .right{display:flex;align-items:center;gap:5px}
+.bars{display:inline-flex;align-items:flex-end;gap:1.5px}.bars i{display:block;width:2px;background:#263243;border-radius:1px}.bars i:nth-child(1){height:4px}.bars i:nth-child(2){height:6px}.bars i:nth-child(3){height:8px}.bars i:nth-child(4){height:10px}
+.battery{width:16px;height:8px;border:1px solid #263243;border-radius:2px;position:relative}.battery:after{content:"";position:absolute;right:-4px;top:2px;width:2px;height:4px;background:#263243;border-radius:0 1px 1px 0}.battery i{display:block;width:10px;height:5px;background:#263243;margin:1px;border-radius:1px}
+.screen-inner{height:818px;display:flex;flex-direction:column;overflow:hidden}
+.hero{background:linear-gradient(145deg,#12294d 0%,#1b3f7d 48%,#2457d6 100%);color:#fff;padding:14px 16px 14px;border-radius:0 0 24px 24px;box-shadow:0 8px 22px rgba(18,41,77,.16);position:relative;flex:none}
+.hero:after{content:"";position:absolute;right:-30px;top:-50px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(120,170,255,.22),rgba(120,170,255,0));pointer-events:none}
+.kicker{font-size:9px;font-weight:750;letter-spacing:.17em;color:#bdd3ff;margin-bottom:3px}
+.hero-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.hero-row h2{font-size:21px;line-height:1.1;font-weight:800;letter-spacing:-.03em}
+.ver{font-size:9.5px;color:#cfe0ff;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:3px 7px;white-space:nowrap}
+.hero-sub{font-size:10.5px;color:#d5e3ff;margin-top:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.dot{width:5px;height:5px;border-radius:50%;background:#6ee7b7;box-shadow:0 0 0 3px rgba(110,231,183,.15);display:inline-block}
+.search{display:flex;align-items:center;gap:7px;background:#fff;border-radius:12px;padding:8px 10px;margin-top:11px;color:#8b97a6;font-size:11px;box-shadow:0 4px 14px rgba(8,25,55,.16)}
+.search svg{width:14px;height:14px;color:#8592a3;flex:none}
+.search span{flex:1}
+.search b{font-size:10px;color:#2457d6;background:#e9efff;border-radius:7px;padding:4px 8px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.kpi{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.17);border-radius:11px;padding:8px 9px;min-width:0}
+.kpi b{display:block;font-size:17px;line-height:1.1;font-weight:800;white-space:nowrap}
+.kpi span{display:block;font-size:9px;color:#d5e3ff;margin-top:3px;white-space:nowrap}
+.kpi.warm b{color:#ffe0a3}
+.content{flex:1;min-height:0;padding:12px 13px 0;overflow:hidden;position:relative}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:0 2px 7px}
+.sec-title{font-size:12.5px;font-weight:750;display:flex;align-items:center;gap:6px}
+.sec-title:before{content:"";width:3px;height:13px;border-radius:2px;background:var(--blue);display:inline-block}
+.sec-sub{font-size:9.5px;color:var(--faint);margin-left:9px;margin-top:2px}
+.sec-more{font-size:10px;color:var(--blue);font-weight:650}
+.primary-link{display:block;background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px 13px;box-shadow:0 3px 10px rgba(16,35,70,.045);margin-bottom:9px}
+.primary-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.primary-title{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+.primary-title .ico{width:32px;height:32px;border-radius:10px;background:#e9efff;color:#2457d6;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex:none}
+.primary-tag{font-size:9px;font-weight:700;background:#e9efff;color:#2457d6;border-radius:999px;padding:3px 7px}
+.primary-sub{font-size:10.5px;color:var(--muted);margin:7px 0 0 40px;line-height:1.55}
+.primary-cta{display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:8px;border-top:1px solid #f1f4f9}
+.primary-cta span{font-size:9.5px;color:var(--faint)}
+.primary-cta b{font-size:11px;color:#fff;background:#2457d6;border-radius:8px;padding:6px 11px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px;box-shadow:0 2px 8px rgba(16,35,70,.035);min-height:72px}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.card-title{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:750;min-width:0}
+.mini{width:25px;height:25px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none}
+.mini.blue{background:#e9efff;color:#2457d6}.mini.green{background:#e7f5ee;color:#1d7a58}.mini.amber{background:#fbf1dc;color:#9a6b20}.mini.violet{background:#f1ecfe;color:#6941c6}.mini.slate{background:#eef1f6;color:#485566}
+.tag{font-size:8.5px;font-weight:700;border-radius:999px;padding:2px 5px;background:#f0f3f8;color:#5a6675;white-space:nowrap}
+.tag.blue{background:#e9efff;color:#2457d6}.tag.green{background:#e7f5ee;color:#1d7a58}.tag.amber{background:#fbf1dc;color:#9a6b20}.tag.violet{background:#f1ecfe;color:#6941c6}
+.card-value{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:5px;line-height:1.05;font-variant-numeric:tabular-nums}
+.card-value small{font-size:9px;font-weight:600;color:var(--faint);margin-left:2px}
+.card-note{font-size:9px;color:var(--faint);margin-top:4px}
+.alert{display:flex;align-items:center;gap:8px;background:#fff8e8;border:1px solid #f4dfb2;border-radius:12px;padding:8px 10px;margin-top:9px;font-size:10px;color:#815d1f}
+.alert b{font-size:10px;color:#6f4d12}
+.alert span{flex:1;line-height:1.45}
+.alert em{font-style:normal;font-size:9px;background:#fff;border-radius:6px;padding:3px 6px;white-space:nowrap}
+.chips{display:flex;gap:5px;overflow:hidden;padding:1px 1px 0}
+.cchip{flex:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 8px;font-size:9.5px;color:#566476;box-shadow:0 1px 4px rgba(16,35,70,.03)}
+.cchip b{color:#2457d6;font-weight:750;margin-left:3px}
+.period-strip{display:grid;grid-template-columns:1.1fr 1fr 1.25fr;gap:0;background:#fff;border:1px solid var(--line);border-radius:12px;margin-top:7px;overflow:hidden}
+.period-strip div{padding:7px 8px;border-left:1px solid #f0f3f8;min-width:0}
+.period-strip div:first-child{border-left:0}
+.period-strip span{display:block;font-size:8px;color:var(--faint)}
+.period-strip b{display:block;font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.period-strip b.amber{color:#9a6b20}.period-strip b.green{color:#1d7a58}
+
+.nav{height:58px;flex:none;background:#fff;border-top:1px solid #e9edf4;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:0 4px 3px;position:relative;z-index:3}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:#9aa5b3}
+.nav-item .ni{width:19px;height:19px;border-radius:6px;border:1.4px solid #aeb8c5;position:relative}
+.nav-item.active{color:#2457d6;font-weight:750}
+.nav-item.active .ni{border-color:#2457d6;background:#e9efff}
+.nav-item.active .ni:after{content:"";position:absolute;inset:4px;border-radius:3px;background:#2457d6}
+.nav-item .ni.home:after{content:"";position:absolute;left:4px;top:5px;width:8px;height:8px;border-left:1.5px solid currentColor;border-top:1.5px solid currentColor;transform:rotate(45deg)}.nav-item .ni.home{border:0}.nav-item .ni.home:before{content:"";position:absolute;left:3px;top:9px;width:13px;height:8px;border:1.5px solid currentColor;border-top:0;border-radius:2px}
+.nav-item .ni.list:after{content:"";position:absolute;left:4px;top:5px;width:9px;height:1.5px;background:currentColor;box-shadow:0 4px 0 currentColor,0 8px 0 currentColor;border-radius:2px}.nav-item .ni.list{background:none}
+.nav-item .ni.edit:after{content:"";position:absolute;left:4px;top:4px;width:8px;height:11px;border:1.5px solid currentColor;border-radius:2px}.nav-item .ni.edit:before{content:"";position:absolute;right:2px;bottom:1px;width:7px;height:2px;background:currentColor;transform:rotate(-45deg);border-radius:2px}
+.nav-item .ni.chart{border:0}.nav-item .ni.chart:after{content:"";position:absolute;left:3px;bottom:2px;width:3px;height:8px;background:currentColor;box-shadow:5px -3px 0 currentColor,10px -6px 0 currentColor;border-radius:1px}
+.nav-item .ni.more{border:0}.nav-item .ni.more:after{content:"";position:absolute;left:4px;top:8px;width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:6px 0 0 currentColor,12px 0 0 currentColor}
+.homebar{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:120px;height:4px;border-radius:999px;background:#1e2836;opacity:.85}
+
+/* screen 2 */
+.hero.compact{padding-bottom:12px}
+.hero.compact .hero-row h2{font-size:19px}
+.order-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.meta-pill{font-size:9.5px;color:#e7f0ff;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px 7px}
+.meta-pill.on{color:#0f3b2d;background:#d8f5e8;border-color:#bcebd7;font-weight:700}
+.input-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:11px;box-shadow:0 3px 10px rgba(16,35,70,.045)}
+.input-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px}
+.input-head b{font-size:11.5px;font-weight:750}
+.input-head span{font-size:9px;color:var(--faint)}
+.order-box{border:1px solid #e3e8f0;background:#fbfcfe;border-radius:10px;padding:9px 9px;font-size:11px;line-height:1.75;color:#313e4f;min-height:96px}
+.order-box .cust{color:#2457d6;font-weight:700}
+.order-box .hl{background:#fff4cf;border-radius:3px;padding:0 2px}
+.order-box .caret{display:inline-block;width:1px;height:12px;background:#2457d6;vertical-align:-2px;margin-left:1px}
+.ballrow{display:flex;align-items:center;gap:4px;margin:8px 0 0}
+.ball{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:750;color:#fff;box-shadow:inset 0 -1px 2px rgba(0,0,0,.12)}
+.ball.red{background:#d94848}.ball.blue{background:#2e66c9}.ball.green{background:#2e8b63}.ball.slate{background:#596b80}
+.ballrow span{margin-left:auto;font-size:9px;color:var(--faint)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.sum{background:#f7f9fc;border:1px solid #e9edf4;border-radius:9px;padding:6px 8px}
+.sum span{display:block;font-size:8.5px;color:var(--faint)}
+.sum b{display:block;font-size:13px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.sum b.green{color:#1d7a58}.sum b.amber{color:#9a6b20}
+.btnrow{display:flex;gap:7px;margin-top:8px}
+.btn{flex:1;border-radius:9px;padding:8px 0;text-align:center;font-size:10.5px;font-weight:750}
+.btn.main{background:#2457d6;color:#fff;box-shadow:0 4px 12px rgba(36,87,214,.25)}
+.btn.ghost{background:#fff;border:1px solid #dce2ec;color:#49586c}
+.recent-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:8px 10px;margin-top:8px}
+.mini-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.mini-head b{font-size:10px;font-weight:700}.mini-head span{font-size:9px;color:var(--blue)}
+.mini-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #f1f4f9;font-size:9.5px}
+.mini-row:first-of-type{border-top:0}
+.mini-row .who{color:#485566;font-weight:600;min-width:44px}.mini-row .items{color:#98a2ae;flex:1}.mini-row .amt{font-weight:750;font-variant-numeric:tabular-nums}
+
+/* screen 3 */
+.hero.recon .kpis{margin-top:10px}
+.recon-body{padding-top:11px}
+.recon-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.recon-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 10px}
+.recon-card span{font-size:9px;color:var(--faint)}
+.recon-card b{display:block;font-size:18px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.recon-card b.green{color:#1d7a58}.recon-card b.amber{color:#9a6b20}.recon-card b.blue{color:#2457d6}
+.recon-card small{font-size:8.5px;color:#9aa5b3;margin-left:3px}
+.ledger{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 10px;margin-top:8px}
+.ledger-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.ledger-head b{font-size:10px}.ledger-head span{font-size:9px;color:var(--blue)}
+.ledger-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #f1f4f9;font-size:9.5px;color:#5e6c7d}
+.ledger-row:first-of-type{border-top:0}
+.ledger-row b{color:#17202b;font-size:10.5px;font-variant-numeric:tabular-nums}
+.ledger-row .neg{color:#b45309}
+.lists{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 10px;margin-top:8px}
+.order-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #f1f4f9;font-size:9.5px}
+.order-row:first-of-type{border-top:0}
+.order-row .name{font-weight:700;color:#2d3b4c;min-width:34px}.order-row .desc{color:#8c98a7;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-row .amt{font-weight:750;font-variant-numeric:tabular-nums}
+.badge-green{display:inline-block;font-size:8px;color:#1d7a58;background:#e7f5ee;border-radius:999px;padding:2px 5px;font-weight:700}
+.caption{text-align:center;margin-top:14px}
+.caption b{display:block;font-size:14px;letter-spacing:-.01em}
+.caption span{display:block;font-size:10.5px;color:#718096;margin-top:3px}
+.foot{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:10.5px;color:#7c8a9e}
+.foot b{color:#51627a;font-weight:650}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <div>
+      <div class="eyebrow">PRO ORDER · BROWSER-LIKE UI</div>
+      <h1>专业版录单系统 · 改版效果预览</h1>
+      <div class="sub">像起始页一样分组卡片，但录单仍是一屏直录；解析、金额、结算一行不动，客户版完全不动。</div>
+    </div>
+    <div class="meta">
+      <span class="chip dark">方案 A · 只改 Pro</span>
+      <span class="chip green">v59.67-Pro</span>
+      <span class="chip">客户版保持 v59.66</span>
+      <span class="chip">示意数据</span>
+    </div>
+  </div>
+
+  <div class="phones">
+    <!-- 工作台 -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><div class="right"><span class="bars"><i></i><i></i><i></i><i></i></span><span style="font-size:9px">5G</span><span class="battery"><i></i></span></div></div>
+        <div class="screen-inner">
+          <div class="hero">
+            <div class="kicker">PRO WORKSPACE</div>
+            <div class="hero-row"><h2>晚上好，张三</h2><span class="ver">v59.67-Pro</span></div>
+            <div class="hero-sub"><span><i class="dot"></i> 澳门店 · 已连上</span><span>11月21日 周六 · 23:12</span></div>
+            <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l5 5"></path></svg><span>搜客户、期号、订单号</span><b>搜索</b></div>
+            <div class="kpis">
+              <div class="kpi"><b>18</b><span>今日单数</span></div>
+              <div class="kpi"><b>2,460</b><span>应收</span></div>
+              <div class="kpi warm"><b>480</b><span>待飞</span></div>
+              <div class="kpi"><b>2</b><span>待处理</span></div>
+            </div>
+          </div>
+          <div class="content">
+            <div class="sec-head"><div><div class="sec-title">继续录单</div><div class="sec-sub">上次客户 · 张三</div></div><span class="sec-more">打开录单 ›</span></div>
+            <div class="primary-link">
+              <div class="primary-top">
+                <div class="primary-title"><span class="ico">录</span>快速录单</div>
+                <span class="primary-tag">主入口</span>
+              </div>
+              <div class="primary-sub">输入框、球号预览、保存按钮仍在一屏；键盘弹起不遮保存栏。</div>
+              <div class="primary-cta"><span>上次：平特龙 10 · 三中三 20组</span><b>继续 →</b></div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <div class="card-top"><div class="card-title"><span class="mini blue">单</span>本期订单</div><span class="tag blue">12 笔</span></div>
+                <div class="card-value">2,460<small>元</small></div>
+                <div class="card-note">最近 5 分钟 +3 笔</div>
+              </div>
+              <div class="card">
+                <div class="card-top"><div class="card-title"><span class="mini green">账</span>今日对账</div><span class="tag green">已平</span></div>
+                <div class="card-value">1,980<small>已飞</small></div>
+                <div class="card-note">待飞 480 · 净 2,460</div>
+              </div>
+              <div class="card">
+                <div class="card-top"><div class="card-title"><span class="mini amber">飞</span>飞单统计</div><span class="tag amber">待确认</span></div>
+                <div class="card-value">480<small>元</small></div>
+                <div class="card-note">本轮 2 笔 · 上家未回</div>
+              </div>
+              <div class="card">
+                <div class="card-top"><div class="card-title"><span class="mini violet">史</span>历史账单</div><span class="tag">本期</span></div>
+                <div class="card-value">18<small>笔</small></div>
+                <div class="card-note">点开看逐笔明细</div>
+              </div>
+            </div>
+            <div class="alert"><b>待处理</b><span>1 笔香港单未选飞单方式；2 个金额待二次确认。</span><em>去处理</em></div>
+            <div class="sec-head" style="margin-top:9px"><div class="sec-title">最近客户</div><span class="sec-more">全部 ›</span></div>
+            <div class="chips"><span class="cchip">张三<b>12</b></span><span class="cchip">李四<b>8</b></span><span class="cchip">陈五<b>5</b></span><span class="cchip">王六<b>3</b></span></div>
+            <div class="period-strip"><div><span>本期</span><b class="amber">326 待开</b></div><div><span>最新开奖</span><b>325 · 03 龙</b></div><div><span>上期资料</span><b class="green">100 站 · 87/70</b></div></div>
+          </div>
+          <div class="nav">
+            <div class="nav-item active"><span class="ni home"></span><span>工作台</span></div>
+            <div class="nav-item"><span class="ni edit"></span><span>录单</span></div>
+            <div class="nav-item"><span class="ni list"></span><span>订单</span></div>
+            <div class="nav-item"><span class="ni chart"></span><span>对账</span></div>
+            <div class="nav-item"><span class="ni more"></span><span>更多</span></div>
+          </div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="caption"><b>01 · 工作台</b><span>卡片入口，继续录单永远在第一屏</span></div>
+    </div>
+
+    <!-- 录单 -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><div class="right"><span class="bars"><i></i><i></i><i></i><i></i></span><span style="font-size:9px">5G</span><span class="battery"><i></i></span></div></div>
+        <div class="screen-inner">
+          <div class="hero compact">
+            <div class="hero-row"><div><div class="kicker">ORDER ENTRY</div><h2>录单</h2></div><span class="ver">澳门店</span></div>
+            <div class="order-meta"><span class="meta-pill on">客户：张三</span><span class="meta-pill">澳门 🇲🇴</span><span class="meta-pill">第 326 期</span><span class="meta-pill">已连上</span></div>
+          </div>
+          <div class="content" style="padding-top:10px">
+            <div class="input-card">
+              <div class="input-head"><b>订单输入</b><span>支持多行 · 实时识别</span></div>
+              <div class="order-box">
+                <div><span class="cust">张三</span> 平特龙 10</div>
+                <div><span class="cust">李四</span> 小双各5</div>
+                <div>02，38，13，37，08，20各5<span class="hl">三中三复式</span><span class="caret"></span></div>
+              </div>
+              <div class="ballrow">
+                <span class="ball red">02</span><span class="ball blue">07</span><span class="ball green">12</span><span class="ball red">18</span><span class="ball blue">24</span><span class="ball slate">32</span><span class="ball green">38</span><span>7 个预览号</span>
+              </div>
+              <div class="summary">
+                <div class="sum"><span>识别项数</span><b>12</b></div>
+                <div class="sum"><span>合计金额</span><b class="green">60.00</b></div>
+                <div class="sum"><span>风险</span><b class="amber">0</b></div>
+              </div>
+              <div class="btnrow"><div class="btn main">保存订单</div><div class="btn ghost">手动录入</div></div>
+            </div>
+            <div class="recent-card">
+              <div class="mini-head"><b>刚才保存</b><span>查看本次订单 ›</span></div>
+              <div class="mini-row"><span class="who">李四</span><span class="items">小双各5 · 12项</span><span class="amt">60.00</span></div>
+              <div class="mini-row"><span class="who">张三</span><span class="items">平特龙 10</span><span class="amt">10.00</span></div>
+            </div>
+            <div class="alert" style="margin-top:8px"><b>提示</b><span>“三中三复式”写在词尾的写法 v59.66 已支持。</span><em>已修复</em></div>
+            <div class="recent-card" style="margin-top:8px">
+              <div class="mini-head"><b>今日录入</b><span>12 笔 · 2,460.00</span></div>
+              <div class="mini-row"><span class="who">10:22</span><span class="items">张三 · 平特龙 10</span><span class="amt">10.00</span></div>
+              <div class="mini-row"><span class="who">10:18</span><span class="items">李四 · 小双各5</span><span class="amt">60.00</span></div>
+            </div>
+            <div class="sec-head" style="margin-top:9px"><div class="sec-title">常用客户</div><span class="sec-more">切换 ›</span></div>
+            <div class="chips"><span class="cchip">张三</span><span class="cchip">李四</span><span class="cchip">陈五</span><span class="cchip">王六</span></div>
+            <div class="period-strip"><div><span>本期</span><b class="amber">326 待开</b></div><div><span>截止</span><b>23:30</b></div><div><span>网络</span><b class="green">已连上</b></div></div>
+          </div>
+          <div class="nav">
+            <div class="nav-item"><span class="ni home"></span><span>工作台</span></div>
+            <div class="nav-item active"><span class="ni edit"></span><span>录单</span></div>
+            <div class="nav-item"><span class="ni list"></span><span>订单</span></div>
+            <div class="nav-item"><span class="ni chart"></span><span>对账</span></div>
+            <div class="nav-item"><span class="ni more"></span><span>更多</span></div>
+          </div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="caption"><b>02 · 录单</b><span>原表单原逻辑，只换外壳和间距</span></div>
+    </div>
+
+    <!-- 对账 -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="status"><span>9:41</span><div class="right"><span class="bars"><i></i><i></i><i></i><i></i></span><span style="font-size:9px">5G</span><span class="battery"><i></i></span></div></div>
+        <div class="screen-inner">
+          <div class="hero recon">
+            <div class="kicker">DAILY RECON</div>
+            <div class="hero-row"><h2>今日对账</h2><span class="ver">11月21日</span></div>
+            <div class="hero-sub"><span><i class="dot"></i> 澳门店 · 18 笔</span><span>更新 23:10</span></div>
+            <div class="kpis">
+              <div class="kpi"><b>18</b><span>总单数</span></div>
+              <div class="kpi"><b>2,460</b><span>应收</span></div>
+              <div class="kpi"><b>1,980</b><span>已飞</span></div>
+              <div class="kpi warm"><b>480</b><span>待飞</span></div>
+            </div>
+          </div>
+          <div class="content recon-body">
+            <div class="sec-head"><div><div class="sec-title">四本账</div></div><span class="sec-more">导出 CSV ›</span></div>
+            <div class="recon-grid">
+              <div class="recon-card"><span>总单</span><b>2,460<small>元</small></b></div>
+              <div class="recon-card"><span>飞后净</span><b class="green">2,460<small>元</small></b></div>
+              <div class="recon-card"><span>返水</span><b class="blue">0<small>未计</small></b></div>
+              <div class="recon-card"><span>上家结算</span><b class="amber">1,980<small>元</small></b></div>
+            </div>
+            <div class="ledger">
+              <div class="ledger-head"><b>账本明细</b><span>查看全部 ›</span></div>
+              <div class="ledger-row"><span>今日应收</span><b>2,460.00</b></div>
+              <div class="ledger-row"><span>已飞 / 上家</span><b>1,980.00</b></div>
+              <div class="ledger-row"><span>本轮待飞</span><b class="neg">480.00</b></div>
+              <div class="ledger-row"><span>预计净</span><b>2,460.00</b></div>
+            </div>
+            <div class="lists">
+              <div class="mini-head"><b>订单明细</b><span>18 笔</span></div>
+              <div class="order-row"><span class="name">张三</span><span class="desc">平特龙 10</span><span class="amt">10.00</span></div>
+              <div class="order-row"><span class="name">李四</span><span class="desc">小双各5 · 12项</span><span class="amt">60.00</span></div>
+              <div class="order-row"><span class="name">陈五</span><span class="desc">三中三 20组 · 各5</span><span class="amt">100.00</span></div>
+              <div class="order-row"><span class="name">王六</span><span class="desc">连肖 2肖 10</span><span class="amt">20.00</span><span class="badge-green">已飞</span></div>
+            </div>
+            <div class="alert"><b>待确认</b><span>本轮 480 元飞单未回；上家确认后再点“确认已飞”。</span><em>去飞单</em></div>
+          </div>
+          <div class="nav">
+            <div class="nav-item"><span class="ni home"></span><span>工作台</span></div>
+            <div class="nav-item"><span class="ni edit"></span><span>录单</span></div>
+            <div class="nav-item"><span class="ni list"></span><span>订单</span></div>
+            <div class="nav-item active"><span class="ni chart"></span><span>对账</span></div>
+            <div class="nav-item"><span class="ni more"></span><span>更多</span></div>
+          </div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="caption"><b>03 · 对账</b><span>数字优先，表格不拆成卡片</span></div>
+    </div>
+  </div>
+  <div class="foot"><b>示意数据 · 仅看布局与交互层级</b>　不改变客户版、解析器、金额与结算逻辑</div>
+</div>
+</body>
+</html>

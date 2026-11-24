@@ -365,6 +365,7 @@ def main():
     prev_path, prev_snap = None, None
     prev_ok, prev_same_day = {}, False
     best_n = -1
+    best_ts = ''
     for g in sorted(existing):
         try:
             cand = json.load(open(g, encoding='utf-8'))
@@ -375,8 +376,10 @@ def main():
         # 只按同一期判断；同一期可能跨午夜，不能因为自然日变了就不兜底。
         # 期号变化后旧期自然被排除，不会跨期补。
         ok_n = sum(1 for v in (cand.get('sites') or {}).values() if 'columns' in v)
-        if ok_n > best_n:
-            best_n, prev_path, prev_snap = ok_n, g, cand
+        # 覆盖数相同时取 generated_at 最新的那份；不能用文件名 HHMM 排序（00:05 会排到 23:31 前面）。
+        ts = str(cand.get('generated_at') or '')
+        if ok_n > best_n or (ok_n == best_n and ts > best_ts):
+            best_n, prev_path, prev_snap, best_ts = ok_n, g, cand, ts
     if prev_snap:
         prev_ok = {k: v for k, v in (prev_snap.get('sites') or {}).items() if 'columns' in v}
         prev_same_day = True

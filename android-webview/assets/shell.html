@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v59.71</title>
+<title>录单Pro · v59.73</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -99,6 +99,9 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 .pro-entry{background:#fff!important;border:1px solid var(--pro-line)!important;border-radius:18px!important;padding:13px!important;margin:0 0 10px!important;box-shadow:0 4px 14px rgba(16,35,70,.06)!important}
 .pro-input-wrap{background:#f7f9fd!important;border:1px solid #e6ebf3!important;border-radius:14px!important;padding:11px!important}
 .pro-input-wrap>div:first-child span:first-child{font-size:12px!important;font-weight:750!important;color:#334155!important}
+#quickSaveBtn{flex:none;border:1px solid #2457d6!important;background:#2457d6!important;color:#fff!important;border-radius:8px!important;padding:4px 9px!important;font-size:11px!important;font-weight:800!important;line-height:1.5!important;box-shadow:0 3px 9px rgba(36,87,214,.18)!important}
+#quickSaveBtn:active{opacity:.78}
+html[data-system-theme="dark"] #quickSaveBtn{background:#2457d6!important;border-color:#4f7fe8!important;color:#fff!important}
 #orderSummary{font-size:10px!important;color:#8b97a6!important}
 #input{min-height:126px!important;border:1px solid #dfe6f0!important;border-radius:11px!important;padding:10px!important;font-size:15px!important;line-height:1.7!important;background:#fff!important;color:#17202b!important;resize:none!important}
 #input:focus{outline:none!important;border-color:#9db8f0!important;box-shadow:0 0 0 3px rgba(36,87,214,.08)!important}
@@ -146,6 +149,16 @@ main{max-width:560px!important;margin:0 auto!important;padding:0 12px calc(110px
 .pro-nav-item .pro-nav-ico{font-size:14px;font-weight:800;line-height:1;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#f0f3f8;color:#7c8998}
 .pro-nav-item.active{color:#2457d6;background:#e9efff}
 .pro-nav-item.active .pro-nav-ico{background:#2457d6;color:#fff}
+/* 键盘弹出：隐藏底部导航，录入框压缩约 1/3，把保存行留在键盘上方 */
+body.kb-open .pro-nav{opacity:0;pointer-events:none;transition:opacity .12s ease}
+body.kb-open .pro-entry{padding:9px!important}
+body.kb-open .pro-input-wrap{padding:8px!important}
+body.kb-open #input{min-height:84px!important;height:84px!important;transition:height .16s ease}
+body.kb-open #liveBalls{display:none!important}
+body.kb-open #liveBalls>span>span:first-child{width:32px!important;height:32px!important;font-size:15px!important}
+body.kb-open #liveBalls>span>span:last-child{font-size:9px!important;margin-top:0!important}
+body.kb-open #drawInfoBar{display:none!important}
+body.kb-open #mainSaveRow{margin-top:4px!important}
 @media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
 @media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
 
@@ -420,9 +433,12 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <button id="mode-btn-single" style="min-width:0;flex:1;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:2px solid #ddd;background:#fff;color:#333" onclick="setMode('single')" ontouchstart="modePressTimer=setTimeout(editSingleLabel,600)" ontouchend="clearTimeout(modePressTimer)">单品模式</button>
     </div>
     <div class="pro-input-wrap" style="padding:10px;background:#fff;border-radius:8px;border:1px solid #ddd">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:12px;color:#666">订单输入区</span>
-        <span id="orderSummary" style="font-size:11px;color:#999"></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:12px;color:#666;flex:none">订单输入区</span>
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
+          <span id="orderSummary" style="font-size:11px;color:#999;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button id="quickSaveBtn" type="button" onclick="quickSaveFromHeader()">保存</button>
+        </div>
       </div>
       <div id="liveBalls" style="display:none;flex-wrap:nowrap;gap:3px;padding:8px 0;justify-content:center;align-items:flex-start;min-height:56px;overflow-x:auto"></div>
       
@@ -434,7 +450,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div id="hkDrawBar" style="display:none;font-size:11px;color:#b45309;margin:2px;line-height:1.5;padding:4px 6px;background:#fffbe6;border:1px solid #f0c36d;border-radius:6px">
         <span id="hkDrawTxt"></span>
       </div>
-      <div style="display:flex;gap:6px;margin-top:6px">
+      <div id="mainSaveRow" style="display:flex;gap:6px;margin-top:6px">
         <button class="btn pro-save" style="flex:1;padding:5px;font-size:12px;background:#f5f5f5" onclick="handleSave()">保存</button>
         <button class="btn pro-manual" style="flex:1;padding:5px;font-size:12px;border:1px solid #1a1a1a;color:#1a1a1a;background:#fff" onclick="openManualEntry()">手动录入</button>
         <button class="btn pro-clear" style="flex:1;padding:5px;font-size:12px" title="只清输入框，不删订单记录" onclick="clearInput()">清空输入</button>
@@ -1106,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.71-Pro';
+var APP_VER = 'v59.73-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1421,6 +1437,9 @@ function showParseFailDialog(fails, errors){
   ov.id = 'pfMask';
   ov.className = 'ai-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  var _onlyMissing = list.length > 0 && list.every(function(f){ return /尾数没写目标|头数没写目标|平特后面没写生肖/.test(String(f.msg || '')); });
+  var _title = _onlyMissing ? ('有 ' + n + ' 行没写全') : ('有 ' + n + ' 行没识别');
+  var _hint = _onlyMissing ? '缺投注目标，补上尾数或生肖后再保存。<br>整批未入账，不会只存一部分。' : '整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。';
   var rows = list.length ? list.map(function(f, i){
     return '<div style="padding:8px 0;border-bottom:1px solid #eee">'
       + '<div style="font-size:11px;color:#999">第 ' + esc(String(f.idx || (i+1))) + ' 行</div>'
@@ -1432,8 +1451,8 @@ function showParseFailDialog(fails, errors){
       + '</div></div>';
   }).join('') : ('<div style="padding:18px 0;color:#999;text-align:center">' + esc((errors||[]).join('\n')) + '</div>');
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:430px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">有 ' + n + ' 行没识别</div>'
-    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">整批未入账，不会只存一部分。<br>可逐行放回输入框单独试，或复制这一行。</div>'
+    + '<div style="padding:15px 18px 5px;font-size:16px;font-weight:700;color:#333;text-align:center">' + _title + '</div>'
+    + '<div style="padding:0 18px 8px;font-size:12px;color:#888;text-align:center;line-height:1.6">' + _hint + '</div>'
     + '<div style="max-height:48vh;overflow:auto;background:#fafafa;padding:0 12px 6px;font-size:12px;color:#333;line-height:1.6;word-break:break-all">' + rows + '</div>'
     + (list.length >= 200 ? '<div style="padding:6px 16px;font-size:11px;color:#999;text-align:center">只显示前 200 行；完整失败批次已另存并上报。</div>' : '')
     + '<div style="border-top:1px solid #eee;display:flex;flex-wrap:wrap">'
@@ -6211,6 +6230,17 @@ function normalizeComboLine(line){
   line = String(line || '');
   var defs = [['二中二', 2], ['三中二', 3], ['三中三', 3]];
   var SEP = '[\\s,，、\\-\\u2010-\\u2015\\/]+';
+  // 复式冒号写法：三中三复式:09,45,... / 复式三中三:09,45,...
+  // 先把“复式”挪到产品名后面，并把冒号后的整串号码用空格分开，
+  // 交给下面的复式展开逻辑；否则只会匹配前 3 个号码、把“复式:”留给 parseLine 报无法识别。
+  var _prods = '二中二|三中二|三中三';
+  var _numGroup = '\\d{1,2}(?:' + SEP + '\\d{1,2})+';
+  line = line.replace(new RegExp('复(?:式)?\\s*(' + _prods + ')\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
+  line = line.replace(new RegExp('(' + _prods + ')\\s*复(?:式)?\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
   defs.forEach(function(d){
     var prod = d[0], n = d[1];
     var seq = '\\d{2}(?:' + SEP + '\\d{2}){' + (n - 1) + '}';
@@ -6231,6 +6261,42 @@ function normalizeComboLine(line){
   });
   return line.replace(/\s+/g, ' ').trim();
 }
+// 多行组合块：首行「三中三09-30-31」给出产品，后续几行只有纯号码组合，
+// 金额可能写在最后一行「04-36-07各组5」。逐行独立解析时，后续行没有产品名会报
+// 「无法识别：-」；这里把整块补成每行「三中三:09,30,31 各组5」再交给 parseLine。
+function comboBlockInfo(line){
+  var s = String(line || '').trim().replace(/[\s,，、;；.。]+$/, '');
+  var m = s.match(/^(?:(香港|澳门|澳|港)\s*)?(?:(三中三|三中二|二中二)\s*(?:复(?:式)?)?\s*[:：]?\s*)?((?:\d{2}[\s,，、.\-–—―－+·/]+){1,2}\d{2})(?:\s*(?:各|每)\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?))?$/);
+  if(!m) return null;
+  var nums = m[3].match(/\d{2}/g) || [];
+  if(nums.length < 2 || nums.length > 3) return null;
+  return { prefix: m[1] || '', prod: m[2] || '', nums: nums, price: m[4] ? parseFloat(m[4]) : null };
+}
+function normalizeComboBlocks(lines){
+  var out = lines.slice();
+  for(var i = 0; i < out.length; i++){
+    var h = comboBlockInfo(out[i]);
+    if(!h || !h.prod) continue;
+    var need = h.prod === '二中二' ? 2 : 3;
+    if(h.nums.length !== need) continue;
+    var members = [i], j = i + 1, price = h.price;
+    while(j < out.length){
+      var b = comboBlockInfo(out[j]);
+      if(!b || b.prod || b.nums.length !== need) break;
+      members.push(j);
+      if(b.price && !price) price = b.price;
+      j++;
+    }
+    if(members.length < 2 || !(price > 0)) continue;
+    for(var k = 0; k < members.length; k++){
+      var bk = comboBlockInfo(out[members[k]]);
+      var p = bk.price || price;
+      out[members[k]] = (h.prefix ? h.prefix + ' ' : '') + h.prod + ':' + bk.nums.join(',') + ' 各组' + p;
+    }
+    i = members[members.length - 1];
+  }
+  return out;
+}
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
   // 生肖/连肖/特肖/平特中间的空格先合并，避免「连肖龙 虎 兔」被当成「连肖龙」
@@ -6248,6 +6314,11 @@ function parseLine(text){
     var max = kind === '尾' ? 9 : 4;
     body = String(body || '').trim();
     if(!body) return null;
+    // 只写金额、没写尾数/头数目标：例如「尾1000」「头1000」不是解析故障，
+    // 属于输入不完整；不要拿它去当尾数列表，直接提示补目标。
+    if(/^\d{2,}$/.test(body)){
+      throw new Error(kind === '尾' ? '尾数没写目标，请补尾数（如 尾0各1000 或 0尾各1000）' : '头数没写目标，请补头数（如 头0各1000 或 0头各1000）');
+    }
     var priceText = null, listText = body, explicit = false;
     var am = body.match(/^(.*?)(?:各|每)(?:号|数|码|个|注|组|只|数各)?\s*([0-9零〇一二两三四五六七八九十百千万]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?$/);
     if(am){ listText = am[1]; priceText = am[2]; explicit = true; }
@@ -6627,6 +6698,10 @@ function parseLine(text){
         }
       }
       if(!found){
+        // 只写「平特」没写肖：属于缺投注目标，不猜全肖，也不报成未知产品。
+        if(rest.indexOf('平特') === 0 && !/^平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(rest)){
+          throw new Error('平特后面没写生肖，请补具体肖（如 平特马5）');
+        }
         const m = rest.match(/^(\d{1,2})(?!\d)/);
         if(m){
           codes.push(m[1].padStart(2,'0'));
@@ -7399,23 +7474,132 @@ function openManualEntry(){
   document.getElementById('mtSave').onclick = function(){ manualSave(ov); };
   updateManualPreview();
 }
+/* ===== 主录入框键盘压缩：隐藏底部导航，录入框缩 1/3，把保存行留在键盘上方 ===== */
+(function(){
+  var input=null, lastScroll=0;
+
+  function visualKb(){
+    var vv = window.visualViewport;
+    if(!vv) return 0;
+    return Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+  }
+  function kbNow(){
+    var kb = Math.max(0, Number(window.__kbRaw) || 0, visualKb());
+    // WebView 原生没回传高度时：输入框聚焦且确实在 App 内，保守按屏高 42% 估
+    if(kb < 20 && document.activeElement === input && typeof AndroidAi !== 'undefined'){
+      kb = Math.min(360, Math.round(window.innerHeight * 0.42));
+    }
+    return kb;
+  }
+  function effectiveVh(kb){
+    var vv = window.visualViewport;
+    var vh = vv ? vv.height : window.innerHeight;
+    // 安卓 WebView 键盘浮在页面之上，visualViewport 不会缩小，用原生高度扣掉
+    if(vh > window.innerHeight - 20 && kb > 20) vh = window.innerHeight - kb;
+    return vh;
+  }
+  function revealSaveRow(kb){
+    var row = document.getElementById('mainSaveRow');
+    if(!row) return;
+    var vh = effectiveVh(kb);
+    var r = row.getBoundingClientRect();
+    var over = r.bottom - (vh - 12);
+    // 键盘特别高、页面已经滚到底仍差几像素时，再把录入框压一点，保证按钮完整露出
+    if(over > 0 && input){
+      var h = input.getBoundingClientRect().height;
+      var fit = Math.max(60, h - Math.min(30, over));
+      if(fit < h - 0.5){
+        input.style.setProperty('height', fit + 'px', 'important');
+        input.style.setProperty('min-height', fit + 'px', 'important');
+        r = row.getBoundingClientRect();
+        over = r.bottom - (vh - 12);
+      }
+    }
+    if(over > 0){
+      var now = Date.now();
+      if(now - lastScroll < 140) return;
+      lastScroll = now;
+      try{ window.scrollBy({top: over + 4, behavior:'smooth'}); }
+      catch(e){ window.scrollBy(0, over + 4); }
+    }
+  }
+  function apply(on, kb){
+    var wasOpen = document.body.classList.contains('kb-open');
+    document.body.classList.toggle('kb-open', !!on);
+    if(!on){
+      if(input){
+        try{ input.style.removeProperty('height'); input.style.removeProperty('min-height'); }catch(e){}
+      }
+      return;
+    }
+    // 首次打开先复位到 CSS 的 84px，避免原生多次回调把框越压越矮
+    if(!wasOpen && input){
+      try{ input.style.removeProperty('height'); input.style.removeProperty('min-height'); }catch(e){}
+    }
+    setTimeout(function(){ revealSaveRow(kb); }, 80);
+    setTimeout(function(){ revealSaveRow(kb); }, 300);
+    setTimeout(function(){ revealSaveRow(kb); }, 650);
+  }
+  window.__kbLayout = function(raw){
+    var kb = Number(raw) || 0;
+    // 原生桥可能回传物理像素，按屏宽比例折算成 CSS 像素
+    if(kb > window.innerHeight * 1.15 && window.devicePixelRatio > 1) kb = Math.round(kb / window.devicePixelRatio);
+    kb = Math.max(0, kb, visualKb());
+    window.__kbRaw = kb;
+    if(kb > 20) apply(true, kb);
+    else apply(false, 0);
+  };
+  window.quickSaveFromHeader = function(){
+    try{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+    setTimeout(function(){
+      try{
+        if(typeof handleSave === 'function') handleSave();
+        else if(window.handleSave) window.handleSave();
+      }catch(e){}
+    }, 110);
+  };
+  function init(){
+    input = document.getElementById('input');
+    if(!input) return;
+    input.addEventListener('focus', function(){
+      setTimeout(function(){ window.__kbLayout(Number(window.__kbRaw) || 0); }, 30);
+    });
+    input.addEventListener('blur', function(){
+      setTimeout(function(){
+        if(document.activeElement === input) return;
+        window.__kbLayout(0);
+      }, 200);
+    });
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', function(){ window.__kbLayout(Number(window.__kbRaw) || 0); });
+      window.visualViewport.addEventListener('scroll', function(){ window.__kbLayout(Number(window.__kbRaw) || 0); });
+    }
+    window.addEventListener('resize', function(){ window.__kbLayout(Number(window.__kbRaw) || 0); });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
 /* 键盘适配：安卓 WebView 的 adjustResize 在弹层上常不生效，用 visualViewport 把弹层顶到键盘上方 */
 
 /* 键盘高度由 App 原生层量好传进来（安卓 WebView 不会随键盘缩小自身视口，页面自己感知不到） */
 window.__kbFix = function(kb){
   try{
     kb = Number(kb) || 0;
+    if(kb > window.innerHeight * 1.15 && window.devicePixelRatio > 1) kb = Math.round(kb / window.devicePixelRatio);
+    window.__kbRaw = kb;
     window.__kbFixActive = kb > 0;
     var vv = window.visualViewport;
     if(vv && (window.innerHeight - vv.height) > 40){ kb = 0; }   // 视口已随键盘缩小，无需额外补偿
     var ov = document.getElementById('manualOverlay');
-    if(!ov) return;
-    ov.style.top = '0';
-    ov.style.bottom = kb + 'px';
-    var box = ov.firstElementChild;
-    if(box){
-      box.style.maxHeight = Math.max(220, window.innerHeight - kb - 16) + 'px';
+    if(ov){
+      ov.style.top = '0';
+      ov.style.bottom = kb + 'px';
+      var box = ov.firstElementChild;
+      if(box){
+        box.style.maxHeight = Math.max(220, window.innerHeight - kb - 16) + 'px';
+      }
     }
+    if(window.__kbLayout) window.__kbLayout(kb);
   }catch(e){}
 };
 function mtKbFix(ov){
@@ -8329,7 +8513,7 @@ renderAll();
     if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
   }
   // 多行组合：前面几行纯号码组合，最后一行"三中三各组20"给类型和每组金额
-  let workLines = mergedLines;
+  let workLines = normalizeComboBlocks(mergedLines);
   let comboProduct = null, comboPrice = null;
   for(const ln of mergedLines){
     const mc = ln.match(/^(三中三|二中二|三中二)\s*(?:各(?:组|数|号|个)?\s*)?([0-9]+(?:\.[0-9]+)?)\s*$/);
@@ -8338,7 +8522,7 @@ renderAll();
   if(comboProduct && comboPrice){
     const nNums = comboProduct === '二中二' ? 2 : 3;
     const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
-    workLines = mergedLines.map(ln=>{
+    workLines = workLines.map(ln=>{
       const t = ln.trim();
       if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
       if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;
