@@ -585,6 +585,11 @@
         <span class="badge pending" id="mixBadge">读取中</span>
       </div>
       <div class="section">
+        <div class="ledger-toolbar">
+          <div class="period-box"><label for="mixPeriod">期号</label><select id="mixPeriod"></select></div>
+          <button class="btn" id="mixBack" type="button">回到待开</button>
+          <div style="flex:1"></div><span class="chip" id="mixModeChip">—</span>
+        </div>
         <div class="mix-cols">
           <div class="subcard">
             <h3>首肖排行 · 主推第 1 肖</h3>
@@ -957,7 +962,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.10</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.11</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1690,7 +1695,20 @@
     var mode=S.per[kind]||'pending';
     return entriesFor(kind,mode).filter(entryAllowed).filter(function(e){return e.has;});
   }
+  function mixIssues(){
+    var nin=issuesOf('nine'), kil=issuesOf('kill');
+    var both=nin.filter(function(i){return kil.indexOf(i)>=0;});
+    return both.length?both:nin;
+  }
+  function buildMixPeriod(){
+    var sel=$('mixPeriod'); if(!sel) return;
+    sel.innerHTML='';
+    var o=document.createElement('option'); o.value='pending'; o.textContent='待开 · 第'+(S.pend?S.pend.period:'—')+'期（未开奖）'; sel.appendChild(o);
+    mixIssues().slice().reverse().forEach(function(i){var x=document.createElement('option');x.value=i;x.textContent='第'+i+'期';sel.appendChild(x);});
+    sel.value=(S.per.nine===S.per.kill)?S.per.nine:'pending';
+  }
   function renderMix(){
+    buildMixPeriod();
     var nE=mixEntries('nine'), kE=mixEntries('kill');
     var firstAgg=countOf(nE,function(e){return e.z.slice(0,1);});
     var killAgg=countOf(kE,function(e){return e.z;});
@@ -1700,9 +1718,13 @@
     if(kh) kh.textContent=kE.length+' 站 · '+killVotes+' 肖次 · 每站 3 肖';
     $('mixFirstRank').innerHTML=allRankHtml(firstAgg,'nine',nE.length);
     $('mixKillRank').innerHTML=allRankHtml(killAgg,'kill',killVotes);
-    var badge=$('mixBadge');
-    var pend=(S.per.nine||'pending')==='pending'&&(S.per.kill||'pending')==='pending';
+    var mode=S.per.nine, pend=(mode==='pending'&&S.per.kill==='pending');
+    var per=!pend?((S.nine&&S.nine.periods[mode])||(S.kill&&S.kill.periods[mode])):null;
+    var badge=$('mixBadge'), chip=$('mixModeChip');
     if(badge){ badge.textContent=pend?'待开':'已开奖'; badge.className='badge '+(pend?'pending':'done'); }
+    if(chip) chip.textContent=pend?'本期原始推荐':('已开奖 '+(per?per.actual||'—':'—'));
+    if(pend) setHero(S.pend?S.pend.period:'—','待开',S.pend&&S.pend.updatedAt);
+    else setHero(mode,'已开奖',per?((per.specialNum?'特码 '+per.specialNum+' · ':'')+(per.actual||'')):'—');
     mixSub(S.mixSub||'nine');
   }
   function mixSub(k){
@@ -2502,6 +2524,10 @@
     var msn=$('mixSubNine'), msk=$('mixSubKill');
     if(msn) msn.addEventListener('click',function(){mixSub('nine');});
     if(msk) msk.addEventListener('click',function(){mixSub('kill');});
+    var mpx=$('mixPeriod');
+    if(mpx) mpx.addEventListener('change',function(){S.per.nine=mpx.value;S.per.kill=mpx.value;S.limit.nine=30;S.limit.kill=30;buildPeriod('nine');buildPeriod('kill');renderMix();});
+    var mbk=$('mixBack');
+    if(mbk) mbk.addEventListener('click',function(){S.per.nine='pending';S.per.kill='pending';buildPeriod('nine');buildPeriod('kill');renderMix();});
     $('nowSearch').addEventListener('input',function(){S.q.now=this.value;S.limit.now=30;renderNow();});
     $('nowSort').addEventListener('change',function(){S.sort.now=this.value;renderNow();});
     Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(b){b.addEventListener('click',function(){S.f.now=b.dataset.f;Array.prototype.forEach.call($('nowFilterChips').querySelectorAll('button'),function(x){x.classList.toggle('on',x===b);});renderNow();});});
@@ -2514,7 +2540,7 @@
       if(back){S.c.view='list';S.c.site=null;renderChange();}
     });
     ['nine','kill'].forEach(function(kind){
-      $(kind+'Period').addEventListener('change',function(){S.per[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
+      $(kind+'Period').addEventListener('change',function(){S.per[kind]=this.value;S.limit[kind]=30;if(S.tab==='mix'){var other=kind==='nine'?'kill':'nine';S.per[other]=this.value;buildPeriod(other);}renderLedger(kind); if(S.tab==='mix') renderMix();});
       $(kind+'Search').addEventListener('input',function(){S.q[kind]=this.value;S.limit[kind]=30;renderLedger(kind);});
       $(kind+'Sort').addEventListener('change',function(){S.sort[kind]=this.value;renderLedger(kind);});
       $(kind+'Back').addEventListener('click',function(){S.per[kind]='pending';buildPeriod(kind);S.f[kind]='has';renderLedger(kind);});
