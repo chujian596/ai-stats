@@ -962,7 +962,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.11</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.12</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1858,10 +1858,9 @@
     var tier=kind==='kill'?tierBadge(e):'';
     return '<details class="site-card ledger-card" data-key="'+esc(e.key)+'"><summary>'+
       '<div class="site-top"><div><div class="site-name">'+seqTag(e.r)+esc(e.name)+tags+'</div><div class="site-sub">'+esc(subOf(e.r))+'</div></div><div class="site-right">'+badge+tier+'<span class="tag-count">'+(z.length||0)+' 肖</span></div></div>'+
-      '<div class="mini-block" style="margin-top:8px">'+picks+'</div>'+
       '<div class="trail-line"><span class="trail-label">近7期</span>'+trailHtml(e.trail)+'</div>'+
       metrics+
-    '</summary><div class="site-detail">'+detail+(r.raw?'<div class="raw">原文：'+esc(r.raw)+'</div>':'')+'</div></details>';
+    '</summary><div class="site-detail"><div class="mini-block" style="margin-bottom:8px">'+picks+'</div>'+detail+(r.raw?'<div class="raw">原文：'+esc(r.raw)+'</div>':'')+'</div></details>';
   }
 
   // ===== 改料跟踪 =====
@@ -2307,9 +2306,8 @@
       var cnt=cfg.dual?(z.length+'肖 / '+c.length+'码'):(isSplit()?(z.length+'头 / '+c.length+'尾'):(z.length+' 项'));
       return '<details class="site-card"><summary>'+
         '<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(nameOf(s,s.siteKey))+tag+'</div><div class="site-sub">'+esc(s.siteKey)+' · '+esc(s.system||'—')+'</div></div>'+
-        '<div class="site-right"><span class="tag-count">'+cnt+'</span></div></div>'+
-        '<div class="picks">'+zHtml+cHtml+'</div>'+histHtml+'</summary>'+
-        '<div class="site-detail"><div class="detail-table-wrap">'+detailHtml(s.siteKey,lastIssue())+'</div></div></details>';
+        '<div class="site-right"><span class="tag-count">'+cnt+'</span></div></div>'+histHtml+'</summary>'+
+        '<div class="site-detail"><div class="picks" style="margin-bottom:8px">'+zHtml+cHtml+'</div><div class="detail-table-wrap">'+detailHtml(s.siteKey,lastIssue())+'</div></div></details>';
     }
     function renderPending(){
       var d=dimCfg();
@@ -2371,9 +2369,8 @@
       var hitCls=h===true?'hit':(h===false?'miss':'unk'), hitTx=h===true?'中':(h===false?'错':'未判');
       var cnt=split?(z.length+'头 / '+c.length+'尾'):(cfg.dual?(z.length+'肖 / '+c.length+'码'):(z.length+' 项'));
       return '<details class="site-card"><summary><div class="site-top"><div><div class="site-name">'+seqTag(r)+esc(nameOf(r,x.key))+'</div><div class="site-sub">'+esc(r.system||'—')+' · '+esc(r.siteKey||x.key)+'</div></div>'+
-        '<div class="site-right"><span class="tag-count">'+cnt+'</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+
-        '<div class="picks">'+zHtml+cHtml+'</div>'+histHtml+'</summary>'+
-        '<div class="site-detail">'+detailHtml(x.key,st.period)+'</div></details>';
+        '<div class="site-right"><span class="tag-count">'+cnt+'</span><span class="hit-badge '+hitCls+'">'+hitTx+'</span></div></div>'+histHtml+'</summary>'+
+        '<div class="site-detail"><div class="picks" style="margin-bottom:8px">'+zHtml+cHtml+'</div>'+detailHtml(x.key,st.period)+'</div></details>';
     }
     function hitOf(x){ return isSplit()?mergedHit(x):(x.r&&x.r.hit); }
     function rankRows(cnt,numSort){
