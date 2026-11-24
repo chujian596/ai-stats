@@ -957,7 +957,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.9</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.10</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1226,7 +1226,7 @@
       statCard('九肖覆盖',nineSites.length,'站','每站 9 肖')+
       statCard('杀三覆盖',killSites.length,'站','每站 3 肖')+
       statCard('平特覆盖',pingSites.length,'站','六维之一');
-    var nAgg=countOf(nineSites,function(s){return s.zodiacs;});
+    var nAgg=countOf(nineSites,function(s){return [...new Set(s.zodiacs)];});
     var kAgg=countOf(killSites,function(s){return s.killZodiacs;});
     $('nowNineHint').textContent=nineSites.length+' 站 · '+sumZ(nineSites,'nine')+' 票 · 9 肖全计';
     $('nowKillHint').textContent=killSites.length+' 站 · '+sumZ(killSites,'kill')+' 票 · 按站次';
@@ -1299,7 +1299,7 @@
     var nineSites=sites.filter(function(s){return (s.zodiacs||[]).length;});
     var killSites=sites.filter(function(s){return (s.killZodiacs||[]).length;});
     var pingSites=sites.filter(function(s){return extraPicks(s,'pingte').length;});
-    var nAgg=countOf(nineSites,function(s){return s.zodiacs;});
+    var nAgg=countOf(nineSites,function(s){return [...new Set(s.zodiacs)];});
     var kAgg=countOf(killSites,function(s){return s.killZodiacs;});
     var topN=topRows(nAgg,5), topK=topRows(kAgg,5);
     var ni=lastIssue('nine'), ki=lastIssue('kill');
@@ -1777,7 +1777,7 @@
     });
     var visElig=list.filter(function(e){return e.has;});
     var visVotes=visElig.reduce(function(a,e){return a+e.z.length;},0);
-    var agg=countOf(visElig,function(e){return e.z;});
+    var agg=countOf(visElig,function(e){return [...new Set(e.z)];});
     var voteLabel=kind==='nine'?'9 肖全计':'按站次';
     $(kind+'RankHint').textContent=visElig.length+' 站 · '+visVotes+' 票 · '+voteLabel;
     $(kind+'Rank').innerHTML=rankHtml(topRows(agg,8),visVotes,kind);
