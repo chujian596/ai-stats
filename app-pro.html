@@ -10471,7 +10471,7 @@ function renderOrdersList(){
     });
     var lxBody = lxB ? '<div style="' + GRID(92) + '">' + lxB + '</div>' : '<div style="color:#bbb">—</div>';
     // 二·三中三
-    var emB = '', emN = 0, emSum = 0, emChkSum = 0;
+    var emB = '', emN = 0, emG = 0, emSum = 0, emChkSum = 0;
     var emOnD = true; try { emOnD = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnD){
       const emD0 = {};
@@ -10481,6 +10481,7 @@ function renderOrdersList(){
       Object.keys(emD0).forEach(function(c){ emN++; emSum += emD0[c]; });
       emLineBlocks(_listO).forEach(function(b){
         emChkSum += (b.a || 0);
+        emG += (b.cnt || 0);
         emB += '<div style="color:' + (b.ok ? '#333' : '#cf1322') + ';font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">' + esc(b.t) + (b.ok ? '' : ' ←未能复算') + '</div>';
       });
       const _diff = emSum - emChkSum;
@@ -10491,7 +10492,7 @@ function renderOrdersList(){
     upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
       + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
       + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
-      + _sec('二·三中三', (emN ? emN + ' 注 · ' : '') + '实付 ' + emSum.toFixed(0), emBody)
+      + _sec('二·三中三', (emG ? (emG + ' 组' + (emN > 0 && emN < emG ? ('（同一号重叠去重 ' + emN + ' 注）') : '') + ' · ') : '') + '实付 ' + emSum.toFixed(0), emBody)
       + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
   } catch(e){}
   h += '<div style="font-size:11px;line-height:1.7">' + upSections + '</div>';
