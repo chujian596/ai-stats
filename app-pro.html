@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.98-Pro';
+var APP_VER = 'v59.99-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5420,7 +5420,7 @@ function _applyManualFlyCore(txt, el){
     }
     // ① 录入词库
     let r = null;
-    try { r = parseLine(line); } catch(e){ r = null; }
+    try { r = parseLine(normalizeComboLine(line)); } catch(e){ r = null; }
     if(r && r.codes && r.codes.length && r.price > 0){
       const keys = [];
       let hasEm = false, badCode = '';
@@ -7392,7 +7392,7 @@ function orderLineItems(o){
     if(!l) return;
     const hk = /港/.test(l);
     try {
-      const q = l.replace(/^\[手动\]\s*/, '');
+      const q = normalizeComboLine(l.replace(/^\[手动\]\s*/, ''));
       const r = parseLine(q);
       if(r && r.codes && r.price != null){
         const _q = r.codes.length;
@@ -10636,7 +10636,7 @@ function emLineBlocks(list){
       if(!/(二中二|三中二|三中三)/.test(t0)) return;
       let pr = '', codes = [], per = 0;
       try {
-        const r = parseLine(t0);
+        const r = parseLine(normalizeComboLine(t0));
         if(r && r.codes && r.codes.length){
           codes = r.codes;
           pr = String(codes[0]).split(':')[0];
