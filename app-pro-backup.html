@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.89-Pro';
+var APP_VER = 'v59.90-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10210,7 +10210,10 @@ function renderOrdersList(){
       _listO.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
         if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) emMap2[c] = (emMap2[c]||0) + amt;
       }); });
-      emComboRows(emMap2, null).forEach(function(r){ upCopyLines.push(r.t); });
+      emComboRows(emMap2, null).forEach(function(r){
+        upCopyLines.push(r.t);
+        if(r.details && r.details.length && r.details.length <= 30) upCopyLines.push('  ' + r.details.join('、'));
+      });
     }
   } catch(e){}
   // 分类金额用于复制
@@ -10329,8 +10332,16 @@ function renderOrdersList(){
           emD[c] = (emD[c]||0) + amt;
         }
       }); });
+      let _emrI = 0;
       emComboRows(emD, allDrawNums).forEach(function(r){
-        upR += `<div style="color:${r.hit?'#cf1322':'#333'};${r.hit?'font-weight:700':''}">${esc(r.t)}${r.hit?' ←命中':''}</div>`;
+        const col = r.hit ? '#cf1322' : '#333';
+        if(r.details && r.details.length){
+          const cid = 'emr' + (_emrI++);
+          upR += `<div style="color:${col};${r.hit?'font-weight:700':''}">${esc(r.t)}${r.hit?' ←命中':''} <span style="color:#1677ff;font-weight:400;cursor:pointer" onclick="toggleOd('${cid}',null)">逐组▾</span></div>`;
+          upR += `<div id="${cid}" style="display:none;font-size:10px;line-height:1.5;color:#777;max-height:200px;overflow:auto;border-left:2px solid #eee;padding-left:6px;margin:2px 0 6px">${r.details.map(function(d){ return '<div>' + esc(d) + '</div>'; }).join('')}</div>`;
+        } else {
+          upR += `<div style="color:${col};${r.hit?'font-weight:700':''}">${esc(r.t)}${r.hit?' ←命中':''}</div>`;
+        }
       });
     }
     if(!upR) upR = '<div style="color:#bbb">—</div>';
@@ -10427,11 +10438,32 @@ function emComboRows(emMap, drawSet){
       g.forEach(function(x){ used.add(x[0]); });
     }
   });
+  // 三趟：剩下的凑不成整块的，按「产品+取数+金额」压成一行「散注」，逐组明细挂 details
+  const lefts = {};
   entries.forEach(function(e){
     if(used.has(e[0])) return;
-    const hit = drawSet ? emHitOf(e[0], function(n){ return drawSet.has(Number(n)); }) : false;
-    rows.push({ t: e[0].replace(':',' ') + ' ' + e[1].toFixed(0), hit });
-    used.add(e[0]);
+    const lk = _key(e[0]) + '|' + e[1];
+    if(!lefts[lk]) lefts[lk] = { prod: e[0].split(':')[0], k: e[0].split(':')[1].split(',').length, amt: e[1], codes: [] };
+    lefts[lk].codes.push(e);
+  });
+  Object.keys(lefts).forEach(function(lk){
+    const g = lefts[lk];
+    if(g.codes.length === 1){
+      const one = g.codes[0];
+      const hit1 = drawSet ? emHitOf(one[0], function(n){ return drawSet.has(Number(n)); }) : false;
+      rows.push({ t: one[0].replace(':',' ') + ' ' + one[1].toFixed(0), hit: hit1 });
+      return;
+    }
+    const sn = [];
+    g.codes.forEach(function(x){ x[0].split(':')[1].split(',').forEach(function(n){ if(sn.indexOf(n)<0) sn.push(n); }); });
+    sn.sort();
+    const hit0 = drawSet ? g.codes.some(function(x){ return emHitOf(x[0], function(n){ return drawSet.has(Number(n)); }); }) : false;
+    const sum = g.amt * g.codes.length;
+    rows.push({
+      t: sn.join('.') + ' ' + g.prod + ' ' + g.codes.length + '注(散) 各组' + (g.amt % 1 ? g.amt.toFixed(1) : g.amt.toFixed(0)) + ' ＝ ' + (sum % 1 ? sum.toFixed(1) : sum.toFixed(0)),
+      hit: hit0,
+      details: g.codes.map(function(x){ return x[0].split(':')[1].split(',').join('.') + '×' + (x[1] % 1 ? x[1].toFixed(1) : x[1].toFixed(0)); })
+    });
   });
   return rows;
 }
