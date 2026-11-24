@@ -957,7 +957,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.7</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.8</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1031,6 +1031,8 @@
     else if(S.tab==='now') renderNow();
     else if(S.tab==='mix') renderMix();
     else if(S.tab==='change') renderChange();
+    else if(S.tab==='ex' && typeof embeds!=='undefined' && embeds.ex) embeds.ex.render();
+    else if(S.tab==='ss' && typeof embeds!=='undefined' && embeds.ss) embeds.ss.render();
   }
   function renderTierBar(){
     var bar=$('tierBar'); if(!bar) return;
