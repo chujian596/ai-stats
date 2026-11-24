@@ -158,7 +158,10 @@ body.kb-open #liveBalls{display:none!important}
 body.kb-open #liveBalls>span>span:first-child{width:32px!important;height:32px!important;font-size:15px!important}
 body.kb-open #liveBalls>span>span:last-child{font-size:9px!important;margin-top:0!important}
 body.kb-open #drawInfoBar{display:none!important}
-body.kb-open #mainSaveRow{margin-top:4px!important}
+/* 键盘弹出：整条「保存/手动录入/清空」浮到键盘正上方，贴着键盘，不再被推到屏幕上半截 */
+body.kb-open #mainSaveRow{position:fixed!important;left:10px!important;right:10px!important;bottom:calc(var(--kbpx,0px) + 8px)!important;z-index:70!important;margin:0!important;padding:8px 10px!important;background:#fff!important;border:1px solid #e2e8f2!important;border-radius:14px!important;box-shadow:0 -8px 22px rgba(16,24,40,.16)!important;display:flex!important;gap:8px!important}
+body.kb-open{padding-bottom:calc(var(--kbpx,0px) + 96px)!important}
+html[data-system-theme="dark"] body.kb-open #mainSaveRow{background:#101b2e!important;border-color:#2a3a52!important;box-shadow:0 -8px 22px rgba(0,0,0,.55)!important}
 @media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
 @media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
 
@@ -1122,7 +1125,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.00-Pro';
+var APP_VER = 'v60.01-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8116,6 +8119,8 @@ function openManualEntry(){
   function revealSaveRow(kb){
     var row = document.getElementById('mainSaveRow');
     if(!row) return;
+    // 已经浮在键盘上方（fixed），不用再滚动页面去露它
+    try{ if(getComputedStyle(row).position === 'fixed') return; }catch(e){}
     var vh = effectiveVh(kb);
     var r = row.getBoundingClientRect();
     var over = r.bottom - (vh - 12);
@@ -8141,6 +8146,10 @@ function openManualEntry(){
   function apply(on, kb){
     var wasOpen = document.body.classList.contains('kb-open');
     document.body.classList.toggle('kb-open', !!on);
+    try{
+      if(on) document.documentElement.style.setProperty('--kbpx', Math.round(kb) + 'px');
+      else document.documentElement.style.removeProperty('--kbpx');
+    }catch(e){}
     if(!on){
       if(input){
         try{ input.style.removeProperty('height'); input.style.removeProperty('min-height'); }catch(e){}
