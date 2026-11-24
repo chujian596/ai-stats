@@ -890,7 +890,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.2</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.3</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -957,6 +957,7 @@
   var DIR={sites:[],byId:{},byKey:{}};
   function dirOf(s){ if(!s) return null; var k=keyOf(s); return DIR.byId[k]||DIR.byKey[s.siteKey]||null; }
   function tierAllowed(s){ var d=dirOf(s); if(!d) return true; if(d.tier==='core') return true; return tierDef().grades.indexOf(d.grade)>=0; }
+  function entryAllowed(e){ return tierAllowed({siteId:e.key,system:e.system,siteKey:e.siteKey}); }
   function tierCount(def){ return DIR.sites.filter(function(d){return d.tier==='core'||def.grades.indexOf(d.grade)>=0;}).length; }
   function refreshAll(){
     if(S.tab==='brief') renderBrief();
@@ -1609,7 +1610,7 @@
     var base=mode==='pending'?(issues.slice(-1)[0]||''):mode;
     if(mode==='pending') setHero(S.pend?S.pend.period:base,'待开',L.updated_at||L.updatedAt||(S.pend&&S.pend.updatedAt));
     else setHero(mode,'已开奖',L.updated_at||L.updatedAt||'—');
-    var entries=entriesFor(kind,mode);
+    var entries=entriesFor(kind,mode).filter(entryAllowed);
     var eligible=entries.filter(function(e){return e.has;});
     var hitN=eligible.filter(function(e){return e.r.hit===true;}).length;
     var missN=eligible.filter(function(e){return e.r.hit===false;}).length;
