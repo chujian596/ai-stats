@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.95-Pro';
+var APP_VER = 'v59.96-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7373,6 +7373,17 @@ function codeSalesForOrder(o, prod){
 // 同一单里同一个代码只算一次：codeAmts 已是该代码合并后的总额，再按 codes 逐次累加会翻倍
 
 // 一条订单里每一行各多少钱：新单直接读保存时的 lines，老单按原文重新解析算一遍。
+
+// 把内部存的行文还原成好看的样子：三中三:03,17,20 → 三中三 03.17.20；三中三复式19 43 03… → 三中三 19.43.03…
+function prettyRawLine(t){
+  let x = String(t || '').replace(/^\[手动\]\s*/, '').trim();
+  x = x.replace(/^(二中二|三中二|三中三):/, '$1 ');
+  x = x.replace(/(二中二|三中二|三中三)复式([0-9 ][0-9 .]*?)(\s*(各组|各)|$)/, function(m, pr, nums, tail){
+    return pr + ' ' + String(nums).trim().split(/\s+/).join('.') + (tail || '');
+  });
+  return x;
+}
+
 function orderLineItems(o){
   if(o && o.lines && o.lines.length) return o.lines;
   const out = [];
@@ -10114,7 +10125,7 @@ function renderOrdersList(){
       if(_items.length){
         _items.forEach((it, ri) => {
           const _aTxt = (it.a == null || isNaN(it.a)) ? '' : ('= ' + (Math.round(it.a * 100) / 100).toFixed(2).replace(/\.00$/, '') + ' 元');
-          h += `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#333;margin-bottom:2px;font-size:13px"><span style="word-break:break-all">${ri===0?_badge:''}${esc(String(it.r||'').replace(/^\s*/,''))}</span><span style="color:#1677ff;font-size:11px;white-space:nowrap;flex:0 0 auto">${_aTxt}</span></div>`;
+          h += `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#333;margin-bottom:2px;font-size:13px"><span style="word-break:break-all">${ri===0?_badge:''}${esc(prettyRawLine(it.r))}</span><span style="color:#1677ff;font-size:11px;white-space:nowrap;flex:0 0 auto">${_aTxt}</span></div>`;
         });
       } else {
         h += `<div style="color:#333;font-size:13px">${_badge}${esc((o.codes||[]).join(' '))}</div>`;
