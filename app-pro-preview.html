@@ -158,10 +158,7 @@ body.kb-open #liveBalls{display:none!important}
 body.kb-open #liveBalls>span>span:first-child{width:32px!important;height:32px!important;font-size:15px!important}
 body.kb-open #liveBalls>span>span:last-child{font-size:9px!important;margin-top:0!important}
 body.kb-open #drawInfoBar{display:none!important}
-/* 键盘弹出：整条「保存/手动录入/清空」浮到键盘正上方，贴着键盘，不再被推到屏幕上半截 */
-body.kb-open #mainSaveRow{position:fixed!important;left:10px!important;right:10px!important;bottom:calc(var(--kbpx,0px) + 8px)!important;z-index:70!important;margin:0!important;padding:8px 10px!important;background:#fff!important;border:1px solid #e2e8f2!important;border-radius:14px!important;box-shadow:0 -8px 22px rgba(16,24,40,.16)!important;display:flex!important;gap:8px!important}
-body.kb-open{padding-bottom:calc(var(--kbpx,0px) + 96px)!important}
-html[data-system-theme="dark"] body.kb-open #mainSaveRow{background:#101b2e!important;border-color:#2a3a52!important;box-shadow:0 -8px 22px rgba(0,0,0,.55)!important}
+body.kb-open #mainSaveRow{margin-top:4px!important}
 @media(min-width:900px){body{padding-bottom:120px!important}main{max-width:620px!important}.pro-hero{margin-left:-12px;margin-right:-12px}.pro-nav{max-width:600px}.pro-settings-dock{max-width:596px!important}}
 @media(max-width:380px){.pro-h1{font-size:22px}.pro-toolbar button{font-size:11px!important;padding:5px 7px!important}#liveClock{font-size:14px!important}.rank-btn{font-size:11px!important}#bottomBtns{grid-template-columns:repeat(2,minmax(0,1fr))!important}#bottomBtns .btn:last-child{grid-column:span 2}}
 
@@ -423,7 +420,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
     </div>
   </div>
 </div>
-  <section class="card pro-entry">
+  <section id="entrySec" class="card pro-entry">
     <div id="custBox" style="display:none">
     <label class="lbl">客户名称（新客户直接打字；老客户点下面的名字）</label>
     <input id="customerName" class="input" list="customerList" placeholder="例如：张三" oninput="updateCustLabel()">
@@ -1125,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.01-Pro';
+var APP_VER = 'v60.02-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8103,6 +8100,11 @@ function openManualEntry(){
   }
   function kbNow(){
     var kb = Math.max(0, Number(window.__kbRaw) || 0, visualKb());
+    // 原生活跃上报常见偏大一倍（物理像素没折算），一律收敛到「屏高 − 至少 160px 内容」内
+    var cap = Math.max(0, window.innerHeight - 160);
+    var vk = visualKb();
+    if(vk > 24) kb = Math.min(vk + 40, kb || vk);
+    if(kb > cap) kb = cap;
     // WebView 原生没回传高度时：输入框聚焦且确实在 App 内，保守按屏高 42% 估
     if(kb < 20 && document.activeElement === input && typeof AndroidAi !== 'undefined'){
       kb = Math.min(360, Math.round(window.innerHeight * 0.42));
@@ -8119,8 +8121,25 @@ function openManualEntry(){
   function revealSaveRow(kb){
     var row = document.getElementById('mainSaveRow');
     if(!row) return;
-    // 已经浮在键盘上方（fixed），不用再滚动页面去露它
-    try{ if(getComputedStyle(row).position === 'fixed') return; }catch(e){}
+    var sec = document.getElementById('entrySec');
+    var vh = effectiveVh(kb);
+    // 先把录入框按可视高度撑开（上限 240px），让按钮自然落到底部
+    if(sec && input && kb > 20){
+      var spare = sec.offsetHeight - input.offsetHeight;
+      var top = sec.getBoundingClientRect().top;
+      var avail = vh - 12 - top - spare;
+      var h = Math.round(Math.max(72, avail));
+      input.style.setProperty('height', h + 'px', 'important');
+      input.style.setProperty('min-height', h + 'px', 'important');
+      // 二次微调：让按钮条底边正好贴住键盘上沿（差多少补多少）
+      var rb = row.getBoundingClientRect().bottom;
+      var delta = Math.round((vh - 4) - rb);
+      if(Math.abs(delta) >= 2){
+        h = Math.round(Math.max(72, h + delta));
+        input.style.setProperty('height', h + 'px', 'important');
+        input.style.setProperty('min-height', h + 'px', 'important');
+      }
+    }
     var vh = effectiveVh(kb);
     var r = row.getBoundingClientRect();
     var over = r.bottom - (vh - 12);
@@ -8146,10 +8165,6 @@ function openManualEntry(){
   function apply(on, kb){
     var wasOpen = document.body.classList.contains('kb-open');
     document.body.classList.toggle('kb-open', !!on);
-    try{
-      if(on) document.documentElement.style.setProperty('--kbpx', Math.round(kb) + 'px');
-      else document.documentElement.style.removeProperty('--kbpx');
-    }catch(e){}
     if(!on){
       if(input){
         try{ input.style.removeProperty('height'); input.style.removeProperty('min-height'); }catch(e){}
@@ -8166,8 +8181,11 @@ function openManualEntry(){
   }
   window.__kbLayout = function(raw){
     var kb = Number(raw) || 0;
-    // 原生桥可能回传物理像素，按屏宽比例折算成 CSS 像素
-    if(kb > window.innerHeight * 1.15 && window.devicePixelRatio > 1) kb = Math.round(kb / window.devicePixelRatio);
+    // 原生桥可能回传物理像素（常见正好翻一倍），按屏宽比例折算成 CSS 像素
+    if(window.devicePixelRatio > 1 && kb > window.innerHeight * 0.5){
+      var cd = Math.round(kb / window.devicePixelRatio);
+      if(cd > 80 && cd < window.innerHeight * 0.8) kb = cd;
+    }
     kb = Math.max(0, kb, visualKb());
     window.__kbRaw = kb;
     if(kb > 20) apply(true, kb);
@@ -10064,7 +10082,7 @@ function renderOrdersList(){
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
   h += `<span style="font-size:12px;font-weight:600;color:#666">开奖记录</span>`;
   if(lastDraw || (shop === 'B' && (typeof hkDrawObj === 'function') && hkDrawObj())){
-    h += `<button onclick="clearDrawRecord()" style="border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:4px;padding:3px 10px;font-size:12px">撤销</button>`;
+    h += `<button onclick="clearDrawRecordAll()" style="border:1px solid #cf1322;background:#fff;color:#cf1322;border-radius:4px;padding:3px 10px;font-size:12px">撤销</button>`;
   }
   h += `</div>`;
   if(lastDraw){
@@ -13242,6 +13260,47 @@ function genStatement(){
   ov.querySelector('#stmtCopy').onclick = function(){
     navigator.clipboard.writeText(text).then(function(){ myAlert('已复制'); });
   };
+}
+// 订单页「开奖记录」那一行的撤销：澳门、香港一起撤，不再只撤当前店铺那一份
+function clearDrawRecordAll(){
+  var mac = null, hkc = null;
+  try{ mac = JSON.parse(localStorage.getItem('lastDraw_shopA') || 'null'); }catch(e){ mac = null; }
+  try{ hkc = (typeof hkDrawCache === 'function') ? hkDrawCache() : null; }catch(e){ hkc = null; }
+  var hasM = !!(mac && (mac.specialNum || (mac.regularNums && mac.regularNums.length)));
+  var hasH = !!(hkc && hkc.nums && hkc.nums.length);
+  if(!hasM && !hasH){ myAlert('当前没有开奖记录'); return; }
+  var parts = [];
+  if(hasM) parts.push('澳门 期' + (mac.draw || mac.period || '') + (mac.specialNum ? (' 特' + String(mac.specialNum).padStart(2, '0')) : ''));
+  if(hasH) parts.push('香港 期' + (hkc.draw || '') + (hkc.specialNum ? (' 特' + String(hkc.specialNum).padStart(2, '0')) : ''));
+  myConfirm('撤销这' + (hasM && hasH ? '两' : '一') + '期开奖记录？\n\n' + parts.join('\n') + '\n\n订单不会被删除，只是把开奖结果去掉，撤完可以重新录。', function(){
+    // 澳门
+    try{ localStorage.removeItem('lastDraw_shopA'); }catch(e){}
+    try{ localStorage.removeItem('lastDrawPeriod_shopA'); }catch(e){}
+    try{ localStorage.removeItem(MAC_DRAW_GLOBAL_KEY); }catch(e){}
+    try{ lastDraw = null; }catch(e){}
+    // 香港
+    try{ localStorage.removeItem('hk_draw_cache_global'); }catch(e){}
+    try{ localStorage.removeItem('hk_draw_cache_shopA'); }catch(e){}
+    try{ localStorage.removeItem('hk_draw_cache_shopB'); }catch(e){}
+    try{ renderHKDraw(); }catch(e){}
+    try{ renderLiveBalls([]); }catch(e){}
+    try{ updateDrawInfoBar(); }catch(e){}
+    // 自动结算那条赔付记录：一并询问回滚
+    var idx = (typeof pays !== 'undefined' && pays) ? pays.findIndex(function(p){ return p && p.product === '自动结算'; }) : -1;
+    if(idx >= 0){
+      var rec = pays[idx];
+      myConfirm('还发现一条「自动结算」赔付记录：' + (rec.note || '') + ' ' + (Number(rec.amount) || 0).toFixed(2) + ' 元。\n一起删除并回滚上家累计吗？', function(){
+        var before = rec._upBefore;
+        pays.splice(idx, 1);
+        try{ savePays(); }catch(e){}
+        if(typeof before !== 'undefined'){ try{ localStorage.setItem('upCum', String(before)); }catch(e){} }
+        else myAlert('这条记录是旧版本存的，没有回滚点。上家累计请到「飞单统计」手工核对一次。');
+      });
+    }
+    try{ renderAll(); }catch(e){}
+    try{ if(typeof billRefreshBar === 'function') billRefreshBar(); }catch(e){}
+    myAlert('开奖记录已撤销');
+  });
 }
 function clearDrawRecord(){
   if(shop === 'B'){
