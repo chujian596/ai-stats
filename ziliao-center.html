@@ -51,14 +51,14 @@
   .top-actions{display:flex;align-items:center;gap:6px}
   .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:7px 9px;color:var(--muted);font-size:12px;white-space:nowrap}
   .ghost:hover{color:var(--text);border-color:var(--faint)}
-  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--card-2)}
+  .tier-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
   .tier-bar .tier-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
   .tier-btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--text)}
   .tier-btn .n{font-weight:800;font-variant-numeric:tabular-nums}
   .tier-btn .nm{color:var(--muted);font-size:10px;margin-left:3px}
   .tier-btn.active{border-color:var(--text);background:var(--text);color:var(--bg)}
   .tier-btn.active .nm{color:rgba(255,255,255,.72)}
-  .tier-hint{font-size:10px;color:var(--muted);margin-left:auto}
+  .tier-hint{font-size:10px;color:var(--muted);margin-left:6px}
   .hero{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(135deg,#10264c 0%,#173b6b 52%,#0f223f 100%);color:#fff;padding:24px 22px 20px;margin-bottom:12px;box-shadow:0 20px 45px rgba(16,38,76,.22)}
   .hero::after{content:"";position:absolute;right:-62px;top:-82px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(123,168,255,.38),rgba(123,168,255,0) 68%);pointer-events:none}
   .hero-grid{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;position:relative;z-index:1}
@@ -456,8 +456,6 @@
     </div>
   </header>
 
-  <div class="tier-bar" id="tierBar" role="tablist" aria-label="站点档位"></div>
-
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-main">
@@ -495,6 +493,7 @@
       </div>
       <div class="ledger-toolbar">
         <div class="period-box"><label for="briefPeriod">期号</label><select id="briefPeriod"></select></div>
+        <div class="tier-bar" data-tierbar></div>
         <button class="btn" id="briefBack" type="button">回到待开</button>
         <div style="flex:1"></div><span class="chip" id="briefModeChip">—</span>
       </div>
@@ -546,6 +545,7 @@
       </div>
       <div class="ledger-toolbar">
         <div class="period-box"><label for="nowPeriod">期号</label><select id="nowPeriod"></select></div>
+        <div class="tier-bar" data-tierbar></div>
         <button class="btn" id="nowBack" type="button">回到待开</button>
         <button class="btn" id="nowExpand" type="button">展开全部</button>
         <div style="flex:1"></div><span class="chip" id="nowModeChip">—</span>
@@ -600,6 +600,7 @@
       <div class="section">
         <div class="ledger-toolbar">
           <div class="period-box"><label for="mixPeriod">期号</label><select id="mixPeriod"></select></div>
+          <div class="tier-bar" data-tierbar></div>
           <button class="btn" id="mixBack" type="button">回到待开</button>
           <div style="flex:1"></div><span class="chip" id="mixModeChip">—</span>
         </div>
@@ -638,6 +639,7 @@
         <div class="stats" id="nineStats"></div>
         <div class="ledger-toolbar">
           <div class="period-box"><label for="ninePeriod">期号</label><select id="ninePeriod"></select></div>
+          <div class="tier-bar" data-tierbar></div>
           <button class="btn primary" id="nineBack" type="button">回到待开</button>
           <button class="btn" id="nineExpand" type="button">展开全部</button>
           <button class="btn" id="nineRefresh" type="button">刷新</button>
@@ -723,6 +725,7 @@
         <div class="stats" id="killStats"></div>
         <div class="ledger-toolbar">
           <div class="period-box"><label for="killPeriod">期号</label><select id="killPeriod"></select></div>
+          <div class="tier-bar" data-tierbar></div>
           <button class="btn primary" id="killBack" type="button">回到待开</button>
           <button class="btn" id="killExpand" type="button">展开全部</button>
           <button class="btn" id="killRefresh" type="button">刷新</button>
@@ -836,6 +839,7 @@
         <div class="dims" id="ssTabs"></div>
         <div class="change-row" style="margin:8px 0">
           <div class="period-box"><label for="ssPeriod">期号</label><select id="ssPeriod"></select></div>
+          <div class="tier-bar" data-tierbar></div>
           <button class="btn ghostish" id="ssBack" type="button">回到待开</button>
           <button class="btn" id="ssCopy" type="button">复制本期</button>
           <button class="btn ghostish" id="ssExpand" type="button">展开全部</button>
@@ -925,6 +929,7 @@
         <div class="dims" id="exTabs"></div>
         <div class="change-row" style="margin:8px 0">
           <div class="period-box"><label for="exPeriod">期号</label><select id="exPeriod"></select></div>
+          <div class="tier-bar" data-tierbar></div>
           <button class="btn ghostish" id="exBack" type="button">回到待开</button>
           <button class="btn" id="exCopy" type="button">复制本期</button>
           <button class="btn ghostish" id="exExpand" type="button">展开全部</button>
@@ -975,7 +980,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.14</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.15</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1053,17 +1058,19 @@
     else if(S.tab==='ss' && typeof embeds!=='undefined' && embeds.ss) embeds.ss.render();
   }
   function renderTierBar(){
-    var bar=$('tierBar'); if(!bar) return;
+    var bars=document.querySelectorAll('[data-tierbar]'); if(!bars.length) return;
     var cur=curTierKey();
-    bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
-      var n=tierCount(t), act=t.key===cur?' active':'';
-      return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+esc(t.desc)+'"><span class="n">'+n+'</span><span class="nm">'+esc(t.name)+'</span></button>';
-    }).join('')+'<span class="tier-hint" id="tierHint"></span>';
-    Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
-      b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); refreshAll(); });
-    });
     var def=tierDef(), excluded=DIR.sites.filter(function(x){return x.tier==='added'&&def.grades.indexOf(x.grade)<0;});
-    var hint=$('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+    var hintText='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
+    Array.prototype.forEach.call(bars,function(bar){
+      bar.innerHTML='<span class="tier-label">站池</span>'+TIERS.map(function(t){
+        var n=tierCount(t), act=t.key===cur?' active':'';
+        return '<button type="button" class="tier-btn'+act+'" data-tier="'+t.key+'" title="'+esc(t.desc)+'"><span class="n">'+n+'</span><span class="nm">'+esc(t.name)+'</span></button>';
+      }).join('')+'<span class="tier-hint">'+esc(hintText)+'</span>';
+      Array.prototype.forEach.call(bar.querySelectorAll('.tier-btn'),function(b){
+        b.addEventListener('click',function(){ try{localStorage.setItem(TIER_KEY,b.dataset.tier);}catch(e){} renderTierBar(); refreshAll(); });
+      });
+    });
   }
   function fetchJson(u){
     return fetch(u+(u.indexOf('?')>=0?'&':'?')+'t='+Date.now(),{cache:'no-cache'}).then(function(r){
