@@ -823,10 +823,25 @@
           <button class="btn ghostish" id="ssExpand" type="button">展开全部</button>
         </div>
         <div id="ssPend">
-          <div class="two-col">
-            <div class="subcard"><h3>生肖共识</h3><div class="subhint" id="ssPendZodHint"></div><div id="ssPendZodRank"></div></div>
-            <div class="subcard"><h3>号码共识</h3><div class="subhint" id="ssPendCodeHint"></div><div id="ssPendCodeRank"></div></div>
+          <div class="mix-cols">
+            <div class="subcard">
+              <h3>六肖 · 生肖共识</h3>
+              <div class="subhint" id="ssMixSixHint"></div>
+              <div id="ssMixSixZod"></div>
+            </div>
+            <div class="subcard">
+              <h3>七肖 · 生肖共识</h3>
+              <div class="subhint" id="ssMixSevenHint"></div>
+              <div id="ssMixSevenZod"></div>
+            </div>
           </div>
+          <div class="subcard" style="margin-bottom:12px">
+            <h3>号码共识</h3>
+            <div class="subhint" id="ssPendCodeHint"></div>
+            <div id="ssPendCodeRank"></div>
+          </div>
+          <div id="ssPendZodRank" class="hidden"></div>
+          <div id="ssPendZodHint" class="hidden"></div>
           <div class="filterbar">
             <input id="ssPendSearch" type="search" placeholder="搜站名 / 站点代号" autocomplete="off">
             <select id="ssPendSort">
@@ -933,7 +948,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.4</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.5</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -2275,6 +2290,7 @@
         el('PendHint').textContent='按站次排序 · 共 '+zodRows.length+' 项 · 基于 '+visible.length+' 站';
         renderRank(zodRows,null,el('PendRank'));
       }
+      if(cfg.mixPair) cfg.mixPair((S.pend.sites||[]).filter(tierAllowed));
       el('PendSearch').value=st.pend.q; el('PendSort').value=st.pend.sort;
       applyChips('PendFilter',st.pend.filter);
       var list=visible.slice();
@@ -2419,7 +2435,19 @@
   var embeds={
     ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, dims:[
       {key:'six',title:'六肖',file:'six-zodiac-ledger.json',ext:'six'},
-      {key:'seven',title:'七肖',file:'seven-zodiac-ledger.json',ext:'seven'}]}),
+      {key:'seven',title:'七肖',file:'seven-zodiac-ledger.json',ext:'seven'}],
+      mixPair:function(sites){
+        var sixA={}, sevA={}, sixN=0, sevN=0;
+        sites.forEach(function(s){
+          var sx=s.six, sv=s.seven;
+          if(sx&&(sx.zodiacs||[]).length){ sixN++; (sx.zodiacs||[]).forEach(function(p){sixA[p]=(sixA[p]||0)+1;}); }
+          if(sv&&(sv.zodiacs||[]).length){ sevN++; (sv.zodiacs||[]).forEach(function(p){sevA[p]=(sevA[p]||0)+1;}); }
+        });
+        $('ssMixSixHint').textContent=sixN+' 站 · 每站 6 肖 · 12 肖全列';
+        $('ssMixSevenHint').textContent=sevN+' 站 · 每站 7 肖 · 12 肖全列';
+        $('ssMixSixZod').innerHTML=allRankHtml(sixA,'nine',sixN*6);
+        $('ssMixSevenZod').innerHTML=allRankHtml(sevA,'nine',sevN*7);
+      }}),
     ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, dims:[
       {key:'pingte',title:'平特一肖',file:'pingte-ledger.json',ext:'pingte',hot:'actual'},
       {key:'wave',title:'波色',file:'wave-ledger.json',ext:'wave',hot:'actualWave'},
