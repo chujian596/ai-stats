@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.05-Pro';
+var APP_VER = 'v60.06-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -12932,21 +12932,6 @@ function myAlert(msg){
   ov.querySelector('#maOk').onclick = () => ov.remove();
 }
 // app 内确认框（不显示网址），用法：myConfirm('确定?', () => { 确定后做的事 })
-function myConfirm(msg, onOk){
-  const ov = document.createElement('div');
-  ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:320px;width:100%;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
-    + '<div style="padding:20px 20px 10px;font-size:16px;font-weight:700;text-align:center;color:#333">提示</div>'
-    + '<div style="padding:0 20px 20px;font-size:15px;text-align:center;color:#333;line-height:1.6;white-space:pre-line">' + msg + '</div>'
-    + '<div style="display:flex;border-top:1px solid #eee">'
-    + '<button id="mcNo" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#666;border-right:1px solid #eee">取消</button>'
-    + '<button id="mcYes" style="flex:1;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确定</button>'
-    + '</div></div>';
-  document.body.appendChild(ov);
-  ov.querySelector('#mcNo').onclick = () => ov.remove();
-  ov.querySelector('#mcYes').onclick = () => { ov.remove(); if(onOk) onOk(); };
-}
-
 function myConfirm(msg, cb){
   const ov = document.createElement('div');
   ov.className = 'ai-ov'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -13267,7 +13252,8 @@ function clearDrawRecordAll(){
   if(!hasM && !hasH){ myAlert('当前没有开奖记录'); return; }
   var parts = [];
   if(hasM) parts.push('澳门 期' + (mac.draw || mac.period || '') + (mac.specialNum ? (' 特' + String(mac.specialNum).padStart(2, '0')) : ''));
-  if(hasH) parts.push('香港 期' + (hkc.draw || '') + (hkc.specialNum ? (' 特' + String(hkc.specialNum).padStart(2, '0')) : ''));
+  var _hsp = (hkc.nums && hkc.nums.length >= 7) ? Number(hkc.nums[6]) : (hkc.specialNum || hkc.special || 0);
+  if(hasH) parts.push('香港 期' + (hkc.draw || hkc.period || '') + (_hsp ? (' 特' + String(_hsp).padStart(2, '0') + '(' + (NUM2ZODIAC[_hsp] || '') + ')') : ''));
   myConfirm('撤销这' + (hasM && hasH ? '两' : '一') + '期开奖记录？\n\n' + parts.join('\n') + '\n\n订单不会被删除，只是把开奖结果去掉，撤完可以重新录。', function(){
     // 澳门
     try{ localStorage.removeItem('lastDraw_shopA'); }catch(e){}
