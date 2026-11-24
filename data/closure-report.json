@@ -2,9 +2,9 @@
   "period": 328,
   "cohort": "194",
   "cohortLabel": "194 站（100 基线 + 94 候选）",
-  "updatedAt": "2026-11-24 18:07:05",
-  "currentStage": "1800",
-  "currentStageLabel": "18:00 盘前封存",
+  "updatedAt": "2026-11-24 19:43:18",
+  "currentStage": "2000",
+  "currentStageLabel": "20:00 开奖前补充",
   "registry": {
     "total": 194,
     "core": 100,
@@ -246,7 +246,32 @@
     {
       "key": "2000",
       "label": "20:00 开奖前补充",
-      "done": false
+      "done": true,
+      "time": "19:42",
+      "generated_at": "2026-11-24 19:42:40",
+      "snapshot": "snapshot-328-1942.json",
+      "ok": 194,
+      "fail": 0,
+      "notUpdated": 4,
+      "carry": 0,
+      "retry": 2,
+      "coverage": {
+        "nine": 168,
+        "kill": 120,
+        "pingte": 163,
+        "wave": 153,
+        "tail": 139,
+        "head": 132,
+        "size": 88,
+        "parity": 68
+      },
+      "changes": 0,
+      "changeStations": 0,
+      "substantive": 0,
+      "substantiveStations": 0,
+      "changeZodiacs": [],
+      "significant": false,
+      "changeDetail": []
     }
   ],
   "changes": {
@@ -258,7 +283,7 @@
   "seal": {
     "sha": "16625b0025c3",
     "lockedAt": "2026-11-24 09:32:59",
-    "lockColumns": 13,
+    "lockColumns": 17,
     "lockFirstSeen": "2026-11-23T22:12:57.087477",
     "claims": [
       {
@@ -289,19 +314,23 @@
   },
   "forum": {
     "posts": 600,
-    "push": 1148,
-    "kill": 89,
-    "at": "2026-11-24T18:06:40.975594"
+    "push": 1071,
+    "kill": 66,
+    "at": "2026-11-24T19:42:54.293905"
   },
   "online": {
     "latestPeriod": 328,
-    "latestUpdatedAt": "2026-11-24 18:06:41",
+    "latestUpdatedAt": "2026-11-24 19:42:54",
     "cloudflare": "",
     "githubPages": ""
   },
-  "top3": [],
+  "top3": [
+    "蛇",
+    "牛",
+    "羊"
+  ],
   "consensus": {
-    "snapshot": "snapshot-328-1806.json",
+    "snapshot": "snapshot-328-1942.json",
     "sites": 194,
     "coreDen": 119,
     "pickDen": 182,
@@ -435,7 +464,11 @@
     "tagHist": "3.4%（6/175，2~7%）",
     "tagsPending": 12,
     "calibrationIssues": 21,
-    "crowdTop3": []
+    "crowdTop3": [
+      "蛇",
+      "牛",
+      "羊"
+    ]
   },
   "notes": [
     "显著改料段：15:30 下午更新、18:00 盘前封存（≥5 站或涉及共识 Top3）"
@@ -443,7 +476,8 @@
   "snapshots": [
     "snapshot-328-0932.json",
     "snapshot-328-1530.json",
-    "snapshot-328-1806.json"
+    "snapshot-328-1806.json",
+    "snapshot-328-1942.json"
   ],
   "history": [
     {
@@ -606,14 +640,14 @@
   "periods": [
     {
       "period": 328,
-      "stagesDone": 3,
+      "stagesDone": 4,
       "unionSites": 194,
       "changes": 55,
       "pending": 55,
       "nine": 168,
       "kill": 120,
-      "lastStage": "1800",
-      "lastTime": "18:06",
+      "lastStage": "2000",
+      "lastTime": "19:42",
       "seal": "16625b0025c3",
       "drawn": ""
     },
