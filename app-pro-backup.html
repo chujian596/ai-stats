@@ -479,7 +479,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
   </section>
 
   <section id="tab-rank" class="card tab-panel pro-panel">
-    <div style="display:flex;gap:6px;margin-bottom:6px">
+    <div id="rankQuickRow" style="display:flex;gap:6px;margin-bottom:6px">
       <div data-rank-section="rank" onclick="openRankSection('rank')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
       <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.02-Pro';
+var APP_VER = 'v60.03-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -8123,21 +8123,37 @@ function openManualEntry(){
     if(!row) return;
     var sec = document.getElementById('entrySec');
     var vh = effectiveVh(kb);
-    // 先把录入框按可视高度撑开（上限 240px），让按钮自然落到底部
-    if(sec && input && kb > 20){
-      var spare = sec.offsetHeight - input.offsetHeight;
-      var top = sec.getBoundingClientRect().top;
+    // 录入框只做温和压缩（84~150px），不靠拉长输入框去顶键盘
+    if(input && kb > 20){
+      var spare = (sec ? sec.offsetHeight - input.offsetHeight : 0);
+      var top = (sec ? sec.getBoundingClientRect().top : 0);
       var avail = vh - 12 - top - spare;
-      var h = Math.round(Math.max(72, avail));
+      var h = Math.round(Math.max(84, Math.min(avail, 150)));
       input.style.setProperty('height', h + 'px', 'important');
       input.style.setProperty('min-height', h + 'px', 'important');
-      // 二次微调：让按钮条底边正好贴住键盘上沿（差多少补多少）
-      var rb = row.getBoundingClientRect().bottom;
-      var delta = Math.round((vh - 4) - rb);
-      if(Math.abs(delta) >= 2){
-        h = Math.round(Math.max(72, h + delta));
-        input.style.setProperty('height', h + 'px', 'important');
-        input.style.setProperty('min-height', h + 'px', 'important');
+    }
+    // 页面收口：把「排行榜/今日归档/历史订单/清除订单」那排的底边对到可视区底部，
+    // 整页正好在键盘上沿结束，不再出现被键盘切一半的按钮排
+    if(kb > 20){
+      // 在一组「块与块的交界」里挑离可视区底部最近的那条，把页面滚到正好收在它下面，
+      // 这样页面在键盘上沿结束，也不会把某一排按钮切掉一半
+      var cands = [];
+      try{
+        [document.getElementById('entrySec'), document.querySelector('.pro-tabs'),
+         document.getElementById('rankQuickRow'),
+         (document.getElementById('rankQuickRow') || {}).nextElementSibling].forEach(function(el){
+          if(!el) return;
+          var b = el.getBoundingClientRect().bottom;
+          if(b > 0 && b < vh + 40) cands.push(b);
+        });
+      }catch(e){}
+      if(cands.length){
+        var best = cands[0], bd = Math.abs(best - (vh - 8));
+        cands.forEach(function(b){ var d = Math.abs(b - (vh - 8)); if(d < bd){ bd = d; best = b; } });
+        var over = Math.round(best - (vh - 8));
+        if(Math.abs(over) > 2){
+          try{ window.scrollBy({top: over, behavior:'auto'}); }catch(e){ window.scrollBy(0, over); }
+        }
       }
     }
     var vh = effectiveVh(kb);
