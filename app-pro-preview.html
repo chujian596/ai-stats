@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.94-Pro';
+var APP_VER = 'v59.95-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7371,6 +7371,30 @@ function codeSalesForOrder(o, prod){
   return (Number(o.price)||0)*times;
 }
 // 同一单里同一个代码只算一次：codeAmts 已是该代码合并后的总额，再按 codes 逐次累加会翻倍
+
+// 一条订单里每一行各多少钱：新单直接读保存时的 lines，老单按原文重新解析算一遍。
+function orderLineItems(o){
+  if(o && o.lines && o.lines.length) return o.lines;
+  const out = [];
+  String((o && o.raw) || '').split(';').forEach(function(l){
+    l = String(l).trim();
+    if(!l) return;
+    const hk = /港/.test(l);
+    try {
+      const q = l.replace(/^\[手动\]\s*/, '');
+      const r = parseLine(q);
+      if(r && r.codes && r.price != null){
+        const _q = r.codes.length;
+        const _a = r.isPer ? r.price * _q : r.price;
+        out.push({ r: l, a: _a, hk: hk });
+      } else {
+        out.push({ r: l, a: null, hk: hk });
+      }
+    } catch(e){ out.push({ r: l, a: null, hk: hk }); }
+  });
+  return out;
+}
+
 function eachUniqueOrderCode(o, fn, pred){
   const seen = {};
   (o.codes||[]).forEach(function(c){
@@ -9427,6 +9451,11 @@ renderAll();
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     customer,
     raw: parsed.filter(p=>!p.hk).map(p=>p.raw).join('; '),
+    lines: parsed.filter(p=>!p.hk).map(function(p){
+      var _q = (p.codes || []).length;
+      var _u = p.isPer ? p.price : (p.price / (_q || 1));
+      return { r: p.raw, a: _q * _u, hk: false };
+    }),
     price: totalAmount,
     qty: allCodes.length,
     amount: totalAmount,
@@ -9450,6 +9479,11 @@ renderAll();
         id: `${Date.now()}-hk-${Math.random().toString(36).slice(2,7)}`,
         customer,
         raw: hkRows.map(p=>p.raw).join('; '),
+        lines: hkRows.map(function(p){
+          var _q = (p.codes || []).length;
+          var _u = p.isPer ? p.price : (p.price / (_q || 1));
+          return { r: p.raw, a: _q * _u, hk: true };
+        }),
         price: hkTotal,
         qty: hkCodes.length,
         amount: hkTotal,
@@ -10076,10 +10110,11 @@ function renderOrdersList(){
       }
       const _badge = `<span style="display:inline-block;font-size:10px;line-height:14px;padding:0 4px;border-radius:3px;margin-right:4px;border:1px solid ${hk?'#f5d27a':'#d9e2ec'};background:${hk?'#fffbe6':'#f1f5f9'};color:${hk?'#b45309':'#475569'};font-weight:700;vertical-align:1px">${hk?'香港':'澳门'}</span>`;
       // Show original lines
-      const rawLines = (o.raw||'').split('; ').filter(Boolean);
-      if(rawLines.length){
-        rawLines.forEach((rl, ri) => {
-          h += `<div style="color:#333;margin-bottom:1px;font-size:13px">${ri===0?_badge:''}${esc(rl)}</div>`;
+      const _items = orderLineItems(o);
+      if(_items.length){
+        _items.forEach((it, ri) => {
+          const _aTxt = (it.a == null || isNaN(it.a)) ? '' : ('= ' + (Math.round(it.a * 100) / 100).toFixed(2).replace(/\.00$/, '') + ' 元');
+          h += `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;color:#333;margin-bottom:2px;font-size:13px"><span style="word-break:break-all">${ri===0?_badge:''}${esc(String(it.r||'').replace(/^\s*/,''))}</span><span style="color:#1677ff;font-size:11px;white-space:nowrap;flex:0 0 auto">${_aTxt}</span></div>`;
         });
       } else {
         h += `<div style="color:#333;font-size:13px">${_badge}${esc((o.codes||[]).join(' '))}</div>`;
@@ -10210,7 +10245,7 @@ function renderOrdersList(){
       _listO.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
         if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) emMap2[c] = (emMap2[c]||0) + amt;
       }); });
-      emRawLines(_listO).forEach(function(l){ upCopyLines.push(l); });
+      emLineBlocks(_listO).forEach(function(b){ upCopyLines.push(b.t); });
     }
   } catch(e){}
   // 分类金额用于复制
@@ -10230,6 +10265,35 @@ function renderOrdersList(){
       if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) cpEm += amt;
     }); });
   } catch(e){}
+  // 逐项明细（带凑整标记），面板和复制共用：{key, amt, per, gap, name}
+  let upItems = { sp: [], pte: [], lx: [], em: [] };
+  try {
+    const _sD2 = getSplitSales();
+    Object.keys(_sD2).sort().forEach(function(k){
+      const real2 = flownRealOf(k), per2 = (flownPerPos[k] || 0);
+      if(!(real2 > 0) && !(per2 > 0)) return;
+      if(Math.max(0, _sD2[k] - splitTakeAll) <= 0 && real2 <= 0) return;
+      upItems.sp.push({ key: k, amt: real2, per: per2, gap: real2 - per2 });
+    });
+    Object.keys(flownPerPos || {}).forEach(function(k){
+      if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0 || k.indexOf('二中二') === 0 || k.indexOf('三中三') === 0 || k.indexOf('三中二') === 0) return;
+      if(_sD2[k] !== undefined) return;
+      const real3 = flownRealOf(k);
+      if(!(real3 > 0)) return;
+      upItems.sp.push({ key: k, amt: real3, per: (flownPerPos[k] || 0), gap: real3 - (flownPerPos[k] || 0), stray: true });
+    });
+    pteRecordZodiacs(_listO).forEach(function(z){
+      const real4 = flownRealOf('平特'+z), per4 = (flownPerPos['平特'+z] || 0);
+      if(!(real4 > 0)) return;
+      upItems.pte.push({ key: z, amt: real4, per: per4, gap: real4 - per4 });
+    });
+    lxFlyRecords().forEach(function(rec){
+      const per5 = (flownPerPos[rec.key] || 0);
+      if(!(rec.amt > 0)) return;
+      upItems.lx.push({ key: rec.name, amt: rec.amt, per: per5, gap: (rec.amt || 0) - per5 });
+    });
+  } catch(e){}
+
   // 上家对账：原额（记账原额）＋ 凑整（实付−原额）＝ 实付；按栏目拆开
   let gc = { sp: 0, pte: 0, lx: 0, em: 0 };
   try {
@@ -10255,17 +10319,45 @@ function renderOrdersList(){
   const owedAmt = _drawO ? (flyOutTotal - flyBackTotal) : 0;
   const netSettle = _drawO ? (rebateAmt - owedAmt) : null;
   var _perTxt = (_drawO && _drawO.period) ? ('  ' + _drawO.period + ' 期') : '';
+  const _ff = function(v){ return (Math.round(v * 100) / 100).toFixed(2).replace(/\.00$/, ''); };
   let copyTail = '飞单对账' + _perTxt + '\n'
-    + `飞走合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平特 ${cpPte.toFixed(0)} + 连肖 ${cpLx.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
-  if(_hasG(gRound)) copyTail += `\n其中凑整多付 ${gRound.toFixed(0)} 元（${gapTxt}），记账原额 ${gBase.toFixed(0)} 元`;
-  if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
+    + `飞走合计 ${_ff(flyOutTotal)} 元（特 ${_ff(cpSp)} + 平特 ${_ff(cpPte)} + 连肖 ${_ff(cpLx)} + 二/三 ${_ff(cpEm)}）`;
+  if(_hasG(gRound)) copyTail += `\n记账原额 ${_ff(gBase)} ＋ 凑整 ${_ff(gRound)} ＝ ${_ff(flyOutTotal)}（${gapTxt}）`;
+  // 逐项明细：每一类都列清楚，凑整标在该项后面
+  copyTail += '\n\n飞走明细:';
+  const _itemLines = function(label, arr, prefix){
+    if(!arr.length){ copyTail += '\n  ' + label + '：无'; return; }
+    let sum = 0;
+    const parts = [];
+    arr.forEach(function(x){
+      sum += x.amt;
+      const nm = prefix ? (prefix + x.key) : x.key;
+      const g = (Math.abs(x.gap) >= 0.5) ? ('（原' + _ff(x.per) + ' +' + _ff(x.gap) + '凑整）') : '';
+      parts.push(nm + ' ' + _ff(x.amt) + g);
+    });
+    copyTail += '\n  ' + label + '：' + parts.join(' · ') + '  合计 ' + _ff(sum);
+  };
+  _itemLines('特码', upItems.sp, '特');
+  _itemLines('平特', upItems.pte, '平特');
+  _itemLines('连肖', upItems.lx, '连肖');
+  if(cpEm || emLineBlocks(_listO).length){
+    copyTail += '\n  二·三中三 ' + _ff(cpEm) + '：';
+    emLineBlocks(_listO).forEach(function(b){ copyTail += '\n    ' + b.t; });
+  } else copyTail += '\n  二·三中三：无';
+  // 明细合计与飞走合计对平校验
+  try {
+    let _ds = 0; upItems.sp.forEach(x => _ds += x.amt); upItems.pte.forEach(x => _ds += x.amt);
+    upItems.lx.forEach(x => _ds += x.amt); _ds += cpEm;
+    copyTail += '\n  ' + (Math.abs(_ds - flyOutTotal) < 0.5 ? ('✓ 明细合计 ' + _ff(_ds) + ' ＝ 飞走合计 ' + _ff(flyOutTotal)) : ('⚠ 明细合计 ' + _ff(_ds) + ' ≠ 飞走合计 ' + _ff(flyOutTotal)));
+  } catch(e){}
+  if(rebateOn && flyOutTotal > 0) copyTail += `\n\n返水 ${_ff(flyOutTotal)} × ${(rebateRate*100).toFixed(0)}% = ${_ff(rebateAmt)}（另计）`;
   if(_drawO){
     copyTail += '\n\n上家赔回明细:';
     if(flyBackLines.length){ flyBackLines.forEach(function(l){ copyTail += '\n  ' + l; }); }
     else copyTail += '\n  本期没有命中项';
-    copyTail += `\n合计 +${flyBackTotal.toFixed(0)}`;
-    copyTail += `\n\n应付上家 ${flyOutTotal.toFixed(0)} - ${flyBackTotal.toFixed(0)} = ${owedAmt.toFixed(0)}`;
-    copyTail += `\n净收（返水 ${rebateAmt.toFixed(0)} − 应付 ${owedAmt.toFixed(0)}）＝ ${netSettle>=0?'+':'-'}${Math.abs(netSettle).toFixed(0)}`;
+    copyTail += `\n合计 +${_ff(flyBackTotal)}`;
+    copyTail += `\n\n应付上家 ${_ff(flyOutTotal)} - ${_ff(flyBackTotal)} = ${_ff(owedAmt)}`;
+    copyTail += `\n净收（返水 ${_ff(rebateAmt)} − 应付 ${_ff(owedAmt)}）＝ ${netSettle>=0?'+':'-'}${_ff(Math.abs(netSettle))}`;
   } else copyTail += '\n\n未开奖，结算待定';
   window._upCopy = copyTail;
   h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">`;
@@ -10334,7 +10426,8 @@ function renderOrdersList(){
       if(!(due > 0 || paidK > 0)) return;
       spN++; spPaid += paidK; if(!(paidK > 0)) spDue += due;
       const hit = _drawO && Number(k) === _drawO.specialNum;
-      spB += '<div style="' + CELL + (hit ? ';color:#cf1322;font-weight:700' : '') + '"><span>' + k + '</span><span>' + showK.toFixed(0) + (paidK > 0 ? '' : '＊') + '</span></div>';
+      const _g0 = paidK - (flownPerPos[k] || 0);
+      spB += '<div style="' + CELL + (hit ? ';color:#cf1322;font-weight:700' : '') + '"><span>' + k + '</span><span>' + showK.toFixed(0) + (paidK > 0 ? '' : '＊') + (Math.abs(_g0) >= 0.5 ? '<i style="font-style:normal;color:#cf1322;font-size:9px">' + (Math.abs(_g0) >= 1 ? ' +' + _g0.toFixed(0) : '') + '</i>' : '') + '</span></div>';
     });
     var spBody = spB ? '<div style="' + GRID(74) + '">' + spB + '</div>' : '<div style="color:#bbb">—</div>';
     // 平特
@@ -10367,7 +10460,7 @@ function renderOrdersList(){
     });
     var lxBody = lxB ? '<div style="' + GRID(92) + '">' + lxB + '</div>' : '<div style="color:#bbb">—</div>';
     // 二·三中三
-    var emB = '', emN = 0, emSum = 0;
+    var emB = '', emN = 0, emSum = 0, emChkSum = 0;
     var emOnD = true; try { emOnD = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnD){
       const emD0 = {};
@@ -10375,9 +10468,12 @@ function renderOrdersList(){
         if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) emD0[c] = (emD0[c]||0) + a;
       }); });
       Object.keys(emD0).forEach(function(c){ emN++; emSum += emD0[c]; });
-      emRawLines(_listO).forEach(function(l){
-        emB += '<div style="color:#333;font-size:11px;line-height:1.6;white-space:nowrap;overflow-x:auto">' + esc(l) + '</div>';
+      emLineBlocks(_listO).forEach(function(b){
+        emChkSum += (b.a || 0);
+        emB += '<div style="color:' + (b.ok ? '#333' : '#cf1322') + ';font-size:11px;line-height:1.7;white-space:nowrap;overflow-x:auto">' + esc(b.t) + (b.ok ? '' : ' ←未能复算') + '</div>';
       });
+      const _diff = emSum - emChkSum;
+      emB += '<div style="font-size:10px;margin-top:3px;color:' + (Math.abs(_diff) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (Math.abs(_diff) < 0.5 ? ('✓ 明细对平：' + emChkSum.toFixed(2).replace(/\.00$/, '') + ' ＝ 实付 ' + emSum.toFixed(2).replace(/\.00$/, '')) : ('⚠ 明细差 ' + _diff.toFixed(2) + '（明细 ' + emChkSum.toFixed(2) + ' / 实付 ' + emSum.toFixed(2) + '）')) + '</div>';
     }
     var emBody = emB ? emB : '<div style="color:#bbb">—</div>';
     const _sTxt = function(v){ return Math.abs(v) >= 0.5 ? (' · 残留 ' + v.toFixed(0)) : ''; };
@@ -10511,6 +10607,76 @@ function emComboRows(emMap, drawSet){
 
 // 二/三中三：直接取「录入原文行」，号码保持你敲的顺序，不再排序、不再跨单合并。
 // 一屏就是你当时敲的那几行，可以照着原样复算。
+
+// 二/三中三逐行（带该行金额）：一行 = 一笔录入，号码保持录入顺序
+
+// 二/三中三统一口径：一律按「解析结果」生成同一格式，不照抄原文，避免有的写复式有的不写
+//   整块满足 C(号码数,取数) → 「产品 号码 复式N码 M组 各组X ＝ 合计」
+//   凑不成整块           → 「产品 号码 散 M组 各组X ＝ 合计」
+//   只有一组             → 「产品 号码 × X ＝ 合计」
+function emLineBlocks(list){
+  const out = [];
+  const _c = function(n, k){ let r = 1; for(let j = 0; j < k; j++){ r = r * (n - j) / (j + 1); } return Math.round(r); };
+  const _f = function(v){ return (Math.round(v * 100) / 100).toFixed(2).replace(/\.00$/, ''); };
+  (list || []).forEach(function(o){
+    orderLineItems(o).forEach(function(it){
+      let t0 = String(it.r || '').replace(/^\[手动\]\s*/, '').replace(/^\s*[（(]?(香港|澳门|澳|港)[)）]?\s*/, '');
+      if(!/(二中二|三中二|三中三)/.test(t0)) return;
+      let pr = '', codes = [], per = 0;
+      try {
+        const r = parseLine(t0);
+        if(r && r.codes && r.codes.length){
+          codes = r.codes;
+          pr = String(codes[0]).split(':')[0];
+          per = r.isPer ? Number(r.price) : (Number(r.price) / codes.length);
+        }
+      } catch(e){}
+      if(!codes.length){
+        out.push({ t: t0, a: it.a, ok: false });
+        return;
+      }
+      const sn = [];
+      let k = 0;
+      codes.forEach(function(c){
+        const ps = String(c).split(':');
+        if(ps.length < 2) return;
+        const ns = ps[1].split(',');
+        if(!k) k = ns.length;
+        ns.forEach(function(n){ if(sn.indexOf(n) < 0) sn.push(n); });
+      });
+      if(!k || !sn.length){ out.push({ t: t0, a: it.a, ok: false }); return; }
+      const cnt = codes.length;
+      const full = (cnt === _c(sn.length, k) && sn.length > k);
+      const sum = per * cnt;
+      let t;
+      if(cnt === 1){
+        t = pr + ' ' + sn.join('.') + ' × ' + _f(per) + ' ＝ ' + _f(sum);
+      } else {
+        t = pr + ' ' + sn.join('.') + ' ' + (full ? ('复式' + sn.length + '码 ') : '散 ') + cnt + '组 各组' + _f(per) + ' ＝ ' + _f(sum);
+      }
+      out.push({ t: t, a: sum, cnt: cnt, ok: true });
+    });
+  });
+  return out;
+}
+
+function emLineItems(list){
+  const out = [], seen = {};
+  (list || []).forEach(function(o){
+    orderLineItems(o).forEach(function(it){
+      let t = String(it.r || '').replace(/^\[手动\]\s*/, '').trim();
+      if(!/(二中二|三中二|三中三)/.test(t)) return;
+      t = t.replace(/^\s*(香港|澳门|澳|港)\s*/, '').replace(/(三中三|三中二|二中二):/, '$1 ').replace(/(三中三|三中二|二中二)复式([0-9 ].+?)(\s*各组|\s*各|$)/, function(m, pr, nums, tail){
+        return pr + ' ' + String(nums).trim().split(/\s+/).join('.') + (tail || '');
+      });
+      if(seen[t]) return;
+      seen[t] = 1;
+      out.push({ t: t, a: it.a });
+    });
+  });
+  return out;
+}
+
 function emRawLines(list){
   const out = [], seen = {};
   (list || []).forEach(function(o){
