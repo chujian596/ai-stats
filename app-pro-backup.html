@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.90-Pro';
+var APP_VER = 'v59.91-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10285,22 +10285,40 @@ function renderOrdersList(){
   h += `<div class="od-toggle-text" style="text-align:center;margin-top:6px;font-size:11px;color:#999;cursor:pointer">展开详细清单 ▼</div></div>`;
   h += `<div id="upDetail" style="display:none;padding:6px 8px;background:#fff;border-top:1px solid #f5f5f5">`;
   h += `<div style="font-size:10px;color:#999;line-height:1.5;margin-bottom:4px">带「待飞」= 应飞但还没确认实付；点右上角「确认本轮飞单」后转为已实付。</div>`;
-  // 三栏：左特码 中肖 右二中二三中三
-  let upL = '', upM = '', upR = '';
+  // 四个栏目自上而下：特码 / 平特 / 连肖 / 二·三中三；块内从左到右平铺
+  let upSections = '';
   try {
     const salesD = getSplitSales();
     const drawZodsD = _drawO ? new Set([..._drawO.regularNums, _drawO.specialNum].map(n => NUM2ZODIAC[n]).filter(Boolean)) : new Set();
     const allDrawNums = _drawO ? new Set(_drawO.regularNums) : new Set();
-    Object.keys(salesD).sort().forEach(k => {
+    const CELL = 'display:flex;justify-content:space-between;gap:6px;white-space:nowrap;background:#fafafa;border:1px solid #f0f0f0;border-radius:6px;padding:2px 6px;overflow:hidden';
+    const GRID = function(w){ return 'display:grid;grid-template-columns:repeat(auto-fill,minmax(' + w + 'px,1fr));gap:4px'; };
+    const _sec = function(title, meta, body){
+      return '<div style="margin-bottom:8px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:#333;border-left:3px solid #1677ff;padding-left:6px;margin-bottom:4px">'
+        + '<span>' + title + '</span><span style="color:#888;font-weight:400;white-space:nowrap">' + meta + '</span></div>'
+        + '<div>' + body + '</div></div>';
+    };
+    const _meta = function(n, paid, due){
+      var a = [];
+      if(n) a.push(n + ' 项');
+      if(paid) a.push('实付 ' + paid.toFixed(0));
+      if(due > 0) a.push('待飞＊ ' + due.toFixed(0));
+      return a.length ? a.join(' · ') : '—';
+    };
+    // 特码
+    var spB = '', spN = 0, spPaid = 0, spDue = 0;
+    Object.keys(salesD).sort().forEach(function(k){
       const due = Math.max(0, salesD[k] - splitTakeAll);
       const paidK = flownRealOf(k);
       const showK = paidK > 0 ? paidK : due;
-      if(due > 0 || paidK > 0){
-        const hit = _drawO && Number(k) === _drawO.specialNum;
-        upL += `<div style="${hit?'color:#cf1322;font-weight:700':''}">特码${k} ${showK.toFixed(0)}${paidK>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
-      }
+      if(!(due > 0 || paidK > 0)) return;
+      spN++; spPaid += paidK; if(!(paidK > 0)) spDue += due;
+      const hit = _drawO && Number(k) === _drawO.specialNum;
+      spB += '<div style="' + CELL + (hit ? ';color:#cf1322;font-weight:700' : '') + '"><span>' + k + '</span><span>' + showK.toFixed(0) + (paidK > 0 ? '' : '＊') + '</span></div>';
     });
-    if(!upL) upL = '<div style="color:#bbb">—</div>';
+    var spBody = spB ? '<div style="' + GRID(74) + '">' + spB + '</div>' : '<div style="color:#bbb">—</div>';
+    // 平特
     const pteD = {};
     _listO.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
       if(c.startsWith('平特')){
@@ -10308,23 +10326,30 @@ function renderOrdersList(){
         pteD[z] = (pteD[z]||0) + amt;
       }
     }); });
-    pteRecordZodiacs(_listO).forEach(z => {
+    var pteB = '', pteN = 0, ptePaid = 0, pteDue = 0;
+    pteRecordZodiacs(_listO).forEach(function(z){
       const amt = pteD[z] || 0;
       const dueP = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
       const paidP = flownRealOf('平特'+z);
       const showP = paidP > 0 ? paidP : dueP;
-      if(dueP > 0 || paidP > 0){
-        const hit = drawZodsD.has(z);
-        upM += `<div style="${hit?'color:#cf1322;font-weight:700':''}">平特${z} ${showP.toFixed(0)}${paidP>0?'':'(待飞)'}${hit?' ←命中':''}</div>`;
-      }
+      if(!(dueP > 0 || paidP > 0)) return;
+      pteN++; ptePaid += paidP; if(!(paidP > 0)) pteDue += dueP;
+      const hit = drawZodsD.has(z);
+      pteB += '<div style="' + CELL + (hit ? ';color:#cf1322;font-weight:700' : '') + '"><span>' + z + '</span><span>' + showP.toFixed(0) + (paidP > 0 ? '' : '＊') + '</span></div>';
     });
+    var pteBody = pteB ? '<div style="' + GRID(74) + '">' + pteB + '</div>' : '<div style="color:#bbb">—</div>';
+    // 连肖
+    var lxB = '', lxN = 0, lxSum = 0;
     lxFlyRecords().forEach(function(rec){
       if(!(rec.amt > 0)) return;
+      lxN++; lxSum += rec.amt;
       const lxHit = rec.name.split('').every(z => drawZodsD.has(z));
-      upM += `<div style="${lxHit?'color:#cf1322;font-weight:700':''}">连肖${rec.name} ${rec.amt.toFixed(0)}${lxHit?' ←命中':''}</div>`;
+      lxB += '<div style="' + CELL + (lxHit ? ';color:#cf1322;font-weight:700' : '') + '"><span>' + rec.name + '</span><span>' + rec.amt.toFixed(0) + '</span></div>';
     });
-    if(!upM) upM = '<div style="color:#bbb">—</div>';
-    let emOnD = true; try { emOnD = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
+    var lxBody = lxB ? '<div style="' + GRID(92) + '">' + lxB + '</div>' : '<div style="color:#bbb">—</div>';
+    // 二·三中三
+    var emB = '', emN = 0, emSum = 0, emrI = 0;
+    var emOnD = true; try { emOnD = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
     if(emOnD){
       const emD = {};
       _listO.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
@@ -10332,25 +10357,26 @@ function renderOrdersList(){
           emD[c] = (emD[c]||0) + amt;
         }
       }); });
-      let _emrI = 0;
       emComboRows(emD, allDrawNums).forEach(function(r){
         const col = r.hit ? '#cf1322' : '#333';
+        emN += (r.cnt || 1); emSum += (r.amt || 0);
         if(r.details && r.details.length){
-          const cid = 'emr' + (_emrI++);
-          upR += `<div style="color:${col};${r.hit?'font-weight:700':''}">${esc(r.t)}${r.hit?' ←命中':''} <span style="color:#1677ff;font-weight:400;cursor:pointer" onclick="toggleOd('${cid}',null)">逐组▾</span></div>`;
-          upR += `<div id="${cid}" style="display:none;font-size:10px;line-height:1.5;color:#777;max-height:200px;overflow:auto;border-left:2px solid #eee;padding-left:6px;margin:2px 0 6px">${r.details.map(function(d){ return '<div>' + esc(d) + '</div>'; }).join('')}</div>`;
+          const cid = 'emr' + (emrI++);
+          emB += '<div style="color:' + col + ';font-size:11px;line-height:1.6;white-space:nowrap;overflow-x:auto;' + (r.hit?'font-weight:700':'') + '">' + esc(r.t) + (r.hit?' ←命中':'') + ' <span style="color:#1677ff;font-weight:400;cursor:pointer" onclick="toggleOd(\'' + cid + '\',null)">逐组▾</span></div>';
+          emB += '<div id="' + cid + '" style="display:none;font-size:10px;line-height:1.5;color:#777;max-height:200px;overflow:auto;border-left:2px solid #eee;padding-left:6px;margin:2px 0 6px">' + r.details.map(function(d){ return '<div>' + esc(d) + '</div>'; }).join('') + '</div>';
         } else {
-          upR += `<div style="color:${col};${r.hit?'font-weight:700':''}">${esc(r.t)}${r.hit?' ←命中':''}</div>`;
+          emB += '<div style="color:' + col + ';font-size:11px;line-height:1.6;white-space:nowrap;overflow-x:auto;' + (r.hit?'font-weight:700':'') + '">' + esc(r.t) + (r.hit?' ←命中':'') + '</div>';
         }
       });
     }
-    if(!upR) upR = '<div style="color:#bbb">—</div>';
+    var emBody = emB ? emB : '<div style="color:#bbb">—</div>';
+    upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
+      + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
+      + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
+      + _sec('二·三中三', (emN ? emN + ' 注 · ' : '') + '实付 ' + emSum.toFixed(0), emBody)
+      + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
   } catch(e){}
-  h += `<div style="display:flex;gap:8px;font-size:11px;line-height:1.6">`;
-  h += `<div style="flex:1">${upL}</div>`;
-  h += `<div style="flex:1">${upM}</div>`;
-  h += `<div style="flex:1">${upR}</div>`;
-  h += `</div>`;
+  h += '<div style="font-size:11px;line-height:1.7">' + upSections + '</div>';
   // 分类总额
   let spOut = 0, zdOut = 0, emOut2 = 0;
   try {
@@ -10418,7 +10444,7 @@ function emComboRows(emMap, drawSet){
       const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
       const sum = vals.reduce(function(a,b2){ return a+b2; }, 0);
       const hit = drawSet ? b.codes.some(function(x){ return emHitOf(x[0], function(n){ return drawSet.has(Number(n)); }); }) : false;
-      rows.push({ t: sn.join('.') + ' 复' + (b.k===2?'二':'三') + b.codes.length + '组 各组' + (mn===mx?mn:(mn+'~'+mx)) + ' ＝ ' + sum.toFixed(0), hit });
+      rows.push({ t: sn.join('.') + ' 复' + (b.k===2?'二':'三') + b.codes.length + '组 各组' + (mn===mx?mn:(mn+'~'+mx)) + ' ＝ ' + sum.toFixed(0), hit, amt: sum, cnt: b.codes.length });
       b.codes.forEach(function(x){ used.add(x[0]); });
     }
   });
@@ -10434,7 +10460,7 @@ function emComboRows(emMap, drawSet){
     const sn = [...u].sort();
     if(g.length >= 3 && g.length === _comb(sn.length, k) && sn.length > k){
       const hit = drawSet ? g.some(function(x){ return emHitOf(x[0], function(n){ return drawSet.has(Number(n)); }); }) : false;
-      rows.push({ t: sn.join('.') + ' 复' + (k===2?'二':'三') + '各组' + amt + ' ＝ ' + (amt*g.length).toFixed(0), hit });
+      rows.push({ t: sn.join('.') + ' 复' + (k===2?'二':'三') + '各组' + amt + ' ＝ ' + (amt*g.length).toFixed(0), hit, amt: amt*g.length, cnt: g.length });
       g.forEach(function(x){ used.add(x[0]); });
     }
   });
@@ -10451,7 +10477,7 @@ function emComboRows(emMap, drawSet){
     if(g.codes.length === 1){
       const one = g.codes[0];
       const hit1 = drawSet ? emHitOf(one[0], function(n){ return drawSet.has(Number(n)); }) : false;
-      rows.push({ t: one[0].replace(':',' ') + ' ' + one[1].toFixed(0), hit: hit1 });
+      rows.push({ t: one[0].replace(':',' ') + ' ' + one[1].toFixed(0), hit: hit1, amt: one[1], cnt: 1 });
       return;
     }
     const sn = [];
@@ -10461,7 +10487,7 @@ function emComboRows(emMap, drawSet){
     const sum = g.amt * g.codes.length;
     rows.push({
       t: sn.join('.') + ' ' + g.prod + ' ' + g.codes.length + '注(散) 各组' + (g.amt % 1 ? g.amt.toFixed(1) : g.amt.toFixed(0)) + ' ＝ ' + (sum % 1 ? sum.toFixed(1) : sum.toFixed(0)),
-      hit: hit0,
+      hit: hit0, amt: sum, cnt: g.codes.length,
       details: g.codes.map(function(x){ return x[0].split(':')[1].split(',').join('.') + '×' + (x[1] % 1 ? x[1].toFixed(1) : x[1].toFixed(0)); })
     });
   });
