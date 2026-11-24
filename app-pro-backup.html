@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.93-Pro';
+var APP_VER = 'v59.94-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10230,38 +10230,24 @@ function renderOrdersList(){
       if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) cpEm += amt;
     }); });
   } catch(e){}
-  // 上家对账三块：应飞 / 凑整 / 残留（本单没有的号还在已飞），按栏目分
-  let gc = { sp: {b:0,r:0,s:0}, pte: {b:0,r:0,s:0}, lx: {b:0,r:0,s:0}, em: {b:0,r:0,s:0} };
+  // 上家对账：原额（记账原额）＋ 凑整（实付−原额）＝ 实付；按栏目拆开
+  let gc = { sp: 0, pte: 0, lx: 0, em: 0 };
   try {
-    const salesD0 = getSplitSales();
-    Object.keys(salesD0).forEach(function(k){
-      const due0 = Math.max(0, salesD0[k] - splitTakeAll);
-      gc.sp.b += due0;
-      const real0 = flownRealOf(k);
-      gc.sp.r += real0 - Math.min(real0, due0);
-    });
-    Object.keys(flownPerPos || {}).forEach(function(k){
+    const _kSp2 = new Set(Object.keys(flownPerPos || {}));
+    Object.keys(getSplitSales()).forEach(k => _kSp2.add(k));
+    _kSp2.forEach(k => {
       if(k === '_em_total' || k.indexOf('平特') === 0 || k.indexOf('连肖') === 0 || k.indexOf('二中二') === 0 || k.indexOf('三中三') === 0 || k.indexOf('三中二') === 0) return;
-      if(salesD0[k] !== undefined) return;
-      gc.sp.s += flownRealOf(k);
+      gc.sp += flownRealOf(k) - (flownPerPos[k] || 0);
     });
-    pteRecordZodiacs(_listO).forEach(function(z){
-      const amt0 = (function(){ let a=0; _listO.forEach(function(o){ eachUniqueOrderCode(o, function(c, v){ if(c === '平特'+z) a += v; }); }); return a; })();
-      const due0 = pteFlyTakeAll > 0 ? Math.max(0, amt0 - pteFlyTakeAll) : amt0;
-      gc.pte.b += due0;
-      const real0 = flownRealOf('平特'+z);
-      gc.pte.r += real0 - Math.min(real0, due0);
-    });
-    lxFlyRecords().forEach(function(rec){ gc.lx.b += (rec.amt || 0); });
-    gc.em.b = flownPerPos['_em_total'] || 0;
-    const emReal = flownRealOf('_em_total');
-    gc.em.r += emReal - Math.min(emReal, gc.em.b);
+    pteRecordZodiacs(_listO).forEach(z => { gc.pte += flownRealOf('平特'+z) - (flownPerPos['平特'+z] || 0); });
+    lxFlyRecords().forEach(rec => { gc.lx += (rec.amt || 0) - (flownPerPos[rec.key] || 0); });
+    gc.em = flownRealOf('_em_total') - (flownPerPos['_em_total'] || 0);
   } catch(e){}
-  const gBase = gc.sp.b + gc.pte.b + gc.lx.b + gc.em.b;
-  const gRound = gc.sp.r + gc.pte.r + gc.lx.r + gc.em.r;
-  const gStray = gc.sp.s + gc.pte.s + gc.lx.s + gc.em.s;
+  const gRound = gc.sp + gc.pte + gc.lx + gc.em;
+  const gBase = flyOutTotal - gRound;
   const _sg1 = function(v){ return (v >= 0 ? '+' : '-') + Math.abs(v).toFixed(0); };
-  const gapTxt = '特 ' + _sg1(gc.sp.r + gc.sp.s) + ' · 平 ' + _sg1(gc.pte.r + gc.pte.s) + ' · 连 ' + _sg1(gc.lx.r + gc.lx.s) + ' · 二/三 ' + _sg1(gc.em.r + gc.em.s);
+  const _hasG = function(v){ return Math.abs(v) >= 0.5; };
+  const gapTxt = '特 ' + _sg1(gc.sp) + ' · 平 ' + _sg1(gc.pte) + ' · 连 ' + _sg1(gc.lx) + ' · 二/三 ' + _sg1(gc.em);
   // 返水：飞走金额按比例返给我
   const _rc = rebateCfg();
   const rebateOn = _rc.on, rebateRate = _rc.rate;
@@ -10270,16 +10256,16 @@ function renderOrdersList(){
   const netSettle = _drawO ? (rebateAmt - owedAmt) : null;
   var _perTxt = (_drawO && _drawO.period) ? ('  ' + _drawO.period + ' 期') : '';
   let copyTail = '飞单对账' + _perTxt + '\n'
-    + `合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平特 ${cpPte.toFixed(0)} + 连肖 ${cpLx.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
-  if(Math.abs(gRound) >= 0.5 || Math.abs(gStray) >= 0.5) copyTail += `\n应飞 ${gBase.toFixed(0)} 元 ＋ 凑整 ${gRound.toFixed(0)}${Math.abs(gStray)>=0.5?(' ＋ 残留 ' + gStray.toFixed(0)):''} ＝ ${flyOutTotal.toFixed(0)}（${gapTxt}）`;
+    + `飞走合计 ${flyOutTotal.toFixed(0)} 元（特 ${cpSp.toFixed(0)} + 平特 ${cpPte.toFixed(0)} + 连肖 ${cpLx.toFixed(0)} + 二/三 ${cpEm.toFixed(0)}）`;
+  if(_hasG(gRound)) copyTail += `\n其中凑整多付 ${gRound.toFixed(0)} 元（${gapTxt}），记账原额 ${gBase.toFixed(0)} 元`;
   if(rebateOn && flyOutTotal > 0) copyTail += `\n返水 ${flyOutTotal.toFixed(0)} × ${(rebateRate*100).toFixed(0)}% = ${rebateAmt.toFixed(0)}（另计）`;
   if(_drawO){
-    copyTail += '\n\n明细:';
+    copyTail += '\n\n上家赔回明细:';
     if(flyBackLines.length){ flyBackLines.forEach(function(l){ copyTail += '\n  ' + l; }); }
     else copyTail += '\n  本期没有命中项';
-    copyTail += `\n合计:+${flyBackTotal.toFixed(0)}`;
-    copyTail += `\n\n总账单 ${flyOutTotal.toFixed(0)} - ${flyBackTotal.toFixed(0)} = ${owedAmt.toFixed(0)}`;
-    copyTail += `\n结算 ${netSettle>=0?'+':'-'}${Math.abs(netSettle).toFixed(0)}`;
+    copyTail += `\n合计 +${flyBackTotal.toFixed(0)}`;
+    copyTail += `\n\n应付上家 ${flyOutTotal.toFixed(0)} - ${flyBackTotal.toFixed(0)} = ${owedAmt.toFixed(0)}`;
+    copyTail += `\n净收（返水 ${rebateAmt.toFixed(0)} − 应付 ${owedAmt.toFixed(0)}）＝ ${netSettle>=0?'+':'-'}${Math.abs(netSettle).toFixed(0)}`;
   } else copyTail += '\n\n未开奖，结算待定';
   window._upCopy = copyTail;
   h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">`;
@@ -10295,9 +10281,8 @@ function renderOrdersList(){
   h += `<span>飞走(已实付) <b style="color:#333">${flyOutTotal.toFixed(0)}</b></span>`;
   h += `<span>结算 <b style="color:${!_drawO?'#999':(netSettle>=0?'#16a34a':'#cf1322')}">${!_drawO?'待开奖':(netSettle>=0?'+':'')+netSettle.toFixed(0)}</b></span>`;
   h += `</div>`;
-  if(Math.abs(gRound) >= 0.5 || Math.abs(gStray) >= 0.5){
-    h += `<div style="font-size:11px;color:${gStray>=0.5?'#cf1322':'#888'};margin-top:2px">应飞 ${gBase.toFixed(0)} ＋ 凑整 ${gRound.toFixed(0)}${Math.abs(gStray)>=0.5?(' ＋ 残留 ' + gStray.toFixed(0)):''} ＝ ${flyOutTotal.toFixed(0)}（${gapTxt}）</div>`;
-    if(Math.abs(gStray) >= 0.5) h += `<div style="font-size:10px;color:#cf1322">残留＝本单没有的号还在已飞清单里，到已飞清单删掉就对上了</div>`;
+  if(_hasG(gRound)){
+    h += `<div style="font-size:11px;color:#888;margin-top:2px">原额 ${gBase.toFixed(0)} ＋ 凑整 ${gRound.toFixed(0)} ＝ ${flyOutTotal.toFixed(0)}（${gapTxt}）</div>`;
   }
   // 返水开关 + 费率
   h += `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;padding:4px 6px;background:#fafafa;border-radius:6px">`;
@@ -10396,8 +10381,8 @@ function renderOrdersList(){
     }
     var emBody = emB ? emB : '<div style="color:#bbb">—</div>';
     const _sTxt = function(v){ return Math.abs(v) >= 0.5 ? (' · 残留 ' + v.toFixed(0)) : ''; };
-    upSections = _sec('特码', _meta(spN, spPaid, spDue) + _sTxt(gc.sp.s), spBody)
-      + _sec('平特', _meta(pteN, ptePaid, pteDue) + _sTxt(gc.pte.s), pteBody)
+    upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
+      + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
       + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
       + _sec('二·三中三', (emN ? emN + ' 注 · ' : '') + '实付 ' + emSum.toFixed(0), emBody)
       + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
