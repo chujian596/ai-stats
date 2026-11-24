@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.97-Pro';
+var APP_VER = 'v59.98-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -10481,7 +10481,7 @@ function renderOrdersList(){
       Object.keys(emD0).forEach(function(c){ emN++; emSum += emD0[c]; });
       emLineBlocks(_listO).forEach(function(b){
         emChkSum += (b.a || 0);
-        emB += '<div style="color:' + (b.ok ? '#333' : '#cf1322') + ';font-size:11px;line-height:1.7;white-space:nowrap;overflow-x:auto">' + esc(b.t) + (b.ok ? '' : ' ←未能复算') + '</div>';
+        emB += '<div style="color:' + (b.ok ? '#333' : '#cf1322') + ';font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">' + esc(b.t) + (b.ok ? '' : ' ←未能复算') + '</div>';
       });
       const _diff = emSum - emChkSum;
       emB += '<div style="font-size:10px;margin-top:3px;color:' + (Math.abs(_diff) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (Math.abs(_diff) < 0.5 ? ('✓ 明细对平：' + emChkSum.toFixed(2).replace(/\.00$/, '') + ' ＝ 实付 ' + emSum.toFixed(2).replace(/\.00$/, '')) : ('⚠ 明细差 ' + _diff.toFixed(2) + '（明细 ' + emChkSum.toFixed(2) + ' / 实付 ' + emSum.toFixed(2) + '）')) + '</div>';
