@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.12-Pro';
+var APP_VER = 'v60.13-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5870,30 +5870,64 @@ function copySelectedFly(silent){
 // 只动特号（纯数字 01–49）；二/三中三、连肖、平特的已飞记录一律不动（它们是即时飞/另本账）。
 // 实际已飞对账：把「你实际飞出去的金额」贴进来 → 与订单算出来的「系统应飞」逐号对比，
 // 列出哪几个号对不上、差多少，再由你选按哪边写已飞，写完自动重算飞走/自留/最坏。
-function _flyCmpParse(txt){
-  var out = {};
-  function addNum(c, amt){
-    var n = parseInt(String(c), 10);
-    if(!(n >= 1 && n <= 49)) return;
-    if(!(amt > 0.01)) return;
-    var k = String(n).padStart(2, '0');
-    out[k] = (out[k] || 0) + amt;
-  }
+function _flyCmpParseItems(txt){
+  // 与录单同一套写法：19各130 / 13 30 42 各40 / 19 130 / 19:130
+  var items = [];
+  function pad(c){ return String(parseInt(String(c), 10)).padStart(2, '0'); }
+  function okCode(c){ var n = parseInt(String(c), 10); return n >= 1 && n <= 49; }
   String(txt || '').split(/[\n\r;；]+/).forEach(function(line){
-    var rest = String(line);
-    // ① 「19各130 / 13 30 42 各40 / 19.31.07 各50」：号码组 + 各X
-    rest = rest.replace(/([0-9]{1,2}(?:[\s.．,，、\-\/]+[0-9]{1,2})*)\s*各\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, nums, amt){
-      String(nums).split(/[\s.．,，、\-\/]+/).filter(Boolean).forEach(function(c){ addNum(c, Number(amt) || 0); });
+    var raw = String(line).trim();
+    if(!raw) return;
+    var parts = [];
+    var rest = raw.replace(/([0-9]{1,2}(?:[\s.．,，、\-\/]+[0-9]{1,2})*)\s*各\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, nums, amt){
+      var a = Number(amt) || 0;
+      String(nums).split(/[\s.．,，、\-\/]+/).filter(Boolean).forEach(function(c){
+        if(okCode(c) && a > 0) parts.push({code: pad(c), amt: a});
+      });
       return ' ';
     });
-    // ② 剩下的「19 130 / 19:130 / 19-130」：号 + 金额 成对
     rest.replace(/([0-9]{1,2})\s*[:：\-]?\s*([0-9]+(?:\.[0-9]+)?)/g, function(m, c, amt){
       var a = Number(amt) || 0;
-      if(a >= 5) addNum(c, a);
+      if(a >= 5 && okCode(c)) parts.push({code: pad(c), amt: a});
       return m;
     });
+    items.push({raw: raw, parts: parts, ok: parts.length > 0,
+                sum: parts.reduce(function(t, p){ return t + p.amt; }, 0)});
+  });
+  return items;
+}
+function _flyCmpParse(txt){
+  var out = {};
+  _flyCmpParseItems(txt).forEach(function(it){
+    it.parts.forEach(function(p){ out[p.code] = (out[p.code] || 0) + p.amt; });
   });
   return out;
+}
+// 输入即识别：把贴进来的每一组翻译成「号 + 金额」，贴完当场能核对
+function flyComparePrev(){
+  var el = document.getElementById('fcPrev'); if(!el) return;
+  var txt = (document.getElementById('fcInput') || {}).value || '';
+  if(!txt.trim()){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  var items = _flyCmpParseItems(txt);
+  var agg = {};
+  items.forEach(function(it){ it.parts.forEach(function(p){ agg[p.code] = (agg[p.code] || 0) + p.amt; }); });
+  var codes = Object.keys(agg).sort(function(x, y){ return Number(x) - Number(y); });
+  var sum = codes.reduce(function(t, c){ return t + agg[c]; }, 0);
+  var bad = items.filter(function(it){ return !it.ok; });
+  var h = '';
+  h += '<div style="font-size:11px;color:#666;padding:1px 0 4px">识别到 <b style="color:#16a34a">' + codes.length + '</b> 个号　合计 <b style="color:#333">' + sum.toFixed(0) + '</b> 元</div>';
+  if(codes.length){
+    h += '<div style="display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto">';
+    codes.forEach(function(c){
+      h += '<span style="font-size:11px;padding:2px 6px;border-radius:6px;background:#eff6ff;color:#1d4ed8;white-space:nowrap">' + c + ' <b>' + agg[c].toFixed(0) + '</b></span>';
+    });
+    h += '</div>';
+  }
+  if(bad.length){
+    h += '<div style="font-size:10.5px;color:#cf1322;padding:4px 0 0;line-height:1.5">这 ' + bad.length + ' 行没认出金额：' + bad.map(function(it){ return '「' + it.raw + '」'; }).join(' ') + '</div>';
+  }
+  el.innerHTML = h;
+  el.style.display = 'block';
 }
 function flyCompareOpen(){
   var old = document.getElementById('flyCmpOv'); if(old) old.remove();
@@ -5903,7 +5937,8 @@ function flyCompareOpen(){
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;width:100%;max-width:392px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.25)">'
     + '<div style="padding:13px 14px 4px;font-size:16px;font-weight:700;text-align:center;color:#333">实际已飞对账</div>'
     + '<div style="padding:0 14px 6px;font-size:11.5px;color:#666;line-height:1.5">把我实际飞出去的钱贴进来（和录单一样写，一行一组）<br><span style="color:#999">19各130　31各110　／　13 30 42 各40　／　19 130</span></div>'
-    + '<div style="padding:0 14px"><textarea id="fcInput" placeholder="19各130 31各110 07各90 …" style="width:100%;height:66px;border:1px solid #ddd;border-radius:8px;padding:7px;font-size:13px;box-sizing:border-box"></textarea></div>'
+    + '<div style="padding:0 14px"><textarea id="fcInput" placeholder="19各130 31各110 07各90 …" style="width:100%;height:80px;border:1px solid #ddd;border-radius:8px;padding:7px;font-size:13px;box-sizing:border-box"></textarea></div>'
+    + '<div id="fcPrev" style="display:none;margin:6px 14px 0;padding:6px 8px;background:#f7f9fc;border:1px solid #e8eef8;border-radius:8px"></div>'
     + '<div style="display:flex;gap:8px;padding:8px 14px 6px"><button id="fcGo" style="flex:1;padding:9px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:14px;font-weight:600">对比</button>'
     + '<button id="fcClose" style="padding:9px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:13px">关闭</button></div>'
     + '<div id="fcRes" style="flex:1;overflow-y:auto;padding:0 12px 4px;font-size:12px;color:#333;-webkit-overflow-scrolling:touch"></div>'
@@ -5914,6 +5949,13 @@ function flyCompareOpen(){
     + '</div></div>';
   document.body.appendChild(ov);
   document.getElementById('fcClose').onclick = function(){ ov.remove(); };
+  var _fcIn = document.getElementById('fcInput');
+  if(_fcIn){
+    _fcIn.addEventListener('input', function(){
+      clearTimeout(window.__fcPrevT);
+      window.__fcPrevT = setTimeout(function(){ try{ flyComparePrev(); }catch(e){} }, 120);
+    });
+  }
   document.getElementById('fcGo').onclick = function(){ flyCompareRun(); };
   document.getElementById('fcUse').onclick = function(){ flyCompareApply('partial'); };
   document.getElementById('fcUseAll').onclick = function(){ flyCompareApply('full'); };
