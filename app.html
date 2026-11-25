@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.73';
+var APP_VER = 'v59.74';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7761,6 +7761,9 @@ function parseLine(text){
     return zs.split('').map(c => c + '数').join('');
   });
   // 1.5 "虎平"→"平特虎"（生肖+平，如虎平1000）
+  // 多肖写法「牛虎平各100」= 平特牛、平特虎 各100：先把「生肖们+平」并成「平特牛虎」，
+  // 否则只有最后一个生肖被认成平特，前面的生肖会被展开成号码（500 元变 5 项）。
+  codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊]{2,})平(?=\s*(?:各|每)?\s*[0-9]|\s*$)/g, '平特$1');
   codeText = codeText.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])平/g, '平特$1');
   // 2. "平肖X"→"平特X"，"平X"→"平特X"
   codeText = codeText.replace(/平肖([马蛇龙兔虎牛鼠猪狗鸡猴羊])/g, '平特$1');
