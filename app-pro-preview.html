@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.19-Pro';
+var APP_VER = 'v60.20-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1744,6 +1744,21 @@ document.addEventListener('DOMContentLoaded', function(){
   var s = document.getElementById('verSpan');
   if(s) s.textContent = APP_VER;
 });
+// 更新前先确认线上目标页真的已经是新版：GitHub Pages 有 1-3 分钟构建延迟，
+// 直接跳过去会落在旧页面，看起来就是「更新了又跳回老版本」。
+function _probeOnlineVer(){
+  return fetch(_onlineURL(''), {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.text() : ''; })
+    .then(function(t){ var m = String(t||'').match(/APP_VER\s*=\s*'([^']+)'/); return m ? m[1] : ''; })
+    .catch(function(){ return ''; });
+}
+function _safeUpdate(v){
+  _probeOnlineVer().then(function(pv){
+    if(_verCmp(pv, v) >= 0) hardUpdateTo(v);
+    else if(typeof myAlert === 'function') myAlert('主站还在同步新版本（现 ' + (pv || '未知') + '），等十几秒再点更新。');
+  });
+}
+
 // 版本检查：只提示，绝不自动跳转
 (function(){
   var pending = '';
@@ -1752,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var bar = document.createElement('div');
     bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#b45309;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
     bar.textContent = '更新未生效：目标 ' + pending + '，当前 ' + APP_VER + '。点这里重试';
-    bar.onclick = function(){ hardUpdateTo(pending); };
+    bar.onclick = function(){ _safeUpdate(pending); };
     document.body.appendChild(bar);
     return;
   }
@@ -1763,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', function(){
         var bar=document.createElement('div');
         bar.style.cssText='position:fixed;top:0;left:0;right:0;background:#333;color:#fff;padding:10px;text-align:center;z-index:99999;font-size:14px;cursor:pointer';
         bar.textContent='发现新版本 '+_verLabel(v)+'，点这里更新';
-        bar.onclick=function(){ hardUpdateTo(v); };
+        bar.onclick=function(){ _safeUpdate(v); };
         document.body.appendChild(bar);
       }
     }).catch(function(){});
@@ -8076,7 +8091,7 @@ function refreshPage(){
           function(i){
             if(i === 0){
               localStorage.removeItem('aiProPinVer');
-              hardUpdateTo(remote);
+              _safeUpdate(remote);
             } else if(i === 1){
               localStorage.setItem('aiNoRemindVer', normVer(remote));
               myAlert('已设为不再提醒这个版本。\n以后有更新的版本仍会提示一次。');
