@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.21-Pro';
+var APP_VER = 'v60.22-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -7208,6 +7208,51 @@ function stripHKMark(t){
 // 组合玩法统一归一化：把「产品名 + 2/3个号码」无论用逗号、顿号、横杠、空格、斜杠分隔，
 // 也无论产品写在号码前还是号码后，统一成「产品:01,02,03 」这种带冒号的标准格式。
 // 这样后面所有按逗号分行的逻辑都不会再把组合号码拆散。
+// 单写「三中三」「3中3」的玩法行只说明玩法，必须并到下一行号码上；
+// 单写「三中三各组10」是汇总行，要回填到上面连续几行裸号码组（一单多组各10）。
+// 不并的话这些行会被整行丢掉（现场录单就是这样漏的）。
+function mergeComboStandaloneLines(text){
+  var PLAY = '(?:三中三|三中二|二中二)';
+  var lines = String(text || '').split('\n').map(function(l){
+    l = String(l || '').trim();
+    // 3中3 / 2中2 / 3中2 统一
+    l = l.replace(/3\s*中\s*3/g, '三中三').replace(/2\s*中\s*2/g, '二中二').replace(/3\s*中\s*2/g, '三中二');
+    // 马特数字各20（马的号码各20）→ 马各20
+    l = l.replace(/([马蛇龙兔虎牛鼠猪狗鸡猴羊])\s*特\s*(?:数字|号码|号|码)\s*(?=各|每)/g, '$1');
+    return l;
+  });
+  var isPlayOnly = function(s){
+    s = s.replace(/\s+/g, '');
+    return new RegExp('^' + PLAY + '(?:复式)?$').test(s);
+  };
+  var isBareNums = function(s){
+    return /^[0-9]{1,2}([\s,，、.\-*\/]+[0-9]{1,2}){1,2}$/.test(String(s || '').trim());
+  };
+  var out = [], pending = '';
+  for(var i = 0; i < lines.length; i++){
+    var s = lines[i];
+    if(!s){ out.push(''); pending = ''; continue; }
+    if(isPlayOnly(s)){ pending = s.replace(/\s+/g, '').replace(/复式$/, ''); continue; }
+    // 汇总行：三中三各组10 / 三中三各10 / 各组10（带“组”字才认）
+    var compact = s.replace(/\s+/g, '');
+    var tm = compact.match(new RegExp('^(' + PLAY + ')?(?:复式)?(?:各|组)(?:组)?([0-9]+(?:\.[0-9]+)?)(?:元)?$'));
+    if(tm && (tm[1] || /组/.test(compact))){
+      var play = (tm[1] || pending || '').replace(/复式$/, '');
+      if(play && new RegExp('^' + PLAY + '$').test(play)){
+        var k = out.length - 1, hit = 0;
+        while(k >= 0 && isBareNums(out[k])){ out[k] = play + ' ' + String(out[k]).trim() + ' 各组' + tm[2]; k--; hit++; }
+        if(hit > 0){ pending = ''; continue; }
+      }
+    }
+    if(pending){
+      var noPlay = !new RegExp('^' + PLAY).test(s.replace(/\s+/g, ''));
+      if(/[0-9]/.test(s) && noPlay) s = pending + ' ' + s;
+      pending = '';
+    }
+    out.push(s);
+  }
+  return out.join('\n');
+}
 function normalizeComboLine(line){
   line = String(line || '');
   // 括号/等号写法：三中三[21-28-39]=各组20 → 三中三21-28-39各组20
@@ -9117,6 +9162,8 @@ function doSave(overrideText){
   });
   // 组合玩法先统一成标准冒号格式，避免号码里的逗号在后面对被当成分行/分号
   text = text.split('\n').map(normalizeComboLine).join('\n');
+  // 玩法单写一行 / 「X各组10」单写一行：并到号码行，避免整行被丢掉
+  try { text = mergeComboStandaloneLines(text); } catch(e){}
   // 预处理：去"米"单位、去"共..."汇总行、每行裸生肖各数自动加"特"（保留换行）
   text = text.replace(/米/g, '');
   text = text.split('\n').map(line => {
