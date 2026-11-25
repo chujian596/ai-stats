@@ -1042,7 +1042,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.17</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.18</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1363,9 +1363,8 @@
       return '<div class="mini-dim"><em>'+d.label+'</em><b title="'+esc(picks.join('、'))+'">'+(picks.length?esc(picks.join('、')):'—')+'</b></div>';
     }).join('');
     var hitBadge=s.hit===true?'<span class="hit-badge hit">中</span>':(s.hit===false?'<span class="hit-badge miss">错</span>':'');
-    var head='<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right">'+hitBadge+'<span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>';
-    return '<details class="site-card"><summary></summary><div class="site-card-body">'+
-      head+
+    var top='<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right">'+hitBadge+'<span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>';
+    return '<details class="site-card"><summary>'+top+'</summary><div class="site-card-body">'+
       '<div class="mini-block"><div class="mini-label">九肖 <span class="n">'+z.length+' 肖</span></div>'+picksHtml(z,'',s.status==='无九肖栏目'?'无九肖栏目':'未更新')+'</div>'+
       '<div class="mini-block"><div class="mini-label">杀三肖 <span class="n">'+kl.length+' 肖</span></div>'+picksHtml(kl,'kill',s.column===null?'无杀三肖':'无杀三肖')+'</div>'+
       '<div class="mini-dims">'+six+'</div>'+
