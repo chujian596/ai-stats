@@ -18,6 +18,9 @@ DRAW_LATEST = ROOT / 'draw-latest.json'
 SNAP_DIR = PARENT / 'snapshots'
 Z12 = ["马", "蛇", "龙", "兔", "虎", "牛", "鼠", "猪", "狗", "鸡", "猴", "羊"]
 ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
+# 双版留存口径：从该期起同时留存早版肖组作对照；历史期维持晚版封存，不回填早版。
+# 中/错、连对连错始终以晚版(对账主口径)为准，早版仅对照展示。
+EARLY_FROM = 330
 
 
 def _parse_dt(s):
@@ -184,6 +187,7 @@ for iss in sorted(periods):
             'hit': hit,
             'changed': changed,
             'lateZodiacs': late_zs if changed else None,
+            'earlyZodiacs': early_zs if iss >= EARLY_FROM else None,
         }
     out_periods[str(iss)] = {
         'specialNum': sp_num,

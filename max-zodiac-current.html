@@ -28,6 +28,14 @@ h1{margin:6px 0 4px;font-size:22px;letter-spacing:-.02em}
 .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
 .tier-btn.active .nm{color:rgba(255,255,255,.72)}
 .tier-hint{font-size:10px;color:var(--muted);margin-left:auto}
+.edition-bar{display:flex;align-items:center;gap:6px;margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.edition-bar .ed-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+.edition-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--ink);font-weight:600}
+.edition-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+.edition-btn:disabled{opacity:.4;cursor:not-allowed}
+.edition-hint{font-size:10px;color:var(--muted);margin-left:auto}
+.edition-note{font-size:10.5px;color:var(--amber);margin:8px 2px 0;display:none}
+.edition-note.show{display:block}
 .result-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:#fff;padding:9px 12px;margin-top:10px;font-size:12px;color:var(--muted)}
 .result-line b{color:var(--ink);font-size:13px}
 .result-line .rl-tag{background:#eef2f8;border-radius:6px;padding:1px 6px;color:#5b6675;font-size:10px;font-weight:700}
@@ -105,6 +113,13 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     <span class="period-hint" id="periodHint">—</span>
   </div>
   <div class="tier-bar" id="tierBar"></div>
+  <div class="edition-bar">
+    <span class="ed-label">版本口径</span>
+    <button type="button" class="edition-btn active" id="edLate" data-ed="late">晚版 · 对账主口径</button>
+    <button type="button" class="edition-btn" id="edEarly" data-ed="early">早版对照</button>
+    <span class="edition-hint" id="editionHint"></span>
+  </div>
+  <div class="edition-note" id="editionNote">早版仅作对照展示；中/错、连对/连错与累计成绩始终按晚版判定，不因切到早版改变。</div>
   <div class="result-line" id="resultLine" style="display:none"></div>
 
   <div class="two-col">
@@ -145,7 +160,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
 <script>
 (function(){
   var ZOD=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-  var state={period:null,map:{},filterZ:null,q:'',firstAgg:{},allAgg:{},sites:[]};
+  var state={period:null,map:{},filterZ:null,q:'',firstAgg:{},allAgg:{},sites:[],edition:'late'};
 
   var TIERS=[
     {key:'100', name:'现跑基线', grades:[], desc:'现在一直在跟的站'},
@@ -229,7 +244,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
       var s=stations[k]||{};
       if(Array.isArray(s.zodiacs)&&s.zodiacs.length===9){
         var siteId=s.siteId||k;
-        sites.push(enrichSite({key:k,siteId:siteId,siteName:s.siteName||'',displayName:s.displayName||s.siteName||k,siteKey:s.siteKey||k,system:s.system||'',seq:s.seq,column:s.column||'',zodiacs:s.zodiacs,raw:s.raw||'',hit:s.hit,changed:!!s.changed,status:s.status||'有九肖'}));
+        sites.push(enrichSite({key:k,siteId:siteId,siteName:s.siteName||'',displayName:s.displayName||s.siteName||k,siteKey:s.siteKey||k,system:s.system||'',seq:s.seq,column:s.column||'',zodiacs:s.zodiacs,earlyZodiacs:s.earlyZodiacs||null,earlyStatus:s.earlyStatus||null,raw:s.raw||'',hit:s.hit,changed:!!s.changed,status:s.status||'有九肖'}));
       }
     });
     return {period:Number(v.issue||period),status:'drawn',actual:v.actual||null,specialNum:v.specialNum,sites:sites,source:'max-zodiac-ledger.json'};
@@ -237,7 +252,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
   function pendToData(current){
     var sites=(current.sites||[]).map(function(s){
       var z=s.zodiacs||[];
-      return enrichSite({key:s.siteId||((s.system||'')+':'+(s.siteKey||'')),siteId:s.siteId,siteName:s.siteName||'',displayName:s.displayName||s.siteName||s.siteId||s.siteKey||'',siteKey:s.siteKey||'',system:s.system||'',seq:s.seq,column:s.column||'',zodiacs:z,raw:'',hit:null,changed:!!(s.changed||(s.changedDims&&s.changedDims.length)),status:s.status||(z.length?'有九肖':'无九肖栏目'),carried:!!s.carried});
+      return enrichSite({key:s.siteId||((s.system||'')+':'+(s.siteKey||'')),siteId:s.siteId,siteName:s.siteName||'',displayName:s.displayName||s.siteName||s.siteId||s.siteKey||'',siteKey:s.siteKey||'',system:s.system||'',seq:s.seq,column:s.column||'',zodiacs:z,earlyZodiacs:null,earlyStatus:null,raw:'',hit:null,changed:!!(s.changed||(s.changedDims&&s.changedDims.length)),status:s.status||(z.length?'有九肖':'无九肖栏目'),carried:!!s.carried});
     });
     return {period:Number(current.period),status:'pending',actual:null,specialNum:null,sites:sites,source:'current-recommend.json'};
   }
@@ -279,14 +294,16 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     return s;
   }
   function nameOf(s){ return s.displayName||s.siteName||s.siteId||s.siteKey||'—'; }
+  function picksOf(s){ return state.edition==='early' ? (s.earlyZodiacs||[]) : s.zodiacs; }
+  function hasEarly(d){ return (d.sites||[]).some(function(s){return s.earlyZodiacs!=null;}); }
   function eligibleSites(d){
-    return d.sites.filter(function(s){ return Array.isArray(s.zodiacs)&&s.zodiacs.length===9&&tierAllowed(s); });
+    return d.sites.filter(function(s){ var z=picksOf(s); return Array.isArray(z)&&z.length===9&&tierAllowed(s); });
   }
-  function aggregate(elig,mode){
+  function aggregate(elig){
     var first={}, all={};
     elig.forEach(function(s){
-      var f=s.zodiacs[0]; if(f) first[f]=(first[f]||0)+1;
-      var seen={}; s.zodiacs.forEach(function(z){ if(z&&!seen[z]){seen[z]=1; all[z]=(all[z]||0)+1;} });
+      var z=picksOf(s), f=z[0]; if(f) first[f]=(first[f]||0)+1;
+      var seen={}; z.forEach(function(x){ if(x&&!seen[x]){seen[x]=1; all[x]=(all[x]||0)+1;} });
     });
     return {first:first,all:all};
   }
@@ -318,6 +335,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var d=state.map[String(state.period)];
     if(!d) return;
     var pending=d.status==='pending';
+    refreshEditionUI(d);
     var base=pending?(issues().slice(-1)[0]||state.period):state.period;
     var elig=eligibleSites(d);
     var agg=aggregate(elig);
@@ -343,7 +361,7 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     renderRank(document.getElementById('allRank'),agg.all,elig.length,'票',d.actual,state.filterZ);
     var firstTotal=elig.length;
     document.getElementById('firstFoot').textContent=elig.length+' 站 · 1 站 1 票 · 首肖重复只记 1 票';
-    var allTotal=elig.reduce(function(a,s){return a+s.zodiacs.length;},0);
+    var allTotal=elig.reduce(function(a,s){var z=picksOf(s);return a+z.length;},0);
     document.getElementById('allFoot').textContent=elig.length+' 站 · 合计 '+allTotal+' 票 · 1 站 9 票';
 
     // 站点表
@@ -373,9 +391,15 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
       var seq=s.seq?'<span class="seq-no">#'+esc(s.seq)+'</span>':'';
       var subId=esc((s.siteKey?(s.siteKey+(s.system?' · '+s.system.replace('wanpz-',''):'')):(s.siteId||'')));
       var detId='det-'+esc(s.key).replace(/[^a-z0-9:_-]/gi,'');
+      var zcell;
+      if(state.edition==='early'){
+        if(s.earlyZodiacs==null) zcell='<span class="empty-mini">早版未留存</span>';
+        else if(!s.earlyZodiacs.length) zcell='<span class="empty-mini">早版无九肖栏目</span>';
+        else zcell=zsHtml(s.earlyZodiacs);
+      } else { zcell=zsHtml(s.zodiacs); }
       return '<tr class="rowlink" data-key="'+esc(s.key)+'">'+
         '<td class="name">'+seq+esc(nameOf(s))+'<span class="sid">'+subId+'</span></td>'+
-        '<td class="picks">'+zsHtml(s.zodiacs)+'</td>'+
+        '<td class="picks">'+zcell+'</td>'+
         '<td>'+badge+'</td>'+
         '<td class="streak">'+metrics+'</td>'+
         '<td>'+trailHtml+'</td></tr>'+
@@ -404,8 +428,27 @@ td .picks{color:var(--muted);font-size:11px;line-height:1.45}
     var hint=document.getElementById('tierHint'); if(hint) hint.textContent='本档 '+tierCount(def)+' 站'+(excluded.length?' · 未纳入 '+excluded.length:'');
   }
 
+  function refreshEditionUI(d){
+    var pending=d&&d.status==='pending';
+    var earlyOk=!!(d&&!pending&&hasEarly(d));
+    var edEarly=document.getElementById('edEarly'), edLate=document.getElementById('edLate');
+    edEarly.disabled=!earlyOk;
+    if(state.edition==='early'&&!earlyOk) state.edition='late';
+    edLate.classList.toggle('active',state.edition==='late');
+    edEarly.classList.toggle('active',state.edition==='early');
+    document.getElementById('editionNote').classList.toggle('show',state.edition==='early');
+    document.getElementById('editionHint').textContent=state.edition==='early'?'早版仅对照 · 成绩按晚版':(earlyOk?'双版已留存':'本期无早版基线');
+  }
+
   document.getElementById('periodSelect').addEventListener('change',function(){ state.period=this.value; render(); });
   document.getElementById('searchBox').addEventListener('input',function(){ state.q=this.value; render(); });
+  document.querySelectorAll('.edition-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      var d=state.map[String(state.period)];
+      if(b.dataset.ed==='early'&&d&&!hasEarly(d)) return;
+      state.edition=b.dataset.ed; render();
+    });
+  });
 
   Promise.all([
     fetchJson('data/current-recommend.json').catch(function(){return null;}),
