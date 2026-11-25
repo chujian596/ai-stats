@@ -22,9 +22,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 PARENT = ROOT.parent
 DRAW = PARENT / '4901988-draws.json'
+DRAW_LATEST = ROOT / 'draw-latest.json'
 SNAP = PARENT / 'snapshots'
 ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
 WAVE = '红蓝绿'
+
+
+def _parse_dt(s):
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.datetime.strptime(str(s), fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def deadline_for(issue):
+    """本期开奖时点（drawn_at）。开奖后生成的快照只归档，不进当期封存料/入账/改料比对。"""
+    try:
+        d = json.loads(DRAW_LATEST.read_text(encoding="utf-8"))
+        m = d.get("macao") or {}
+        if str(m.get("draw")) == str(issue):
+            return _parse_dt(m.get("drawn_at"))
+    except Exception:
+        pass
+    return None
 
 
 def load(p):
@@ -55,8 +79,10 @@ for k, v in load(DRAW).items():
 
 # ---- 栏目提取：返回 (栏目名, picks, 原文) 或 None ----
 def pick_pingte(cols):
-    order = ['平特1肖', '平特一肖', '2期1肖平特', '3期1肖平特', '1肖加对应1码平特']
+    order = ['平特1肖', '平特一肖', '1肖加对应1码平特']
     for t in order:
+        if re.search(r'\d期', t):
+            continue
         cd = cols.get(t)
         if cd and cd.get('value'):
             z = [c for c in cd['value'] if c in ZOD]
@@ -77,7 +103,8 @@ def pick_wave(cols):
 def pick_tail(cols):
     cands = [(t, cd) for t, cd in cols.items()
              if '尾中特' in t and '平特' not in t and '头' not in t
-             and '单双' not in t and '各4尾' not in t and '字数字' not in t]
+             and '单双' not in t and '各4尾' not in t and '字数字' not in t
+             and not re.search(r'\d期', t)]
     cands.sort(key=lambda x: 0 if re.fullmatch(r'\d尾中特', x[0]) else 1)
     for t, cd in cands:
         v = cd.get('value') or ''
@@ -88,7 +115,8 @@ def pick_tail(cols):
 
 
 def pick_head(cols):
-    cands = [(t, cd) for t, cd in cols.items() if '头中特' in t and '尾' not in t]
+    cands = [(t, cd) for t, cd in cols.items()
+             if '头中特' in t and '尾' not in t and not re.search(r'\d期', t)]
     for t, cd in cands:
         v = cd.get('value') or ''
         ds = sorted(set(c for c in v if c.isdigit()))
@@ -142,9 +170,30 @@ def snap_pick(snap, dim):
 
 
 def find_snapshots(issue):
-    e = sorted(glob.glob(os.path.join(SNAP, f'snapshot-{issue}-18*.json')))
-    l = sorted(glob.glob(os.path.join(SNAP, f'snapshot-{issue}-20*.json')))
-    return (e[0] if e else None, l[-1] if l else None)
+    """同期快照按 generated_at 真实时间排序；剔除残缺/跨午夜旧版；开奖后快照不参与入账。
+    口径与基准 max_zodiac_ledger.find_snapshots 一致。"""
+    fs = [f for f in glob.glob(os.path.join(SNAP, f'snapshot-{issue}-*.json'))
+          if '-raw' not in os.path.basename(f) and 'raw77' not in os.path.basename(f)]
+    dl = deadline_for(issue)
+    loaded = []
+    for f in fs:
+        try:
+            d = load(Path(f))
+            ga = d.get('generated_at') or ''
+            dt = _parse_dt(ga)
+            if dl and dt and dt > dl:
+                continue
+            loaded.append((ga, os.path.basename(f), f, len(d.get('sites', {}))))
+        except Exception:
+            continue
+    if not loaded:
+        return (None, None)
+    loaded.sort(key=lambda t: (t[0], t[1]))
+    med = sorted(x[3] for x in loaded)[len(loaded) // 2]
+    good = [x for x in loaded if x[3] >= max(1, int(med * 0.8))] or loaded
+    early = good[0][2]
+    late = good[-1][2] if len(good) > 1 else None
+    return (early, late)
 
 
 def hit_of(dim, picks, dr):

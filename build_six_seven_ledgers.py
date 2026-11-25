@@ -68,7 +68,7 @@ def eligible(title, zs, nums, n):
         return False, "杀栏"
     if "平特" in title:
         return False, "平特栏"
-    if re.search(r"2期|3期|两期|三期", title):
+    if re.search(r"\d期", title):
         return False, "多期栏"
     if re.search(r"尾中特|头中特|公式|规律|#gongshi|gongshiguilv", title):
         return False, "非主推栏(尾/头/公式规律)"

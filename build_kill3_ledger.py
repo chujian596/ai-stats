@@ -8,14 +8,40 @@
 口径：命中＝当期特肖不在该站所杀 3 肖内。
 质检留底：每站留存网站原始文本 raw；早/晚两份快照肖组不一致标 changed 并存 lateZodiacs。
 """
-import json, glob, os
+import json, glob, os, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PARENT = ROOT.parent
 DRAW = PARENT / '4901988-draws.json'
+DRAW_LATEST = ROOT / 'draw-latest.json'
+SNAP_DIR = PARENT / 'snapshots'
 Z12 = ["马", "蛇", "龙", "兔", "虎", "牛", "鼠", "猪", "狗", "鸡", "猴", "羊"]
 ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪'
+
+
+def _parse_dt(s):
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.datetime.strptime(str(s), fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def deadline_for(issue):
+    """本期开奖时点（drawn_at）。开奖后生成的快照只归档，不进当期封存料/入账/改料比对。
+    仅最新一期在 draw-latest.json 带 drawn_at；历史期返回 None，不做时间截断。"""
+    try:
+        d = json.loads(DRAW_LATEST.read_text(encoding="utf-8"))
+        m = d.get("macao") or {}
+        if str(m.get("draw")) == str(issue):
+            return _parse_dt(m.get("drawn_at"))
+    except Exception:
+        pass
+    return None
 
 
 def zchar_of(n):
@@ -52,7 +78,7 @@ for s in sc['sites']:
     for iss, val in h.items():
         periods.setdefault(int(iss), {})[s['id']] = {'zs': zchars(val), 'raw': val, 'src': 'history'}
 
-# ---- 本地快照按期归集：早份 18* / 晚份 20*；早份入账，晚份用于改料比对 ----
+# ---- 本地快照按期归集：早/晚完整版按 generated_at 排序 + 覆盖度过滤；晚份优先入账，早份兜底并用于改料比对 ----
 KILL_COLS = ['杀特3肖', '绝杀三肖', '📛绝杀三肖']
 VALID_PREFIX = ('wanpz-h1-', 'wanpz-h2-', 'wanpz-h3-', 'wanpz-h5-', 'wanpz-h6-', 'wanpz-h8-', 'wanpz-h9-', 'bdmijg-js-')
 snapshot_issues = set()
@@ -85,9 +111,31 @@ def snapshot_pick(snap):
 
 
 def find_snapshots(issue):
-    early = sorted(glob.glob(os.path.join(PARENT, 'snapshots', f'snapshot-{issue}-18*.json')))
-    late = sorted(glob.glob(os.path.join(PARENT, 'snapshots', f'snapshot-{issue}-20*.json')))
-    return (early[0] if early else None, late[-1] if late else None)
+    """同期快照按 generated_at 真实时间排序；剔除站点数明显偏少的残缺/跨午夜旧版；
+    取最早完整版=早版、最晚完整版=晚版；开奖时点之后生成的快照不进当期封存料/入账/改料比对。
+    口径与基准 max_zodiac_ledger.find_snapshots 一致。"""
+    fs = [f for f in glob.glob(os.path.join(SNAP_DIR, f'snapshot-{issue}-*.json'))
+          if '-raw' not in os.path.basename(f) and 'raw77' not in os.path.basename(f)]
+    dl = deadline_for(issue)
+    loaded = []
+    for f in fs:
+        try:
+            d = load(Path(f))
+            ga = d.get('generated_at') or ''
+            dt = _parse_dt(ga)
+            if dl and dt and dt > dl:
+                continue
+            loaded.append((ga, os.path.basename(f), f, len(d.get('sites', {}))))
+        except Exception:
+            continue
+    if not loaded:
+        return (None, None)
+    loaded.sort(key=lambda t: (t[0], t[1]))
+    med = sorted(x[3] for x in loaded)[len(loaded) // 2]
+    good = [x for x in loaded if x[3] >= max(1, int(med * 0.8))] or loaded
+    early = good[0][2]
+    late = good[-1][2] if len(good) > 1 else None
+    return (early, late)
 
 
 for iss in sorted({int(p.split('-')[1]) for p in glob.glob(os.path.join(PARENT, 'snapshots', 'snapshot-*.json')) if p.split('-')[1].isdigit()}):
