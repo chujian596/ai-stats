@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.71';
+var APP_VER = 'v59.72';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6210,8 +6210,32 @@ function stripHKMark(t){
 // 这样后面所有按逗号分行的逻辑都不会再把组合号码拆散。
 function normalizeComboLine(line){
   line = String(line || '');
+  // 括号/等号写法：三中三[21-28-39]=各组20 → 三中三21-28-39各组20
+  if(/(三中三|三中二|二中二)/.test(line) && /[\[\]【】=＝]/.test(line)){
+    line = line.replace(/[\[\]【】]/g, ' ').replace(/[=＝]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
   var defs = [['二中二', 2], ['三中二', 3], ['三中三', 3]];
   var SEP = '[\\s,，、\\-\\u2010-\\u2015\\/]+';
+  // 复式冒号写法：三中三复式:09,45,... / 复式三中三:09,45,...
+  // 先把“复式”挪到产品名后面，并把冒号后的整串号码用空格分开，
+  // 交给下面的复式展开逻辑；否则只会匹配前 3 个号码、把“复式:”留给 parseLine 报无法识别。
+  var _prods = '二中二|三中二|三中三';
+  var _numGroup = '\\d{1,2}(?:' + SEP + '\\d{1,2})+';
+  line = line.replace(new RegExp('复(?:式)?\\s*(' + _prods + ')\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
+  line = line.replace(new RegExp('(' + _prods + ')\\s*复(?:式)?\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
+    return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
+  });
+  // 产品名 + 4 个以上号码 + 各/各组 X：整行当复式块
+  // 三中三 19.43.03.04.27.12 各组1 → 三中三复式19 43 03 04 27 12 各组1（20 组 × 1 = 20）
+  // 不加这条会被「产品:前3个号码」规则吃掉，剩下 04/27/12 当单品，金额只算 4 元
+  (function(){
+    var m = line.match(/^((?:香港|澳门|澳|港)\s*)?(二中二|三中二|三中三)\s*((?:\d{1,2}[\s,，、.\-]+){3,}\d{1,2})\s*((?:各|每)(?:组)?\s*[0-9]+(?:\.\d+)?)\s*$/);
+    if(!m) return;
+    var nums = (m[3].match(/\d{1,2}/g) || []).join(' ');
+    line = (m[1] || '') + m[2] + '复式' + nums + m[4];
+  })();
   defs.forEach(function(d){
     var prod = d[0], n = d[1];
     var seq = '\\d{2}(?:' + SEP + '\\d{2}){' + (n - 1) + '}';
@@ -6232,8 +6256,56 @@ function normalizeComboLine(line){
   });
   return line.replace(/\s+/g, ' ').trim();
 }
+function comboBlockInfo(line){
+  var s = String(line || '').trim().replace(/[\s,，、;；.。]+$/, '');
+  var m = s.match(/^(?:(香港|澳门|澳|港)\s*)?(?:(三中三|三中二|二中二)\s*(?:复(?:式)?)?\s*[:：]?\s*)?((?:\d{2}[\s,，、.\-–—―－+·/]+){1,2}\d{2})(?:\s*(?:各|每)\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?))?$/);
+  if(!m) return null;
+  var nums = m[3].match(/\d{2}/g) || [];
+  if(nums.length < 2 || nums.length > 3) return null;
+  return { prefix: m[1] || '', prod: m[2] || '', nums: nums, price: m[4] ? parseFloat(m[4]) : null };
+}
+function normalizeComboBlocks(lines){
+  var out = lines.slice();
+  for(var i = 0; i < out.length; i++){
+    var h = comboBlockInfo(out[i]);
+    if(!h || !h.prod) continue;
+    var need = h.prod === '二中二' ? 2 : 3;
+    if(h.nums.length !== need) continue;
+    var members = [i], j = i + 1, price = h.price;
+    while(j < out.length){
+      var b = comboBlockInfo(out[j]);
+      if(!b || b.prod || b.nums.length !== need) break;
+      members.push(j);
+      if(b.price && !price) price = b.price;
+      j++;
+    }
+    if(members.length < 2 || !(price > 0)) continue;
+    for(var k = 0; k < members.length; k++){
+      var bk = comboBlockInfo(out[members[k]]);
+      var p = bk.price || price;
+      out[members[k]] = (h.prefix ? h.prefix + ' ' : '') + h.prod + ':' + bk.nums.join(',') + ' 各组' + p;
+    }
+    i = members[members.length - 1];
+  }
+  return out;
+}
+function extractNumsFromLine(raw){
+  var out = [], seen = {};
+  String(raw || '').replace(/\d{1,2}/g, function(t){
+    var n = parseInt(t, 10);
+    if(t.length <= 2 && n >= 1 && n <= 49 && !seen[n]){ seen[n] = 1; out.push(String(n).padStart(2, '0')); }
+    return t;
+  });
+  return out;
+}
+
 function parseLine(text){
   text = String(text).trim().replace(/[\s,，、;；.。]+$/,'');
+  // 只写「号码.金额」：48.100 → 48 100（小数点当分隔符，金额需 ≥10 才认，避免 0.5 之类）
+  (function(){
+    var m1 = String(text).match(/^(#?)([0-9]{1,2})\.([0-9]{2,})$/) || String(text).match(/^(#?)([0-9]{1,2})。([0-9]{2,})$/);
+    if(m1 && parseInt(m1[2],10) >= 1 && parseInt(m1[2],10) <= 49) text = m1[1] + m1[2] + ' ' + m1[3];
+  })();
   // 生肖/连肖/特肖/平特中间的空格先合并，避免「连肖龙 虎 兔」被当成「连肖龙」
   const _zchars = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   text = text.replace(new RegExp('(['+_zchars+'])\\s+(?=['+_zchars+'])', 'g'), '$1');
@@ -6249,6 +6321,11 @@ function parseLine(text){
     var max = kind === '尾' ? 9 : 4;
     body = String(body || '').trim();
     if(!body) return null;
+    // 只写金额、没写尾数/头数目标：例如「尾1000」「头1000」不是解析故障，
+    // 属于输入不完整；不要拿它去当尾数列表，直接提示补目标。
+    if(/^\d{2,}$/.test(body)){
+      throw new Error(kind === '尾' ? '尾数没写目标，请补尾数（如 尾0各1000 或 0尾各1000）' : '头数没写目标，请补头数（如 头0各1000 或 0头各1000）');
+    }
     var priceText = null, listText = body, explicit = false;
     var am = body.match(/^(.*?)(?:各|每)(?:号|数|码|个|注|组|只|数各)?\s*([0-9零〇一二两三四五六七八九十百千万]+(?:\.[0-9]+)?)\s*(?:元|米|块|钱|圆)?$/);
     if(am){ listText = am[1]; priceText = am[2]; explicit = true; }
@@ -6628,6 +6705,10 @@ function parseLine(text){
         }
       }
       if(!found){
+        // 只写「平特」没写肖：属于缺投注目标，不猜全肖，也不报成未知产品。
+        if(rest.indexOf('平特') === 0 && !/^平特[马蛇龙兔虎牛鼠猪狗鸡猴羊]/.test(rest)){
+          throw new Error('平特后面没写生肖，请补具体肖（如 平特马5）');
+        }
         const m = rest.match(/^(\d{1,2})(?!\d)/);
         if(m){
           codes.push(m[1].padStart(2,'0'));
@@ -7161,10 +7242,10 @@ function _orderTs(o){
   return isNaN(t2) ? 0 : t2;
 }
 
-function findRecentDupOrder(customer, raw){
+function findRecentDupOrder(customer, raw, sig){
   var c = String(customer || '散客').trim() || '散客';
   var n = _dupNorm(raw);
-  if(!n) return null;
+  if(!n && !sig) return null;
   var now = Date.now();
   var pools = [orders || [], hkOrders || []];
   for(var pi = 0; pi < pools.length; pi++){
@@ -7175,7 +7256,9 @@ function findRecentDupOrder(customer, raw){
       if(!t || now - t > 30 * 60 * 1000) continue;
       if(new Date(t).toDateString() !== new Date(now).toDateString()) continue;
       if(String(o.customer || '散客').trim() !== c) continue;
-      if(_dupNorm(o.raw) === n) return o;
+      // 优先按「原文指纹」比对；老单没有 rawIn 时按 sig（金额+逐号金额）兜底，避免复杂行被规范化后认不出来
+      if(n && _dupNorm(o.rawIn || o.raw) === n) return o;
+      if(sig && o.sig && o.sig === sig) return o;
     }
   }
   return null;
@@ -7190,6 +7273,7 @@ function handleSave(){
     }
     // 防重复：同客户 + 同样单据内容（3 分钟内）→ 先问，避免客户改单后重复下单
     var _csm = (document.getElementById('customerName') || {}).value || '散客';
+    window.__pendingRawIn = raw0;
     var _fp = _csm + '|' + raw0.replace(/\s+/g, '');
     var _dup = window.__lastInputFp === _fp && (Date.now() - (window.__lastInputAt || 0) < 180000);
     var _sem = findRecentDupOrder(_csm, raw0);
@@ -7834,6 +7918,14 @@ function doSave(overrideText){
   let text = _isOverride ? String(overrideText) : document.getElementById('input').value;
   // 混搭/多类：分号先拆行；同一行不同玩法前缀前也拆行，避免组合词互相吞并
   text = text.replace(/[；;]/g, '\n');
+  // 澳下：/港下： 是下注标记，不是号码；澳门行去掉标记，香港行换成「香港」
+  text = text.replace(/(^|\n)\s*[（(]?\s*(澳下|澳门下|港下|香港下)\s*[:：]?/g, function(m, nl, tag){
+    return nl + (/^(港|香港)/.test(tag) ? '香港 ' : '');
+  });
+  // 口语错字「复试」＝「复式」
+  text = text.replace(/复\s*试/g, '复式');
+  // 「平特龙 10 元三中三 11.22.33 5 元」这类：金额带「元」后紧跟另一玩法，先在「元」后断行
+  text = text.replace(/\s*元\s*(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数\s*[单双]?|头\d|尾\d))/g, '\n');
   // 同一行「平龙10三中三11.22.33组5」：平龙10 是独立一笔，不能把 10 当号码、再把末尾组5 套给平龙。
   // 只在平特单肖带价后面紧跟组合玩法时拆行，拆完各自按自己的价算。
   text = text.replace(/(平(?:特)?[马蛇龙兔虎牛鼠猪狗鸡猴羊]\s*(?:各\s*)?[0-9]+(?:\.[0-9]+)?)\s*(?=(?:三中三|三中二|二中二))/g, '$1\n');
@@ -8286,38 +8378,11 @@ function doSave(overrideText){
   }
 
 
-// 股东分账格式：每行 "编号 金额"，如 "02 10.00"
+// 老「股东分账」分支已移除（v60.17）：
+// 旧逻辑把「03 100 / 03 200」这种最普通写法当分账，拆成多张没有 id、没有 codeAmts 的单，
+// 造成单数虚高、不能跨店删、镜像去重失效。现在一律走正常解析：一次保存=一张单。
   window.__lastParseTotal = mergedLines.length;
   window.__lastNoteLines = _noteLines.slice();
-  const splitFormat = mergedLines.filter(l => !/^合计/.test(l));
-  if(splitFormat.length >= 2 && splitFormat.every(l => /^\d{1,2}\s+[0-9]+(\.[0-9]+)?$/.test(l))){
-    var custName = document.getElementById('customerName').value.trim() || '散客';
-    var splitDetail = [];
-    splitFormat.forEach(line => {
-      var m = line.match(/^(\d{1,2})\s+([0-9]+(?:\.[0-9]+)?)$/);
-      var code = m[1].padStart(2,'0');
-      var price = parseFloat(m[2]);
-      orders.push({
-        codes: [code],
-        price: price,
-        amount: price,
-        qty: 1,
-        customer: custName,
-        ts: new Date().toISOString(),
-        mode: 'single'
-      });
-      splitDetail.push(code);
-    });
-    saveOrders();
-    restoreIfNeeded();
-renderAll();
-    document.getElementById('input').value = '';
-    // 显示蓝色摘要
-    var total = splitFormat.reduce((s,l) => s + parseFloat(l.split(/\s+/)[1]), 0);
-    var splitEl = document.getElementById('saveMsg');
-    if(splitEl) splitEl.textContent = `本次已保存：【${custName}】${splitFormat.length}件（${splitDetail.join(',')}），共${total.toFixed(2)}元`;
-    return;
-  }
 
   if(!window.__skipAmbig) window.__comboSel = {};
   const parsed = [], errors = [];
@@ -8330,7 +8395,7 @@ renderAll();
     if(mDef){ defaultPrice = parseFloat(mDef[1]); break; }
   }
   // 多行组合：前面几行纯号码组合，最后一行"三中三各组20"给类型和每组金额
-  let workLines = mergedLines;
+  let workLines = normalizeComboBlocks(mergedLines);
   let comboProduct = null, comboPrice = null;
   for(const ln of mergedLines){
     const mc = ln.match(/^(三中三|二中二|三中二)\s*(?:各(?:组|数|号|个)?\s*)?([0-9]+(?:\.[0-9]+)?)\s*$/);
@@ -8339,9 +8404,11 @@ renderAll();
   if(comboProduct && comboPrice){
     const nNums = comboProduct === '二中二' ? 2 : 3;
     const comboRe = new RegExp('^\\d{1,2}([\\s\\-\\u2010-\\u2015\\uFF0D、.。+·]+\\d{1,2}){' + (nNums-1) + '}$');
-    workLines = mergedLines.map(ln=>{
+    // 只删「三中三各组10」这种纯汇总行；以前用 ^三中三 一刀切，把三中三复式/三中三:xx 整行全删了（v60.16 修）
+    const sumRe = new RegExp('^' + comboProduct + '\\s*(?:各(?:组|数|号|个|款)?\\s*)?[0-9]+(?:\\.' + '[0-9]+)?\\s*$');
+    workLines = workLines.map(ln=>{
       const t = ln.trim();
-      if(new RegExp('^'+comboProduct).test(t)) return null; // 汇总行删掉
+      if(sumRe.test(t)) return null;
       if(comboRe.test(t)) return comboProduct + ' ' + t + ' 各' + comboPrice;
       return ln;
     }).filter(x=>x!==null);
@@ -8360,7 +8427,7 @@ renderAll();
       return;
     }
     // 如果本行只有产品名（三中三/二中二/三中二），暂存等后续行；允许前面带香港/澳门
-    var _pm = trimmed.match(/^(香港|澳门|澳|港)?\s*(三中三|二中二|三中二)\s*(复式?)?[:：\s]*$/);
+    var _pm = trimmed.match(/^(香港|澳门|澳|港)?\s*(?:复式?\s*)?(三中三|二中二|三中二)\s*(复式?)?[:：\s]*$/);
     if(_pm){
       pendingProduct = _pm[2] + (_pm[3] || '');
       pendingProductMark = _pm[1] || '';
@@ -8374,8 +8441,10 @@ renderAll();
     // 合并后统一归一化组合码，避免号码里的逗号、横杠被后面的逻辑拆散
     line = normalizeComboLine(line);
     // 行首/行尾的港澳标注：标注只决定这一行的盘口，同时把后续未标注行带到同一段
-    const _leadHK = /^(香港|港)\s*[^:：\s]/.test(trimmed);
-    const _leadMac = /^(澳门|澳)\s*[^:：\s]/.test(trimmed) || /[\s（(]\s*(澳门|澳)\s*$/.test(trimmed);
+    // 「香港：32.35.45各60」这种盘口标记和内容同一行的写法也要认（以前只认「香港 32…」不带冒号）
+    const _sameSec = trimmed.match(/^(香港|港|澳门|澳)\s*[:：]\s*(?=\S)/);
+    const _leadHK = _sameSec ? /^(香港|港)$/.test(_sameSec[1]) : /^(香港|港)\s*[^:：\s]/.test(trimmed);
+    const _leadMac = _sameSec ? /^(澳门|澳)$/.test(_sameSec[1]) : (/^(澳门|澳)\s*[^:：\s]/.test(trimmed) || /[\s（(]\s*(澳门|澳)\s*$/.test(trimmed));
     const _trailHK = /[\s（(]\s*(香港|港)\s*$/.test(trimmed);
     if(_leadHK) _secHK = true;
     if(_leadMac) _secHK = false;
@@ -8383,6 +8452,7 @@ renderAll();
     try {
       // 分段标题优先，其次看本行港澳标注；_secHK 已按当前店铺初始化，
       // 所以「澳门：」切回后不会再被香港店默认值拉回香港。
+      if(_sameSec){ line = line.trim().replace(/^(香港|港|澳门|澳)\s*[:：]\s*/, ''); }
       const _isHK = _leadHK || (!_leadMac && (_trailHK || _secHK));
       if(!_isHK){
         line = line.trim().replace(/^(澳门|澳)\s*/, '').replace(/[\s:：]*(澳门|澳)\s*$/, '').trim();
@@ -8465,6 +8535,11 @@ renderAll();
             return;
           }
         }
+        // 号码必须在 01–49：50/99/00 这类脏号永远不可能命中，直接整批拦下
+        var _badCode = (r.codes || []).filter(function(c){
+          return /^\d{1,2}$/.test(String(c)) && (Number(c) < 1 || Number(c) > 49);
+        })[0];
+        if(_badCode){ throw new Error('号码 ' + _badCode + ' 不存在（只有 01–49）'); }
         parsed.push({ raw: line, codes: r.codes, price: r.price, isPer: r.isPer, hk: _isHK });
         lastPrice = r.price; lastIsPer = r.isPer;
       }
@@ -8531,10 +8606,14 @@ renderAll();
     // 整批原子：一行失败，整批不落账；但失败原文要全量留存，不能只留前10行
     var _allFails = (window.__failedLines || []).slice(0, 200);
     window.__failedLines = [];
-    var _logFails = _allFails.slice(0, 10);
+    var _logFails = _allFails.slice(0, 30);
     if(_allFails.length){
       _logFails.forEach(function(f){
-        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: String(f.raw || '').length, raw: String(f.raw || '').slice(0,500), day: (billBookDate() || billToday()), failedTotal: errors.length});
+        // 原文里的号码一律先抽出来存进日志：没识别成功也要留痕，不能日志里“没有号码”
+        var _rawS = String(f.raw || '');
+        var _nums = [];
+        try{ _nums = (typeof extractNumsFromLine === 'function') ? extractNumsFromLine(_rawS) : []; }catch(e){ _nums = []; }
+        logErr('parse', f.msg || '未知解析错误', {line: f.idx || 0, rawLen: _rawS.length, raw: _rawS.slice(0,500), nums: _nums, numsText: _nums.join('.'), day: (billBookDate() || billToday()), failedTotal: errors.length});
       });
       if(_allFails.length > _logFails.length){
         logErr('parse', '本批共 ' + _allFails.length + ' 行无法识别，错误日志仅列前 ' + _logFails.length + ' 行；完整原文见失败批次上报', {day: (billBookDate() || billToday()), failedTotal: errors.length});
@@ -8652,11 +8731,18 @@ renderAll();
     id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     customer,
     raw: parsed.filter(p=>!p.hk).map(p=>p.raw).join('; '),
+    lines: parsed.filter(p=>!p.hk).map(function(p){
+      var _q = (p.codes || []).length;
+      var _u = p.isPer ? p.price : (p.price / (_q || 1));
+      return { r: p.raw, a: _q * _u, hk: false };
+    }),
     price: totalAmount,
     qty: allCodes.length,
     amount: totalAmount,
     codes: allCodes,
     codeAmts: codeAmts,
+    rawIn: window.__pendingRawIn || '',
+    sig: (function(am,ca){try{var ks=Object.keys(ca||{}).sort();return Math.round((Number(am)||0)*100)+'|'+ks.map(function(k){return k+':'+Math.round((Number(ca[k])||0)*100);}).join(',');}catch(e){return '';}})(totalAmount, codeAmts),
     createdAt: created
   });
   // 港澳分开：本次保存里若有香港行，单独再落一条香港订单（不进澳门池）
@@ -8675,11 +8761,18 @@ renderAll();
         id: `${Date.now()}-hk-${Math.random().toString(36).slice(2,7)}`,
         customer,
         raw: hkRows.map(p=>p.raw).join('; '),
+        lines: hkRows.map(function(p){
+          var _q = (p.codes || []).length;
+          var _u = p.isPer ? p.price : (p.price / (_q || 1));
+          return { r: p.raw, a: _q * _u, hk: true };
+        }),
         price: hkTotal,
         qty: hkCodes.length,
         amount: hkTotal,
         codes: hkCodes,
         codeAmts: hkAmts,
+        rawIn: window.__pendingRawIn || '',
+        sig: (function(am,ca){try{var ks=Object.keys(ca||{}).sort();return Math.round((Number(am)||0)*100)+'|'+ks.map(function(k){return k+':'+Math.round((Number(ca[k])||0)*100);}).join(',');}catch(e){return '';}})(hkTotal, hkAmts),
         createdAt: created,
         hk: true,
         originShop: shop,
@@ -8752,13 +8845,27 @@ renderAll();
       const unit = p.isPer ? p.price : (p.price / q);
       const amount = q * unit;
       _pvTotal += amount;
-      _pvLines.push((p.hk ? '香港单 ' : '') + (p.raw || p.codes.join(' ')) + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
+      var _rv = String(p.raw || p.codes.join(' '));
+      if(_rv.length > 46) _rv = _rv.slice(0, 44) + '…';
+      _pvLines.push((p.hk ? '香港单 ' : '') + _rv + ' → ' + q + '项 / ' + amount.toFixed(2) + '元');
     });
+    // 分类小结：特号 / 二三中三 / 其他（平特连肖等），让总额能一眼对上
+    var _cTe=0, _cEm=0, _cOt=0;
+    parsed.forEach(function(p){
+      const q = p.codes.length;
+      const unit = p.isPer ? p.price : (p.price / q);
+      const amount = q * unit;
+      if(q && p.codes.every(function(c){ return /^(三中三|三中二|二中二):/.test(c); })) _cEm += amount;
+      else if(q && p.codes.every(function(c){ return /^\d{2}$/.test(c); })) _cTe += amount;
+      else _cOt += amount;
+    });
+    var _cSum = '特号 ' + _cTe.toFixed(2) + ' ＋ 二三中三 ' + _cEm.toFixed(2) + (_cOt > 0.01 ? (' ＋ 其他 ' + _cOt.toFixed(2)) : '') + ' ＝ 合计 ' + (_cTe + _cEm + _cOt).toFixed(2) + ' 元';
     const _pvCustomer = document.getElementById('customerName').value.trim() || '散客';
     showPreviewDlg({
       customer: _pvCustomer,
       shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
       lines: _pvLines,
+      sum: _cSum,
       total: _pvTotal
     }, function(){
       window.__previewConfirmed = true;
