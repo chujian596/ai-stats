@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.22-Pro';
+var APP_VER = 'v60.23-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5914,10 +5914,13 @@ function _flyCmpParseLine(raw){
   function okCode(c){ var n = parseInt(String(c), 10); return n >= 1 && n <= 49; }
   function pushNum(c, amt){ if(okCode(c) && amt > 0) out.parts.push({code: String(parseInt(c, 10)).padStart(2, '0'), amt: amt, isnum: true}); }
   var t = String(raw).trim();
-  // ① 纯号码组合行（没写金额）：17-20-25 / 07.15.36 —— 等后面「三中三各组X」统一定价
-  if(/^[0-9]{1,2}(?:[\-.\/．][0-9]{1,2}){2,}$/.test(t)){
-    out.pending = t.replace(/[.\/．]/g, '-').replace(/\s+/g, '');
-    return out;
+  // ① 纯号码组合行（没写金额）：17-20-25 / 07.15.36 / 04 19 37 —— 等后面「三中三各组X」统一定价
+  if(/^(?:[0-9]{1,2}[\s\-.\/．]+){2,}[0-9]{1,2}$/.test(t)){
+    var _tk = (t.match(/[0-9]{1,2}/g) || []).map(Number);
+    if(_tk.length >= 3 && _tk.every(function(n){ return n >= 1 && n <= 49; })){
+      out.pending = _tk.map(function(n){ return String(n).padStart(2, '0'); }).join('-');
+      return out;
+    }
   }
   // ② 二/三中三、复式这类玩法整行：只算这行总额，绝不当特号
   if(/(三中三|三中二|二中二|复式)/.test(t)){
@@ -5974,6 +5977,9 @@ function _flyCmpParseLine(raw){
 }
 function _flyCmpParseItems(txt){
   var items = [], pending = [];
+  // 先走和录单同一套「玩法单行 / 各组N 汇总行」合并，否则 3中3 换行、04 19 37 换行
+  // 会被当成「号+金额」读成假已飞（04 461、02 179 那种）。
+  try { if(typeof mergeComboStandaloneLines === 'function') txt = mergeComboStandaloneLines(txt); } catch(e){}
   String(txt || '').split(/[\n\r;；]+/).forEach(function(line){
     var raw = String(line).trim();
     if(!raw) return;
@@ -13722,7 +13728,7 @@ function clearDrawRecordAll(){
   if(!hasM && !hasH){ myAlert('当前没有开奖记录'); return; }
   var parts = [];
   if(hasM) parts.push('澳门 期' + (mac.draw || mac.period || '') + (mac.specialNum ? (' 特' + String(mac.specialNum).padStart(2, '0')) : ''));
-  var _hsp = (hkc.nums && hkc.nums.length >= 7) ? Number(hkc.nums[6]) : (hkc.specialNum || hkc.special || 0);
+  var _hsp = (hkc && hkc.nums && hkc.nums.length >= 7) ? Number(hkc.nums[6]) : ((hkc && (hkc.specialNum || hkc.special)) || 0);
   if(hasH) parts.push('香港 期' + (hkc.draw || hkc.period || '') + (_hsp ? (' 特' + String(_hsp).padStart(2, '0') + '(' + (NUM2ZODIAC[_hsp] || '') + ')') : ''));
   myConfirm('撤销这' + (hasM && hasH ? '两' : '一') + '期开奖记录？\n\n' + parts.join('\n') + '\n\n订单不会被删除，只是把开奖结果去掉，撤完可以重新录。', function(){
     // 澳门
