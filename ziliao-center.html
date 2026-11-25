@@ -531,7 +531,8 @@
         <div class="ov-grid" id="ovExtraGrid"></div>
         <div class="subcard" style="margin-top:12px">
           <h3>本期站点明细</h3>
-          <div class="subhint">默认折叠，点开看逐站推荐；随搜索 / 档位收窄。</div>
+          <div class="subhint" id="ovDetailHint">默认折叠，点开看逐站推荐；随搜索 / 档位收窄。</div>
+          <div id="ovTopBar"></div>
           <div id="ovCards"></div>
           <div id="ovMore"></div>
         </div>
@@ -1042,7 +1043,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.18</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.19</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1880,7 +1881,9 @@
     $('ovExtraGrid').innerHTML=extraHtml;
     // 明细：默认收起，不渲染空壳卡片；点按钮才展开站点列表
     if(!S.expand.ov){
+      $('ovTopBar').innerHTML='';
       $('ovCards').innerHTML='';
+      $('ovDetailHint').textContent='默认折叠，点开看逐站推荐；随搜索 / 档位收窄。';
       $('ovMore').innerHTML=visible.length
         ? '<button class="btn" type="button" data-ov-toggle="1">展开 '+visible.length+' 站明细</button>'
         : '<div class="empty">没有符合条件的站点</div>';
@@ -1888,13 +1891,15 @@
       var list=visible.slice(0,S.limit.ov||30);
       $('ovCards').innerHTML=list.map(nowCard).join('');
       $('ovCards').querySelectorAll('details.site-card').forEach(function(d){d.open=true;});
+      $('ovTopBar').innerHTML='<button class="btn" type="button" data-ov-toggle="0">收起明细</button>';
+      $('ovDetailHint').textContent='已展开 '+visible.length+' 站逐站推荐；点「收起明细」返回榜单总结。';
       var more='';
       if(visible.length>list.length) more='<button class="btn" type="button" data-more="ov">显示全部 '+visible.length+' 站</button>';
-      more+='<button class="btn" type="button" data-ov-toggle="0">收起明细</button>';
       $('ovMore').innerHTML=more;
     }
-    var tog=$('ovMore').querySelector('[data-ov-toggle]');
-    if(tog) tog.addEventListener('click',function(){S.expand.ov=this.dataset.ovToggle==='1';renderOverview();});
+    document.querySelectorAll('#ovTopBar [data-ov-toggle], #ovMore [data-ov-toggle]').forEach(function(tog){
+      tog.addEventListener('click',function(){S.expand.ov=this.dataset.ovToggle==='1';renderOverview();});
+    });
     var mb=$('ovMore').querySelector('[data-more="ov"]'); if(mb) mb.addEventListener('click',function(){S.limit.ov=9999;renderOverview();});
     var oc=$('tabOvCount'); if(oc) oc.textContent=sites.length+' 站';
   }
