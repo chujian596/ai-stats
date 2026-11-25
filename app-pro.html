@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.24-Pro';
+var APP_VER = 'v60.25-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3669,6 +3669,26 @@ function netExposureOfNum(n){
   var sf = selfFlyAmtOfNum(k);
   return { customer: customer, payout: customer * payMult, flew: flew + sf, selfFly: sf, net: customer * payMult - (flew + sf) * payMult };
 }
+// 某生肖（平特）的手飞注额：手飞行 code = '平特X'
+function selfFlyAmtOfPte(z){
+  var c0 = '平特' + z;
+  return selfFlyRows().reduce(function(s, r){ return s + ((r.code === c0) ? Number(r.amt || 0) : 0); }, 0);
+}
+// 平特单肖净敞口：客户应赔（注额×倍）−（系统已飞 + 手飞）×倍。负=超买，正=自留
+// 平特倍率与 codeWinMult 一致：平特马 1.8，其余 2（payMultSingle）
+function pteExposureOfZod(z){
+  var customer = 0;
+  try{
+    activeOrders().forEach(function(o){ eachUniqueOrderCode(o, function(c, amt){ if(c === ('平特' + z)) customer += amt; }); });
+  }catch(e){}
+  var flew = 0;
+  try{ flew = Math.min(customer, Number(flownRealOf('平特' + z) || 0)); }catch(e){ flew = 0; }
+  var sf = selfFlyAmtOfPte(z);
+  var mult = (z === '马') ? 1.8 : (typeof payMultSingle !== 'undefined' ? payMultSingle : 2);
+  var payout = customer * mult;
+  return { z: z, customer: customer, payout: payout, flew: flew, selfFly: sf, mult: mult,
+           net: payout - (flew + sf) * mult };
+}
 // 实际飞出总额（所有产品）
 function totalFlownReal(){
   let s = 0;
@@ -5624,7 +5644,16 @@ function showGroupDetail(group){
   }
   const box = document.getElementById('sideSplitResult');
   if(!box) return;
-  if(groupLines.length === 0){
+  // 平特：要列出所有买过的肖（哪怕该组已经全飞完，也要能看到应赔/敞口），不能只看「还有多少没飞」
+  var pteZods = [];
+  if(group === 'pte'){
+    var _pz = {};
+    activeOrders().forEach(function(o){ eachUniqueOrderCode(o, function(c, amt){ if(String(c).indexOf('平特') === 0){ _pz[String(c).slice(2)] = 1; } }); });
+    try{ Object.keys(flownPerPos || {}).forEach(function(k){ if(k.indexOf('平特') === 0 && Number(flownPerPos[k]) > 0) _pz[k.slice(2)] = 1; }); }catch(e){}
+    try{ selfFlyRows().forEach(function(r){ if(String(r.code).indexOf('平特') === 0) _pz[String(r.code).slice(2)] = 1; }); }catch(e){}
+    pteZods = Object.keys(_pz).filter(function(z){ return z; });
+  }
+  if(groupLines.length === 0 && pteZods.length === 0){
     box.innerHTML = '<div style="padding:12px;color:#999;text-align:center;font-size:14px">' + groupName + ' 暂无订单</div>';
     return;
   }
@@ -5633,7 +5662,31 @@ function showGroupDetail(group){
   const groupTotal = pendingLines.reduce((s,l)=>s+l.amt,0);
   const groupDone = doneLines.reduce((s,l)=>s+l.full,0);
   let h = '<div style="font-size:12px;line-height:1.3">';
-  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0">' + groupName + '（待飞' + groupTotal.toFixed(0) + ' / 已飞' + groupDone.toFixed(0) + '）</div>';
+  var _pHead = '';
+  if(group === 'pte' && pteZods.length){
+    var _pc=0,_pf=0,_ps=0;
+    pteZods.forEach(function(z){ var e=pteExposureOfZod(z); _pc+=e.customer; _pf+=e.flew; _ps+=e.selfFly; });
+    _pHead = '下注 ' + _pc.toFixed(0) + ' / 已飞 ' + _pf.toFixed(0) + (_ps>0 ? ' / 手飞 ' + _ps.toFixed(0) : '') + ' / 待飞 ' + groupTotal.toFixed(0);
+  } else {
+    _pHead = '待飞' + groupTotal.toFixed(0) + ' / 已飞' + groupDone.toFixed(0);
+  }
+  h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0">' + groupName + '（' + _pHead + '）</div>';
+  if(group === 'pte'){
+    // 平特专场：不只显示「来了多少、飞了多少」，直接给每个肖的应赔、手飞、净敞口
+    h += '<div style="padding:3px 5px;font-size:10.5px;color:#666;line-height:1.45">应赔＝下注×倍（平特 2、平特马 1.8）；净敞口＝应赔 −（已飞＋手飞）×倍，负数（绿）＝超买，开出来反而赚。</div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:2px 5px;font-size:10px;color:#999;border-bottom:1px solid #eee"><span>肖 下注→应赔</span><span>待飞/已飞/手飞 ｜ 净敞口</span></div>';
+    pteZods.sort(function(a,b){ return pteExposureOfZod(b).customer - pteExposureOfZod(a).customer; }).forEach(function(z){
+      var l = groupLines.filter(function(x){ return x.code === '平特' + z; })[0] || {amt: 0};
+      var e = pteExposureOfZod(z), neg = e.net < 0;
+      h += '<div style="padding:3px 5px;border-bottom:1px solid #f5f5f5">'
+         + '<div style="display:flex;justify-content:space-between;align-items:baseline">'
+         + '<span style="font-size:12px;color:#333"><b>' + z + '</b> ' + e.customer.toFixed(0) + '<span style="color:#bbb">→</span><b>' + e.payout.toFixed(0) + '</b></span>'
+         + '<b style="font-size:12px;color:' + (neg ? '#166534' : '#cf1322') + '">' + (neg ? '超买 +' + (-e.net).toFixed(0) : e.net.toFixed(0)) + '</b>'
+         + '</div>'
+         + '<div style="font-size:10px;color:#888">待飞 ' + (l.amt > 0.01 ? l.amt.toFixed(0) : '-') + ' ｜ 已飞 ' + e.flew.toFixed(0) + ' ｜ 手飞 ' + (e.selfFly > 0 ? '<span style="color:#1d4ed8">' + e.selfFly.toFixed(0) + '</span>' : '-') + '</div>'
+         + '</div>';
+    });
+  } else {
   h += '<div style="display:flex">';
   // 左列：未飞
   h += '<div style="flex:1;border-right:1px solid #eee">';
@@ -5658,6 +5711,7 @@ function showGroupDetail(group){
   }
   h += '</div>';
   h += '</div>';
+  }
   if(groupTotal > 0.01){
     h += '<div style="padding:4px;text-align:center"><button onclick="confirmGroupCurrent()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:6px;padding:4px 16px;font-size:12px;font-weight:600">确认本组飞单</button></div>';
   } else {
@@ -6028,6 +6082,20 @@ function selfFlyRender(){
     });
     h += '</table>';
     h += '<div style="font-size:10.5px;color:#999;line-height:1.5;margin-top:4px">超买 = 中奖时上家赔回来的钱比你要赔客户的多，那多出来的部分就是你自己赚的；红色是自留，中奖就要自己掏。</div>';
+  }
+  // 手飞里如果有平特（平特X），单列一张肖表：应赔 −（已飞+手飞）×倍
+  var pteCodes = [];
+  rows.forEach(function(r){ if(String(r.code).indexOf('平特') === 0){ var z = String(r.code).replace('平特',''); if(z && pteCodes.indexOf(z) < 0) pteCodes.push(z); } });
+  if(pteCodes.length){
+    h += '<div style="font-size:12px;color:#999;margin:10px 0 2px">手飞平特的净敞口（应赔 −（系统已飞+手飞）×倍；平特 2 倍、平特马 1.8 倍）</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+    h += '<tr style="color:#666"><th style="text-align:left;padding:3px">肖</th><th style="text-align:right;padding:3px">客户注额</th><th style="text-align:right;padding:3px">应赔</th><th style="text-align:right;padding:3px">已飞</th><th style="text-align:right;padding:3px">手飞</th><th style="text-align:right;padding:3px">净敞口</th></tr>';
+    pteCodes.sort(function(a,b){ return pteExposureOfZod(b).customer - pteExposureOfZod(a).customer; }).forEach(function(z){
+      var e = pteExposureOfZod(z), neg = e.net < 0;
+      h += '<tr style="border-top:1px solid #f5f5f5"><td style="padding:3px">' + z + '</td><td style="text-align:right;padding:3px">' + e.customer.toFixed(0) + '</td><td style="text-align:right;padding:3px">' + e.payout.toFixed(0) + '</td><td style="text-align:right;padding:3px">' + e.flew.toFixed(0) + '</td><td style="text-align:right;padding:3px;color:#1d4ed8">' + e.selfFly.toFixed(0) + '</td><td style="text-align:right;padding:3px;font-weight:700;color:' + (neg ? '#166534' : '#cf1322') + '">' + (neg ? '超买 +' + (-e.net).toFixed(0) : e.net.toFixed(0)) + '</td></tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:10.5px;color:#999;line-height:1.5;margin-top:4px">平特中奖＝该肖开出（7 个号任一）；没开出就全输，客户赔付和手飞本金都自己承担。</div>';
   }
   h += '</div>';
   wrap.innerHTML = h;
@@ -12131,36 +12199,37 @@ function renderRisk(){
   });
   const pteEntries = Object.entries(pteMap).sort((a,b)=>b[1]-a[1]);
   if(pteEntries.length){
-    let _pw = 0, _pwz = '', _pk = 0, _ptot = 0, _pl = [];
+    let _pw = 0, _pwz = '', _pk = 0, _ptot = 0, _pfly = 0, _psf = 0, _pl = [];
     pteEntries.forEach(function(e){
       const z=e[0], amt=e[1];
-      const mult = z==='马' ? 1.8 : payMultSingle;
-      const kept = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : 0;
-      _ptot += amt; _pk += kept;
+      const ex = pteExposureOfZod(z);
+      const mult = ex.mult;
+      const flown = ex.flew, sf = ex.selfFly;
+      const kept = Math.max(0, amt - flown);
+      _ptot += amt; _pk += kept; _pfly += flown; _psf += sf;
       _pl.push({z:z, pay: kept*mult});
     });
     // 与风险体检同口径：最坏是 6 个平号 + 特号全落在注额最高的 7 个生肖上
     _pl.sort(function(a,b){ return b.pay - a.pay; });
     _pw = _pl.slice(0,7).reduce(function(s,v){ return s+v.pay; }, 0);
     _pwz = _pl.length ? (_pl.length >= 7 ? '最多7肖同时中' : '最多'+_pl.length+'肖同时中') : '';
-    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 · 下注 ${_ptot.toFixed(0)} / 自留 ${_pk.toFixed(0)} · 最坏赔 <span style="color:#cf1322">${_pw.toFixed(0)}</span>${_pwz?'（'+_pwz+'）':''} ▶</div>`;
+    h += `<div onclick="toggleOd('riskPteTable',this)" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:600">平特持仓 · 下注 ${_ptot.toFixed(0)} / 已飞 ${_pfly.toFixed(0)}${_psf>0?' / 手飞 '+_psf.toFixed(0):''} · 最坏赔 <span style="color:#cf1322">${_pw.toFixed(0)}</span>${_pwz?'（'+_pwz+'）':''} ▶</div>`;
     h += `<div id="riskPteTable" style="display:none">`;
+    h += `<div style="font-size:11px;color:#666;line-height:1.5;margin-bottom:4px">应赔＝客户注额×倍（平特 2、平特马 1.8）；净敞口＝应赔 −（系统已飞＋手飞）×倍，负数（绿）＝超买，开出来反而赚。</div>`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
-    h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">飞了</th><th style="text-align:right;padding:3px">自留净赔</th></tr>`;
+    h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">已飞</th><th style="text-align:right;padding:3px">手飞</th><th style="text-align:right;padding:3px">应赔</th><th style="text-align:right;padding:3px">净敞口</th></tr>`;
     const drawZSet = (_riskDraw && _riskDraw.specialNum) ? new Set([...(_riskDraw.regularNums||[]), _riskDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean)) : null;
     pteEntries.forEach(([z,amt]) => {
-      const mult = z==='马' ? 1.8 : payMultSingle;
-      const kept = pteFlyTakeAll > 0 ? Math.min(amt, pteFlyTakeAll) : 0;
-      const fly = Math.max(0, amt - kept);
+      const ex = pteExposureOfZod(z);
       const hit = drawZSet ? drawZSet.has(z) : null;
       const rowBg = hit ? 'background:#d4edda;' : (hit===false ? 'opacity:0.5;' : '');
-      const grossPay = kept * mult, netPay = grossPay - kept;   // 净赔 = 毛赔付 - 已收本金
-      const payoutStr = kept===0 ? '全飞'
-        : (hit===true ? `${netPay.toFixed(0)} ←净赔`
-        : (hit===false ? '未中'
-        : `${netPay.toFixed(0)}<span style="font-size:10px;color:#999;font-weight:400"> 毛${grossPay.toFixed(0)}</span>`));
-      const payoutColor = kept===0 ? '#999' : (hit===true ? '#155724' : (hit===false ? '#999' : '#cf1322'));
-      h += `<tr style="border-bottom:1px solid #f5f5f5;${rowBg}"><td style="padding:3px">${z}${hit===true?' ✓':''}</td><td style="text-align:right;padding:3px">${amt.toFixed(0)}</td><td style="text-align:right;padding:3px;color:${fly>0?'#cf1322':'#999'}">${fly>0?fly.toFixed(0):'-'}</td><td style="text-align:right;padding:3px;color:${payoutColor};font-weight:${hit===true?'700':'400'}">${payoutStr}</td></tr>`;
+      const neg = ex.net < 0;
+      h += `<tr style="border-bottom:1px solid #f5f5f5;${rowBg}"><td style="padding:3px">${z}${hit===true?' ✓':''}</td>`
+        + `<td style="text-align:right;padding:3px">${amt.toFixed(0)}</td>`
+        + `<td style="text-align:right;padding:3px;color:${ex.flew>0?'#cf1322':'#999'}">${ex.flew>0?ex.flew.toFixed(0):'-'}</td>`
+        + `<td style="text-align:right;padding:3px;color:${ex.selfFly>0?'#1d4ed8':'#999'}">${ex.selfFly>0?ex.selfFly.toFixed(0):'-'}</td>`
+        + `<td style="text-align:right;padding:3px">${ex.payout.toFixed(0)}</td>`
+        + `<td style="text-align:right;padding:3px;font-weight:700;color:${neg?'#166534':'#cf1322'}">${neg?'超买 +'+(-ex.net).toFixed(0):ex.net.toFixed(0)}</td></tr>`;
     });
     h += `</table>`;
     h += `</div>`;
