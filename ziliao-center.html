@@ -125,6 +125,10 @@
   @media (max-width:380px){ .ov-grid{gap:7px} }
   .subcard h3{margin:0 0 2px;font-size:13px}
   .subcard .subhint{font-size:10px;color:var(--faint);margin-bottom:8px}
+  .ov-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .ov-head h3{margin:0}
+  .ov-head-btn{flex-shrink:0}
+  .ov-head-btn .btn{padding:5px 10px;font-size:11px}
   .rank-list{display:flex;flex-direction:column;gap:5px}
   .rank-row{display:flex;align-items:center;gap:8px;min-width:0}
   .rank-no{width:21px;height:21px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--card);color:var(--muted);font-size:10px;font-weight:800;flex:none}
@@ -530,9 +534,11 @@
         </div>
         <div class="ov-grid" id="ovExtraGrid"></div>
         <div class="subcard" style="margin-top:12px">
-          <h3>本期站点明细</h3>
+          <div class="ov-head">
+            <h3>本期站点明细</h3>
+            <div id="ovHeadBtn" class="ov-head-btn"></div>
+          </div>
           <div class="subhint" id="ovDetailHint">默认折叠，点开看逐站推荐；随搜索 / 档位收窄。</div>
-          <div id="ovTopBar"></div>
           <div id="ovCards"></div>
           <div id="ovMore"></div>
         </div>
@@ -1043,7 +1049,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.19</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.20</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1879,25 +1885,25 @@
     extraHtml+='<div class="subcard"><h3>六肖</h3><div class="subhint">'+sixSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sixAgg,'nine',sixSites.length*6)+'</div>';
     extraHtml+='<div class="subcard"><h3>七肖</h3><div class="subhint">'+sevSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sevAgg,'nine',sevSites.length*7)+'</div>';
     $('ovExtraGrid').innerHTML=extraHtml;
-    // 明细：默认收起，不渲染空壳卡片；点按钮才展开站点列表
+    // 明细：默认收起，不渲染空壳卡片；标题栏右侧按钮控制展开/收起
     if(!S.expand.ov){
-      $('ovTopBar').innerHTML='';
+      $('ovHeadBtn').innerHTML=visible.length
+        ? '<button class="btn" type="button" data-ov-toggle="1">展开 '+visible.length+' 站</button>'
+        : '';
       $('ovCards').innerHTML='';
       $('ovDetailHint').textContent='默认折叠，点开看逐站推荐；随搜索 / 档位收窄。';
-      $('ovMore').innerHTML=visible.length
-        ? '<button class="btn" type="button" data-ov-toggle="1">展开 '+visible.length+' 站明细</button>'
-        : '<div class="empty">没有符合条件的站点</div>';
+      $('ovMore').innerHTML=visible.length?'':'<div class="empty">没有符合条件的站点</div>';
     } else {
       var list=visible.slice(0,S.limit.ov||30);
       $('ovCards').innerHTML=list.map(nowCard).join('');
       $('ovCards').querySelectorAll('details.site-card').forEach(function(d){d.open=true;});
-      $('ovTopBar').innerHTML='<button class="btn" type="button" data-ov-toggle="0">收起明细</button>';
+      $('ovHeadBtn').innerHTML='<button class="btn" type="button" data-ov-toggle="0">收起明细</button>';
       $('ovDetailHint').textContent='已展开 '+visible.length+' 站逐站推荐；点「收起明细」返回榜单总结。';
       var more='';
       if(visible.length>list.length) more='<button class="btn" type="button" data-more="ov">显示全部 '+visible.length+' 站</button>';
       $('ovMore').innerHTML=more;
     }
-    document.querySelectorAll('#ovTopBar [data-ov-toggle], #ovMore [data-ov-toggle]').forEach(function(tog){
+    document.querySelectorAll('#ovHeadBtn [data-ov-toggle], #ovMore [data-ov-toggle]').forEach(function(tog){
       tog.addEventListener('click',function(){S.expand.ov=this.dataset.ovToggle==='1';renderOverview();});
     });
     var mb=$('ovMore').querySelector('[data-more="ov"]'); if(mb) mb.addEventListener('click',function(){S.limit.ov=9999;renderOverview();});
