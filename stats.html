@@ -92,6 +92,23 @@
   .cons-val b{color:var(--ink);font-weight:700;font-size:12px}
   .subhead{font-size:11.5px;font-weight:750;color:var(--muted);letter-spacing:.04em;margin:8px 0 5px}
   .sig-tag2{display:inline-block;font-size:10.5px;font-weight:700;color:var(--red);background:#fff2f0;border:1px solid #efd4d1;border-radius:999px;padding:1px 6px}
+  .crowd-calc{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe;overflow:hidden}
+  .crowd-calc>summary{cursor:pointer;list-style:none;padding:9px 12px;font-size:12.5px;font-weight:750;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+  .crowd-calc>summary::after{content:"展开";font-size:10.5px;font-weight:700;color:var(--blue)}
+  .crowd-calc[open]>summary::after{content:"收起";color:var(--faint)}
+  .crowd-body{padding:0 12px 12px}
+  .crowd-formula{font-size:11.5px;color:var(--muted);line-height:1.8;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:0 0 9px}
+  .crowd-formula b{color:var(--ink)}
+  .crowd-table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+  .crowd-table th{font-size:10.5px;font-weight:700;color:var(--faint);text-align:right;padding:0 3px 5px;white-space:nowrap}
+  .crowd-table th:first-child{text-align:left}
+  .crowd-table td{padding:3px;text-align:right;border-top:1px solid var(--line);color:var(--muted)}
+  .crowd-table td:first-child{text-align:left;font-weight:750;color:var(--ink)}
+  .crowd-table tr.top td:first-child{color:var(--red)}
+  .crowd-table tr.bot td:first-child{color:var(--blue)}
+  .crowd-table td b{color:var(--ink)}
+  .crowd-hit{font-size:11.5px;color:var(--muted);line-height:1.8;margin-top:8px;padding-top:7px;border-top:1px dashed var(--line)}
+  .crowd-hit b{color:var(--ink)}
 
   .closure-note b{color:var(--ink)}
 
@@ -289,7 +306,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.10</span>
+      <span class="version">v59.11</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -616,6 +633,7 @@ function renderNow(){
   if(!cur || !Array.isArray(cur.sites) || !cur.sites.length){
     p.innerHTML='<div class="card"><div class="error">本期资料还没出。开奖后 22:30 归档，下一期资料出了这里会自动切换。</div></div>'+closureSection()+consensusSection();
   setTimeout(bindPeriodChips,0);
+  setTimeout(hydrateCrowd,0);
     return;
   }
   var per=cur.period|| (state.latest&&state.latest.period) || '';
@@ -698,6 +716,7 @@ function renderNow(){
   h+=closureSection();
   h+=consensusSection();
   setTimeout(bindPeriodChips,0);
+  setTimeout(hydrateCrowd,0);
 
   p.innerHTML=h;
 }
@@ -824,12 +843,68 @@ function consensusSection(){
     +'<span>核心杀档位历史 <b>'+esc(cons.tagHist)+'</b></span>'
     +((cons.crowdTop3||[]).length?('<span>人群冻结 Top3 <b>'+esc(cons.crowdTop3.join('、'))+'</b></span>'):'')
     +'</div>';
+  if((cons.crowdTop3||[]).length){
+    h+='<details class="crowd-calc"><summary>人群冻结算式 · 三层票数 → z 分 → 加权</summary>'
+      +'<div class="crowd-body" data-crowd-period="'+esc(c.period)+'"><div class="closure-note">正在读取 crowd-freeze-'+esc(c.period)+'.json …</div></div></details>';
+  }
   h+='<div class="method"><b>读法：</b>核心 3 肖杀只统计「杀特3肖/绝杀三肖」这类三肖栏目，分母是给出三肖杀的站；全杀层含 6 肖等宽名单，两者差距大就是假一致。单肖推荐只认每站单个肖的栏目，随机基准 8.3%。档位阈值：&lt;40% 弱、40–60% 中、60–75% 强、≥75% 极强。</div>';
   h+='<div class="links"><a href="data/closure-report-'+esc(c.period)+'.json">一致度数据 JSON <span>查看</span></a><a href="data/core-'+esc(c.period)+'.json">站方核心杀 <span>查看</span></a><a href="data/change-ledger.json">改料台账 <span>查看</span></a></div>';
   h+='</section>';
   return h;
 }
 
+function crowdFormulaHtml(fz, sc){
+  var Z=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  var cnt=fz.counts||{}, zs=fz.zscores||{}, cs=fz.crowdScore||{};
+  var dk=fz.killSites||0, dn=fz.nineSites||0, df=fz.firstSites||0;
+  var t3=fz.top3||[], b3=fz.bottom3||[];
+  var order=Z.slice().sort(function(a,b){ return (cs[b]==null?-99:cs[b]) - (cs[a]==null?-99:cs[a]); });
+  var rows=order.map(function(z){
+    var cls=(t3.indexOf(z)>=0)?'top':(b3.indexOf(z)>=0?'bot':'');
+    var mark=(t3.indexOf(z)>=0)?' <em>'+esc(t3.indexOf(z)+1)+'</em>':'';
+    return '<tr class="'+cls+'"><td>'+esc(z)+mark+'</td>'
+      +'<td>'+esc((cnt.nine||{})[z]||0)+'</td><td>'+esc((zs.nine||{})[z]||0)+'</td>'
+      +'<td>'+esc((cnt.kill3||{})[z]||0)+'</td><td>'+esc((zs.kill3||{})[z]||0)+'</td>'
+      +'<td>'+esc((cnt.first||{})[z]||0)+'</td><td>'+esc((zs.first||{})[z]||0)+'</td>'
+      +'<td><b>'+esc(cs[z]==null?'—':cs[z])+'</b></td></tr>';
+  }).join('');
+  var h='<div class="crowd-formula">'
+    +'<b>拥挤分 = 0.5 × z(九肖) + 0.25 × z(杀三肖) + 0.25 × z(首推)</b><br>'
+    +'z 是 12 肖内部标准化（占比 − 均值 ÷ 标准差）；占比 = 该肖票数 ÷ 该层站数。'
+    +'本层站数：九肖 <b>'+dn+'</b> · 杀三肖 <b>'+dk+'</b> · 首推 <b>'+df+'</b>。<br>'
+    +'按拥挤分降序取前 3 = <b>Top3 最挤</b>，末 3 = <b>底层最冷</b>；冻结后不改权重、不改区间。</div>';
+  h+='<table class="crowd-table"><tr><th>肖</th><th>九肖</th><th>z</th><th>杀单</th><th>z</th><th>首推</th><th>z</th><th>拥挤分</th></tr>'+rows+'</table>';
+  if(sc && sc.rank){
+    h+='<div class="crowd-hit">回检（已开奖）：实开 <b>'+esc(sc.specialNum||'')+' '+esc(sc.actual)+'</b>，拥挤分排第 <b>'+esc(sc.rank)+'</b>/12'
+      +'，Top3 '+(sc.top3Hit?'<b>命中</b>':'<b>未中</b>')
+      +'，Top1 '+(sc.top1Hit?'<b>命中</b>':'<b>未中</b>')
+      +'，底层三只 '+(sc.bottom3Avoid?'<b>规避成功</b>':'<b>被开中</b>')+'（'+esc(sc.scoredAt||'')+' 打分）</div>';
+  } else {
+    h+='<div class="crowd-hit">回检：本期尚未开奖，冻结只做记录，不产生方向。</div>';
+  }
+  h+='<div class="crowd-hit">冻结时间 <b>'+esc(fz.frozenAt||'—')+'</b>　冻结源 <b>'+esc(fz.source||'—')+'</b>　状态 '+esc(fz.status||'')+'</div>';
+  return h;
+}
+var crowdCache={};
+function hydrateCrowd(){
+  var els=document.querySelectorAll('[data-crowd-period]');
+  Array.prototype.forEach.call(els,function(el){
+    if(el.getAttribute('data-loaded')) return;
+    el.setAttribute('data-loaded','1');
+    var p=el.getAttribute('data-crowd-period');
+    if(!crowdCache[p]){
+      crowdCache[p]=Promise.all([
+        safe(fetchJson('data/crowd-freeze-'+p+'.json',9000)),
+        safe(fetchJson('data/crowd-score-'+p+'.json',9000))
+      ]);
+    }
+    crowdCache[p].then(function(r){
+      var fz=r[0], sc=r[1];
+      if(!fz){ el.innerHTML='<div class="closure-note">该期没有冻结文件（人群冻结从 325 期起才有）。</div>'; return; }
+      el.innerHTML=crowdFormulaHtml(fz,sc);
+    });
+  });
+}
 function barRows(arr, cls, key){
   var max=(arr[0]||{n:1}).n||1;
   var show=state.expanded[key]?arr:arr.slice(0,6);
