@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.27-Pro';
+var APP_VER = 'v60.28-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4914,8 +4914,9 @@ function refreshFlySummary(){
               _pend += a;
             });
             _pend = Math.round(_pend);
-            return '<div style="padding-top:3px">总单 <b>' + total.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + Math.round(_flownAll + _pend) + '</b></div>'
-                 + '<div>已飞 ' + Math.round(_flownAll) + ' ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _pend + '</b></div>';
+            var _emx = 0; try { _emx = Math.round(emExtraBook(curShopDraw()).cost || 0); } catch(e){ _emx = 0; }
+            return '<div style="padding-top:3px">总单 <b>' + total.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + Math.round(_flownAll + _pend + _emx) + '</b></div>'
+                 + '<div>已飞 ' + Math.round(_flownAll) + (_emx > 0 ? ' ＋ 多飞 ' + _emx : '') + ' ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _pend + '</b></div>';
           })()
 
     }
@@ -5382,7 +5383,7 @@ function showAllFlyDir(){
   var _flownRowsSum = _flownRows.reduce(function(t, r){ return t + r.a; }, 0);
   let h = '<div style="font-size:12px;line-height:1.3">';
   h += '<div style="padding:3px 5px;background:#f0f0f0;font-weight:700;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;gap:6px">'
-     + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + _flownRowsSum.toFixed(0) + '）</span>'
+     + '<span>' + (_flyDirOpen ? '▼' : '▶') + ' 飞单总目录（待飞' + _pg.showSum.toFixed(0) + ' / 已飞' + (_flownRowsSum + (function(){ try{ return Math.round(emExtraBook(curShopDraw()).cost||0); }catch(e){ return 0; } })()) + '）</span>'
      + (_mode ? '<span style="font-weight:400;font-size:10px;color:#cf1322;white-space:nowrap">凑整' + _mode + '</span>' : '')
      + '</div>';
   h += '<div id="flyDirBody" style="display:' + (_flyDirOpen ? 'block' : 'none') + '">';
@@ -5435,10 +5436,20 @@ function showAllFlyDir(){
   // 右：已飞
   h += '<div style="flex:1;min-width:0;display:flex;flex-direction:column">';
   h += '<div style="padding:2px 5px;font-size:10px;color:#16a34a;font-weight:600;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:4px">'
-     + '<span>已飞 ' + _flownRowsSum.toFixed(0) + (function(){ var g=0; try{ g=flyRoundGapTotal(); }catch(e){}; return Math.abs(g)>0.01 ? ' <span style="font-weight:400;color:#999;font-size:10px">凑整差' + (g>0?'+':'') + g.toFixed(0) + '</span>' : ''; })() + '</span>'
+     + '<span>已飞 ' + _flownRowsSum.toFixed(0) + (function(){ var g=0; try{ g=flyRoundGapTotal(); }catch(e){}; return Math.abs(g)>0.01 ? ' <span style="font-weight:400;color:#999;font-size:10px">凑整差' + (g>0?'+':'') + g.toFixed(0) + '</span>' : ''; })() + (function(){ try{ var x=Math.round(emExtraBook(curShopDraw()).cost||0); return x>0 ? ' ＋多飞'+x : ''; }catch(e){ return ''; } })() + '</span>'
      + '<button onclick="copyFlownList()" style="border:1px solid #16a34a;background:#fff;color:#16a34a;border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;line-height:16px">复制</button>'
      + '</div>';
   h += '<div style="overflow-y:auto;max-height:260px;-webkit-overflow-scrolling:touch">';
+  try{
+    var _exRows = emExtraRows();
+    if(_exRows.length){
+      _exRows.forEach(function(r){
+        h += '<div style="padding:2px 5px;border-bottom:1px solid #ffedd5;background:#fffaf0;display:flex;justify-content:space-between;gap:4px">'
+           + '<span style="font-size:12px;color:#b45309;line-height:1.4;word-break:break-all">多飞 ' + r.code.replace(':', ' ') + '</span>'
+           + '<span style="font-size:12px;color:#b45309;white-space:nowrap">' + Number(r.amt||0).toFixed(0) + '</span></div>';
+      });
+    }
+  }catch(e){}
   if(_flownRows.length === 0){
     h += '<div style="padding:4px;color:#ccc;text-align:center;font-size:11px">暂无</div>';
   } else {
@@ -6770,8 +6781,11 @@ function sideSplitCalc(){
   const _r = getThisRoundFly();
   document.getElementById('sideSplitSummary').innerHTML =
     `<div style="display:flex;justify-content:space-between;font-size:13px;color:#666;padding-bottom:3px;border-bottom:1px solid #eee"><span>当前阈值</span><span style="color:#333">特号 <b>${splitTakeAll||0}</b> ｜ 平特 <b>${pteFlyTakeAll||0}</b> ｜ 连肖 <b>${lxFlyAmt||0}</b></span></div>`
-    + `<div style="padding-top:3px">总单 <b>${total.toFixed(0)}</b> ｜ 总飞出去 <b style="color:#cf1322">${_r.totalFly.toFixed(0)}</b></div>`
-    + `<div>已飞 ${_r.already.toFixed(0)} ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b></div>`;
+    + (function(){
+        var _ex = 0; try { _ex = Math.round(emExtraBook(curShopDraw()).cost || 0); } catch(e){ _ex = 0; }
+        return `<div style="padding-top:3px">总单 <b>${total.toFixed(0)}</b> ｜ 总飞出去 <b style="color:#cf1322">${(_r.totalFly + _ex).toFixed(0)}</b></div>`
+    + `<div>已飞 ${_r.already.toFixed(0)}${_ex>0?' ＋ 多飞 '+_ex:''} ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b></div>`;
+      })();
   // 明细表
   let h = '<div style="font-size:14px">';
   h += '<div style="display:flex;align-items:center;padding:8px 4px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0">';
@@ -12397,7 +12411,7 @@ function renderRisk(){
     h += `<div id="riskPteTable" style="display:none">`;
     h += `<div style="font-size:11px;color:#666;line-height:1.5;margin-bottom:4px">应赔＝客户注额×倍（平特 2、平特马 1.8）；净敞口＝应赔 −（系统已飞＋手飞）×倍，负数（绿）＝超买，开出来反而赚。</div>`;
     h += `<table style="width:100%;border-collapse:collapse;font-size:13px">`;
-    h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">已飞</th><th style="text-align:right;padding:3px">手飞</th><th style="text-align:right;padding:3px">应赔</th><th style="text-align:right;padding:3px">净敞口</th></tr>`;
+    h += `<tr style="color:#333"><th style="text-align:left;padding:3px">生肖</th><th style="text-align:right;padding:3px">下注</th><th style="text-align:right;padding:3px">已飞</th><th style="text-align:right;padding:3px">手飞</th><th style="text-align:right;padding:3px">应赔</th><th style="text-align:right;padding:3px">净敞口</th><th style="text-align:right;padding:3px">若开此肖</th></tr>`;
     const drawZSet = (_riskDraw && _riskDraw.specialNum) ? new Set([...(_riskDraw.regularNums||[]), _riskDraw.specialNum].map(n=>NUM2ZODIAC[n]).filter(Boolean)) : null;
     pteEntries.forEach(([z,amt]) => {
       const ex = pteExposureOfZod(z);
@@ -12409,7 +12423,8 @@ function renderRisk(){
         + `<td style="text-align:right;padding:3px;color:${ex.flySys>0?'#cf1322':'#999'}">${ex.flySys>0?ex.flySys.toFixed(0):'-'}</td>`
         + `<td style="text-align:right;padding:3px;color:${ex.selfFly>0?'#1d4ed8':'#999'}">${ex.selfFly>0?ex.selfFly.toFixed(0):'-'}</td>`
         + `<td style="text-align:right;padding:3px">${ex.payout.toFixed(0)}</td>`
-        + `<td style="text-align:right;padding:3px;font-weight:700;color:${neg?'#166534':'#cf1322'}">${neg?'超买 +'+(-ex.net).toFixed(0):ex.net.toFixed(0)}</td></tr>`;
+        + `<td style="text-align:right;padding:3px;font-weight:700;color:${neg?'#166534':'#cf1322'}">${neg?'超买 +'+(-ex.net).toFixed(0):ex.net.toFixed(0)}</td>`
+        + `<td style="text-align:right;padding:3px;font-weight:700;color:${(ex.customer-ex.net)>=0?'#166534':'#cf1322'}">${(ex.customer-ex.net)>=0?'+':''}${(ex.customer-ex.net).toFixed(0)}</td></tr>`;
     });
     h += `</table>`;
     h += `</div>`;
@@ -12927,7 +12942,7 @@ function renderRisk(){
   const _pendingOrig = (_fr2.lines||[]).reduce((a,l)=> (l.code === '二中二/三中三合计' || !(l.amt > 0)) ? a : a + l.amt, 0);
   const _shouldAll = Number(_fr2.totalFly) || 0;   // 按当前阈值应飞的原额，不是「已飞+待飞」
   const _stillNeed = Math.max(0, Number(_fr2.thisRound) || 0);   // 按原额扣掉已飞后还要补的
-  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　已飞累计 ${_alreadyReal.toFixed(0)}（含早前确认过的）· 按现阈值还该飞 ${_shouldAll.toFixed(0)}，扣掉已飞还要补 ${_stillNeed.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#999"><span>　已飞累计 ${_alreadyReal.toFixed(0)}（含早前确认过的）${(function(){ try{ var x=Math.round(emExtraBook(curShopDraw()).cost||0); return x>0?'＋二三多飞 '+x:''; }catch(e){ return ''; } })()}· 按现阈值还该飞 ${_shouldAll.toFixed(0)}，扣掉已飞还要补 ${_stillNeed.toFixed(0)} → 凑整后 ${_pendingReal.toFixed(0)}</span><span></span></div>`;
   if(_alreadyReal > _shouldAll + 0.5 && _shouldAll > 0){
     const _overAll = _alreadyReal - _shouldAll;
     const _residual = _overAll - _roundGap;   // 多出来的钱里，凑整之外的部分＝改过单/调过阈值的旧飞单残留
