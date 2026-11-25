@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#f3f1ea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <title>资料中心 · 本期资料 / 九肖 / 杀三肖 / 改料跟踪</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%232456a6'/><text x='8' y='11.5' font-size='10' text-anchor='middle' fill='white'>资</text></svg>">
 <style>
   :root{
     --bg:#f3f1ea; --bg-2:#ece8df; --card:#fffdf9; --card-2:#f8f5ef;
@@ -162,6 +163,9 @@
   .site-name .tag{display:inline-block;font-size:8.5px;font-weight:800;border-radius:5px;padding:2px 4px;margin-left:4px;vertical-align:1px;background:var(--accent-soft);color:var(--accent-2)}
   .site-name .tag.carry{background:var(--amber-soft);color:var(--amber)}
   .site-name .tag.change{background:var(--amber-soft);color:var(--amber)}
+  .site-name .tag.empty-tag{background:var(--bg-2);color:var(--faint)}
+  .site-card.empty-site{opacity:.55}
+  .site-card.empty-site .site-name{color:var(--faint)}
   .site-sub{font-size:9.5px;color:var(--faint);margin-top:3px;line-height:1.35;word-break:break-all}
   .site-right{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex:none}
   .tag-count{font-size:9.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 5px;white-space:nowrap}
@@ -1049,7 +1053,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.20</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.21</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1179,6 +1183,15 @@
   function zarr(s,kind){ return kind==='nine' ? (s&&s.zodiacs||[]) : (s&&s.killZodiacs||s&&s.killZodiacs||[]); }
   function extraPicks(s,k){ var o=(s&&s[k])||{}; return (o.picks||[]).map(String); }
   function hasSix(s){ return EXTRA.some(function(d){return extraPicks(s,d.key).length;}); }
+  function isEmptySite(s){
+    if(!s) return true;
+    if((s.zodiacs||[]).length) return false;
+    if((s.killZodiacs||[]).length) return false;
+    if(s.six&&(s.six.zodiacs||[]).length) return false;
+    if(s.seven&&(s.seven.zodiacs||[]).length) return false;
+    for(var i=0;i<EXTRA.length;i++){ if(extraPicks(s,EXTRA[i].key).length) return false; }
+    return true;
+  }
   function countOf(arr,getter){
     var c={};
     (arr||[]).forEach(function(x){ (getter(x)||[]).forEach(function(v){ v=String(v); if(!v)return; c[v]=(c[v]||0)+1; }); });
@@ -1287,7 +1300,14 @@
   function setHero(period,status,updated){
     $('heroPeriod').textContent=period?('第 '+period+' 期'):'—';
     $('heroUpdated').textContent=updated||'—';
-    var st=$('heroStatus'); st.textContent=status; st.className='status-pill '+(status==='已归档'?'live':'warn');
+    var st=$('heroStatus'); st.textContent=status;
+    var pending=/待开|未开奖/.test(status||''); st.className='status-pill '+(pending?'warn':'live');
+  }
+  function syncExpandBtn(btn, listSel){
+    if(!btn) return;
+    var all=document.querySelectorAll(listSel+' details');
+    var open=Array.prototype.some.call(all,function(d){return d.open;});
+    btn.textContent=open?'收起全部':'展开全部';
   }
   function showToast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(showToast._t);showToast._t=setTimeout(function(){t.classList.remove('show');},1300);}
 
@@ -1344,6 +1364,7 @@
     var list=visible;
     var sort=S.sort.now;
     list.sort(function(a,b){
+      if(isEmptySite(a)!==isEmptySite(b)) return isEmptySite(a)?1:-1;
       if(sort==='nine') return (b.zodiacs||[]).length-(a.zodiacs||[]).length || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
       if(sort==='kill') return (b.killZodiacs||[]).length-(a.killZodiacs||[]).length || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
       if(sort==='fresh') return (b.fresh?1:0)-(a.fresh?1:0) || nameOf(a,keyOf(a)).localeCompare(nameOf(b,keyOf(b)),'zh-Hans-CN');
@@ -1358,20 +1379,23 @@
       $('nowMore').innerHTML='<button class="btn" type="button" data-less="now">收起，只看前 30 站</button>';
     } else { $('nowMore').innerHTML=''; }
     var b=$('nowMore').querySelector('button'); if(b) b.addEventListener('click',function(){S.limit.now=b.dataset.more?9999:30;renderNow();});
+    syncExpandBtn($('nowExpand'),'#nowCards');
   }
   function nowCard(s){
     var k=keyOf(s), name=nameOf(s,k), z=s.zodiacs||[], kl=s.killZodiacs||[];
+    var empty=isEmptySite(s);
     var tags='';
     if(s.carried) tags+='<span class="tag carry">沿用</span>';
     else if(s.fresh) tags+='<span class="tag">新料</span>';
     if(s.changed || (s.changedDims&&s.changedDims.length)) tags+='<span class="tag change">改料</span>';
+    if(empty) tags+='<span class="tag empty-tag">无推荐</span>';
     var six=EXTRA.map(function(d){
       var picks=extraPicks(s,d.key);
       return '<div class="mini-dim"><em>'+d.label+'</em><b title="'+esc(picks.join('、'))+'">'+(picks.length?esc(picks.join('、')):'—')+'</b></div>';
     }).join('');
     var hitBadge=s.hit===true?'<span class="hit-badge hit">中</span>':(s.hit===false?'<span class="hit-badge miss">错</span>':'');
     var top='<div class="site-top"><div><div class="site-name">'+seqTag(s)+esc(name)+tags+'</div><div class="site-sub">'+esc(subOf(s))+'</div></div><div class="site-right">'+hitBadge+'<span class="tag-count">九 '+(z.length||0)+'</span><span class="tag-count">杀 '+(kl.length||0)+'</span></div></div>';
-    return '<details class="site-card"><summary>'+top+'</summary><div class="site-card-body">'+
+    return '<details class="site-card'+(empty?' empty-site':'')+'"><summary>'+top+'</summary><div class="site-card-body">'+
       '<div class="mini-block"><div class="mini-label">九肖 <span class="n">'+z.length+' 肖</span></div>'+picksHtml(z,'',s.status==='无九肖栏目'?'无九肖栏目':'未更新')+'</div>'+
       '<div class="mini-block"><div class="mini-label">杀三肖 <span class="n">'+kl.length+' 肖</span></div>'+picksHtml(kl,'kill',s.column===null?'无杀三肖':'无杀三肖')+'</div>'+
       '<div class="mini-dims">'+six+'</div>'+
@@ -1519,6 +1543,8 @@
       return '<tr><td>'+esc(n?n.issue:(k?k.issue:'—'))+'</td><td>'+esc((n?n.actual:(k?k.actual:'—')))+'</td><td>'+(n?n.hit+'/'+n.n+' · '+n.rate+'%':'—')+'</td><td>'+(k?k.hit+'/'+k.n+' · '+k.rate+'%':'—')+'</td></tr>';
     }).join('')+'</tbody></table>'):'<div class="empty-mini">暂无已开奖记录</div>';
     $('tabBriefCount').textContent=b.period+'期';
+    var bActual=(b.ns&&b.ns.actual)||(b.ks&&b.ks.actual)||'—';
+    setHero(b.period, isRev?'已开奖':bps.text, isRev?bActual:(S.pend&&S.pend.updatedAt)||'—');
   }
 
   // ===== 九肖 / 杀三肖台账 =====
@@ -1908,6 +1934,7 @@
     });
     var mb=$('ovMore').querySelector('[data-more="ov"]'); if(mb) mb.addEventListener('click',function(){S.limit.ov=9999;renderOverview();});
     var oc=$('tabOvCount'); if(oc) oc.textContent=sites.length+' 站';
+    syncExpandBtn($('ovExpand'),'#ovCards');
   }
 
   function renderMix(){
@@ -2043,6 +2070,7 @@
       more.innerHTML='<button class="btn" type="button" data-less="1">收起，只看前 30 站</button>';
     } else more.innerHTML='';
     var mb=more.querySelector('button'); if(mb) mb.addEventListener('click',function(){S.limit[kind]=mb.dataset.more?9999:30;renderLedger(kind);});
+    syncExpandBtn($(kind+'Expand'),'#'+kind+'List');
   }
   function ledgerCard(kind,mode,base,e){
     var r=e.r, z=e.z, hit=r.hit;
@@ -2499,6 +2527,7 @@
       st.mode='pending'; st.period=S.pend.period;
       el('Period').value='pending';
       el('Review').classList.add('hidden'); el('Pend').classList.remove('hidden');
+      setHero(S.pend.period,'待开',S.pend.updatedAt||'—');
       renderPending();
     }
     function enterReview(cur){
@@ -2506,6 +2535,8 @@
       el('Back').style.display='inline-flex';
       el('Period').value=cur;
       el('Pend').classList.add('hidden'); el('Review').classList.remove('hidden');
+      var perL=perOf('left',cur);
+      setHero(cur,'已开奖',(perL&&perL.actual)||'—');
       renderReview();
     }
     function pendCard(s){
@@ -2531,6 +2562,7 @@
       el('Badge').textContent='未对账'; el('Badge').className='badge pending';
       el('Back').style.display='none';
       setSummary([{text:d.title,tone:'accent'},{text:'第 '+S.pend.period+' 期 · 待开'},{text:sites.length+' 站有推荐'},{text:updated,tone:'warn'}]);
+      if(cfg.tabCount){ var tc=$(cfg.tabCount); if(tc) tc.textContent=sites.length+' 站'; }
       var zodAgg={}, codeAgg={};
       visible.forEach(function(s){ var e=pendSite(s); pendZ(e).forEach(function(p){zodAgg[p]=(zodAgg[p]||0)+1;}); pendC(e).forEach(function(p){codeAgg[p]=(codeAgg[p]||0)+1;}); });
       var zodRows=Object.keys(zodAgg).map(function(p){return {p:p,n:zodAgg[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
@@ -2723,7 +2755,7 @@
     return {render:render};
   }
   var embeds={
-    ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, hideTabs:true, dims:[
+    ss:makeEmbed({prefix:'ss', dual:true, reviewHasOnly:true, hideTabs:true, tabCount:'tabSsCount', dims:[
       {key:'six',title:'六肖',file:'six-zodiac-ledger.json',ext:'six'},
       {key:'seven',title:'七肖',file:'seven-zodiac-ledger.json',ext:'seven'}],
       mixPair:function(sites){
@@ -2744,7 +2776,7 @@
         $('ssMixSixCode').innerHTML=codeRankHtml(sixC);
         $('ssMixSevenCode').innerHTML=codeRankHtml(sevC);
       }}),
-    ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, dims:[
+    ex:makeEmbed({prefix:'ex', dual:false, reviewHasOnly:false, tabCount:'tabExCount', dims:[
       {key:'pingte',title:'平特一肖',file:'pingte-ledger.json',ext:'pingte',hot:'actual'},
       {key:'wave',title:'波色',file:'wave-ledger.json',ext:'wave',hot:'actualWave'},
       {key:'headtail',title:'头数·尾数',split:true,
