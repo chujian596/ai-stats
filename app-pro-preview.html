@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.23-Pro';
+var APP_VER = 'v60.24-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -1943,9 +1943,14 @@ function autoPayout(){
       flyOutAmt = _fb0.spec + _fb0.pte + _fb0.lx + _fb0.em;
       flyBackAmt = _fb0.specBack + _fb0.pteBack + _fb0.lxBack + _fb0.emBack;
     } catch(e){}
-    const realNet = net - flyOutAmt + flyBackAmt;
+    // 手飞（自己买）：本金支出 + 命中赔回，同样是飞出去的钱
+    let sfCost0 = 0, sfBack0 = 0;
+    try { const _sfp = selfFlyBook({specialNum: specialNum, regularNums: regularNums}); sfCost0 = _sfp.cost; sfBack0 = _sfp.back; } catch(e){}
+    const realNet = net - flyOutAmt + flyBackAmt - sfCost0 + sfBack0;
     msg += '\n\n── 飞单后实际 ──\n';
     msg += '飞出去（已实付）：-' + flyOutAmt.toFixed(0) + '\n';
+    if(sfCost0 > 0) msg += '手飞自掏本金：-' + sfCost0.toFixed(0) + '\n';
+    if(sfBack0 > 0) msg += '上家赔回手飞：+' + sfBack0.toFixed(0) + '\n';
     msg += '上家赔回：+' + flyBackAmt.toFixed(0) + '\n';
     msg += '其中自己承担赔付：' + Math.max(0, totalPayout - flyBackAmt).toFixed(0) + '，飞出部分由上家赔：' + flyBackAmt.toFixed(0) + '\n';
     msg += (realNet >= 0 ? '实际盈利：' : '实际亏损：') + Math.abs(realNet).toFixed(2);
@@ -3033,20 +3038,23 @@ function renderPaySide(){
   let h = '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
   const _ap = actualPnL();
-  var _settleP = _ap.flyBack - _ap.flyOut;
+  var _sfP0 = _ap.sfCost || 0, _sfP1 = _ap.sfBack || 0;
+  var _flyOutP = _ap.flyOut + _sfP0, _flyBackP = _ap.flyBack + _sfP1;
+  var _settleP = _flyBackP - _flyOutP;
   var _gapP = 0; try { _gapP = flyRoundGapTotal(); } catch(e){}
   h += `<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 6px;font-size:12px;color:#666;margin:2px 0 8px;width:100%">`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">总单</span><b style="color:#1a1a1a;font-size:16px">${_ap.sales.toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">客户赔付</span><b style="color:#cf1322;font-size:16px">${_ap.settled?('-'+_ap.payout.toFixed(0)):'未结算'}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">毛净</span><b style="color:${(_ap.sales-_ap.payout)>=0?'#166534':'#cf1322'};font-size:16px">${(_ap.sales-_ap.payout).toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家需结算</span><b style="color:${_settleP>=0?'#166534':'#cf1322'};font-size:16px">${_settleP>=0?'+':''}${_settleP.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">已飞实付</span><b style="color:#cf1322;font-size:16px">${_ap.flyOut.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家赔回</span><b style="color:#16a34a;font-size:16px">+${_ap.flyBack.toFixed(0)}</b></div>`
+     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">飞出实付${_sfP0>0?'(含手飞)':''}</span><b style="color:#cf1322;font-size:16px">${_flyOutP.toFixed(0)}</b></div>`
+     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家赔回${_sfP1>0?'(含手飞)':''}</span><b style="color:#16a34a;font-size:16px">+${_flyBackP.toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">凑整差累计</span><b style="font-size:16px;color:${_gapP>0?'#cf1322':(_gapP<0?'#166534':'#999')}">${Math.abs(_gapP)<0.01?'0':((_gapP>0?'+':'')+_gapP.toFixed(0))}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">实际盈亏</span><b style="font-size:16px;color:${_ap.net>=0?'#166534':'#cf1322'}">${_ap.net>=0?'+':''}${_ap.net.toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">返水${_ap.rebateOn?'('+(_ap.rebateRate*100).toFixed(1)+'%)':'未开'}</span><b style="font-size:16px;color:${_ap.rebate>0?'#16a34a':'#999'}">${_ap.rebate>0?'+':''}${_ap.rebate.toFixed(0)}</b></div>`
      + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">含返水到手</span><b style="font-size:16px;color:${_ap.netWithRebate>=0?'#166534':'#cf1322'}">${_ap.netWithRebate>=0?'+':''}${_ap.netWithRebate.toFixed(0)}</b></div>`
      + `</div>`;
+  if(_sfP0 > 0) h += `<div style="font-size:11px;color:#1d4ed8;padding:2px 0 6px">手飞（自己买）：本金 ${_sfP0.toFixed(0)}｜赔回 ${_sfP1.toFixed(0)}｜净 <b style="color:${(_sfP1-_sfP0)>=0?'#166534':'#cf1322'}">${(_sfP1-_sfP0)>=0?'+':''}${(_sfP1-_sfP0).toFixed(0)}</b>（客户账未动）</div>`;
   h += `</div>`;
   if(!curShopDraw()){
     h += '<div style="padding:6px;background:#fffbe6;border:1px solid #f0c36d;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:6px">还没结算本期开奖，赔付按 0 算；点「自动获取开奖」结算后这里才是实际账。</div>';
@@ -3182,6 +3190,7 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('spec','特号') + _bo('flyDirBtnToggle()','飞单目录') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('pte','平特') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('lx','连肖') + _bo('copySelectedFly()','复制') + '</div>';
+  h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('selfFlyOpen()','手飞(自己买)','border-color:#1d4ed8;color:#1d4ed8;font-weight:600') + '</div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('em','二中二三中三') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem(sk('autoFlyOn'),autoFlyOn?'1':'0');localStorage.setItem(sk('emFlyOn'),autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">（连/二/三）自动飞<br><span style="color:#999;font-size:11px">勾选直接默认连肖/二中二/三中三已飞（自行复制给上家）</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">10 元档</span><br><span style="color:#999;font-size:11px">每个号就近凑到 10 的倍数（34→30、36→40、3→10），飞出去只留零尾，不出现 5 元尾</span></label>`;
@@ -3380,8 +3389,11 @@ function renderSideCustPay(){
     }
     const flyOutSum=flySpec+flyPte+flyLx+flyEm;
     const flyBackSum=flySpecBack+flyPteBack+flyLxBack+flyEmBack;
+    // 手飞（自己买）：客户账不动，只加「自掏本金」和「上家赔回」
+    let sfCost = 0, sfBack = 0;
+    try { const SF = selfFlyBook(_drawS); sfCost = SF.cost; sfBack = SF.back; } catch(e){ sfCost = 0; sfBack = 0; }
     const grossNet = totalBuy - totalPay;
-    const realNet = grossNet - flyOutSum + flyBackSum;
+    const realNet = grossNet - flyOutSum + flyBackSum - sfCost + sfBack;
     // 渲染流水账
     h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">结算明细</div>';
     h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">总收入（总单）</span><span style="font-size:14px;font-weight:600">+' + totalBuy.toFixed(2) + '</span></div>';
@@ -3413,6 +3425,13 @@ function renderSideCustPay(){
           h += '<div style="display:flex;justify-content:space-between;padding:2px 12px;font-size:11px;color:#888"><span>凑整差 ' + (_rg>0?'+':'') + _rg.toFixed(0) + '（' + (_rg>0?'多飞自己多付':'少飞自己留') + '，已含在实际总飞额里，不重复计算）</span><span></span></div>';
         }
       } catch(e){}
+    }
+    // 手飞（自己买）：与客户单、系统飞单完全分开的两行
+    if(sfCost > 0 || sfBack > 0){
+      h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:4px">手飞（自己买）：</div>';
+      h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">自掏本金（已付上家）</span><span style="font-size:13px;color:#cf1322">-' + sfCost.toFixed(2) + '</span></div>';
+      if(sfBack > 0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回手飞</span><span style="font-size:13px;color:#166534">+' + sfBack.toFixed(2) + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;padding:3px 0 2px 12px"><span style="font-size:13px;color:#666;font-weight:700">手飞净</span><span style="font-size:14px;font-weight:700;color:' + ((sfBack - sfCost) >= 0 ? '#166534' : '#cf1322') + '">' + ((sfBack - sfCost) >= 0 ? '+' : '') + (sfBack - sfCost).toFixed(2) + '</span></div>';
     }
     h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;margin-top:4px"><span style="font-size:15px;font-weight:700">最终余额</span><span style="font-size:18px;font-weight:700;color:' + (realNet>=0?'#166534':'#cf1322') + '">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
     h += '</div>';
@@ -3596,6 +3615,59 @@ function flyBook(draw){
     }
   }catch(e){}
   return R;
+}
+// ===== 手飞（自己买）独立台账 =====
+// 跟客户单无关：自己额外向上家买入的注额。客户账一分不动，这里只算「自掏本金」和「上家赔回」。
+// 存在 sk('selfFly')，按当期过滤；结构与订单同规格 {p:期, code:玩法, amt:注额, ts}
+function selfFlyList(){
+  try{ var a = JSON.parse(localStorage.getItem(sk('selfFly')) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+function selfFlySave(list){
+  try{ localStorage.setItem(sk('selfFly'), JSON.stringify(list || [])); }catch(e){}
+}
+function selfFlyPeriod(){
+  var d = (typeof curShopDraw === 'function') ? curShopDraw() : null;
+  return (d && (d.draw || d.period)) ? String(d.draw || d.period) : '';
+}
+function selfFlyRows(){
+  var p = selfFlyPeriod();
+  return selfFlyList().filter(function(r){ return (!p) || (String(r.p) === p); });
+}
+// 某号的手飞注额（特号 01-49）
+function selfFlyAmtOfNum(n){
+  var k = String(n).padStart(2, '0');
+  return selfFlyRows().reduce(function(s, r){ return s + ((r.code === k) ? Number(r.amt || 0) : 0); }, 0);
+}
+// 手飞账：cost=自掏本金，back=命中后上家赔回（赔率与客户一模一样），net=赔回-本金
+function selfFlyBook(draw){
+  var R = {cost: 0, back: 0, net: 0, rows: [], byNum: {}};
+  var d = (draw === null) ? null : (draw || ((typeof curShopDraw === 'function') ? curShopDraw() : null));
+  try{
+    selfFlyRows().forEach(function(r){
+      var amt = Number(r.amt || 0); if(!(amt > 0)) return;
+      R.cost += amt;
+      R.rows.push(r);
+      if(/^\d{1,2}$/.test(String(r.code))) R.byNum[String(r.code).padStart(2, '0')] = (R.byNum[String(r.code).padStart(2, '0')] || 0) + amt;
+      if(d && d.regularNums){
+        var m = codeWinMult(r.code, d);
+        if(m > 0) R.back += amt * m;
+      }
+    });
+  }catch(e){}
+  R.net = R.back - R.cost;
+  return R;
+}
+// 单号净敞口：中奖要赔客户多少 −（系统已飞 + 手飞）×赔率。负=超买（中奖反而赚），正=自留（中奖要自己赔）
+function netExposureOfNum(n){
+  var k = String(n).padStart(2, '0');
+  var customer = 0;
+  try{
+    activeOrders().forEach(function(o){ eachUniqueOrderCode(o, function(c, amt){ if(String(c) === k) customer += amt; }); });
+  }catch(e){}
+  var flew = 0;
+  try{ flew = Number(flownRealOf(k) || 0); }catch(e){ flew = Number((flownReal || {})[k] || 0); }
+  var sf = selfFlyAmtOfNum(k);
+  return { customer: customer, payout: customer * payMult, flew: flew + sf, selfFly: sf, net: customer * payMult - (flew + sf) * payMult };
 }
 // 实际飞出总额（所有产品）
 function totalFlownReal(){
@@ -5890,6 +5962,113 @@ function selectFlyGroup(g){
   try{ showGroupDetail(g); }catch(e){}
   try{ markFlyBtns(); }catch(e){}
   copySelectedFly(true);
+}
+// ===== 手飞（自己买）录入浮层 =====
+function selfFlyOpen(){
+  var old = document.getElementById('sfWrap');
+  if(old && old.parentNode) old.parentNode.removeChild(old);
+  var wrap = document.createElement('div');
+  wrap.id = 'sfWrap';
+  wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:12050;display:flex;align-items:flex-end';
+  wrap.onclick = function(e){ if(e.target === wrap) selfFlyClose(); };
+  document.body.appendChild(wrap);
+  selfFlyRender();
+}
+function selfFlyClose(){
+  var w = document.getElementById('sfWrap');
+  if(w && w.parentNode) w.parentNode.removeChild(w);
+  try{ if(typeof renderSideCustPay === 'function') renderSideCustPay(); }catch(e){}
+  try{ if(typeof renderRisk === 'function') renderRisk(); }catch(e){}
+}
+function selfFlyRender(){
+  var wrap = document.getElementById('sfWrap'); if(!wrap) return;
+  var rows = selfFlyRows();
+  var bk = selfFlyBook();
+  var draw = (typeof curShopDraw === 'function') ? curShopDraw() : null;
+  var hitLine = draw && draw.specialNum ? ('开奖 特' + String(draw.specialNum).padStart(2,'0') + ' 平 ' + (draw.regularNums||[]).map(function(n){return String(n).padStart(2,'0');}).join(' ')) : '还没录开奖，先记注额也行';
+  var h = '';
+  h += '<div style="background:#fff;width:100%;max-height:86vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:14px 14px 18px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">手飞（自己买）</b>';
+  h += '<span onclick="selfFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
+  h += '<div style="font-size:11.5px;color:#666;line-height:1.5;margin:4px 0 8px">只记你自己向上家买的注额，<b>客户账一分不动</b>；倍数跟客户一模一样（特 47、平特 2/马 1.8、二三 60/20/600、连肖 4·10·30）。<br>' + hitLine + '</div>';
+  h += '<textarea id="selfFlyInput" placeholder="一行一笔，例如：\n04 各100\n平特牛 300\n三中三 42.44.40 5" style="width:100%;height:74px;border:2px solid #1d4ed8;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box"></textarea>';
+  h += '<div style="display:flex;gap:6px;margin-top:8px">';
+  h += '<button onclick="selfFlyAdd()" style="flex:2;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:11px;font-size:15px;font-weight:700">记入本期</button>';
+  h += '<button onclick="selfFlyClear()" style="flex:1;background:#fff;color:#cf1322;border:1px solid #cf1322;border-radius:8px;padding:11px;font-size:14px">清空本期</button>';
+  h += '</div>';
+  // 本期合计
+  h += '<div style="display:flex;gap:6px;margin:10px 0 6px">';
+  h += '<div style="flex:1;background:#f6f7f9;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">自掏本金</div><b style="font-size:17px;color:#cf1322">' + bk.cost.toFixed(0) + '</b></div>';
+  h += '<div style="flex:1;background:#f6f7f9;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">上家赔回</div><b style="font-size:17px;color:#166534">+' + bk.back.toFixed(0) + '</b></div>';
+  h += '<div style="flex:1;background:#f6f7f9;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">手飞净</div><b style="font-size:17px;color:' + (bk.net >= 0 ? '#166534' : '#cf1322') + '">' + (bk.net >= 0 ? '+' : '') + bk.net.toFixed(0) + '</b></div>';
+  h += '</div>';
+  // 明细
+  if(rows.length){
+    h += '<div style="font-size:12px;color:#999;margin:8px 0 2px">本期手飞明细（' + rows.length + ' 笔）</div>';
+    h += '<div style="border:1px solid #eee;border-radius:8px;overflow:hidden">';
+    rows.forEach(function(r){
+      var amt = Number(r.amt || 0);
+      var m = 0; try{ m = draw && draw.regularNums ? codeWinMult(r.code, draw) : 0; }catch(e){ m = 0; }
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #f2f2f2;font-size:14px">';
+      h += '<span>' + r.code + '　<b>' + amt.toFixed(0) + '</b> 元' + (m > 0 ? '　<span style="color:#166534;font-size:12px">中 ×' + m + ' 赔回 ' + (amt * m).toFixed(0) + '</span>' : '') + '</span>';
+      h += '<span onclick="selfFlyDel(' + r.ts + ')" style="color:#cf1322;font-size:12px;padding:2px 6px">删</span></div>';
+    });
+    h += '</div>';
+  }
+  // 号码净敞口（含系统已飞）
+  var nums = Object.keys(bk.byNum || {});
+  if(nums.length){
+    h += '<div style="font-size:12px;color:#999;margin:10px 0 2px">手飞号码的净敞口（应赔 −（系统已飞+手飞）×' + payMult + '）</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+    h += '<tr style="color:#666"><th style="text-align:left;padding:3px">号</th><th style="text-align:right;padding:3px">客户注额</th><th style="text-align:right;padding:3px">应赔</th><th style="text-align:right;padding:3px">已飞</th><th style="text-align:right;padding:3px">手飞</th><th style="text-align:right;padding:3px">净敞口</th></tr>';
+    nums.sort().forEach(function(n){
+      var e = netExposureOfNum(n);
+      var neg = e.net < 0;
+      h += '<tr style="border-top:1px solid #f5f5f5"><td style="padding:3px">' + n + '</td><td style="text-align:right;padding:3px">' + e.customer.toFixed(0) + '</td><td style="text-align:right;padding:3px">' + e.payout.toFixed(0) + '</td><td style="text-align:right;padding:3px">' + (e.flew - e.selfFly).toFixed(0) + '</td><td style="text-align:right;padding:3px;color:#1d4ed8">' + e.selfFly.toFixed(0) + '</td><td style="text-align:right;padding:3px;font-weight:700;color:' + (neg ? '#166534' : '#cf1322') + '">' + (neg ? '超买 +' + (-e.net).toFixed(0) : e.net.toFixed(0)) + '</td></tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:10.5px;color:#999;line-height:1.5;margin-top:4px">超买 = 中奖时上家赔回来的钱比你要赔客户的多，那多出来的部分就是你自己赚的；红色是自留，中奖就要自己掏。</div>';
+  }
+  h += '</div>';
+  wrap.innerHTML = h;
+}
+function selfFlyAdd(){
+  var el = document.getElementById('selfFlyInput');
+  var t = (el && el.value) || '';
+  if(!t.trim()){ myAlert('先写要手飞的内容'); return; }
+  var list = selfFlyList();
+  var p = selfFlyPeriod();
+  var added = [], miss = [];
+  t.split(/[\n\r;；]+/).forEach(function(line){
+    var raw = String(line).trim(); if(!raw) return;
+    try{
+      var r = parseLine(raw);
+      if(r && r.codes && r.codes.length && Number(r.price) > 0){
+        r.codes.forEach(function(c){ list.push({p: p, code: c, amt: Number(r.price), ts: Date.now() + Math.floor(Math.random() * 900)}); added.push(c + ' ' + Number(r.price)); });
+      } else miss.push(raw);
+    }catch(e){ miss.push(raw); }
+  });
+  selfFlySave(list);
+  if(el) el.value = '';
+  selfFlyRender();
+  try{ renderSideCustPay(); }catch(e){}
+  try{ renderRisk(); }catch(e){}
+  if(miss.length) myAlert('没认出：' + miss.join(' / ') + '\n写法示例：04 各100、平特牛300、三中三 42.44.40 5');
+}
+function selfFlyDel(ts){
+  var list = selfFlyList().filter(function(r){ return String(r.ts) !== String(ts); });
+  selfFlySave(list); selfFlyRender();
+  try{ renderSideCustPay(); }catch(e){}
+  try{ renderRisk(); }catch(e){}
+}
+function selfFlyClear(){
+  myConfirm('清空本期手飞？\n\n只删手飞台账，客户单和已飞都不动。', function(){
+    var p = selfFlyPeriod();
+    var list = selfFlyList().filter(function(r){ return p && String(r.p) !== p; });
+    selfFlySave(list); selfFlyRender();
+    try{ renderSideCustPay(); }catch(e){}
+    try{ renderRisk(); }catch(e){}
+  });
 }
 function copySelectedFly(silent){
   var g = currentFlyGroup;
@@ -10391,11 +10570,14 @@ function actualPnL(){
   var FB = flyBook(_draw);
   var flyOut = FB.spec + FB.pte + FB.lx + FB.em;
   var flyBack = FB.specBack + FB.pteBack + FB.lxBack + FB.emBack;
-  var net = sales - payout - flyOut + flyBack;
+  // 手飞（自己买）也是一笔真金白银：本金支出、命中赔回，跟客户账分开但必须进总账
+  var SF = selfFlyBook(_draw);
+  var sfCost = SF.cost, sfBack = SF.back;
+  var net = sales - payout - flyOut + flyBack - sfCost + sfBack;
   var _rc = rebateCfg();
   var rebate = _rc.on ? flyOut * _rc.rate : 0;
   var settled = !!(_draw && _draw.specialNum);
-  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, settled: settled,
+  return { sales: sales, payout: payout, flyOut: flyOut, flyBack: flyBack, net: net, sfCost: sfCost, sfBack: sfBack, settled: settled,
            rebate: rebate, rebateRate: _rc.rate, rebateOn: _rc.on, netWithRebate: net + rebate };
 }
 
@@ -11818,6 +12000,21 @@ function renderRisk(){
   h += `<div style="flex:1;background:#f8f9fa;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">待飞</div><b style="font-size:16px;color:#d97706">${_fr.thisRound.toFixed(0)}</b><div style="font-size:10px;color:#bbb">按当前阈值还该飞</div></div>`;
   h += `</div>`;
   h += `<div style="font-size:10px;color:#999;line-height:1.5;margin:-2px 0 6px">三个数不同口径：总单是全部产品订单；已飞是之前手动确认过的累计；待飞是照当前阈值「特号 ${splitTakeAll||0} / 平特 ${pteFlyTakeAll||0} / 连肖 ${lxFlyAmt||0}」还算该飞多少。下方号码表的「飞」只算特号 01–49，跟这三个不是一回事。</div>`;
+  // 手飞（自己买）：独立台账，不计入客户账；这里只做敞口提示与削峰对账
+  try{
+    var _sfr = selfFlyBook(_riskDraw);
+    if(_sfr.cost > 0){
+      h += `<div onclick="var e=document.getElementById('riskSelfFlyBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">手飞（自己买）· 本金 ${_sfr.cost.toFixed(0)} / 赔回 ${_sfr.back.toFixed(0)} / 净 <span style="color:${_sfr.net>=0?'#166534':'#cf1322'}">${_sfr.net>=0?'+':''}${_sfr.net.toFixed(0)}</span> ▶</div>`;
+      h += `<div id="riskSelfFlyBox" style="display:none;font-size:12.5px">`;
+      h += `<div style="color:#666;line-height:1.5;margin-bottom:4px">手飞不抵客户赔付，只在命中时产生「上家赔回」。该号自留 = 客户注额 − 系统已飞 − 手飞，负数就是超买。</div>`;
+      h += `<table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="color:#666"><th style="text-align:left;padding:2px">号</th><th style="text-align:right;padding:2px">注额</th><th style="text-align:right;padding:2px">应赔</th><th style="text-align:right;padding:2px">已飞</th><th style="text-align:right;padding:2px">手飞</th><th style="text-align:right;padding:2px">净敞口</th></tr>`;
+      Object.keys(_sfr.byNum || {}).sort().forEach(function(n){
+        var e = netExposureOfNum(n), neg = e.net < 0;
+        h += `<tr style="border-top:1px solid #f5f5f5"><td style="padding:2px">${n}</td><td style="text-align:right">${e.customer.toFixed(0)}</td><td style="text-align:right">${e.payout.toFixed(0)}</td><td style="text-align:right">${(e.flew - e.selfFly).toFixed(0)}</td><td style="text-align:right;color:#1d4ed8">${e.selfFly.toFixed(0)}</td><td style="text-align:right;font-weight:700;color:${neg?'#166534':'#cf1322'}">${neg?'超买 +'+(-e.net).toFixed(0):e.net.toFixed(0)}</td></tr>`;
+      });
+      h += `</table></div>`;
+    }
+  }catch(e){}
   // 已开奖：显示实际结果
   if(_riskDraw && _riskDraw.specialNum){
     const dn = _riskDraw.specialNum;
