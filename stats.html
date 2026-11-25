@@ -306,7 +306,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.11</span>
+      <span class="version">v59.12</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -819,7 +819,7 @@ function consensusSection(){
   var c=state.closureView||state.closure, cons=c&&c.consensus;
   if(!cons || cons.error || !cons.coreRows) return '';
   var core=cons.coreRows||[], pick=cons.pickRows||[], wide=cons.wideTop||{};
-  var h='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">09</span><h3>共识明细 · 一致度</h3></div>'
+  var h='<section class="card" id="crowd"><div class="card-head"><div class="card-title"><span class="sec-no">09</span><h3>共识明细 · 一致度</h3></div>'
     +'<span class="card-note">'+esc(cons.sites)+' 站 · 核心杀 '+esc(cons.coreDen)+' · 单肖 '+esc(cons.pickDen)+'</span></div>';
 
   var maxPct=Math.max.apply(null, core.map(function(x){return x.pct;}).concat([1]));
