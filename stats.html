@@ -306,7 +306,7 @@
       </div>
     </div>
     <div class="top-actions">
-      <span class="version">v59.12</span>
+      <span class="version">v59.13</span>
       <button class="icon-btn" onclick="loadBase()" aria-label="刷新">↻</button>
       <button class="icon-btn" onclick="openHelp()" aria-label="说明">?</button>
     </div>
@@ -843,10 +843,8 @@ function consensusSection(){
     +'<span>核心杀档位历史 <b>'+esc(cons.tagHist)+'</b></span>'
     +((cons.crowdTop3||[]).length?('<span>人群冻结 Top3 <b>'+esc(cons.crowdTop3.join('、'))+'</b></span>'):'')
     +'</div>';
-  if((cons.crowdTop3||[]).length){
-    h+='<details class="crowd-calc"><summary>人群冻结算式 · 三层票数 → z 分 → 加权</summary>'
-      +'<div class="crowd-body" data-crowd-period="'+esc(c.period)+'"><div class="closure-note">正在读取 crowd-freeze-'+esc(c.period)+'.json …</div></div></details>';
-  }
+  h+='<details class="crowd-calc"><summary>人群冻结算式 · 三层票数 → z 分 → 加权</summary>'
+    +'<div class="crowd-body" data-crowd-period="'+esc(c.period)+'" data-crowd-back="3"><div class="closure-note">正在读取冻结数据 …</div></div></details>';
   h+='<div class="method"><b>读法：</b>核心 3 肖杀只统计「杀特3肖/绝杀三肖」这类三肖栏目，分母是给出三肖杀的站；全杀层含 6 肖等宽名单，两者差距大就是假一致。单肖推荐只认每站单个肖的栏目，随机基准 8.3%。档位阈值：&lt;40% 弱、40–60% 中、60–75% 强、≥75% 极强。</div>';
   h+='<div class="links"><a href="data/closure-report-'+esc(c.period)+'.json">一致度数据 JSON <span>查看</span></a><a href="data/core-'+esc(c.period)+'.json">站方核心杀 <span>查看</span></a><a href="data/change-ledger.json">改料台账 <span>查看</span></a></div>';
   h+='</section>';
@@ -891,17 +889,22 @@ function hydrateCrowd(){
   Array.prototype.forEach.call(els,function(el){
     if(el.getAttribute('data-loaded')) return;
     el.setAttribute('data-loaded','1');
-    var p=el.getAttribute('data-crowd-period');
-    if(!crowdCache[p]){
-      crowdCache[p]=Promise.all([
-        safe(fetchJson('data/crowd-freeze-'+p+'.json',9000)),
-        safe(fetchJson('data/crowd-score-'+p+'.json',9000))
-      ]);
+    var p=el.getAttribute('data-crowd-period'), back=parseInt(el.getAttribute('data-crowd-back')||'0',10);
+    function loadCrowd(i){
+      if(i>back) return Promise.resolve(null);
+      var per=parseInt(p,10)-i;
+      return Promise.all([
+        safe(fetchJson('data/crowd-freeze-'+per+'.json',9000)),
+        safe(fetchJson('data/crowd-score-'+per+'.json',9000))
+      ]).then(function(r){
+        if(!r[0]) return loadCrowd(i+1);
+        return {fz:r[0], sc:r[1], fallback:i};
+      });
     }
-    crowdCache[p].then(function(r){
-      var fz=r[0], sc=r[1];
-      if(!fz){ el.innerHTML='<div class="closure-note">该期没有冻结文件（人群冻结从 325 期起才有）。</div>'; return; }
-      el.innerHTML=crowdFormulaHtml(fz,sc);
+    loadCrowd(0).then(function(r){
+      if(!r){ el.innerHTML='<div class="closure-note">还没有任何冻结文件（人群冻结从 325 期起才有）。</div>'; return; }
+      var note=(r.fallback>0)?('<div class="closure-note">本期（'+esc(p)+'）尚未冻结，以下为最近冻结的第 '+esc(r.fz.period)+' 期，只作参考。</div>'):'';
+      el.innerHTML=note+crowdFormulaHtml(r.fz,r.sc);
     });
   });
 }
