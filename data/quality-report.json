@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-25 19:43:12",
+  "generated_at": "2026-11-25 22:08:41",
   "rule": "质检仅做一致性核对，不修改台账成绩；无快照期跳过 SNAP_MISMATCH/CHANGED_FLAG；样本不足不下结论。",
   "summary": {
-    "stations_checked": 5933,
-    "anomalies": 4,
-    "warnings": 48,
+    "stations_checked": 6275,
+    "anomalies": 11,
+    "warnings": 49,
     "by_type": {
-      "CHANGED_FLAG": 3,
-      "NUM_DUP": 1
+      "CHANGED_FLAG": 5,
+      "NUM_DUP": 6
     },
     "warn_by_type": {
-      "STREAK_GAP": 48
+      "STREAK_GAP": 49
     }
   },
   "anomalies": [
@@ -78,6 +78,153 @@
       "level": "error"
     },
     {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "352555",
+      "system": "wanpz-h2",
+      "type": "CHANGED_FLAG",
+      "detail": "早晚快照一致，但台账 changed=True",
+      "zodiacs": [
+        "马",
+        "虎",
+        "羊",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "猪",
+        "狗"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "49979",
+      "system": "wanpz-h2",
+      "type": "NUM_DUP",
+      "detail": "肖组存在重复生肖",
+      "zodiacs": [
+        "马",
+        "虎",
+        "羊",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "兔",
+        "鸡"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "00179",
+      "system": "wanpz-h9",
+      "type": "NUM_DUP",
+      "detail": "肖组存在重复生肖",
+      "zodiacs": [
+        "马",
+        "虎",
+        "羊",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "兔",
+        "鸡"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "2085",
+      "system": "wanpz-h9",
+      "type": "CHANGED_FLAG",
+      "detail": "早晚快照一致，但台账 changed=True",
+      "zodiacs": [
+        "猪",
+        "兔",
+        "鸡",
+        "鼠",
+        "羊",
+        "马",
+        "蛇",
+        "龙",
+        "猴"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "2549",
+      "system": "wanpz-h9",
+      "type": "NUM_DUP",
+      "detail": "肖组存在重复生肖",
+      "zodiacs": [
+        "虎",
+        "羊",
+        "马",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "虎",
+        "鸡"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "60114",
+      "system": "wanpz-h9",
+      "type": "NUM_DUP",
+      "detail": "肖组存在重复生肖",
+      "zodiacs": [
+        "虎",
+        "羊",
+        "马",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "虎",
+        "鸡"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "8504",
+      "system": "wanpz-h3",
+      "type": "NUM_DUP",
+      "detail": "肖组存在重复生肖",
+      "zodiacs": [
+        "马",
+        "虎",
+        "羊",
+        "蛇",
+        "兔",
+        "牛",
+        "龙",
+        "兔",
+        "鸡"
+      ],
+      "actual": "猪",
+      "level": "error"
+    },
+    {
       "issue": "328",
       "ledger": "七肖",
       "siteKey": "13052",
@@ -103,6 +250,17 @@
       "system": "wanpz-h2",
       "type": "STREAK_GAP",
       "detail": "序列缺期：317 与 320 之间缺 [318, 319]",
+      "zodiacs": [],
+      "actual": null,
+      "level": "warn"
+    },
+    {
+      "issue": "329",
+      "ledger": "九肖",
+      "siteKey": "13635",
+      "system": "wanpz-h2",
+      "type": "STREAK_GAP",
+      "detail": "序列缺期：327 与 329 之间缺 [328]",
       "zodiacs": [],
       "actual": null,
       "level": "warn"
