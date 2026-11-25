@@ -34,8 +34,10 @@ def _val(cd):
 
 
 def pick_pingte(cols):
-    order = ['平特1肖', '平特一肖', '2期1肖平特', '3期1肖平特', '1肖加对应1码平特']
+    order = ['平特1肖', '平特一肖', '1肖加对应1码平特']
     for t in order:
+        if re.search(r'\d期', t):
+            continue
         cd = cols.get(t)
         if cd and cd.get('value'):
             z = [c for c in _val(cd) if c in Z]
@@ -56,7 +58,8 @@ def pick_wave(cols):
 def pick_tail(cols):
     cands = [(t, cd) for t, cd in cols.items()
              if '尾中特' in t and '平特' not in t and '头' not in t
-             and '单双' not in t and '各4尾' not in t and '字数字' not in t]
+             and '单双' not in t and '各4尾' not in t and '字数字' not in t
+             and not re.search(r'\d期', t)]
     cands.sort(key=lambda x: 0 if re.fullmatch(r'\d尾中特', x[0]) else 1)
     for t, cd in cands:
         v = _val(cd)
@@ -67,7 +70,8 @@ def pick_tail(cols):
 
 
 def pick_head(cols):
-    cands = [(t, cd) for t, cd in cols.items() if '头中特' in t and '尾' not in t]
+    cands = [(t, cd) for t, cd in cols.items()
+             if '头中特' in t and '尾' not in t and not re.search(r'\d期', t)]
     for t, cd in cands:
         v = _val(cd)
         ds = sorted(set(c for c in v if c.isdigit()))
@@ -131,6 +135,8 @@ def eligible(title, zs):
     if title.startswith("杀") or "绝杀" in title:
         return False
     if "平特" in title:
+        return False
+    if re.search(r'\d期', title):
         return False
     return len(zs) == 9
 
@@ -209,49 +215,74 @@ def _col_has_value(cd):
     return bool(v) or bool(cd.get("parts"))
 
 
-def merge_pending(seq):
-    """同一期的多份快照按站点累计合并，只增不减。
+def _station_has_value(rec):
+    return any(_col_has_value(cd) for cd in (rec.get("columns") or {}).values())
 
-    - 先出现的有效栏目先入账；后抓到的有效栏目覆盖同栏目旧值（真改料）；
-    - 后一份整站缺失或栏目为空时，保留前一份，不把站点/票数打回去；
-    - 同站多份快照的栏目取并集，避免“站还在但栏目少了”导致票数下降。
+
+def _select_early_late(seq):
+    """同期快照按 generated_at 真实时间排序；剔除站点数明显偏少的残缺/跨午夜旧版，
+    取最早完整版=早版、最晚完整版=晚版。口径与基准 max_zodiac_ledger.find_snapshots 一致。"""
+    loaded = []
+    for sp, snap in seq:
+        loaded.append((str(snap.get("generated_at") or ""), os.path.basename(sp),
+                       sp, snap, len(snap.get("sites", {}))))
+    if not loaded:
+        return None, None
+    loaded.sort(key=lambda t: (t[0], t[1]))
+    med = sorted(x[4] for x in loaded)[len(loaded) // 2]
+    good = [x for x in loaded if x[4] >= max(1, int(med * 0.8))] or loaded
+    early = good[0]
+    late = good[-1] if len(good) > 1 else good[0]
+    return early, late
+
+
+def merge_pending(early_slot, late_slot):
+    """同期累计合并（same-period-union）：
+    - 同一站点以晚版为骨干，晚版栏目值优先（真改料照实记）；
+    - 晚版整站缺失 → 沿用早版该站，标 carried + carryFrom；
+    - 晚版整站还在但某栏目缺失/空值 → 用早版该栏目补齐（空栏不能覆盖有效值）；
+    - 缺站对照告警仍由 main 用 prev 基准完成。
+    slot = (generated_at, fname, path, snap, site_count) 或 None。
     """
     merged = {}
     sources = []
-    for sp, snap in seq:
-        fname = os.path.basename(sp)
-        sources.append(fname)
-        for key, rec in (snap.get("sites") or {}).items():
-            if key not in merged:
-                merged[key] = copy.deepcopy(rec)
-                merged[key]["_lastSource"] = fname
-                merged[key]["_lastSeen"] = snap.get("generated_at")
+    early_snap = early_slot[3] if early_slot else None
+    late_snap = late_slot[3] if late_slot else None
+    single = early_slot is late_slot
+    if early_snap is not None:
+        sources.append(os.path.basename(early_slot[2]))
+        for key, rec in (early_snap.get("sites") or {}).items():
+            if not _station_has_value(rec):
                 continue
-            cur = merged[key]
-            new_cols = rec.get("columns") or {}
-            has_new = any(_col_has_value(cd) for cd in new_cols.values())
-            if has_new:
-                old_cols = cur.get("columns") or {}
-                for title, cd in new_cols.items():
+            m = copy.deepcopy(rec)
+            m["_lastSource"] = os.path.basename(early_slot[2])
+            m["_lastSeen"] = early_snap.get("generated_at")
+            m["carried"] = not single
+            m["carryFrom"] = None if single else sources[-1]
+            m["fresh"] = single
+            merged[key] = m
+    if late_snap is not None and not single:
+        sources.append(os.path.basename(late_slot[2]))
+        for key, rec in (late_snap.get("sites") or {}).items():
+            if not _station_has_value(rec):
+                continue
+            m = copy.deepcopy(rec)
+            # 栏目并集：晚版缺失/空值的栏目用早版有效值补齐，空栏不覆盖有效值
+            prev_rec = merged.get(key)
+            if prev_rec:
+                union_cols = dict(prev_rec.get("columns") or {})
+                for title, cd in (m.get("columns") or {}).items():
                     if _col_has_value(cd):
-                        old_cols[title] = copy.deepcopy(cd)
-                cur["columns"] = old_cols
-                for field in ("system", "siteKey", "issue"):
-                    if rec.get(field) not in (None, ""):
-                        cur[field] = rec[field]
-                cur["carried"] = False
-                cur["carryFrom"] = None
-                cur["fresh"] = True
-            else:
-                # 本轮没抓到该站或栏目为空：保留旧栏目，标沿用
-                if cur.get("columns"):
-                    cur["carried"] = True
-                    cur["carryFrom"] = fname
-                    cur["fresh"] = False
-                else:
-                    cur.update(copy.deepcopy(rec))
-            cur["_lastSource"] = fname
-            cur["_lastSeen"] = snap.get("generated_at")
+                        union_cols[title] = copy.deepcopy(cd)
+                m["columns"] = union_cols
+                if not any(_col_has_value(cd) for cd in (m.get("columns") or {}).values()):
+                    continue
+            m["_lastSource"] = os.path.basename(late_slot[2])
+            m["_lastSeen"] = late_snap.get("generated_at")
+            m["carried"] = False
+            m["carryFrom"] = None
+            m["fresh"] = True
+            merged[key] = m
     return merged, sources
 
 
@@ -323,8 +354,10 @@ def main():
     else:
         issue = max(pending.keys())
         seq = pending[issue]
-        sp, snap = seq[-1]
-        merged_sites, merged_sources = merge_pending(seq)
+        early_slot, late_slot = _select_early_late(seq)
+        sp = late_slot[2] if late_slot else seq[-1][0]
+        snap = late_slot[3] if late_slot else seq[-1][1]
+        merged_sites, merged_sources = merge_pending(early_slot, late_slot)
         # 本期待开改料台账（未结算条目）：供待开视图标注「本期有改动」
         change_map = load_change_changes(issue)
 
@@ -353,7 +386,7 @@ def main():
         for _sk, sd in merged_sites.items():
             system = sd.get("system", "?")
             site_key = str(sd.get("siteKey", _sk))
-            carried = bool(sd.get("carry"))
+            carried = bool(sd.get("carried"))
             carry_from = sd.get("carryFrom")
             cols = sd.get("columns") or {}
             pick = pick_column(cols)
