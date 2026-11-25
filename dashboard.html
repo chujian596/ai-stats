@@ -67,7 +67,7 @@ a.card:active{transform:scale(.99)}
       <p>九肖、杀三、平特、波色、头尾、大小、单双的当期票数与推杀视图。</p>
     </a>
     <a class="card" href="stats.html#crowd">
-      <div class="card-top"><h3>人群冻结</h3><span class="tag amber" id="tagCrowd">读取中</span></div>
+      <div class="card-top"><h3>人群冻结</h3><span class="tag amber" id="tagCrowd">—</span></div>
       <p>最挤三肖与最冷三只：九肖票、杀三票、首推票各自标准化后按 0.5/0.25/0.25 加权；开奖后回检排名。</p>
     </a>
     <a class="card" href="engine.html">
@@ -116,7 +116,7 @@ a.card:active{transform:scale(.99)}
     <b>口径提醒</b>
     <p>当期名单按 194 站展示（基线 100 + 候选 94）；历史成绩按“有记录的站”计算。候选站从 327 当期起计、无历史回测，样本不足 30 期只标待定；历史期次口径保留为 316–324 按 77 站、325–326 按 100 站，不随当期改动。</p>
   </div>
-  <div class="footer">AI资料统计 v1.4 · 只做公开资料统计，不接私盘，不生成投注指令</div>
+  <div class="footer">AI资料统计 v1.5 · 只做公开资料统计，不接私盘，不生成投注指令</div>
 </main>
 <script>
 (function(){
@@ -130,27 +130,24 @@ a.card:active{transform:scale(.99)}
     set('tagSites',active+' / '+(cov.registered||active));
     set('tagDir',active+' 站'); set('tagNine',nine+' 当期');
   }).catch(function(){});
-  Promise.all([
-    fetch('data/current-recommend.json',{cache:'no-cache'}).then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch('data/crowd-validation.json',{cache:'no-cache'}).then(function(r){return r.json();}).catch(function(){return null;})
-  ]).then(function(r){
+  function j(u){ return fetch(u,{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('HTTP'+r.status); return r.json(); }); }
+  function race(p,ms){ return Promise.race([p,new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('slow')); },ms); })]); }
+  Promise.all([j('data/current-recommend.json').catch(function(){return null;}), j('data/crowd-validation.json').catch(function(){return null;})]).then(function(r){
     var cur=r[0], val=r[1];
     if(!cur||!cur.period) return;
     var base=parseInt(cur.period,10);
+    if(isNaN(base)) return;
     function tryPeriod(i){
       if(i>3) throw new Error('none');
       var p=base-i;
-      return fetch('data/crowd-freeze-'+p+'.json',{cache:'no-cache'}).then(function(x){
-        if(!x.ok) throw new Error('404');
-        return x.json();
-      }).then(function(fz){
+      return race(j('data/crowd-freeze-'+p+'.json'),9000).then(function(fz){
         var t3=(fz.top3||[]).join(' ');
         var hit=(val&&val.top3&&val.top3.hits!=null)?(' · 回检 '+val.top3.hits+'/'+(val.n||0)):'';
         set('tagCrowd','第'+p+'期 Top3 '+t3+hit);
       }).catch(function(){ return tryPeriod(i+1); });
     }
     return tryPeriod(0);
-  }).catch(function(){ set('tagCrowd','暂无冻结'); });
+  }).catch(function(){ set('tagCrowd','点开查看'); });
   fetch('data/site-directory.json',{cache:'no-cache'}).then(function(r){return r.json();}).then(function(dir){
     var reg=dir.total||((dir.sites||[]).length); if(reg) set('kpiRegistered',reg);
   }).catch(function(){});
