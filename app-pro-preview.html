@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.28-Pro';
+var APP_VER = 'v60.29-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6121,6 +6121,14 @@ function selfFlyRender(){
   h += '<div style="background:#fff;width:100%;max-height:86vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:14px 14px 18px">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">手飞（自己买）</b>';
   h += '<span onclick="selfFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
+  // 误把二三记进手飞的，给一键迁移
+  var _sfEm = rows.filter(function(r){ return /^(二中二|三中二|三中三):/.test(String(r.code||'')); });
+  if(_sfEm.length){
+    var _sfEmSum = _sfEm.reduce(function(t,r){ return t + Number(r.amt||0); }, 0);
+    h += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;margin:6px 0 8px;font-size:12.5px;color:#b45309;line-height:1.5">'
+       + '发现 ' + _sfEm.length + ' 笔二三玩法记在了手飞里（合计 ' + _sfEmSum.toFixed(0) + ' 元），手飞口径下它们不会加进总飞。'
+       + '<div style="margin-top:6px"><button onclick="selfFlyMigrateEm()" style="background:#b45309;color:#fff;border:0;border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:700">一键移到「二三多飞」</button></div></div>';
+  }
   var _sfx = selfFlyExtraOn();
   h += '<div style="font-size:11.5px;color:#666;line-height:1.5;margin:4px 0 6px">只记你自己向上家买的注额，<b>客户账一分不动</b>；倍数跟客户一模一样（特 47、平特 2/马 1.8、二三 60/20/600、连肖 4·10·30）。<br>' + hitLine + '</div>';
   // 关键开关：这笔手飞是不是已经在「已飞」里算过了
@@ -6130,6 +6138,7 @@ function selfFlyRender(){
   h += '</div>';
   h += '<div style="font-size:10.5px;color:#888;line-height:1.45;margin:-4px 0 8px">' + (_sfx ? '当前＝这笔手飞没进「已飞」，总账会再减本金、再加赔回。' : '当前＝这笔钱其实已经记进「已飞」里了（比如自己看中的号直接当已飞记），所以只做归属和敞口，不再扣一次。') + '</div>';
   h += '<div style="text-align:right;margin-bottom:4px"><span onclick="emExtraOpen()" style="font-size:12px;color:#b45309;cursor:pointer">二三多飞（客户单以外）›</span></div>';
+  h += '<div style="font-size:11.5px;color:#999;margin-bottom:4px">这里记特号/平特/连肖（自己买的）。二三玩法请走上面「二三多飞」。</div>';
   h += '<textarea id="selfFlyInput" placeholder="一行一笔，例如：\n04 各100\n平特牛 300\n三中三 42.44.40 5" style="width:100%;height:74px;border:2px solid #1d4ed8;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box"></textarea>';
   h += '<div style="display:flex;gap:6px;margin-top:8px">';
   h += '<button onclick="selfFlyAdd()" style="flex:2;background:#1d4ed8;color:#fff;border:0;border-radius:8px;padding:11px;font-size:15px;font-weight:700">记入本期</button>';
@@ -6185,19 +6194,40 @@ function selfFlyRender(){
   h += '</div>';
   wrap.innerHTML = h;
 }
+function selfFlyMigrateEm(){
+  var rows = selfFlyRows();
+  var emRows = rows.filter(function(r){ return /^(二中二|三中二|三中三):/.test(String(r.code||'')); });
+  if(!emRows.length){ myAlert('没有需要迁移的二三记录'); return; }
+  myConfirm('把 ' + emRows.length + ' 笔二三从手飞移到二三多飞？\n\n手飞只管特号/平特/连肖；移过去才会加进总飞和上家赔回。', function(){
+    var el = emExtraList();
+    emRows.forEach(function(r){ el.push({p: r.p, code: r.code, amt: Number(r.amt||0), ts: Date.now() + Math.floor(Math.random()*900)}); });
+    emExtraSave(el);
+    var keep = selfFlyList().filter(function(r){ return !/^(二中二|三中二|三中三):/.test(String(r.code||'')); });
+    selfFlySave(keep);
+    try{ selfFlyRender(); }catch(e){}
+    try{ renderSideCustPay(); }catch(e){}
+    try{ renderRisk(); }catch(e){}
+    try{ renderPaySide(); }catch(e){}
+    try{ refreshFlySummary(); }catch(e){}
+    myAlert('已移到二三多飞，总飞会相应加上去');
+  });
+}
 function selfFlyAdd(){
   var el = document.getElementById('selfFlyInput');
   var t = (el && el.value) || '';
   if(!t.trim()){ myAlert('先写要手飞的内容'); return; }
   var list = selfFlyList();
   var p = selfFlyPeriod();
-  var added = [], miss = [];
+  var added = [], miss = [], em = [];
   t.split(/[\n\r;；]+/).forEach(function(line){
     var raw = String(line).trim(); if(!raw) return;
     try{
       var r = parseLine(raw);
       if(r && r.codes && r.codes.length && Number(r.price) > 0){
-        r.codes.forEach(function(c){ list.push({p: p, code: c, amt: Number(r.price), ts: Date.now() + Math.floor(Math.random() * 900)}); added.push(c + ' ' + Number(r.price)); });
+        r.codes.forEach(function(c){
+          if(/^(二中二|三中二|三中三):/.test(c)){ em.push(raw + '（二三玩法应走「二三多飞」）'); return; }
+          list.push({p: p, code: c, amt: Number(r.price), ts: Date.now() + Math.floor(Math.random() * 900)}); added.push(c + ' ' + Number(r.price));
+        });
       } else miss.push(raw);
     }catch(e){ miss.push(raw); }
   });
@@ -6206,7 +6236,8 @@ function selfFlyAdd(){
   selfFlyRender();
   try{ renderSideCustPay(); }catch(e){}
   try{ renderRisk(); }catch(e){}
-  if(miss.length) myAlert('没认出：' + miss.join(' / ') + '\n写法示例：04 各100、平特牛300、三中三 42.44.40 5');
+  if(miss.length) myAlert('没认出：' + miss.join(' / ') + '\n写法示例：04 各100、平特牛300');
+  if(em.length) myAlert('这几笔是二三玩法，不能记手飞：\n' + em.join(' / ') + '\n\n请点右上「二三多飞（客户单以外）›」登记，手飞只管特号/平特/连肖。');
 }
 function selfFlyDel(ts){
   var list = selfFlyList().filter(function(r){ return String(r.ts) !== String(ts); });
