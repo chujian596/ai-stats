@@ -2368,7 +2368,7 @@
       verdict[v]=(verdict[v]||0)+1;
       (e.added||[]).forEach(function(z){ addCnt[z]=(addCnt[z]||0)+1; });
       (e.removed||[]).forEach(function(z){ remCnt[z]=(remCnt[z]||0)+1; });
-      var bp=byPeriod[e.period]=byPeriod[e.period]||{entries:[],draw:e.result?e.result.drawZod:null};
+      var bp=byPeriod[e.period]=byPeriod[e.period]||{entries:[],draw:e.result?e.result.drawZod:null,from:e.from_snapshot,to:e.to_snapshot};
       bp.entries.push(e);
     });
     var addTotal=Object.keys(addCnt).reduce(function(a,z){return a+addCnt[z];},0);
