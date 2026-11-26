@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.58-Pro</title>
+<title>录单Pro · v60.59-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.58-Pro';
+var APP_VER = 'v60.59-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3814,6 +3814,14 @@ try {
       flownReal[k] = _rnd(p); _fixed++;          // 凑整被抹平 → 按原额凑整补回
     }
   });
+  // 二三整笔不许凑整：旧版把 375 的客户单凑成 380，再加多飞 40 变成 420
+  // 这里用「应飞原额」把 _em_total 拉回来，只修 10 元以内的凑整差，不动其它号
+  try{
+    var _pem = Number(flownPerPos['_em_total'] || 0), _rem = Number(flownReal['_em_total'] || 0);
+    if(_pem > 0 && _rem > _pem && (_rem - _pem) <= 10){
+      flownReal['_em_total'] = _pem; _fixed++;
+    }
+  }catch(e){}
   if(_fixed) localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal));
 } catch(e){}
 // 取某号实际飞出：没记录的老数据按原额兜底
@@ -3854,7 +3862,12 @@ function flyBook(draw){
     var ks = new Set(Object.keys(flownReal||{}).concat(Object.keys(flownPerPos||{})));
     ks.forEach(function(k){
       var amt = flownRealOf(k); if(!(amt > 0)) return;
-      if(k === '_em_total'){ R.em += amt; return; }
+      if(k === '_em_total'){
+        // 二三整笔不凑整：若历史把 415 存成了 420，优先用应飞原额 415
+        var _pem2 = Number(flownPerPos['_em_total'] || 0);
+        R.em += (_pem2 > 0 && amt > _pem2 && (amt - _pem2) <= 10) ? _pem2 : amt;
+        return;
+      }
       if(k.indexOf('平特') === 0){
         R.pte += amt;
         var z = String(k).slice(2);
@@ -3885,7 +3898,13 @@ function flyBook(draw){
     try{
       var EX = emExtraBook(d);
       R.emx = EX.cost; R.emxBack = EX.back;
-      R.em += R.emx; R.emBack += R.emxBack;
+      // _em_total 有时已含多飞、有时只含客户单。不能无脑相加，否则 40 会被算两次。
+      var _emCust = 0;
+      activeOrders().forEach(function(o){ eachUniqueOrderCode(o, function(c, a){
+        if(/^(二中二|三中二|三中三):/.test(c)) _emCust += a;
+      }); });
+      if(R.em > 0 || autoFlyOn) R.em = Math.max(R.em, _emCust + R.emx);
+      R.emBack += R.emxBack;
     }catch(e){}
     if(drawZ && d && d.specialNum){
       var sp = String(d.specialNum).padStart(2, '0');
@@ -11786,6 +11805,7 @@ function renderOrdersList(){
     }
     window._upCopyBrief = _br;
   } catch(e){ window._upCopyBrief = window._upCopy; }
+  h += '<div id="upstreamReconBlock" style="display:none">';
   h += `<div style="border:1px solid #eee;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff">`;
   h += `<div onclick="toggleOd('upDetail',this)" style="padding:8px;cursor:pointer">`;
   h += `<div style="display:flex;justify-content:space-between;align-items:center">`;
@@ -11904,15 +11924,27 @@ function renderOrdersList(){
         emG += (b.cnt || 0);
         emB += '<div style="color:' + (b.ok ? '#333' : '#cf1322') + ';font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">' + esc(b.t) + (b.ok ? '' : ' ←未能复算') + '</div>';
       });
-      const _diff = emSum - emChkSum;
-      emB += '<div style="font-size:10px;margin-top:3px;color:' + (Math.abs(_diff) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (Math.abs(_diff) < 0.5 ? ('✓ 明细对平：' + emChkSum.toFixed(2).replace(/\.00$/, '') + ' ＝ 实付 ' + emSum.toFixed(2).replace(/\.00$/, '')) : ('⚠ 明细差 ' + _diff.toFixed(2) + '（明细 ' + emChkSum.toFixed(2) + ' / 实付 ' + emSum.toFixed(2) + '）')) + '</div>';
+      // 客户单以外的二三多飞也要进这一段：它是真付给上家的钱，不能只显示客户单的 375
+      var emExtraSum = 0, emExtraN = 0;
+      try{ (emExtraRows()||[]).forEach(function(r){
+        var a = Number(r.amt||0); if(!(a > 0)) return;
+        emExtraSum += a; emExtraN++;
+        emChkSum += a;
+        emB += '<div style="color:#b45309;font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">多飞 ' + esc(String(r.code||'').replace(/:/g, ' ')) + ' × ' + a.toFixed(0) + ' = ' + a.toFixed(0) + '</div>';
+      }); }catch(e){}
+      var _emReal = Number(flownRealOf('_em_total') || 0);
+      var _emPer = Number(flownPerPos['_em_total'] || 0);
+      if(_emPer > 0 && _emReal > _emPer && (_emReal - _emPer) <= 10) _emReal = _emPer;
+      var emPaid = Math.max(_emReal, emSum + emExtraSum);
+      const _diff = emPaid - emChkSum;
+      emB += '<div style="font-size:10px;margin-top:3px;color:' + (Math.abs(_diff) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (Math.abs(_diff) < 0.5 ? ('✓ 明细对平：' + emChkSum.toFixed(2).replace(/\.00$/, '') + ' ＝ 实付 ' + emPaid.toFixed(2).replace(/\.00$/, '')) : ('⚠ 明细差 ' + _diff.toFixed(2) + '（明细 ' + emChkSum.toFixed(2) + ' / 实付 ' + emPaid.toFixed(2) + '）')) + '</div>';
     }
     var emBody = emB ? emB : '<div style="color:#bbb">—</div>';
     const _sTxt = function(v){ return Math.abs(v) >= 0.5 ? (' · 残留 ' + v.toFixed(0)) : ''; };
     upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
       + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
       + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
-      + _sec('二·三中三', (emG ? (emG + ' 组 · ') : '') + '实付 ' + emSum.toFixed(0), emBody)
+      + _sec('二·三中三', (emG ? (emG + ' 组' + (emExtraN ? '＋多飞' + emExtraN + '笔' : '') + ' · ') : '') + '实付 ' + emPaid.toFixed(0), emBody)
       + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
   } catch(e){}
   h += '<div style="font-size:11px;line-height:1.7">' + upSections + '</div>';
@@ -11938,7 +11970,8 @@ function renderOrdersList(){
     }); });
   } catch(e){}
   h += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-size:12px;font-weight:700">`;
-  h += `<div>${spOut.toFixed(0)} + ${zdOut.toFixed(0)} + ${emOut2.toFixed(0)} = ${(spOut+zdOut+emOut2).toFixed(0)}</div>`;
+  // 直接用和上面「飞走合计」同一套分类金额：特 + 平连 + 二三，二三含多飞，三项必须等于飞走合计
+  h += `<div>${cpSp.toFixed(0)} + ${(cpPte + cpLx).toFixed(0)} + ${cpEm.toFixed(0)} = ${(cpSp + cpPte + cpLx + cpEm).toFixed(0)}</div>`;
   if(flyBackLines.length){
     h += `<div style="margin:3px 0;padding:5px 6px;background:#fff7f7;border:1px solid #f3d6d6;border-radius:6px;font-weight:400">`;
     h += `<div style="font-size:11px;color:#999;margin-bottom:2px">明细</div>`;
@@ -11954,6 +11987,7 @@ function renderOrdersList(){
   h += `<div>上家需结算:${flyBackTotal.toFixed(0)}-${flyOutTotal.toFixed(0)}=${_need>=0?'+':'-'}${Math.abs(_need).toFixed(0)}</div>`;
   h += `<div style="color:${_drawO?'#16a34a':'#999'}">${_drawO?'结算:'+(_need>=0?'+':'-')+Math.abs(_need).toFixed(0):'未开奖，结算待定'}</div>`;
   h += `</div></div></div>`;
+  h += '</div>';
   box.innerHTML = h;
 }
 
@@ -13774,6 +13808,7 @@ function renderAll(){
   applyTheme();
   renderSettings();
   renderRisk();
+  try{ if(_rankOpen === 'bill') mountBillUpstream(); }catch(e){}
 
   const bB = document.getElementById('mode-btn-bundle');
   const bS = document.getElementById('mode-btn-single');
@@ -13879,6 +13914,24 @@ function _billMoney(v){
   if(v === null || typeof v === 'undefined') return '待开奖';
   return (v >= 0 ? '+' : '') + Math.round(v).toLocaleString('zh-CN');
 }
+// 把订单记录里的「上家（飞单对账）」整块搬到账单页；订单记录那边只留隐藏占位，不再重复显示
+function mountBillUpstream(){
+  var src = document.getElementById('upstreamReconBlock');
+  var slot = document.getElementById('billUpstreamSlot');
+  if(!src || !slot) return;
+  if(src.parentNode === slot) return;
+  slot.innerHTML = '';
+  src.style.display = 'block';
+  slot.appendChild(src);
+  var det = document.getElementById('upDetail');
+  if(det){
+    det.style.display = 'block';
+    try{
+      var tg = det.parentNode.querySelector('.od-toggle-text');
+      if(tg) tg.textContent = '收起详细清单 ▲';
+    }catch(e){}
+  }
+}
 function renderBill(){
   var box = document.getElementById('billBody');
   if(!box) return;
@@ -13919,9 +13972,11 @@ function renderBill(){
     + '</div></div>';
   h += '</div>';
   h += '<div style="font-size:10px;color:#999;line-height:1.5;margin-top:6px">口径：飞额用已飞实付，不用“应飞”；上家赔回只算已飞部分；未开奖不猜赔回和净。</div>';
-  h += '<div style="display:flex;gap:6px;margin-top:8px"><button onclick="renderBill()" style="flex:1;border:1px solid #ddd;background:#fff;border-radius:6px;padding:8px;font-size:12px;color:#333">刷新</button><button onclick="upSettleOpen()" style="flex:1;border:1px solid #0f766e;background:#fff;border-radius:6px;padding:8px;font-size:12px;color:#0f766e;font-weight:700">上家结算单</button></div>';
+  h += '<div id="billUpstreamSlot" style="margin-top:10px"></div>';
+  h += '<div style="display:flex;gap:6px;margin-top:8px"><button onclick="renderBill()" style="flex:1;border:1px solid #ddd;background:#fff;border-radius:6px;padding:8px;font-size:12px;color:#333">刷新</button></div>';
   h += '</div>';
   box.innerHTML = h;
+  setTimeout(function(){ try{ mountBillUpstream(); }catch(e){} }, 0);
 }
 
 function openRankSection(key){
