@@ -3228,8 +3228,8 @@ function renderSplitSide(){
   // 飞单一本账：只回答“飞了多少、付了多少、还欠多少”，不再分 手飞/多飞/补录
   h += '<div style="border-top:1px dashed #ddd;padding-top:6px;margin-bottom:4px">';
   var _flyMoney = flyMoneySummary();
-  h += `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700"><span>飞单总额</span><span>${_flyMoney.total}</span></div>`;
-  h += `<div style="font-size:11px;color:#666;margin-top:1px">已付 <b style="color:#333">${_flyMoney.paid}</b> ｜ 待付 <b style="color:#333">${_flyMoney.pending}</b>　<span style="color:#999">（总额＝已付＋待付）</span></div>`;
+  h += `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700"><span>飞单总额</span><span id="flyMoneyTotal">${_flyMoney.total}</span></div>`;
+  h += `<div style="font-size:11px;color:#666;margin-top:1px">已付 <b id="flyMoneyPaid" style="color:#333">${_flyMoney.paid}</b> ｜ 待付 <b id="flyMoneyPending" style="color:#333">${_flyMoney.pending}</b>　<span style="color:#999">（总额＝已付＋待付）</span></div>`;
   h += '<div style="display:flex;gap:4px;margin:5px 0 4px">'
      + '<button onclick="manualFlyOpen()" style="flex:1;border:1px solid #111;background:#111;color:#fff;border-radius:6px;padding:8px;font-size:14px;font-weight:700">+ 记一笔飞单</button>'
      + '<button onclick="flyDirBtnToggle()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px">看明细</button>'
@@ -5260,6 +5260,13 @@ function refreshFlySummary(){
   try {
     const total = grandOrderTotal();
     const _r = getThisRoundFly();
+    // 顶部「飞单总额/已付/待付」也一起刷新：排除不飞后不能只动下面、上面还停在旧数
+    try {
+      var _fmTop = flyMoneySummary();
+      var _tTop = document.getElementById('flyMoneyTotal'); if(_tTop) _tTop.textContent = _fmTop.total;
+      var _pTop = document.getElementById('flyMoneyPaid'); if(_pTop) _pTop.textContent = _fmTop.paid;
+      var _dTop = document.getElementById('flyMoneyPending'); if(_dTop) _dTop.textContent = _fmTop.pending;
+    } catch(e){}
     const sumEl = document.getElementById('sideSplitSummary');
     if(sumEl){
       sumEl.innerHTML =
@@ -5276,6 +5283,8 @@ function refreshFlySummary(){
     var box = document.getElementById('sideSplitResult');
     if(currentFlyGroup){ showGroupDetail(currentFlyGroup); }
     else { showAllFlyDir(); }
+    // 分账总表也要跟着「不飞」刷新，否则下面合计还停在未排除前的数
+    try { renderCatLedger(); } catch(e){}
   } catch(e){}
 }
 // ==== 飞单目录美化：同金额合并成一行「各X」，可选尾数凑整 ====
