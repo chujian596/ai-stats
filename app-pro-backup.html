@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.56-Pro</title>
+<title>录单Pro · v60.57-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -485,11 +485,12 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
 
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:8px">
-      <div data-rank-section="risk" onclick="openRankSection('risk')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">AI统计</div>
-      <div data-rank-section="split" onclick="openRankSection('split')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单统计</div>
-      <div data-rank-section="profit" onclick="openRankSection('profit')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">盈利统计</div>
-      <div data-rank-section="singles" onclick="openRankSection('singles')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      <div data-rank-section="bill" onclick="openRankSection('bill')" class="rank-btn" style="flex:1;padding:8px 2px;font-size:12px;font-weight:700;color:#333;background:#fff;border:1px solid #333;border-radius:6px;cursor:pointer;text-align:center">账单</div>
+      <div data-rank-section="risk" onclick="openRankSection('risk')" class="rank-btn" style="flex:1;padding:8px 2px;font-size:12px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">风险</div>
+      <div data-rank-section="split" onclick="openRankSection('split')" class="rank-btn" style="flex:1;padding:8px 2px;font-size:12px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">飞单</div>
+      <div data-rank-section="profit" onclick="openRankSection('profit')" class="rank-btn" style="flex:1;padding:8px 2px;font-size:12px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史盈亏</div>
+      <div data-rank-section="singles" onclick="openRankSection('singles')" class="rank-btn" style="flex:1;padding:8px 2px;font-size:12px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">平特肖</div>
     </div>
     <div id="rankTableBody" style="display:none;text-align:left">
     <div style="display:flex;gap:4px">
@@ -513,6 +514,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div id="rank-pay"></div>
     </div>
     <div id="riskBody" style="display:none;text-align:left"></div>
+    <div id="billBody" style="display:none;text-align:left"></div>
   </section>
 
   <section id="tab-cust" class="card tab-panel pro-panel" style="display:none">
@@ -806,8 +808,8 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">七、统计与风控</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">排行榜</b>：特号累计，左右两栏对照<br>
-        2. <b style="color:var(--modalText,#fff)">AI统计</b>：风险/集中度分析（开奖前预测）<br>
-        3. <b style="color:var(--modalText,#fff)">盈利统计</b>：本期盈亏明细，可"复制盈亏明细"<br>
+        2. <b style="color:var(--modalText,#fff)">风险</b>：最坏情况/集中度（开奖前看压力，不是实际盈亏）<br>
+        3. <b style="color:var(--modalText,#fff)">历史盈亏</b>：往期盈亏；本期实际盈亏只看「账单」<br>
         4. <b style="color:var(--modalText,#fff)">平特肖</b>：平特单品累计<br>
         5. <b style="color:var(--modalText,#fff)">产品累计</b>：按产品看总量
       </div>
@@ -1121,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.56-Pro';
+var APP_VER = 'v60.57-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3223,22 +3225,21 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bs('spec','特号') + _bs('pte','平特') + _bs('lx','连肖') + _bs('em','二/三') + '</div>';
   // 第二排：四个固定操作
   h += '<div style="display:flex;gap:3px;margin-bottom:6px">' + _bo('flyDirBtnToggle()','飞单目录') + _bo('copySelectedFly()','复制') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
-  // 统一区：客户单以外的飞单 + 记录方式
+  // 飞单一本账：只回答“飞了多少、付了多少、还欠多少”，不再分 手飞/多飞/补录
   h += '<div style="border-top:1px dashed #ddd;padding-top:6px;margin-bottom:4px">';
-  h += '<div style="font-size:11px;color:#666;font-weight:700;margin-bottom:4px">客户单以外的飞单 <span style="font-weight:400;color:#999">（自己掏钱买的，客户账不动）</span></div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:4px">'
-     + '<button onclick="selfFlyOpen()" style="flex:1;border:1px solid #1d4ed8;background:#eef4ff;color:#1d4ed8;border-radius:6px;padding:8px;font-size:14px;font-weight:700">手飞·自己买</button>'
-     + '<button onclick="emExtraOpen()" style="flex:1;border:1px solid #b45309;background:#fff7ed;color:#b45309;border-radius:6px;padding:8px;font-size:14px;font-weight:700">多飞·自己买的二三</button>'
-     + '<button onclick="manualFlyOpen()" style="flex:1;border:1px solid #6b7280;background:#f5f5f5;color:#374151;border-radius:6px;padding:8px;font-size:13px;font-weight:700">补录已飞</button>'
+  var _flySide = {totalFly:0, already:0, thisRound:0, extra:0};
+  try{ _flySide = getThisRoundFly(); }catch(e){}
+  var _custFlySide = Math.max(0, _flySide.totalFly - _flySide.extra);
+  h += `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700"><span>飞单总额</span><span>${_flySide.totalFly.toFixed(0)}</span></div>`;
+  h += `<div style="font-size:11px;color:#666;margin-top:1px">已付 <b style="color:#333">${_flySide.already.toFixed(0)}</b> ｜ 待付 <b style="color:#333">${_flySide.thisRound.toFixed(0)}</b></div>`;
+  h += `<div style="font-size:11px;color:#666">客户单生成 ${_custFlySide.toFixed(0)} ｜ 自己加飞 ${_flySide.extra.toFixed(0)}</div>`;
+  h += '<div style="display:flex;gap:4px;margin:5px 0 4px">'
+     + '<button onclick="manualFlyOpen()" style="flex:1;border:1px solid #111;background:#111;color:#fff;border-radius:6px;padding:8px;font-size:14px;font-weight:700">+ 记一笔飞单</button>'
+     + '<button onclick="flyDirBtnToggle()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px">看明细</button>'
      + '</div>';
-  h += '<div style="font-size:11px;color:#666;font-weight:700;margin-bottom:4px">记录方式 <span style="font-weight:400;color:#999">（点一下切换，绿色＝开）</span></div>';
-  h += '<div style="display:flex;gap:3px;margin-bottom:4px">'
-     + '<button onclick="autoFlyToggleBtn()" style="flex:1;border:1px solid ' + (autoFlyOn?'#16a34a':'#ccc') + ';background:' + (autoFlyOn?'#ecfdf5':'#fff') + ';color:' + (autoFlyOn?'#15803d':'#666') + ';border-radius:6px;padding:7px;font-size:12.5px;font-weight:700">自动飞（连/二/三）：' + (autoFlyOn?'开':'关') + '</button>'
-     + '<button onclick="flyRoundToggleBtn()" style="flex:1;border:1px solid ' + (flyRoundOn()?'#16a34a':'#ccc') + ';background:' + (flyRoundOn()?'#ecfdf5':'#fff') + ';color:' + (flyRoundOn()?'#15803d':'#666') + ';border-radius:6px;padding:7px;font-size:12.5px;font-weight:700">凑整10元档：' + (flyRoundOn()?'开':'关') + '</button>'
-     + '</div>';
-  h += '<div style="font-size:10px;color:#999;line-height:1.45;margin-bottom:4px">自动飞（连/二/三）＝客户单里的连肖/二中二/三中三当已飞，自动复制给上家；凑整＝每个号就近凑到 10 的倍数（34→30、36→40、3→10）。</div>';
+  h += `<div style="font-size:10.5px;color:#999;line-height:1.5;margin-bottom:4px">自动飞：${autoFlyOn?'开':'关'} ｜ 凑整10元档：${flyRoundOn()?'开':'关'} ｜ <a href="javascript:;" onclick="autoFlyToggleBtn()" style="color:#1d4ed8;text-decoration:none">改自动飞</a>　<a href="javascript:;" onclick="flyRoundToggleBtn()" style="color:#1d4ed8;text-decoration:none">改凑整</a></div>`;
+  h += '<div style="font-size:10.5px;color:#6b7280;line-height:1.45;margin:2px 0 4px">所有飞出去的钱都算在这里，不分“手飞/多飞/补录”。</div>';
   h += '</div>';
-  h += '<div style="font-size:10.5px;color:#6b7280;line-height:1.45;margin:2px 0 4px">已飞 = 自动飞 + 补录；手飞/多飞 是自己另外买的 → <a href="javascript:;" onclick="flyTermsHelp()" style="color:#1d4ed8;text-decoration:none">五个飞是什么？</a></div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="catLedgerBox" style="margin:6px 0"></div>';
@@ -5202,8 +5203,8 @@ function manualFlyOpen(){
   wrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:12060;display:flex;align-items:flex-end';
   wrap.onclick=function(e){ if(e.target===wrap) manualFlyClose(); };
   var h='<div style="background:#fff;width:100%;max-height:88vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:14px 14px 18px">';
-  h+='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">补录已飞</b><span onclick="manualFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
-  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">已经付给上家、系统还没记的，整段贴进来补进「已飞」。<br>写法：<b>04 100</b>（一个号）／<b>22 34 各140</b>（多个号同额）／<b>平特虎 1000</b>／<b>连肖马蛇 400</b>／<b>二中二 500</b>。<br>自己买的二三请用「多飞·自己买的二三」，别贴这里。</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">记一笔飞单</b><span onclick="manualFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
+  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">已经付给上家的钱，整段贴进来；系统自动按类别归到总飞。<br>写法：<b>04 100</b>（一个号）／<b>22 34 各140</b>（多个号同额）／<b>平特虎 1000</b>／<b>连肖马蛇 400</b>。<br>二三加飞请点 <a href="javascript:;" onclick="manualFlyClose();emExtraOpen()" style="color:#b45309;text-decoration:none">这里</a>。</div>';
   h+='<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:110px;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box" placeholder="22 140&#10;22 34 各140&#10;平特虎 1000&#10;连肖马蛇 400">'+(window._manualFlyBuf||'')+'</textarea>';
   h+='<div style="display:flex;gap:6px;margin-top:8px">';
   h+='<button onclick="applyManualFlyList()" style="flex:2;background:#111;color:#fff;border:0;border-radius:8px;padding:11px;font-size:15px;font-weight:700">记入已飞</button>';
@@ -5830,13 +5831,13 @@ function manualFlyDirHtml(){
   em = em.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
   if(!sf.length && !em.length){
     return '<div>'
-      + '<div style="font-weight:700;font-size:12px;color:#333">手飞 / 多飞目录（本期）</div>'
-      + '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有手飞/多飞记录；点上面「手飞·自己买」「多飞·自己买的二三」登记</div></div>';
+      + '<div style="font-weight:700;font-size:12px;color:#333">额外飞单目录（本期）</div>'
+      + '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有额外飞单；点上面「+ 记一笔飞单」登记</div></div>';
   }
   var sfTot = sf.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
   var emTot = em.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
   var h = '<div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>手飞 / 多飞目录（本期）</span><span style="font-weight:400;color:#999;font-size:10px">' + (sf.length + em.length) + ' 笔</span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>额外飞单目录（本期）</span><span style="font-weight:400;color:#999;font-size:10px">' + (sf.length + em.length) + ' 笔</span></div>';
   h += '<div style="font-size:10px;color:#999;margin:2px 0 4px">这两本是自己另买的，不进「已飞清单」，也不抵客户赔付；命中才有上家赔回。</div>';
   var _row = function(r, kind){
     var ts = String(r.ts || '');
@@ -6724,17 +6725,21 @@ function emExtraAdd(){
   var list = emExtraList();
   var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
   var miss = [], okLines = [], okGroups = 0, okAmt = 0;
+  var mode = '';
   t.split(/[\n\r;；]+/).forEach(function(line){
     var raw = String(line).trim(); if(!raw) return;
+    if(/^(三中三|三中二|二中二)$/.test(raw)){ mode = raw; return; }
+    var hasMode = /^(三中三|三中二|二中二)\s/.test(raw);
+    var use = hasMode ? raw : (mode ? mode + ' ' + raw : raw);
     try{
-      var r = parseLine(raw);
+      var r = parseLine(use);
       if(r && r.codes && r.codes.length && Number(r.price) > 0){
         var n = 0;
         r.codes.forEach(function(c){
           if(!/^(二中二|三中二|三中三):/.test(c)){ return; }
-          list.push({p: p, code: c, amt: Number(r.price), src: raw, ts: Date.now() + Math.floor(Math.random() * 900) + (n++)});
+          list.push({p: p, code: c, amt: Number(r.price), src: use, ts: Date.now() + Math.floor(Math.random() * 900) + (n++)});
         });
-        if(n > 0){ okLines.push(raw + ' → ' + n + ' 组 × ' + Number(r.price) + ' = ' + (n * Number(r.price))); okGroups += n; okAmt += n * Number(r.price); }
+        if(n > 0){ okLines.push(use + ' → ' + n + ' 组 × ' + Number(r.price) + ' = ' + (n * Number(r.price))); okGroups += n; okAmt += n * Number(r.price); }
         else miss.push(raw + '（不是二三玩法）');
       } else miss.push(raw);
     }catch(e){ miss.push(raw); }
@@ -12694,7 +12699,7 @@ function renderRisk(){
   for(let n=1;n<=49;n++) specRealFly += realFlyOfNum(n);
   // 自留现金 = 总收 - 特号实际飞 - 平特飞 - 连肖飞
   const keptCash = totalSales - specRealFly - pteFlyAmt - effectiveLxFly;
-  const specKept = (fullTotalSales - pteTotalSalesSum - emFlySales - lxTotalSalesSum) - currentFly;
+  const specKept = (fullTotalSales - pteTotalSalesSum - emFlySales - lxTotalSalesSum) - specRealFly;
   const pteKept = pteTotalSalesSum - pteFlyAmt;
   const lxKept = lxTotalSalesSum - effectiveLxFly;
   const totalOtherPayout = ptePayout + lxPayout;
@@ -13784,7 +13789,7 @@ function renderAll(){
 var _rankOpen = '';
 function applyRankSectionState(){
   try{ if(window._flyPin) _rankOpen = 'split'; }catch(e){}
-  var p = {rank:'rankTableBody', singles:'rank-singles', split:'rank-split', profit:'rank-pay', risk:'riskBody'};
+  var p = {rank:'rankTableBody', singles:'rank-singles', split:'rank-split', profit:'rank-pay', risk:'riskBody', bill:'billBody'};
   Object.keys(p).forEach(function(k){
     var el = document.getElementById(p[k]);
     if(el) el.style.display = (k === _rankOpen ? 'block' : 'none');
@@ -13795,11 +13800,133 @@ function applyRankSectionState(){
   var btns = document.querySelectorAll('.rank-btn[data-rank-section]');
   for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-rank-section') === _rankOpen);
 }
+// ===== 新账单（只读预览）：客户账 / 上家账 / 我的账，一套数 =====
+function billSalesByCat(){
+  var out = {spec:0, pte:0, lx:0, em:0};
+  activeOrders().forEach(function(o){
+    eachUniqueOrderCode(o, function(c, amt){
+      if(/^\d{2}$/.test(String(c))) out.spec += amt;
+      else if(String(c).indexOf('平特') === 0) out.pte += amt;
+      else if(String(c).indexOf('连肖') === 0) out.lx += amt;
+      else if(/^(二中二|三中二|三中三):/.test(String(c))) out.em += amt;
+    });
+  });
+  return out;
+}
+function billPayoutByCat(d){
+  if(!(d && d.specialNum)) return null;
+  var out = {spec:0, pte:0, lx:0, em:0};
+  var numBets = {};
+  activeOrders().forEach(function(o){
+    eachUniqueOrderCode(o, function(c, amt){
+      if(/^\d{2}$/.test(String(c))) numBets[Number(c)] = (numBets[Number(c)]||0) + amt;
+    });
+  });
+  out.spec = (numBets[Number(d.specialNum)] || 0) * payMult;
+  activeOrders().forEach(function(o){
+    eachUniqueOrderCode(o, function(c, amt){
+      var s = String(c), mult = 0;
+      if(s.indexOf('平特') === 0 || s.indexOf('连肖') === 0 || /^(二中二|三中二|三中三):/.test(s)){
+        try{ mult = codeWinMult(c, d) || 0; }catch(e){ mult = 0; }
+      }
+      if(mult > 0){
+        if(s.indexOf('平特') === 0) out.pte += amt * mult;
+        else if(s.indexOf('连肖') === 0) out.lx += amt * mult;
+        else out.em += amt * mult;
+      }
+    });
+  });
+  return out;
+}
+function buildBill(){
+  var d = null;
+  try{ d = curShopDraw(); }catch(e){ d = null; }
+  var S = billSalesByCat();
+  var P = billPayoutByCat(d);
+  var U = {cats:[], totalFly:0, totalBack:0};
+  try{ U = upSettleData(); }catch(e){}
+  var cm = {};
+  (U.cats||[]).forEach(function(c){ cm[c.k] = c; });
+  var defs = [
+    {k:'spec', name:'特号'},
+    {k:'pte',  name:'平特'},
+    {k:'lx',   name:'连肖'},
+    {k:'em',   name:'二三'}
+  ];
+  var cats = defs.map(function(x){
+    var u = cm[x.k] || {};
+    var sales = Number(S[x.k] || 0), payout = P ? Number(P[x.k] || 0) : null;
+    var fly = Number(u.fly || 0), back = P ? Number(u.back || 0) : null;
+    var net = P ? (sales - payout - fly + back) : null;
+    return {k:x.k, name:x.name, sales:sales, payout:payout, fly:fly, back:back, net:net};
+  });
+  var sales = cats.reduce(function(a,c){ return a + c.sales; }, 0);
+  var payout = P ? cats.reduce(function(a,c){ return a + c.payout; }, 0) : null;
+  var fly = Number(U.totalFly || 0);
+  var back = P ? Number(U.totalBack || 0) : null;
+  var customerNet = P ? (sales - payout) : null;
+  var upNet = P ? (back - fly) : null;
+  var myNet = P ? (customerNet + upNet) : null;
+  return {d:d, draw:!!(d && d.specialNum), cats:cats, sales:sales, payout:payout, fly:fly, back:back, customerNet:customerNet, upNet:upNet, myNet:myNet};
+}
+function _billMoney(v){
+  if(v === null || typeof v === 'undefined') return '待开奖';
+  return (v >= 0 ? '+' : '') + Math.round(v).toLocaleString('zh-CN');
+}
+function renderBill(){
+  var box = document.getElementById('billBody');
+  if(!box) return;
+  var b = buildBill();
+  var period = (b.d && (b.d.draw || b.d.period)) ? String(b.d.draw || b.d.period) : '本期';
+  var h = '<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:10px;margin:0">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><b style="font-size:17px">账单</b><span style="font-size:11px;color:#999">' + period + ' · ' + (b.draw ? '已开奖' : '未开奖') + '</span></div>';
+  h += '<div style="font-size:10px;color:#999;line-height:1.5;margin-bottom:8px">一个账本：客户账、上家账、我的账。下面四类相加，就是这三个数。</div>';
+  h += '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
+  h += '<div style="display:flex;justify-content:space-between;padding:7px 9px;font-size:12px;background:#f8fafc"><span>客户账</span><span>收 <b>' + Math.round(b.sales).toLocaleString('zh-CN') + '</b> − 赔 <b style="color:#cf1322">' + (b.payout===null?'待开奖':Math.round(b.payout).toLocaleString('zh-CN')) + '</b> ＝ <b style="color:' + (b.customerNet!==null&&b.customerNet>=0?'#16a34a':'#cf1322') + '">' + _billMoney(b.customerNet) + '</b></span></div>';
+  h += '<div style="display:flex;justify-content:space-between;padding:7px 9px;font-size:12px;border-top:1px solid #f1f5f9"><span>上家账</span><span>回 <b style="color:#166534">' + (b.back===null?'待开奖':Math.round(b.back).toLocaleString('zh-CN')) + '</b> − 飞 <b>' + Math.round(b.fly).toLocaleString('zh-CN') + '</b> ＝ <b style="color:' + (b.upNet!==null&&b.upNet>=0?'#16a34a':'#cf1322') + '">' + _billMoney(b.upNet) + '</b></span></div>';
+  h += '<div style="display:flex;justify-content:space-between;padding:9px;font-size:16px;font-weight:800;background:#fafafa;border-top:1px solid #e5e7eb"><span>我的账</span><b style="color:' + (b.myNet!==null&&b.myNet>=0?'#16a34a':'#cf1322') + '">' + _billMoney(b.myNet) + '</b></div>';
+  h += '</div>';
+  var catSum = 0; b.cats.forEach(function(c){ if(c.net!==null) catSum += c.net; });
+  var reconciled = (b.myNet!==null && Math.abs((b.customerNet+b.upNet)-b.myNet)<0.01 && Math.abs(catSum-b.myNet)<0.01);
+  h += '<div style="font-size:11px;margin:6px 0 2px;color:' + (reconciled?'#166534':'#cf1322') + '">' + (b.myNet===null?'开奖后自动核对三层账':'核对：客户账 + 上家账 ＝ 我的账，四类净相加也等于我的账 ' + (reconciled?'✓':'✗')) + '</div>';
+  h += '<div style="font-size:11px;color:#666;font-weight:700;margin:10px 0 3px">分类明细（四类相加 ＝ 上面的账）</div>';
+  var fnum = function(v){ return v===null ? '待开奖' : Math.round(v).toLocaleString('zh-CN'); };
+  h += '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff">';
+  b.cats.forEach(function(c,idx){
+    var netColor = (c.net===null ? '#999' : (c.net>=0?'#16a34a':'#cf1322'));
+    h += '<div style="padding:8px 9px;' + (idx?'border-top:1px solid #f1f5f9':'') + '">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">' + c.name + '</span><span style="font-size:14px;font-weight:800;color:' + netColor + '">净 ' + (c.net===null?'待开奖':_billMoney(c.net)) + '</span></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:11px;color:#888;margin-top:4px">'
+      + '<span style="display:block;white-space:nowrap">客户收 <span style="color:#333;font-weight:700">' + fnum(c.sales) + '</span></span>'
+      + '<span style="display:block;white-space:nowrap">客户赔 <span style="color:#cf1322;font-weight:700">' + fnum(c.payout) + '</span></span>'
+      + '<span style="display:block;white-space:nowrap">飞上家 <span style="color:#333;font-weight:700">' + fnum(c.fly) + '</span></span>'
+      + '<span style="display:block;white-space:nowrap">上家赔回 <span style="color:#166534;font-weight:700">' + fnum(c.back) + '</span></span>'
+      + '</div></div>';
+  });
+  h += '<div style="padding:9px;background:#fafafa;border-top:1px solid #e5e7eb">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:700">合计</span><span style="font-size:15px;font-weight:800;color:' + (b.myNet!==null&&b.myNet>=0?'#16a34a':'#cf1322') + '">' + _billMoney(b.myNet) + '</span></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:11px;color:#888;margin-top:4px">'
+    + '<span style="display:block;white-space:nowrap">客户收 <span style="color:#333;font-weight:700">' + fnum(b.sales) + '</span></span>'
+    + '<span style="display:block;white-space:nowrap">客户赔 <span style="color:#cf1322;font-weight:700">' + fnum(b.payout) + '</span></span>'
+    + '<span style="display:block;white-space:nowrap">飞上家 <span style="color:#333;font-weight:700">' + fnum(b.fly) + '</span></span>'
+    + '<span style="display:block;white-space:nowrap">上家赔回 <span style="color:#166534;font-weight:700">' + fnum(b.back) + '</span></span>'
+    + '</div></div>';
+  h += '</div>';
+  h += '<div style="font-size:10px;color:#999;line-height:1.5;margin-top:6px">口径：飞额用已飞实付，不用“应飞”；上家赔回只算已飞部分；未开奖不猜赔回和净。</div>';
+  h += '<div style="display:flex;gap:6px;margin-top:8px"><button onclick="renderBill()" style="flex:1;border:1px solid #ddd;background:#fff;border-radius:6px;padding:8px;font-size:12px;color:#333">刷新</button><button onclick="upSettleOpen()" style="flex:1;border:1px solid #0f766e;background:#fff;border-radius:6px;padding:8px;font-size:12px;color:#0f766e;font-weight:700">上家结算单</button></div>';
+  h += '</div>';
+  box.innerHTML = h;
+}
+
 function openRankSection(key){
   _rankOpen = (_rankOpen === key ? '' : key);
   try{ _flyPin = (_rankOpen === 'split'); }catch(e){}
   if(_rankOpen === 'split'){
+    try { renderSplitSide(); } catch(e){}
     try { calcSplit(); refreshFlySummary(); } catch(e){}
+  }
+  if(_rankOpen === 'bill'){
+    try { renderBill(); } catch(e){}
   }
   applyRankSectionState();
   if(_rankOpen){

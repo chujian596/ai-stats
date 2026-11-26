@@ -168,7 +168,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>openRankSection('split')"); pg.wait_for_timeout(250)
     pg.evaluate("()=>{_flyDirOpen=true; if(typeof showAllFlyDir==='function') showAllFlyDir();}"); pg.wait_for_timeout(300)
     items = pg.evaluate("()=>Array.from(document.querySelectorAll('#splitBody button')).map((b,i)=>[i,b.innerText.trim(),b.getAttribute('onclick')||'']).filter(function(x){return x[1] !== '删' && x[1].indexOf('上家结算单')<0;})")
-    chk('飞单页按键齐全（≥15）', len(items) >= 15, len(items))
+    chk('飞单页按键齐全（≥11）', len(items) >= 11, len(items))
     bad = []
     for i, lb, oc in items:
         pg.reload(wait_until='load'); pg.wait_for_timeout(300)
@@ -180,7 +180,7 @@ with sync_playwright() as p:
         vis = pg.evaluate("()=>{var s=document.getElementById('splitBody'); return [s?Math.round(s.getBoundingClientRect().width):0,_activeTab];}")
         if not (vis[0] > 0 and vis[1] == 'rank'):
             bad.append(lb)
-    chk('15 个按键点完都留在飞单页', len(bad) == 0, bad)
+    chk('全部按键点完都留在飞单页', len(bad) == 0, bad)
 
     # ---------- 9 备份导出 + 粘贴导入 ----------
     pg.reload(wait_until='load'); pg.wait_for_timeout(400)
