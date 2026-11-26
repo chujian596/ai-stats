@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.30-Pro';
+var APP_VER = 'v60.31-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6286,15 +6286,46 @@ function emExtraRender(){
   h += '<div style="flex:1;background:#f6f7f9;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">上家赔回</div><b style="font-size:17px;color:#166534">+' + bk.back.toFixed(0) + '</b></div>';
   h += '<div style="flex:1;background:#f6f7f9;border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:#999">净</div><b style="font-size:17px;color:' + (bk.net>=0?'#166534':'#cf1322') + '">' + (bk.net>=0?'+':'') + bk.net.toFixed(0) + '</b></div>';
   h += '</div>';
+  // 回执：本次录入结果
+  var rc = window._emxReceipt;
+  if(rc && (rc.ok.length || rc.miss.length)){
+    h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin:10px 0 6px;font-size:12.5px;color:#166534;line-height:1.5">';
+    h += '本次录入：<b>' + rc.ok.length + ' 行 / ' + rc.groups + ' 组 / 合计 ' + rc.amt.toFixed(0) + ' 元</b>';
+    rc.ok.forEach(function(x){ h += '<div style="color:#374151;font-size:11.5px;margin-top:2px">· ' + x + '</div>'; });
+    if(rc.miss.length) h += '<div style="color:#cf1322;margin-top:3px">未识别 ' + rc.miss.length + ' 行：' + rc.miss.join(' / ') + '</div>';
+    h += '</div>';
+  }
   if(rows.length){
-    h += '<div style="font-size:12px;color:#999;margin:8px 0 2px">本期多飞明细（' + rows.length + ' 组）</div>';
-    h += '<div style="border:1px solid #eee;border-radius:8px;overflow:hidden">';
+    // 按原始输入行折叠：一行一行看，展开才看逐组
+    var grp = {}, order = [];
     rows.forEach(function(r){
-      var amt = Number(r.amt || 0);
+      var k = String(r.src || r.code);
+      if(!grp[k]){ grp[k] = {src: k, n: 0, amt: 0, hit: 0, ts: r.ts}; order.push(k); }
+      grp[k].n += 1;
+      grp[k].amt += Number(r.amt || 0);
       var m = 0; try{ m = draw && draw.regularNums ? codeWinMult(r.code, draw) : 0; }catch(e){ m = 0; }
-      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #f2f2f2;font-size:14px">';
-      h += '<span>' + r.code + '　<b>' + amt.toFixed(0) + '</b> 元' + (m > 0 ? '　<span style="color:#166534;font-size:12px">中 ×' + m + ' 赔回 ' + (amt * m).toFixed(0) + '</span>' : '') + '</span>';
-      h += '<span onclick="emExtraDel(' + r.ts + ')" style="color:#cf1322;font-size:12px;padding:2px 6px">删</span></div>';
+      if(m > 0) grp[k].hit += Number(r.amt || 0) * m;
+    });
+    h += '<div style="font-size:12px;color:#999;margin:10px 0 2px" onclick="window._emxOpen=!window._emxOpen;emExtraRender()">本期多飞明细（' + rows.length + ' 组 / ' + order.length + ' 行）' + (window._emxOpen ? ' ▲' : ' ▼') + '</div>';
+    h += '<div style="border:1px solid #eee;border-radius:8px;overflow:hidden">';
+    order.forEach(function(k){
+      var g = grp[k];
+      var short = g.src.length > 26 ? g.src.slice(0, 26) + '…' : g.src;
+      h += '<div style="padding:8px 10px;border-bottom:1px solid #f2f2f2">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:13.5px">';
+      h += '<span style="flex:1;word-break:break-all">' + short + '<span style="color:#999;font-size:11.5px">　' + g.n + ' 组 × 各' + (g.amt / g.n).toFixed(0) + '</span></span>';
+      h += '<b style="white-space:nowrap;margin-left:6px">' + g.amt.toFixed(0) + '</b>';
+      h += '<span onclick="emExtraDelSrc(\'' + g.src.replace(/'/g, "\\'") + '\')" style="color:#cf1322;font-size:12px;padding:2px 6px;white-space:nowrap">删</span>';
+      h += '</div>';
+      if(g.hit > 0) h += '<div style="color:#166534;font-size:11.5px;margin-top:2px">命中赔回 +' + g.hit.toFixed(0) + '</div>';
+      if(window._emxOpen){
+        h += '<div style="font-size:11.5px;color:#777;margin-top:4px;line-height:1.6">';
+        rows.filter(function(r){ return String(r.src || r.code) === k; }).forEach(function(r){
+          h += '<span style="display:inline-block;margin-right:6px">' + r.code.replace(/^(三中三|三中二|二中二):/, '') + '×' + Number(r.amt||0).toFixed(0) + '</span>';
+        });
+        h += '</div>';
+      }
+      h += '</div>';
     });
     h += '</div>';
   }
@@ -6307,27 +6338,41 @@ function emExtraAdd(){
   if(!t.trim()){ myAlert('先写多飞的内容'); return; }
   var list = emExtraList();
   var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
-  var miss = [];
+  var miss = [], okLines = [], okGroups = 0, okAmt = 0;
   t.split(/[\n\r;；]+/).forEach(function(line){
     var raw = String(line).trim(); if(!raw) return;
     try{
       var r = parseLine(raw);
       if(r && r.codes && r.codes.length && Number(r.price) > 0){
+        var n = 0;
         r.codes.forEach(function(c){
-          if(!/^(二中二|三中二|三中三):/.test(c)){ miss.push(raw + '（不是二三玩法）'); return; }
-          list.push({p: p, code: c, amt: Number(r.price), ts: Date.now() + Math.floor(Math.random() * 900)});
+          if(!/^(二中二|三中二|三中三):/.test(c)){ return; }
+          list.push({p: p, code: c, amt: Number(r.price), src: raw, ts: Date.now() + Math.floor(Math.random() * 900) + (n++)});
         });
+        if(n > 0){ okLines.push(raw + ' → ' + n + ' 组 × ' + Number(r.price) + ' = ' + (n * Number(r.price))); okGroups += n; okAmt += n * Number(r.price); }
+        else miss.push(raw + '（不是二三玩法）');
       } else miss.push(raw);
     }catch(e){ miss.push(raw); }
   });
   emExtraSave(list);
+  window._emxReceipt = {ok: okLines, groups: okGroups, amt: okAmt, miss: miss, at: Date.now()};
   if(el) el.value = '';
   emExtraRender();
   try{ renderSideCustPay(); }catch(e){}
   try{ renderRisk(); }catch(e){}
   try{ renderPaySide(); }catch(e){}
   try{ refreshFlySummary(); }catch(e){}
-  if(miss.length) myAlert('没认出：' + miss.join(' / ') + '\n写法示例：三中三 04.19.37 10');
+
+}
+function emExtraDelSrc(src){
+  myConfirm('删掉这一行多飞？', function(){
+    emExtraSave(emExtraList().filter(function(r){ return String(r.src || r.code) !== String(src); }));
+    emExtraRender();
+    try{ renderSideCustPay(); }catch(e){}
+    try{ renderRisk(); }catch(e){}
+    try{ renderPaySide(); }catch(e){}
+    try{ refreshFlySummary(); }catch(e){}
+  });
 }
 function emExtraDel(ts){
   emExtraSave(emExtraList().filter(function(r){ return String(r.ts) !== String(ts); }));
