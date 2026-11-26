@@ -49,7 +49,9 @@ with sync_playwright() as p:
     chk('汇总四类飞额 410', sumfly==410, sumfly)
     chk('明细逐条合计＝汇总飞额', detfly==sumfly, [detfly,sumfly])
     chk('连肖手飞标注含手飞 100', '含手飞 100' in txt, txt[:60])
-    chk('复制文本用净差表头', '净差' in pg.evaluate("()=>upSettleText()"), '')
+    copy_txt=pg.evaluate("()=>upSettleText()")
+    chk('复制文本为发上家格式', '【999期上家结算】' in copy_txt and '特号：飞60，中0，净-60' in copy_txt and '合计：飞410，中90，净-320' in copy_txt, copy_txt)
+    chk('复制文本不带净差说明和明细', ('净差' not in copy_txt) and ('已飞明细' not in copy_txt), copy_txt)
     chk('A 无 JS 报错', not errs, errs)
 
     # B：手飞另外单独飞
