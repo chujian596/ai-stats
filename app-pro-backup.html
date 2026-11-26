@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.63-Pro</title>
+<title>录单Pro · v60.64-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.63-Pro';
+var APP_VER = 'v60.64-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5890,6 +5890,20 @@ function copyFlownList(){
 
 
 // 手飞/多飞/手动登记目录：自己另买的账单独列清楚（可逐条删）
+// 这笔手动登记是否真的在已飞账里：不能只看 applied 标记——
+// 旧版批次可能只写了记录、或被「重置已飞」清掉，标记还是 true，账上却没有。
+function manualBatchReflected(r){
+  try{
+    if(!r || r.undone) return false;
+    if(r.applied !== true) return false;
+    var b = r.batch || [];
+    if(!b.length) return false;
+    return b.every(function(x){
+      if(String(x.k) === '_em_total') return true; // 二三合计与客户单合并，无法逐笔拆开，按批次标记认
+      return Number((flownPerPos||{})[x.k]||0) + 0.01 >= Number(x.amt||0);
+    });
+  }catch(e){ return false; }
+}
 function manualFlyDirHtml(){
   var sf = [], em = [], mh = [];
   try{ sf = selfFlyRows() || []; }catch(e){}
@@ -5936,14 +5950,14 @@ function manualFlyDirHtml(){
       + '<span style="flex:1;min-width:0;color:#333;word-break:break-all">' + _t + '　' + _one + '　<span style="color:#999;font-size:10px">' + (r.cnt || 0) + '笔</span></span>'
       + '<span style="white-space:nowrap;color:#333;font-weight:700">' + Number(r.sum || 0).toFixed(0) + ' 元</span>'
       + (r.undone ? '<span style="color:#bbb;font-size:10px;white-space:nowrap">已撤销</span>'
-         : (r.applied === true
+         : (manualBatchReflected(r)
             ? '<span style="color:#15803d;font-size:10px;white-space:nowrap">已计入</span>'
             : '<span style="color:#cf1322;font-size:10px;white-space:nowrap">未计入</span><button onclick="manualApplyBatch(' + r.id + ')" style="border:1px solid #15803d;color:#15803d;background:#fff;border-radius:4px;padding:1px 6px;font-size:10px">补计</button>')
           + '<button onclick="manualBatchDetail(' + r.id + ')" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:1px 6px;font-size:10px">明细</button><button onclick="undoManualBatchById(' + r.id + ')" style="border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:1px 6px;font-size:10px">撤销</button>')
       + '</div>';
   });
   h += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-top:4px">'
-     + '<span>手飞 ' + sfTot.toFixed(0) + ' ｜ 多飞 ' + emTot.toFixed(0) + ' ｜ 手动 ' + mhTot.toFixed(0) + (mh.some(function(r){ return !r.undone && r.applied !== true; }) ? '（有未计入）' : '') + '</span>'
+     + '<span>手飞 ' + sfTot.toFixed(0) + ' ｜ 多飞 ' + emTot.toFixed(0) + ' ｜ 手动 ' + mhTot.toFixed(0) + (mh.some(function(r){ return !r.undone && !manualBatchReflected(r); }) ? '（有未计入）' : '') + '</span>'
      + '<span style="font-weight:700;color:#cf1322">合计 ' + (sfTot + emTot + mhTot).toFixed(0) + ' 元</span></div>';
   h += '</div>';
   return h;
@@ -5954,7 +5968,7 @@ function manualApplyBatch(id){
   try{ _h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ _h = []; }
   var r = null; _h.forEach(function(x){ if(String(x.id) === String(id)) r = x; });
   if(!r){ myAlert('找不到这笔登记'); return; }
-  if(r.applied){ myAlert('这笔已经在已飞总额里了，不要再补'); return; }
+  if(manualBatchReflected(r)){ myAlert('这笔已经在已飞总额里了，不要再补'); return; }
   if(r.undone){ myAlert('这笔已撤销，不能再补'); return; }
   if(r.p && selfFlyPeriod() && String(r.p) !== String(selfFlyPeriod())){ myAlert('这笔是上一期的，不能在本期补计'); return; }
   myConfirm('把这笔手动登记补计入已飞？\n\n' + (r.cnt || 0) + ' 笔 / ' + Number(r.sum || 0).toFixed(0) + ' 元\n补计后会加到飞单总额/已付，客户账不动。', function(){
@@ -5994,12 +6008,18 @@ function manualBatchDetail(id){
     var xs = groups[l], t = 0; xs.forEach(function(x){ t += x.amt; });
     return l + '\n  → ' + xs.map(function(x){ return (x.k === '_em_total' ? '二三合计' : x.k) + ' ' + x.amt.toFixed(2); }).join('、') + '（共 ' + t.toFixed(2) + ' 元）';
   }).join('\n\n');
-  myAlert('手动登记 ' + _t + '\n' + (r.cnt || 0) + ' 笔 / ' + Number(r.sum || 0).toFixed(2) + ' 元\n\n' + (body || lines.join('\n')) + (r.undone ? '\n\n这笔已撤销' : (r.applied === true ? '\n\n已计入飞单总额' : '\n\n未计入飞单总额，点「补计」加进去')));
+  myAlert('手动登记 ' + _t + '\n' + (r.cnt || 0) + ' 笔 / ' + Number(r.sum || 0).toFixed(2) + ' 元\n\n' + (body || lines.join('\n')) + (r.undone ? '\n\n这笔已撤销' : (manualBatchReflected(r) ? '\n\n已计入飞单总额' : '\n\n未计入飞单总额，点「补计」加进去')));
 }
 
 function flyEditListHtml(embedded){
   var out = '';
-  var _cnt = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).length;
+  // 以「本轮实际已飞」为准：自动飞开时 _em_total 可能只在 getThisRoundFly 里合成，
+  // 还没写进 flownPerPos；清单若只看 flownPerPos 会显示 0 条 / 0 元，和上面 375 打架。
+  var _rowAmt = {};
+  try{ flownRows().forEach(function(r){ if(Number(r.a||0) > 0) _rowAmt[r.key] = Number(r.a)||0; }); }catch(e){}
+  var _allKs = Object.keys(flownPerPos||{}).concat(Object.keys(_rowAmt));
+  var _uniq = {}; _allKs.forEach(function(k){ if((flownPerPos[k]||0) > 0 || (_rowAmt[k]||0) > 0) _uniq[k]=1; });
+  var _cnt = Object.keys(_uniq).length;
   out += '<div style="border-top:1px dashed #ddd;margin-top:6px;padding-top:6px">'
      + (embedded
         ? '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>已飞清单（可改额 / 撤销）</span><span style="font-weight:400;color:#999;font-size:10px">' + _cnt + ' 条</span></div>'
@@ -6011,14 +6031,13 @@ function flyEditListHtml(embedded){
   }
   out += '<div id="flyEditBody">';
   out += '<div style="font-size:10px;color:#999;margin-bottom:4px">这里才是真付给上家的钱，结算与上家对账都按这张表算；没在这张表里的钱＝自己承担。</div>';
-  var ks = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; });
-  if(!ks.length){ try { ks = flownRows().map(function(r){ return r.key; }); } catch(e){} }
-  ks = ks.sort(function(a, b){ return (flownRealOf(b) - flownRealOf(a)) || ((flownPerPos[b]||0) - (flownPerPos[a]||0)); });
+  var ks = Object.keys(_uniq);
+  ks = ks.sort(function(a, b){ return ((_rowAmt[b]||flownRealOf(b)) - (_rowAmt[a]||flownRealOf(a))); });
   if(!ks.length){
     out += '<div style="color:#bbb;font-size:11px">还没有已飞记录</div>';
   } else {
     ks.forEach(function(k){
-      var a = flownRealOf(k);
+      var a = (_rowAmt[k] !== undefined ? _rowAmt[k] : flownRealOf(k));
       out += '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'
          + '<span style="min-width:88px;color:#333">' + (k === '_em_total' ? '二中二/三中三合计' : k) + '</span>'
          + '<input type="number" value="' + a + '" onchange="flySetAmt(\'' + k + '\', this.value)" style="width:64px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:12px">'
