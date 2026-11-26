@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.48-Pro';
+var APP_VER = 'v60.50-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -14704,8 +14704,17 @@ function billArchiveNow(silent){
     billRefreshBar();
     return false;
   }
+  var _archivedNow = JSON.parse(JSON.stringify(activeOrders()));
+  // 本期手飞/多飞也一起封存进历史，再从活动台账里清掉，避免归档后还挂在飞单页
+  var _archP = '';
+  try{ _archP = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : ''; }catch(e){}
+  var _archEm = [], _archSf = [];
+  try{ _archEm = (emExtraList()||[]).filter(function(r){ return !_archP || String(r.p) === _archP; }); }catch(e){}
+  try{ _archSf = (selfFlyList()||[]).filter(function(r){ return !_archP || String(r.p) === _archP; }); }catch(e){}
   billArchive[d] = {
     orders: JSON.parse(JSON.stringify(activeOrders())),
+    emExtra: JSON.parse(JSON.stringify(_archEm)),
+    selfFly: JSON.parse(JSON.stringify(_archSf)),
     pays: JSON.parse(JSON.stringify(pays)),
     custpays: JSON.parse(JSON.stringify(custpays || [])),
     draw: (typeof curShopDraw === 'function') ? curShopDraw() : null,
@@ -14716,11 +14725,31 @@ function billArchiveNow(silent){
   billSaveArchive();
   orders = []; hkOrders = [];
   saveOrders();   // 归档本店单，另一店历史混入单原样保留
+  // 订单记录是「本店账 + 跨店客户镜像」合并显示的；镜像里不清，归档后旧单会一直挂在订单记录里
+  try{
+    var _ids = {}, _sig = {};
+    _archivedNow.forEach(function(o){
+      if(!o) return;
+      if(o.id) _ids[o.id] = 1;
+      _sig[[o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|')] = 1;
+    });
+    var _keep = function(o){
+      if(!o) return false;
+      if(o.id && _ids[o.id]) return false;
+      var sig = [o.createdAt||o.ts||'', o.customer||'', Number(o.amount)||0, (o.codes||[]).join(',')].join('|');
+      return !_sig[sig];
+    };
+    _writeJSONArr(MAC_GLOBAL_KEY, _readJSONArr(MAC_GLOBAL_KEY).filter(_keep));
+    if(typeof shop !== 'undefined' && shop === 'B') _writeJSONArr(HK_GLOBAL_KEY, _readJSONArr(HK_GLOBAL_KEY).filter(_keep));
+  }catch(e){ logErr && logErr('archive_purge_global', e && e.message ? e.message : String(e)); }
   pays = []; if(typeof savePays === 'function') savePays();
   custpays = []; if(typeof saveCP === 'function') saveCP();
   flownPerPos = {}; flownReal = {};
   try { localStorage.setItem(sk('flownPerPos'), '{}'); } catch(e){}
   try { localStorage.setItem(sk('flownReal'), '{}'); } catch(e){}
+  // 手飞/多飞是「按本期」记的台账：归档就把本期行移出活动台账（已存进 billArchive[d]）
+  try{ emExtraSave((emExtraList()||[]).filter(function(r){ return _archP ? String(r.p) !== _archP : false; })); }catch(e){}
+  try{ selfFlySave((selfFlyList()||[]).filter(function(r){ return _archP ? String(r.p) !== _archP : false; })); }catch(e){}
   billSetBookDate(billToday());
   const tip = document.getElementById('billRollTip');
   if(tip) tip.style.display = 'none';
