@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.67-Pro</title>
+<title>录单Pro · v60.68-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.67-Pro';
+var APP_VER = 'v60.68-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5395,7 +5395,11 @@ function flyPlanAmtOf(code, bet){
 function flyShowAmt(amt, modeOverride){
   const n = Number(amt) || 0;
   if(n <= 0.01) return 0;
-  return Math.max(10, Math.round((n + 1e-9) / 10) * 10);
+  // 凑整开关关掉时，显示必须回到原额：375 就是 375，不能偷偷四舍五入成 380
+  const mode = (modeOverride !== undefined) ? modeOverride : getFlyRoundMode();
+  const step = Number(mode) || 0;
+  if(!(step > 0)) return n;
+  return Math.max(step, Math.round((n + 1e-9) / step) * step);
 }
 // ===== 飞单聚档（聚类→定档→平衡总额）=====
 // 目标：把十几个参差档位压成少数几档；单号最多动 maxAdj；总飞额偏差 ≤ tol。
@@ -14995,7 +14999,10 @@ function clearCurrentFlyExtras(){
   try{ localStorage.removeItem(sk('manualLastBatch')); }catch(e){}
   try{ emExtraSave(emExtraList().filter(function(r){ return !cur(r); })); }catch(e){}
   try{ selfFlySave(selfFlyList().filter(function(r){ return !cur(r); })); }catch(e){}
-  try{ localStorage.removeItem(flySkipKey()); }catch(e){}
+  try{
+    // 不飞标记可能还挂在别的店/上一期键上：清订单就把所有 flySkip_* 一起清
+    Object.keys(localStorage).forEach(function(k){ if(String(k).indexOf('flySkip_') === 0) localStorage.removeItem(k); });
+  }catch(e){}
   try{ window._manualFlyBuf = ''; }catch(e){}
 }
 function clearOrders(){
