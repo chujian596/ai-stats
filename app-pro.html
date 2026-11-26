@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.57-Pro</title>
+<title>录单Pro · v60.58-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.57-Pro';
+var APP_VER = 'v60.58-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3227,12 +3227,9 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:6px">' + _bo('flyDirBtnToggle()','飞单目录') + _bo('copySelectedFly()','复制') + _bo('resetFlown()','重置已飞','border-color:#cf1322;color:#cf1322') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   // 飞单一本账：只回答“飞了多少、付了多少、还欠多少”，不再分 手飞/多飞/补录
   h += '<div style="border-top:1px dashed #ddd;padding-top:6px;margin-bottom:4px">';
-  var _flySide = {totalFly:0, already:0, thisRound:0, extra:0};
-  try{ _flySide = getThisRoundFly(); }catch(e){}
-  var _custFlySide = Math.max(0, _flySide.totalFly - _flySide.extra);
-  h += `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700"><span>飞单总额</span><span>${_flySide.totalFly.toFixed(0)}</span></div>`;
-  h += `<div style="font-size:11px;color:#666;margin-top:1px">已付 <b style="color:#333">${_flySide.already.toFixed(0)}</b> ｜ 待付 <b style="color:#333">${_flySide.thisRound.toFixed(0)}</b></div>`;
-  h += `<div style="font-size:11px;color:#666">客户单生成 ${_custFlySide.toFixed(0)} ｜ 自己加飞 ${_flySide.extra.toFixed(0)}</div>`;
+  var _flyMoney = flyMoneySummary();
+  h += `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700"><span>飞单总额</span><span>${_flyMoney.total}</span></div>`;
+  h += `<div style="font-size:11px;color:#666;margin-top:1px">已付 <b style="color:#333">${_flyMoney.paid}</b> ｜ 待付 <b style="color:#333">${_flyMoney.pending}</b>　<span style="color:#999">（总额＝已付＋待付）</span></div>`;
   h += '<div style="display:flex;gap:4px;margin:5px 0 4px">'
      + '<button onclick="manualFlyOpen()" style="flex:1;border:1px solid #111;background:#111;color:#fff;border-radius:6px;padding:8px;font-size:14px;font-weight:700">+ 记一笔飞单</button>'
      + '<button onclick="flyDirBtnToggle()" style="flex:1;border:1px solid #ccc;background:#fff;color:#333;border-radius:6px;padding:8px;font-size:14px">看明细</button>'
@@ -5222,6 +5219,25 @@ function flyTermsHelp(){
     '⑤ 多飞（自己买的二三）：客户单以外你自己买的二中二/三中二/三中三，独立一笔，计入总飞和上家应付。\n\n' +
     '对账只看一行：总单 － 已飞 － 多飞（＋上家赔回）＝ 你的净。');
 }
+function flyMoneySummary(){
+  var out = {orders:0, paid:0, pending:0, total:0};
+  try{ out.orders = grandOrderTotal(); }catch(e){}
+  try{
+    out.paid = Math.round(flownRows().reduce(function(t,r){ return t + Number(r.a||0); }, 0));
+  }catch(e){ out.paid = 0; }
+  try{
+    var r = getThisRoundFly();
+    (r.lines||[]).forEach(function(l){
+      if(!(l.amt > 0.01)) return;
+      var a = l.amt;
+      try{ if(parseFloat(getFlyRoundMode()) > 0) a = flyShowAmt(a); }catch(e){}
+      out.pending += a;
+    });
+    out.pending = Math.round(out.pending);
+  }catch(e){ out.pending = 0; }
+  out.total = out.paid + out.pending;
+  return out;
+}
 function refreshFlySummary(){
   try {
     const total = grandOrderTotal();
@@ -5233,18 +5249,9 @@ function refreshFlySummary(){
           + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span></div>'
         + (function(){
             // 已飞 = 清单实付合计；待飞 = 还没飞的（按凑整后的数）；总飞出去 = 已飞 + 待飞，三者必须对得上
-            var _flownAll = 0; try { _flownAll = flownRows().reduce(function(t,r2){ return t + r2.a; }, 0); } catch(e){ _flownAll = _r.already; }
-            var _pend = 0;
-            (_r.lines||[]).forEach(function(l){
-              if(!(l.amt > 0.01)) return;
-              var a = l.amt;
-              try { if(parseFloat(getFlyRoundMode()) > 0) a = flyShowAmt(a); } catch(e){}
-              _pend += a;
-            });
-            _pend = Math.round(_pend);
-            var _emx = 0; try { _emx = Math.round(emExtraBook(curShopDraw()).cost || 0); } catch(e){ _emx = 0; }
-            return '<div style="padding-top:3px">总单 <b>' + total.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + Math.round(_flownAll + _pend + _emx) + '</b></div>'
-                 + '<div>已飞 ' + Math.round(_flownAll) + (_emx > 0 ? ' ＋ 多飞 ' + _emx : '') + ' ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _pend + '</b></div>';
+            var _fs = flyMoneySummary();
+            return '<div style="padding-top:3px">总单 <b>' + _fs.orders.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + _fs.total + '</b></div>'
+                 + '<div>已飞 <b style="color:#333">' + _fs.paid + '</b> ｜ 待付 <b style="color:#cf1322;font-size:16px">' + _fs.pending + '</b></div>';
           })()
 
     }
@@ -5668,8 +5675,7 @@ function flownRows(){
   (r.lines||[]).forEach(function(l){
     if(!(l.done > 0)) return;
     var key = (l.code === '二中二/三中三合计') ? '_em_total' : l.code;
-    var _a = l.done;
-    try { if(parseFloat(getFlyRoundMode()) > 0) _a = flyShowAmt(l.done); } catch(e){}
+    var _a = l.done;   // 已飞是实付，凑整只影响后续待飞，不能把已付再凑一次
     rows.push({ k: l.code, a: _a, key: key });
     seen[key] = 1;
   });
@@ -6201,8 +6207,8 @@ function confirmGroupCurrent(){
     const sumEl = document.getElementById('sideSplitSummary');
     if(sumEl){
       sumEl.innerHTML =
-        '总单 <b>' + total.toFixed(0) + '</b> | 应飞总额 <b style="color:#cf1322">' + _r.totalFly.toFixed(0) + '</b><br>' +
-        '已飞 ' + _r.already.toFixed(0) + ' | 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _r.thisRound.toFixed(0) + '</b>';
+        '总单 <b>' + total.toFixed(0) + '</b> | 飞单总额 <b style="color:#cf1322">' + flyMoneySummary().total + '</b><br>' +
+        '已付 ' + flyMoneySummary().paid + ' | 待付 <b style="color:#cf1322;font-size:16px">' + flyMoneySummary().pending + '</b>';
     }
   } catch(e){}
   // 刷新明细（重新显示本组，数字更新）
@@ -7232,8 +7238,8 @@ function resetFlown(){
     const sumEl = document.getElementById('sideSplitSummary');
     if(sumEl){
       sumEl.innerHTML =
-        '总单 <b>' + total.toFixed(0) + '</b> | 应飞总额 <b style="color:#cf1322">' + _r.totalFly.toFixed(0) + '</b><br>' +
-        '已飞 ' + _r.already.toFixed(0) + ' | 本轮应飞 <b style="color:#cf1322;font-size:16px">' + _r.thisRound.toFixed(0) + '</b>';
+        '总单 <b>' + total.toFixed(0) + '</b> | 飞单总额 <b style="color:#cf1322">' + flyMoneySummary().total + '</b><br>' +
+        '已付 ' + flyMoneySummary().paid + ' | 待付 <b style="color:#cf1322;font-size:16px">' + flyMoneySummary().pending + '</b>';
     }
     var box = document.getElementById('sideSplitResult');
     if(box) box.innerHTML = '';
@@ -7256,9 +7262,9 @@ function sideSplitCalc(){
   document.getElementById('sideSplitSummary').innerHTML =
     `<div style="display:flex;justify-content:space-between;font-size:13px;color:#666;padding-bottom:3px;border-bottom:1px solid #eee"><span>当前阈值</span><span style="color:#333">特号 <b>${splitTakeAll||0}</b> ｜ 平特 <b>${pteFlyTakeAll||0}</b> ｜ 连肖 <b>${lxFlyAmt||0}</b></span></div>`
     + (function(){
-        var _ex = 0; try { _ex = Math.round(emExtraBook(curShopDraw()).cost || 0); } catch(e){ _ex = 0; }
-        return `<div style="padding-top:3px">总单 <b>${total.toFixed(0)}</b> ｜ 总飞出去 <b style="color:#cf1322">${(_r.totalFly + _ex).toFixed(0)}</b></div>`
-    + `<div>已飞 ${_r.already.toFixed(0)}${_ex>0?' ＋ 多飞 '+_ex:''} ｜ 本轮应飞 <b style="color:#cf1322;font-size:16px">${_r.thisRound.toFixed(0)}</b></div>`;
+        var _fs = flyMoneySummary();
+        return `<div style="padding-top:3px">总单 <b>${_fs.orders.toFixed(0)}</b> ｜ 飞单总额 <b style="color:#cf1322">${_fs.total}</b></div>`
+    + `<div>已付 ${_fs.paid} ｜ 待付 <b style="color:#cf1322;font-size:16px">${_fs.pending}</b></div>`;
       })();
   // 明细表
   let h = '<div style="font-size:14px">';
