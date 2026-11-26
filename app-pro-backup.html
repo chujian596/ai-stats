@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.61-Pro</title>
+<title>录单Pro · v60.62-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.61-Pro';
+var APP_VER = 'v60.62-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5219,8 +5219,8 @@ function manualFlyOpen(){
   wrap.onclick=function(e){ if(e.target===wrap) manualFlyClose(); };
   var h='<div style="background:#fff;width:100%;max-height:88vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:14px 14px 18px">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">记一笔飞单</b><span onclick="manualFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
-  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">已经付给上家的钱，整段贴进来；系统自动按类别归到总飞。<br>写法：<b>04 100</b>（一个号）／<b>22 34 各140</b>（多个号同额）／<b>平特虎 1000</b>／<b>连肖马蛇 400</b>。<br>二三加飞请点 <a href="javascript:;" onclick="manualFlyClose();emExtraOpen()" style="color:#b45309;text-decoration:none">这里</a>。</div>';
-  h+='<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:110px;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box" placeholder="22 140&#10;22 34 各140&#10;平特虎 1000&#10;连肖马蛇 400">'+(window._manualFlyBuf||'')+'</textarea>';
+  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">特号、平特、连肖、二三都在这个框里，跟录单写法一样。<br><b>04 100</b>／<b>22 34 各140</b>／<b>平特虎 1000</b>／<b>连肖马蛇 400</b><br><b>三中三 17-20-25 各10</b>；多组可先写一行<b>三中三各组10</b>，下面直接贴 <b>17-20-25</b>、<b>07-15-36</b>。<br><span style="color:#999">二三也按已付上家记；多组可先写一行「三中三各组10」再贴组合，不用每组重复写。</span></div>';
+  h+='<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:110px;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box" placeholder="三中三 17-20-25 各10&#10;22 140&#10;平特虎 1000&#10;连肖马蛇 400">'+(window._manualFlyBuf||'')+'</textarea>';
   h+='<div style="display:flex;gap:6px;margin-top:8px">';
   h+='<button onclick="applyManualFlyList()" style="flex:2;background:#111;color:#fff;border:0;border-radius:8px;padding:11px;font-size:15px;font-weight:700">记入已飞</button>';
   h+='<button onclick="if(document.getElementById(\'manualFlyInput\')){document.getElementById(\'manualFlyInput\').value=\'\';window._manualFlyBuf=\'\';}" style="flex:1;background:#fff;color:#666;border:1px solid #ccc;border-radius:8px;padding:11px;font-size:14px">清空</button>';
@@ -5997,9 +5997,59 @@ function applyManualFlyList(){
   _applyManualFlyCore(txt, el);
 }
 
+// 组合多行写法归一：首行/尾行「三中三各组10」给产品和统一金额，中间裸写 17-20-25 的逐行补成「三中三:17,20,25 各组10」
+// 目的：飞单输入跟录单一样，不要求每行都重复写「三中三」和金额。
+function preprocessFlyComboRows(rows){
+  rows = (rows || []).slice();
+  var headRe = /^(二中二|三中二|三中三)\s*(?:各|每)?\s*(?:组|组各)?\s*([0-9]+(?:\.[0-9]+)?)?\s*(?:元)?$/;
+  var bareRe = /^((?:\d{1,2}[\s,，、.\-–—―－+·\/]+){1,2}\d{1,2})(?:\s*(?:各|每)?\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?))?\s*(?:元)?$/;
+  var prod = '', price = 0, headIdx = -1;
+  rows.forEach(function(raw, i){
+    var s0 = String(raw).trim();
+    var m = s0.match(headRe);
+    if(m){
+      prod = m[1];
+      if(m[2]) price = parseFloat(m[2]);
+      headIdx = i;                 // 纯标题行（三中三 / 三中三各组10）先记下，等确认有裸组合再删
+      return;
+    }
+    // 首行就带组合+金额：三中三 17-20-25 各组10；给后面裸组合当默认产品和金额
+    if(!prod && new RegExp('^(二中二|三中二|三中三)').test(s0)){
+      prod = s0.match(/^(二中二|三中二|三中三)/)[1];
+      try{ var _p = parseLine(normalizeComboLine(s0)); if(_p && _p.price) price = Number(_p.price); }catch(e){}
+    }
+  });
+  if(!prod) return rows;
+  var need = prod === '二中二' ? 2 : 3;
+  var out = [], used = false;
+  rows.forEach(function(raw, i){
+    var s0 = String(raw).trim();
+    var b = s0.match(bareRe);
+    var ns = b ? (b[1].match(/\d{1,2}/g) || []) : [];
+    if(b && ns.length === need){
+      var amt = b[2] ? parseFloat(b[2]) : price;
+      if(amt > 0){
+        out.push(prod + ':' + ns.join(',') + ' 各组' + amt);
+        used = true;
+        return;
+      }
+    }
+    out.push(s0);
+  });
+  // 标题行只有被裸组合用上了才删；只有「三中三 500」这种整笔时保留原行
+  if(used && headIdx >= 0){
+    var removed = false;
+    out = out.filter(function(x, idx){
+      if(!removed && idx === headIdx){ removed = true; return false; }
+      return true;
+    });
+  }
+  return used ? out : rows;
+}
+
 // 真正落账：认不出的行整单回滚（原子）
 function _applyManualFlyCore(txt, el){
-  const rows = txt.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  const rows = preprocessFlyComboRows(txt.split(/\n+/).map(s => s.trim()).filter(Boolean));
   let cnt = 0, sum = 0, bad = [];
   window._flyAddLog = [];
   // 事务快照：只要有一行认不出，就把已飞记录还原，绝不半个单子落账
@@ -6095,10 +6145,10 @@ function _applyManualFlyCore(txt, el){
   afterFlyFlagChange();
   var _log = (window._flyAddLog || []);
   var _detail = _log.slice(0, 10).map(function(x){
-    return '  ' + x.key + '  +' + x.amt.toFixed(0) + ' → 累计 ' + x.now.toFixed(0) + ' 元';
+    return '  ' + (x.key === '_em_total' ? '二三合计' : x.key) + '  +' + x.amt.toFixed(0) + ' → 累计 ' + x.now.toFixed(0) + ' 元';
   }).join('\n');
   if(_log.length > 10) _detail += '\n  …共 ' + _log.length + ' 笔';
-  myAlert('已登记 ' + cnt + ' 个号，合计 ' + sum.toFixed(0) + ' 元' + (_detail ? '\n\n本次明细：\n' + _detail : ''));
+  myAlert('已登记 ' + cnt + ' 笔，合计 ' + sum.toFixed(0) + ' 元' + (_detail ? '\n\n本次明细：\n' + _detail : ''));
 }
 
 function showGroupDetail(group){
@@ -6818,7 +6868,8 @@ function emExtraAdd(){
   var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
   var miss = [], okLines = [], okGroups = 0, okAmt = 0;
   var mode = '';
-  t.split(/[\n\r;；]+/).forEach(function(line){
+  var _rows0 = t.split(/[\n\r;；]+/).map(function(x){ return String(x).trim(); }).filter(Boolean);
+  preprocessFlyComboRows(_rows0).forEach(function(line){
     var raw = String(line).trim(); if(!raw) return;
     if(/^(三中三|三中二|二中二)$/.test(raw)){ mode = raw; return; }
     var hasMode = /^(三中三|三中二|二中二)\s/.test(raw);
