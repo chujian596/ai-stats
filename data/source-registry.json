@@ -1,6 +1,6 @@
 {
  "schema": "source-registry/v1",
- "updatedAt": "2026-11-25 22:49:58",
+ "updatedAt": "2026-11-26 09:32:04",
  "dataThrough": 330,
  "periods": {
   "sites": [
@@ -36,24 +36,24 @@
   "siteEmpty": 4,
   "siteFixed": 194,
   "siteSystems": 8,
-  "coreKillSites": 0,
-  "coreColumnSites": 118,
-  "forumUnique": 789,
-  "forumCore": 498,
-  "forumOneoff": 291,
-  "forumCurrent": 0,
-  "forumCurrentCore": 0,
-  "forumCurrentOneoff": 0,
-  "forumCurrentPosts": 0,
-  "forumCurrentRec": 0,
-  "forumCurrentKill": 0,
-  "forumCurrentPicks": 0,
-  "forumRepeatFromPrev": 0,
-  "forumNewThisPeriod": 0,
-  "forumCoreVoteCoverage": 0,
+  "coreKillSites": 119,
+  "coreColumnSites": 120,
+  "forumUnique": 819,
+  "forumCore": 581,
+  "forumOneoff": 238,
+  "forumCurrent": 301,
+  "forumCurrentCore": 209,
+  "forumCurrentOneoff": 92,
+  "forumCurrentPosts": 301,
+  "forumCurrentRec": 271,
+  "forumCurrentKill": 30,
+  "forumCurrentPicks": 1214,
+  "forumRepeatFromPrev": 106,
+  "forumNewThisPeriod": 195,
+  "forumCoreVoteCoverage": 72.1,
   "forumPages": 6,
   "effectiveEndpoints": 200,
-  "forumCurrentVotes": 0
+  "forumCurrentVotes": 1214
  },
  "sources": [
   {
@@ -61,7 +61,7 @@
    "name": "公开论坛文字帖",
    "kind": "论坛 API",
    "count": 6,
-   "detail": "6 页 / 600 条抓取，0 条当期有效帖",
+   "detail": "6 页 / 600 条抓取，301 条当期有效帖",
    "url": "https://ismkog.xn--n8jaf0byahm4a2c4cybyssjl201en76e.xn--q9jyb4c:21044/api/v1/forums"
   },
   {
@@ -70,7 +70,7 @@
    "kind": "站点目录",
    "count": 198,
    "detail": "198 个登记站，194 个成功，4 个空站",
-   "url": "snapshots/snapshot-330-2208.json"
+   "url": "snapshots/snapshot-330-0930.json"
   },
   {
    "key": "ratio",
@@ -84,8 +84,8 @@
    "key": "core",
    "name": "站方核心杀",
    "kind": "派生数据",
-   "count": 0,
-   "detail": "0/194 站有核心杀栏目 → core-330.json",
+   "count": 119,
+   "detail": "119/194 站有核心杀栏目 → core-330.json",
    "url": "data/core-330.json"
   }
  ],
@@ -6656,10 +6656,12 @@
    "host": "https://h9.wanpz.com",
    "script": "https://h9.wanpz.com/script/0198/",
    "aggregator": false,
-   "hasNine": false,
-   "hasKill3": false,
-   "coreKill": false,
-   "coreColumns": [],
+   "hasNine": true,
+   "hasKill3": true,
+   "coreKill": true,
+   "coreColumns": [
+    "杀特3肖"
+   ],
    "periods": [
     323,
     324,
@@ -6945,7 +6947,7 @@
    "host": "https://h9.wanpz.com",
    "script": "https://h9.wanpz.com/script/12993/",
    "aggregator": false,
-   "hasNine": false,
+   "hasNine": true,
    "hasKill3": false,
    "coreKill": false,
    "coreColumns": [],
@@ -7306,10 +7308,12 @@
    "host": "https://h9.wanpz.com",
    "script": "https://h9.wanpz.com/script/2085/",
    "aggregator": false,
-   "hasNine": false,
-   "hasKill3": false,
-   "coreKill": false,
-   "coreColumns": [],
+   "hasNine": true,
+   "hasKill3": true,
+   "coreKill": true,
+   "coreColumns": [
+    "杀特3肖"
+   ],
    "periods": [
     323,
     324,
@@ -7969,11 +7973,11 @@
     "valid": 301
    },
    "330": {
-    "fetched": null,
-    "valid": 0
+    "fetched": 600,
+    "valid": 301
    }
   },
-  "totalPosts": 1664,
+  "totalPosts": 1965,
   "authors": [
    {
     "name": "停止道士",
@@ -7983,14 +7987,15 @@
      326,
      327,
      328,
-     329
+     329,
+     330
     ],
-    "periodCount": 6,
-    "posts": 6,
-    "votes": 36,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "periodCount": 7,
+    "posts": 7,
+    "votes": 42,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8003,17 +8008,98 @@
      326,
      327,
      328,
-     329
+     329,
+     330
     ],
-    "periodCount": 6,
-    "posts": 6,
-    "votes": 42,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "periodCount": 7,
+    "posts": 7,
+    "votes": 49,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "core",
     "enabled": true,
     "includeCore": false
+   },
+   {
+    "name": "勇猛水壶",
+    "periods": [
+     324,
+     325,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "喜欢菜肴",
+    "periods": [
+     324,
+     326,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "帅气地图",
+    "periods": [
+     324,
+     325,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "年轻金花",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
    },
    {
     "name": "拥挤教授",
@@ -8036,6 +8122,66 @@
     "includeCore": false
    },
    {
+    "name": "无双水手",
+    "periods": [
+     324,
+     326,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 48,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "晕眩孔门",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 42,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 10,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "花团锦簇",
+    "periods": [
+     324,
+     325,
+     326,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 6,
+    "posts": 6,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "麻醉昙花",
     "periods": [
      324,
@@ -8051,6 +8197,63 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "主要母亲",
+    "periods": [
+     324,
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "习惯安纳",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "体贴石膏",
+    "periods": [
+     324,
+     325,
+     327,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8094,39 +8297,115 @@
     "includeCore": false
    },
    {
-    "name": "勇猛水壶",
+    "name": "停止武术",
     "periods": [
      324,
      325,
      327,
-     328,
-     329
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
-    "votes": 25,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 45,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
-    "name": "喜欢菜肴",
+    "name": "刚猛石英",
     "periods": [
      324,
-     326,
+     325,
      327,
-     328,
-     329
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
     "votes": 20,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "可怕夏天",
+    "periods": [
+     324,
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "和气和气",
+    "periods": [
+     324,
+     325,
+     327,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "喜欢火绳",
+    "periods": [
+     324,
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "喜迎四方",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8151,6 +8430,44 @@
     "includeCore": true
    },
    {
+    "name": "坚贞国家",
+    "periods": [
+     324,
+     325,
+     326,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "安全柱子",
+    "periods": [
+     324,
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "寒武忌",
     "periods": [
      324,
@@ -8170,39 +8487,39 @@
     "includeCore": true
    },
    {
-    "name": "帅气地图",
+    "name": "常态夏天",
     "periods": [
      324,
      325,
-     327,
-     328,
-     329
+     326,
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
     "votes": 25,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "年轻金花",
+    "name": "强烈安纳",
     "periods": [
-     324,
      325,
-     326,
+     327,
      328,
-     329
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
     "votes": 25,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8246,20 +8563,20 @@
     "includeCore": true
    },
    {
-    "name": "无双水手",
+    "name": "无双石头",
     "periods": [
      324,
-     326,
-     327,
+     325,
      328,
-     329
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
-    "votes": 40,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8284,23 +8601,42 @@
     "includeCore": true
    },
    {
-    "name": "晕眩孔门",
+    "name": "暗红约翰",
     "periods": [
      324,
-     325,
      326,
-     328,
-     329
+     327,
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
-    "votes": 32,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "止痒艺术",
+    "periods": [
+     325,
+     326,
+     327,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "泼辣意见",
@@ -8322,20 +8658,134 @@
     "includeCore": true
    },
    {
-    "name": "花团锦簇",
+    "name": "热爱强尼",
     "periods": [
      324,
-     325,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "热爱电视",
+    "periods": [
      326,
      327,
-     328
+     328,
+     329,
+     330
     ],
     "periodCount": 5,
     "posts": 5,
     "votes": 25,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "独钓天地",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "盛大恤衫",
+    "periods": [
+     324,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "短发水壶",
+    "periods": [
+     324,
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "花心落日",
+    "periods": [
+     324,
+     327,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 30,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "辛勤招牌",
+    "periods": [
+     324,
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 35,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8360,6 +8810,25 @@
     "includeCore": true
    },
    {
+    "name": "高亢毛栗",
+    "periods": [
+     324,
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 5,
+    "posts": 5,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "专注木屋",
     "periods": [
      325,
@@ -8378,19 +8847,73 @@
     "includeCore": false
    },
    {
-    "name": "主要母亲",
+    "name": "专注泰德",
     "periods": [
-     324,
      325,
+     327,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "主要大树",
+    "periods": [
+     324,
+     325,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "主要约翰",
+    "periods": [
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "义不容辞",
+    "periods": [
+     324,
+     325,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8414,24 +8937,6 @@
     "includeCore": true
    },
    {
-    "name": "习惯安纳",
-    "periods": [
-     324,
-     325,
-     326,
-     328
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 7,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "习惯木器",
     "periods": [
      324,
@@ -8445,6 +8950,42 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "习惯活动",
+    "periods": [
+     324,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "亲切雷鸣",
+    "periods": [
+     324,
+     325,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8468,37 +9009,37 @@
     "includeCore": true
    },
    {
-    "name": "体贴石膏",
+    "name": "体贴糖",
     "periods": [
-     324,
      325,
-     327,
-     329
+     326,
+     328,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "停止武术",
+    "name": "停止学生",
     "periods": [
-     324,
-     325,
-     327,
-     329
+     326,
+     328,
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 36,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8522,19 +9063,19 @@
     "includeCore": true
    },
    {
-    "name": "刚猛石英",
+    "name": "冒火条纹",
     "periods": [
      324,
-     325,
-     327,
-     329
+     326,
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8576,6 +9117,24 @@
     "includeCore": true
    },
    {
+    "name": "勉强香灯",
+    "periods": [
+     325,
+     327,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "勤能补拙",
     "periods": [
      325,
@@ -8589,6 +9148,42 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "华丽国王",
+    "periods": [
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "博敞项链",
+    "periods": [
+     324,
+     325,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8612,10 +9207,10 @@
     "includeCore": true
    },
    {
-    "name": "可怕夏天",
+    "name": "可怕火云",
     "periods": [
      324,
-     326,
+     327,
      328,
      329
     ],
@@ -8630,19 +9225,37 @@
     "includeCore": true
    },
    {
-    "name": "可怕火云",
+    "name": "可怕鲨鱼",
     "periods": [
      324,
+     325,
      327,
-     328,
-     329
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "可怜毛衫",
+    "periods": [
+     324,
+     325,
+     327,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8702,91 +9315,73 @@
     "includeCore": true
    },
    {
-    "name": "和气和气",
-    "periods": [
-     324,
-     325,
-     327,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 24,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "喜欢火绳",
-    "periods": [
-     324,
-     325,
-     328,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "喜迎四方",
+    "name": "困难手刃",
     "periods": [
      324,
      325,
      326,
-     328
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 16,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "坚贞国家",
-    "periods": [
-     324,
-     325,
-     326,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "安全柱子",
+    "name": "天外有天",
     "periods": [
      324,
      326,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "奇怪活动",
+    "periods": [
+     325,
+     326,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "好奇渔夫",
+    "periods": [
+     324,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8810,6 +9405,60 @@
     "includeCore": true
    },
    {
+    "name": "寒门岁月",
+    "periods": [
+     324,
+     325,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "寻花问柳",
+    "periods": [
+     324,
+     325,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "小五路",
+    "periods": [
+     326,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "小玩才好",
     "periods": [
      324,
@@ -8820,24 +9469,6 @@
     "periodCount": 4,
     "posts": 4,
     "votes": 36,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "常态夏天",
-    "periods": [
-     324,
-     325,
-     326,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 20,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -8882,19 +9513,37 @@
     "includeCore": true
    },
    {
-    "name": "强烈安纳",
+    "name": "强大心花",
     "periods": [
-     325,
-     327,
+     324,
+     326,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 20,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 21,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "强大比尔",
+    "periods": [
+     324,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -8990,6 +9639,24 @@
     "includeCore": true
    },
    {
+    "name": "我是米米呀",
+    "periods": [
+     324,
+     325,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "拥有者荣耀",
     "periods": [
      324,
@@ -9026,19 +9693,91 @@
     "includeCore": true
    },
    {
-    "name": "无双石头",
+    "name": "断袖余桃",
     "periods": [
-     324,
      325,
      328,
-     329
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "新鲜机会",
+    "periods": [
+     326,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "新鲜泥堆",
+    "periods": [
+     325,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "无双棒球",
+    "periods": [
+     325,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "无双萝拉",
+    "periods": [
+     324,
+     326,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9080,40 +9819,22 @@
     "includeCore": false
    },
    {
-    "name": "暗红约翰",
+    "name": "泼辣孔明",
     "periods": [
      324,
-     326,
-     327,
-     329
+     328,
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 24,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "止痒艺术",
-    "periods": [
-     325,
-     326,
-     327,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "浓绿菊花",
@@ -9129,6 +9850,24 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "浪费昙花",
+    "periods": [
+     324,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9152,22 +9891,76 @@
     "includeCore": true
    },
    {
-    "name": "热爱强尼",
+    "name": "清醒婚礼",
     "periods": [
      324,
      327,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 36,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "滑顺榜花",
+    "periods": [
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "潮流约翰",
+    "periods": [
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "潮流衬衫",
+    "periods": [
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "热爱强风",
@@ -9188,24 +9981,6 @@
     "includeCore": true
    },
    {
-    "name": "热爱电视",
-    "periods": [
-     326,
-     327,
-     328,
-     329
-    ],
-    "periodCount": 4,
-    "posts": 4,
-    "votes": 20,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "爱国火塘",
     "periods": [
      324,
@@ -9224,55 +9999,127 @@
     "includeCore": true
    },
    {
-    "name": "独钓天地",
+    "name": "爱国花木",
     "periods": [
-     324,
-     325,
      326,
-     328
+     328,
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 9,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "盛大恤衫",
+    "name": "独特大蒜",
     "periods": [
-     324,
+     325,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "玩鸟日记",
+    "periods": [
+     325,
      327,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "短发水壶",
+    "name": "甜蜜公园",
     "periods": [
-     324,
      325,
+     327,
      328,
-     329
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "疲于奔命",
+    "periods": [
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "盐卤水泡",
+    "periods": [
+     325,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "短发世代",
+    "periods": [
+     324,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9314,6 +10161,132 @@
     "includeCore": true
    },
    {
+    "name": "破旧比尔",
+    "periods": [
+     324,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "破旧猪肉",
+    "periods": [
+     326,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "私人气味",
+    "periods": [
+     324,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 36,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "私人锯齿",
+    "periods": [
+     325,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "秋色宜人",
+    "periods": [
+     325,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 36,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "简单日历",
+    "periods": [
+     325,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "简单烹饪",
+    "periods": [
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 29,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 11,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "粉妆玉砌",
     "periods": [
      324,
@@ -9332,19 +10305,109 @@
     "includeCore": true
    },
    {
-    "name": "花心落日",
+    "name": "紫色狸猫",
+    "periods": [
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "繁华房门",
     "periods": [
      324,
      327,
-     328,
-     329
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "脏乱鸟儿",
+    "periods": [
+     324,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 34,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "花街柳巷",
+    "periods": [
+     325,
+     327,
+     329,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 24,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "落下作品",
+    "periods": [
+     325,
+     326,
+     327,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "落下胡荽",
+    "periods": [
+     326,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9368,22 +10431,22 @@
     "includeCore": true
    },
    {
-    "name": "辛勤招牌",
+    "name": "财神女",
     "periods": [
-     324,
+     325,
      326,
-     328,
-     329
+     327,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
-    "votes": 28,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "违背画作",
@@ -9422,6 +10485,24 @@
     "includeCore": true
    },
    {
+    "name": "错过火车",
+    "periods": [
+     324,
+     327,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 36,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "错过炉火",
     "periods": [
      324,
@@ -9435,6 +10516,42 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "长久招牌",
+    "periods": [
+     326,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "陈旧杏花",
+    "periods": [
+     324,
+     326,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9458,22 +10575,130 @@
     "includeCore": true
    },
    {
-    "name": "高亢毛栗",
+    "name": "随便大树",
     "periods": [
      324,
-     325,
      326,
-     328
+     328,
+     330
     ],
     "periodCount": 4,
     "posts": 4,
     "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "雪儿来了",
+    "periods": [
+     324,
+     328,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "露营迷路",
+    "periods": [
+     324,
+     326,
+     329,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "饿狼传说",
+    "periods": [
+     325,
+     327,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "骇人视听",
+    "periods": [
+     324,
+     325,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "高亢灯笼",
+    "periods": [
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "高尔夫斯基",
+    "periods": [
+     325,
+     326,
+     328,
+     330
+    ],
+    "periodCount": 4,
+    "posts": 4,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "黑色时光",
@@ -9489,6 +10714,40 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "一起杀庄",
+    "periods": [
+     326,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "上火系统",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9562,21 +10821,21 @@
     "includeCore": true
    },
    {
-    "name": "专注泰德",
+    "name": "专注恶梦",
     "periods": [
-     325,
+     324,
      327,
-     328
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 12,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "专注雨",
@@ -9630,6 +10889,23 @@
     "includeCore": true
    },
    {
+    "name": "主要作品",
+    "periods": [
+     324,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "主要坑穴",
     "periods": [
      326,
@@ -9647,72 +10923,21 @@
     "includeCore": true
    },
    {
-    "name": "主要大树",
+    "name": "习惯兰花",
     "periods": [
-     324,
-     325,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "主要约翰",
-    "periods": [
-     326,
-     328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "义不容辞",
-    "periods": [
-     324,
-     325,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 12,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "习惯活动",
-    "periods": [
-     324,
      327,
-     328
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 12,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "习惯糕点",
@@ -9749,23 +10974,6 @@
     "includeCore": false
    },
    {
-    "name": "亲切雷鸣",
-    "periods": [
-     324,
-     325,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "今天昨天",
     "periods": [
      326,
@@ -9778,6 +10986,23 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "优秀杂志",
+    "periods": [
+     324,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9815,6 +11040,23 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
+   },
+   {
+    "name": "优雅花朵",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
    },
    {
     "name": "优雅鸟儿",
@@ -9885,23 +11127,6 @@
     "includeCore": true
    },
    {
-    "name": "体贴糖",
-    "periods": [
-     325,
-     326,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 6,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "佛祖保佑珊珊上岸",
     "periods": [
      325,
@@ -9919,18 +11144,35 @@
     "includeCore": true
    },
    {
-    "name": "停止学生",
+    "name": "你我皆是黑马",
     "periods": [
      326,
-     328,
-     329
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 27,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "停止世代",
+    "periods": [
+     326,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -9953,21 +11195,55 @@
     "includeCore": true
    },
    {
-    "name": "冒火条纹",
+    "name": "免费项链",
     "periods": [
-     324,
-     326,
-     329
+     325,
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 18,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "六合财神到",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "冒火杂志",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "凯利公式",
@@ -10055,6 +11331,57 @@
     "includeCore": true
    },
    {
+    "name": "刚猛花瓶",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "创新面食",
+    "periods": [
+     324,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "利尿篮球",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "努力招牌",
     "periods": [
      326,
@@ -10064,57 +11391,6 @@
     "periodCount": 3,
     "posts": 3,
     "votes": 9,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "勉强香灯",
-    "periods": [
-     325,
-     327,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 9,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "华丽国王",
-    "periods": [
-     326,
-     328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "博敞项链",
-    "periods": [
-     324,
-     325,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 12,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -10138,6 +11414,40 @@
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "卷曲花坛",
+    "periods": [
+     324,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "卷曲衣物",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "可兒",
@@ -10191,18 +11501,18 @@
     "includeCore": false
    },
    {
-    "name": "可怕鲨鱼",
+    "name": "可怜女孩",
     "periods": [
      324,
-     325,
-     327
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10225,18 +11535,18 @@
     "includeCore": true
    },
    {
-    "name": "可怜毛衫",
+    "name": "可怜花朵",
     "periods": [
-     324,
-     325,
-     327
+     326,
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 3,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10293,6 +11603,23 @@
     "includeCore": true
    },
    {
+    "name": "啤酒的浪漫",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 13,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "啵啵哥",
     "periods": [
      324,
@@ -10322,6 +11649,23 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "喜欢火势",
+    "periods": [
+     324,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10361,35 +11705,52 @@
     "includeCore": true
    },
    {
-    "name": "困难手刃",
+    "name": "困难糖",
     "periods": [
      324,
-     325,
-     326
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 6,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "天外有天",
+    "name": "地冻天寒",
     "periods": [
      324,
-     326,
-     328
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "坚贞丹鸟",
+    "periods": [
+     325,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10407,6 +11768,23 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "天黑遗德",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10463,23 +11841,6 @@
     "includeCore": true
    },
    {
-    "name": "奇怪活动",
-    "periods": [
-     325,
-     326,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "奇怪火塘",
     "periods": [
      325,
@@ -10497,18 +11858,86 @@
     "includeCore": true
    },
    {
-    "name": "好奇渔夫",
+    "name": "好累的累",
     "periods": [
      324,
-     328,
-     329
+     325,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 7,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "妮妮最帅",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "姐迟早是个富婆",
+    "periods": [
+     324,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "安全门",
+    "periods": [
+     324,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "室内凯子",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10526,6 +11955,57 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "室内晚餐",
+    "periods": [
+     327,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "室内父亲",
+    "periods": [
+     325,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "室内针",
+    "periods": [
+     325,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 36,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 12,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10565,55 +12045,55 @@
     "includeCore": true
    },
    {
-    "name": "寒门岁月",
+    "name": "帅气膝盖",
+    "periods": [
+     326,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "帅气骨头",
     "periods": [
      324,
-     325,
-     327
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 12,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "寻花问柳",
+    "name": "常态世代",
     "periods": [
      324,
-     325,
-     329
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "小五路",
-    "periods": [
-     326,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "常态泥堆",
@@ -10684,35 +12164,52 @@
     "includeCore": false
    },
    {
-    "name": "强大心花",
+    "name": "强大学生",
     "periods": [
      324,
-     326,
-     328
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 17,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "强大比尔",
+    "name": "强大气味",
     "periods": [
      324,
      326,
-     327
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "强大电影",
+    "periods": [
+     324,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10733,6 +12230,23 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
+   },
+   {
+    "name": "强大面食",
+    "periods": [
+     327,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 27,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
    },
    {
     "name": "强烈手册",
@@ -10769,6 +12283,40 @@
     "includeCore": true
    },
    {
+    "name": "急躁雌蕊",
+    "periods": [
+     326,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 21,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 11,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "恋爱母亲",
+    "periods": [
+     324,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "恭喜来财",
     "periods": [
      327,
@@ -10784,6 +12332,23 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
+   },
+   {
+    "name": "恰好闷骚",
+    "periods": [
+     325,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
    },
    {
     "name": "悲伤婚礼",
@@ -10803,18 +12368,18 @@
     "includeCore": true
    },
    {
-    "name": "我是米米呀",
+    "name": "悲伤招牌",
     "periods": [
-     324,
-     325,
-     328
+     328,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 16,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10837,6 +12402,23 @@
     "includeCore": true
    },
    {
+    "name": "户外客人",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "手排艾草",
     "periods": [
      325,
@@ -10849,6 +12431,40 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "拥挤寺庙",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "拥挤道士",
+    "periods": [
+     327,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -10956,55 +12572,21 @@
     "includeCore": true
    },
    {
-    "name": "断袖余桃",
+    "name": "新鲜妈咪",
     "periods": [
-     325,
+     324,
      328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "新鲜机会",
-    "periods": [
-     326,
-     327,
-     328
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "新鲜泥堆",
-    "periods": [
-     325,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "新鲜鲨鱼",
@@ -11024,6 +12606,40 @@
     "includeCore": true
    },
    {
+    "name": "新鲜鸟儿",
+    "periods": [
+     324,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "方员可施",
+    "periods": [
+     327,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "无双君王",
     "periods": [
      326,
@@ -11034,40 +12650,6 @@
     "posts": 3,
     "votes": 15,
     "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "无双棒球",
-    "periods": [
-     325,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 18,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "无双萝拉",
-    "periods": [
-     324,
-     326,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -11087,6 +12669,40 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "早睡骨头",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "春风化雨",
+    "periods": [
+     327,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11126,6 +12742,23 @@
     "includeCore": false
    },
    {
+    "name": "极高茄子",
+    "periods": [
+     326,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "止痒火塘",
     "periods": [
      324,
@@ -11138,6 +12771,40 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "止痛水手",
+    "periods": [
+     326,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "民间艾火",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11160,18 +12827,18 @@
     "includeCore": true
    },
    {
-    "name": "泼辣孔明",
+    "name": "沦陷棋戏",
     "periods": [
-     324,
-     328,
-     329
+     325,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 18,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 24,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11204,23 +12871,6 @@
     "posts": 3,
     "votes": 3,
     "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "浪费昙花",
-    "periods": [
-     324,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 12,
-    "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -11313,23 +12963,6 @@
     "includeCore": true
    },
    {
-    "name": "清醒婚礼",
-    "periods": [
-     324,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 27,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "清醒棒球",
     "periods": [
      327,
@@ -11364,18 +12997,35 @@
     "includeCore": true
    },
    {
-    "name": "滑顺榜花",
+    "name": "清香夏日",
     "periods": [
-     325,
-     326,
-     328
+     327,
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 14,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "滑顺夏天",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11449,38 +13099,38 @@
     "includeCore": true
    },
    {
-    "name": "潮流约翰",
+    "name": "潮流鲨鱼",
     "periods": [
-     325,
-     328,
-     329
+     326,
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 9,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 21,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "潮流衬衫",
+    "name": "火辣熬药",
     "periods": [
-     326,
+     327,
      328,
-     329
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "热爱洋葱",
@@ -11534,18 +13184,18 @@
     "includeCore": true
    },
    {
-    "name": "爱国花木",
+    "name": "爱国晚餐",
     "periods": [
-     326,
-     328,
-     329
+     324,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11566,23 +13216,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "独特大蒜",
-    "periods": [
-     325,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 12,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "独特妇人",
@@ -11619,72 +13252,21 @@
     "includeCore": false
    },
    {
-    "name": "玩鸟日记",
+    "name": "瘦弱寿木",
     "periods": [
-     325,
      327,
-     328
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "甜蜜公园",
-    "periods": [
-     325,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "疲于奔命",
-    "periods": [
-     325,
-     328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "盐卤水泡",
-    "periods": [
-     325,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "知名恶梦",
@@ -11721,52 +13303,18 @@
     "includeCore": true
    },
    {
-    "name": "短发世代",
+    "name": "短发台北",
     "periods": [
-     324,
-     328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "破旧比尔",
-    "periods": [
-     324,
+     325,
      326,
-     327
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 9,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "破旧猪肉",
-    "periods": [
-     326,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 18,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11789,23 +13337,6 @@
     "includeCore": false
    },
    {
-    "name": "私人气味",
-    "periods": [
-     324,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 27,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "私人活动",
     "periods": [
      326,
@@ -11823,18 +13354,18 @@
     "includeCore": true
    },
    {
-    "name": "私人锯齿",
+    "name": "私人蔷薇",
     "periods": [
+     324,
      325,
-     327,
-     328
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 6,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -11857,38 +13388,21 @@
     "includeCore": true
    },
    {
-    "name": "秋色宜人",
+    "name": "等風也等你",
     "periods": [
-     325,
-     328,
-     329
+     327,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 27,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "简单日历",
-    "periods": [
-     325,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 18,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "简单晚餐",
@@ -11908,55 +13422,21 @@
     "includeCore": true
    },
    {
-    "name": "简单烹饪",
+    "name": "繁忙龙",
     "periods": [
-     325,
-     326,
-     328
+     327,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 18,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "紫色狸猫",
-    "periods": [
-     325,
-     326,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "繁华房门",
-    "periods": [
-     324,
-     327,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "红七小",
@@ -11993,6 +13473,40 @@
     "includeCore": true
    },
    {
+    "name": "线上渔夫",
+    "periods": [
+     327,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "给十次",
+    "periods": [
+     326,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 33,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 11,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "老化花柳",
     "periods": [
      324,
@@ -12008,6 +13522,23 @@
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "老李头啊",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "耐寒派系",
@@ -12044,6 +13575,40 @@
     "includeCore": false
    },
    {
+    "name": "肥胖旅行",
+    "periods": [
+     324,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "背叛亲戚",
+    "periods": [
+     324,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "脏乱寺庙",
     "periods": [
      327,
@@ -12078,18 +13643,18 @@
     "includeCore": false
    },
    {
-    "name": "脏乱鸟儿",
+    "name": "花心市集",
     "periods": [
-     324,
-     326,
-     327
+     327,
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 26,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12112,52 +13677,52 @@
     "includeCore": true
    },
    {
-    "name": "花街柳巷",
+    "name": "落下害人",
     "periods": [
-     325,
-     327,
-     329
+     324,
+     328,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 18,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "落下作品",
-    "periods": [
-     325,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 15,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "落下胡荽",
+    "name": "落下强风",
     "periods": [
-     326,
-     328,
-     329
+     324,
+     327,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 15,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "落下雨",
+    "periods": [
+     325,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12212,23 +13777,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "财神女",
-    "periods": [
-     325,
-     326,
-     327
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "走味彼得",
@@ -12316,6 +13864,40 @@
     "includeCore": false
    },
    {
+    "name": "辛勤萝拉",
+    "periods": [
+     324,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "迅速日历",
+    "periods": [
+     325,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "迟到大树",
     "periods": [
      326,
@@ -12350,6 +13932,40 @@
     "includeCore": true
    },
    {
+    "name": "迷人国王",
+    "periods": [
+     324,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "迷人道士",
+    "periods": [
+     324,
+     325,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 9,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "退火火焰",
     "periods": [
      325,
@@ -12367,18 +13983,35 @@
     "includeCore": true
    },
    {
-    "name": "错过火车",
+    "name": "逝去公园",
     "periods": [
      324,
-     327,
-     329
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 27,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 21,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "逝去针",
+    "periods": [
+     324,
+     328,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12401,18 +14034,35 @@
     "includeCore": true
    },
    {
-    "name": "长久招牌",
+    "name": "长久大蒜",
+    "periods": [
+     324,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "长久道士",
     "periods": [
      326,
-     327,
-     328
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
     "votes": 12,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12435,6 +14085,40 @@
     "includeCore": false
    },
    {
+    "name": "阵亡大蒜",
+    "periods": [
+     324,
+     327,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "阿伯在",
+    "periods": [
+     328,
+     329,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "陈旧世代",
     "periods": [
      324,
@@ -12452,18 +14136,18 @@
     "includeCore": true
    },
    {
-    "name": "陈旧杏花",
+    "name": "陈旧果实",
     "periods": [
      324,
-     326,
-     329
+     325,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12479,23 +14163,6 @@
     "posts": 3,
     "votes": 12,
     "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "随便大树",
-    "periods": [
-     324,
-     326,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 3,
-    "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -12520,35 +14187,18 @@
     "includeCore": true
    },
    {
-    "name": "雪儿来了",
+    "name": "雪兆丰年",
     "periods": [
-     324,
-     328,
-     329
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 9,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "露营迷路",
-    "periods": [
-     324,
      326,
-     329
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12564,40 +14214,6 @@
     "posts": 3,
     "votes": 6,
     "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "饿狼传说",
-    "periods": [
-     325,
-     327,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 9,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "骇人视听",
-    "periods": [
-     324,
-     325,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 12,
-    "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -12622,38 +14238,21 @@
     "includeCore": true
    },
    {
-    "name": "高亢灯笼",
+    "name": "黑猫警长一二三",
     "periods": [
-     325,
-     326,
-     328
+     324,
+     329,
+     330
     ],
     "periodCount": 3,
     "posts": 3,
-    "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 27,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "高尔夫斯基",
-    "periods": [
-     325,
-     326,
-     328
-    ],
-    "periodCount": 3,
-    "posts": 3,
-    "votes": 18,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "黑色棋戏",
@@ -12671,6 +14270,55 @@
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "黑色萱草",
+    "periods": [
+     324,
+     326,
+     330
+    ],
+    "periodCount": 3,
+    "posts": 3,
+    "votes": 15,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "一七通有集团",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "一丘之貉",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "一只狐狸跑六合",
@@ -12721,22 +14369,6 @@
     "includeCore": false
    },
    {
-    "name": "一起杀庄",
-    "periods": [
-     326,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "万箭穿逼",
     "periods": [
      326,
@@ -12753,36 +14385,52 @@
     "includeCore": true
    },
    {
-    "name": "上火系统",
+    "name": "专捡一码小王子",
     "periods": [
-     325,
-     327
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "东南一哥",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "专注恶梦",
+    "name": "东方来财紫气东来",
     "periods": [
-     324,
-     327
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 4,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "丰丽骨头",
@@ -12801,20 +14449,36 @@
     "includeCore": false
    },
    {
-    "name": "主要作品",
+    "name": "主要手册",
     "periods": [
-     324,
-     327
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 10,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "主要条纹",
+    "periods": [
+     325,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "主要构陷",
@@ -12831,22 +14495,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "习惯兰花",
-    "periods": [
-     327,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "习惯叶缘",
@@ -12913,6 +14561,38 @@
     "includeCore": false
    },
    {
+    "name": "买码就中",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "云姐铁粉儿",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "亲切山脉",
     "periods": [
      324,
@@ -12924,6 +14604,22 @@
     "lastPeriod": 326,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "亲切祖灵",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12945,17 +14641,33 @@
     "includeCore": false
    },
    {
-    "name": "优秀杂志",
+    "name": "众多猪肉",
     "periods": [
      324,
-     327
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 10,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "优秀孤儿",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -12977,6 +14689,70 @@
     "includeCore": true
    },
    {
+    "name": "优秀门",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "优雅乐曲",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "优雅夏日",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "优雅强尼",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "优雅彼得",
     "periods": [
      324,
@@ -12991,22 +14767,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "优雅花朵",
-    "periods": [
-     324,
-     325
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 12,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "优雅衬衫",
@@ -13057,33 +14817,65 @@
     "includeCore": false
    },
    {
-    "name": "你我皆是黑马",
+    "name": "体贴体验",
     "periods": [
-     326,
-     329
+     325,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "停止世代",
+    "name": "体贴烟蒂",
     "periods": [
-     326,
-     328
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "体贴背包",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "保暖薰风",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13121,38 +14913,6 @@
     "includeCore": false
    },
    {
-    "name": "免费项链",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "六合财神到",
-    "periods": [
-     325,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "兵贵神速",
     "periods": [
      326,
@@ -13169,20 +14929,20 @@
     "includeCore": true
    },
    {
-    "name": "冒火杂志",
+    "name": "分心猫咪",
     "periods": [
-     325,
-     328
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "分心药水",
@@ -13217,17 +14977,17 @@
     "includeCore": true
    },
    {
-    "name": "刚猛花瓶",
+    "name": "刚猛晚餐",
     "periods": [
-     324,
-     325
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 12,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13241,38 +15001,6 @@
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "创新面食",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "利尿篮球",
-    "periods": [
-     325,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -13313,6 +15041,38 @@
     "includeCore": true
    },
    {
+    "name": "努力胡荽",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "勤奋的雪雪",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "华丽水壶",
     "periods": [
      324,
@@ -13324,6 +15084,22 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "华丽艾玛",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": false
@@ -13345,6 +15121,22 @@
     "includeCore": false
    },
    {
+    "name": "华丽针",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "华丽香火",
     "periods": [
      325,
@@ -13356,6 +15148,22 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "博爱木材",
+    "periods": [
+     325,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13377,33 +15185,17 @@
     "includeCore": false
    },
    {
-    "name": "卷曲花坛",
+    "name": "可怕妈祖",
     "periods": [
-     324,
-     329
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "卷曲衣物",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": false
@@ -13418,38 +15210,6 @@
     "posts": 2,
     "votes": 2,
     "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "可怜女孩",
-    "periods": [
-     324,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "可怜花朵",
-    "periods": [
-     326,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -13489,6 +15249,38 @@
     "includeCore": true
    },
    {
+    "name": "吉祥衣物",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "吉祥雄蕊",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "哪吒传奇",
     "periods": [
      324,
@@ -13503,22 +15295,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "啤酒的浪漫",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 7,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "喜欢夏天",
@@ -13537,22 +15313,6 @@
     "includeCore": false
    },
    {
-    "name": "喜欢火势",
-    "periods": [
-     324,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "喜运通达",
     "periods": [
      326,
@@ -13569,65 +15329,65 @@
     "includeCore": false
    },
    {
-    "name": "困难糖",
+    "name": "喷火汉水",
     "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "地冻天寒",
-    "periods": [
-     324,
-     327
+     328,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "坚贞丹鸟",
+    "name": "困难机会",
     "periods": [
-     325,
-     326
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "失陷阴火",
+    "periods": [
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
-    "name": "天黑遗德",
+    "name": "奇怪姜黄",
     "periods": [
-     324,
-     325
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 6,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13665,49 +15425,17 @@
     "includeCore": false
    },
    {
-    "name": "好累的累",
+    "name": "好奇旅行",
     "periods": [
-     324,
-     325
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 6,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "妮妮最帅",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "姐迟早是个富婆",
-    "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 14,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13738,38 +15466,6 @@
     "posts": 2,
     "votes": 10,
     "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "安全门",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 4,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "室内凯子",
-    "periods": [
-     325,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -13809,52 +15505,36 @@
     "includeCore": false
    },
    {
-    "name": "室内晚餐",
+    "name": "室内艾咪",
     "periods": [
-     327,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "室内父亲",
-    "periods": [
-     325,
-     329
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
-    "name": "室内针",
+    "name": "宥心",
     "periods": [
-     325,
-     326
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 24,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "害怕孤儿",
@@ -13868,6 +15548,38 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "宽阔灯笼",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "寒门茄子",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 20,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -13937,52 +15649,20 @@
     "includeCore": true
    },
    {
-    "name": "帅气膝盖",
+    "name": "年轻地图",
     "periods": [
-     326,
-     328
+     327,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 18,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 9,
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "帅气骨头",
-    "periods": [
-     324,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "常态世代",
-    "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "年轻画作",
@@ -13999,6 +15679,22 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
+   },
+   {
+    "name": "幸运特码",
+    "periods": [
+     325,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
    },
    {
     "name": "广博孔门",
@@ -14097,54 +15793,6 @@
     "includeCore": true
    },
    {
-    "name": "强大学生",
-    "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "强大气味",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 4,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "强大电影",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "强大篮球",
     "periods": [
      324,
@@ -14161,65 +15809,17 @@
     "includeCore": true
    },
    {
-    "name": "强大面食",
-    "periods": [
-     327,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 18,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "急躁雌蕊",
-    "periods": [
-     326,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "恋爱母亲",
+    "name": "御寒风火",
     "periods": [
      324,
-     328
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "恰好闷骚",
-    "periods": [
-     325,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14234,22 +15834,6 @@
     "posts": 2,
     "votes": 8,
     "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "悲伤招牌",
-    "periods": [
-     328,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -14273,52 +15857,68 @@
     "includeCore": true
    },
    {
-    "name": "户外客人",
+    "name": "成语平特肖",
     "periods": [
      325,
-     328
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "找澳叔领买菜钱",
+    "periods": [
+     327,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "拥挤强风",
+    "periods": [
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 2,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "拥挤寺庙",
+    "name": "捡料糊口",
     "periods": [
-     324,
-     325
+     328,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "拥挤道士",
-    "periods": [
-     327,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "文化猫咪",
@@ -14353,6 +15953,22 @@
     "includeCore": true
    },
    {
+    "name": "文化鸡肉",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
     "name": "新奇大门",
     "periods": [
      324,
@@ -14369,49 +15985,17 @@
     "includeCore": true
    },
    {
-    "name": "新鲜妈咪",
+    "name": "新奇接衫",
     "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "新鲜鸟儿",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "方员可施",
-    "periods": [
-     327,
-     329
+     328,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": false
@@ -14428,6 +16012,38 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "无双教授",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "无双月球",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 14,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "core",
     "enabled": true,
     "includeCore": false
@@ -14481,6 +16097,22 @@
     "includeCore": false
    },
    {
+    "name": "早睡夏天",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "早睡姜黄",
     "periods": [
      324,
@@ -14513,22 +16145,6 @@
     "includeCore": false
    },
    {
-    "name": "早睡骨头",
-    "periods": [
-     325,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "时光没到达",
     "periods": [
      324,
@@ -14553,22 +16169,6 @@
     "periodCount": 2,
     "posts": 2,
     "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "春风化雨",
-    "periods": [
-     327,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 4,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -14625,20 +16225,20 @@
     "includeCore": true
    },
    {
-    "name": "极高茄子",
+    "name": "杨家男孩",
     "periods": [
-     326,
-     327
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "柳州研究员啊福",
@@ -14657,33 +16257,17 @@
     "includeCore": true
    },
    {
-    "name": "止痛水手",
+    "name": "水中女孩",
     "periods": [
      326,
-     329
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 10,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "民间艾火",
-    "periods": [
-     324,
-     325
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14721,22 +16305,6 @@
     "includeCore": false
    },
    {
-    "name": "沦陷棋戏",
-    "periods": [
-     325,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 16,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "沦陷野兽",
     "periods": [
      324,
@@ -14748,6 +16316,22 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "浓绿忠臣",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14769,6 +16353,22 @@
     "includeCore": false
    },
    {
+    "name": "浪费画作",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "浪费篮球",
     "periods": [
      328,
@@ -14780,6 +16380,22 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "消肿膝盖",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14817,17 +16433,17 @@
     "includeCore": true
    },
    {
-    "name": "清香夏日",
+    "name": "清醒篮球",
     "periods": [
-     327,
-     328
+     326,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14881,17 +16497,81 @@
     "includeCore": false
    },
    {
-    "name": "滑顺夏天",
+    "name": "滑顺宫花",
     "periods": [
      325,
-     327
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 12,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "滑顺小树",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "滑顺花朵",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "漂亮背包",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "漂亮艾咪",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -14929,33 +16609,49 @@
     "includeCore": true
    },
    {
-    "name": "潮流鲨鱼",
+    "name": "潮流服装",
     "periods": [
-     326,
-     327
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 14,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
    },
    {
-    "name": "火辣熬药",
+    "name": "潮流青春",
+    "periods": [
+     326,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 16,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "灯火辉煌1",
     "periods": [
      327,
-     328
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 2,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -15001,22 +16697,6 @@
     "periodCount": 2,
     "posts": 2,
     "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "爱国晚餐",
-    "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -15105,6 +16785,22 @@
     "includeCore": true
    },
    {
+    "name": "玖玖啊",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "甜蜜肝火",
     "periods": [
      324,
@@ -15137,20 +16833,20 @@
     "includeCore": true
    },
    {
-    "name": "瘦弱寿木",
+    "name": "瘦弱强风",
     "periods": [
-     327,
-     329
+     324,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "看轻蚊虫",
@@ -15185,17 +16881,17 @@
     "includeCore": false
    },
    {
-    "name": "短发台北",
+    "name": "短发征衫",
     "periods": [
-     325,
-     326
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -15212,6 +16908,22 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "短发鸟儿",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -15265,38 +16977,6 @@
     "includeCore": true
    },
    {
-    "name": "私人蔷薇",
-    "periods": [
-     324,
-     325
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "等風也等你",
-    "periods": [
-     327,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "简单旅行",
     "periods": [
      324,
@@ -15308,6 +16988,22 @@
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "紫色孙权",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -15345,33 +17041,17 @@
     "includeCore": false
    },
    {
-    "name": "繁忙龙",
+    "name": "细听曲",
     "periods": [
-     327,
-     329
+     329,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "线上渔夫",
-    "periods": [
-     327,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 12,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -15385,22 +17065,6 @@
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "给十次",
-    "periods": [
-     326,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 22,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -15489,22 +17153,6 @@
     "includeCore": false
    },
    {
-    "name": "老李头啊",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "耐寒接衫",
     "periods": [
      327,
@@ -15553,22 +17201,6 @@
     "includeCore": true
    },
    {
-    "name": "肥胖旅行",
-    "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "肥胖面食",
     "periods": [
      324,
@@ -15577,22 +17209,6 @@
     "periodCount": 2,
     "posts": 2,
     "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "背叛亲戚",
-    "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -15633,52 +17249,36 @@
     "includeCore": false
    },
    {
-    "name": "花心市集",
+    "name": "芯芯向妍",
+    "periods": [
+     324,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": true
+   },
+   {
+    "name": "莫众而迷",
     "periods": [
      327,
-     328
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "落下害人",
-    "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "落下强风",
-    "periods": [
-     324,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "落下日历",
@@ -15690,22 +17290,6 @@
     "posts": 2,
     "votes": 8,
     "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "落下雨",
-    "periods": [
-     325,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "core",
@@ -15841,38 +17425,6 @@
     "includeCore": true
    },
    {
-    "name": "辛勤萝拉",
-    "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "迅速日历",
-    "periods": [
-     325,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "迅速花苞",
     "periods": [
      325,
@@ -15937,68 +17489,20 @@
     "includeCore": true
    },
    {
-    "name": "迷人国王",
+    "name": "退火大树",
     "periods": [
-     324,
-     328
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "迷人道士",
-    "periods": [
-     324,
-     325
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 6,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "逝去公园",
-    "periods": [
-     324,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 14,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "逝去针",
-    "periods": [
-     324,
-     328
+     328,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 10,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
     "tier": "core",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "金多多金",
@@ -16012,6 +17516,22 @@
     "lastPeriod": 326,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "钟哥割",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": false
@@ -16049,20 +17569,36 @@
     "includeCore": true
    },
    {
-    "name": "长久大蒜",
+    "name": "长久客人",
     "periods": [
      324,
-     327
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 12,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "长久强尼",
+    "periods": [
+     328,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "长久背包",
@@ -16081,17 +17617,17 @@
     "includeCore": true
    },
    {
-    "name": "长久道士",
+    "name": "防晒房门",
     "periods": [
      326,
-     329
+     330
     ],
     "periodCount": 2,
     "posts": 2,
     "votes": 8,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -16111,54 +17647,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "阵亡大蒜",
-    "periods": [
-     324,
-     327
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 8,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "阿伯在",
-    "periods": [
-     328,
-     329
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 2,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "陈旧果实",
-    "periods": [
-     324,
-     325
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "陈旧火云",
@@ -16209,20 +17697,36 @@
     "includeCore": true
    },
    {
-    "name": "雪兆丰年",
+    "name": "革故鼎新",
     "periods": [
-     326,
-     329
+     324,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "core",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "顺哥哥",
+    "periods": [
+     329,
+     330
+    ],
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 12,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "core",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "马到成功a",
@@ -16241,17 +17745,17 @@
     "includeCore": false
    },
    {
-    "name": "黑猫警长一二三",
+    "name": "黄色磷光",
     "periods": [
-     324,
-     329
+     326,
+     330
     ],
     "periodCount": 2,
     "posts": 2,
-    "votes": 18,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "core",
     "enabled": true,
     "includeCore": true
@@ -16271,22 +17775,6 @@
     "tier": "core",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "黑色萱草",
-    "periods": [
-     324,
-     326
-    ],
-    "periodCount": 2,
-    "posts": 2,
-    "votes": 10,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "core",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "黑马王者",
@@ -16321,34 +17809,36 @@
     "includeCore": true
    },
    {
-    "name": "一七通有集团",
+    "name": "鼓舞诬陷",
     "periods": [
-     327
+     328,
+     330
     ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
-    "name": "一丘之貉",
+    "name": "龙塘人",
     "periods": [
-     328
+     324,
+     330
     ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 9,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
+    "periodCount": 2,
+    "posts": 2,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "core",
     "enabled": true,
-    "includeCore": false
+    "includeCore": true
    },
    {
     "name": "一碗孟婆汤",
@@ -16411,6 +17901,21 @@
     "includeCore": false
    },
    {
+    "name": "上火今日",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "上火背包",
     "periods": [
      325
@@ -16426,16 +17931,16 @@
     "includeCore": false
    },
    {
-    "name": "专捡一码小王子",
+    "name": "不幸风",
     "periods": [
-     329
+     330
     ],
     "periodCount": 1,
     "posts": 1,
     "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -16464,36 +17969,6 @@
     "posts": 1,
     "votes": 3,
     "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "东南一哥",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "东方来财紫气东来",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 9,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -16531,31 +18006,16 @@
     "includeCore": false
    },
    {
-    "name": "主要手册",
+    "name": "乄乂",
     "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "主要条纹",
-    "periods": [
-     325
+     330
     ],
     "periodCount": 1,
     "posts": 1,
     "votes": 1,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -16576,51 +18036,6 @@
     "includeCore": false
    },
    {
-    "name": "买码就中",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 2,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "云姐铁粉儿",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 2,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "亲切祖灵",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "今晚我要中奖了",
     "periods": [
      328
@@ -16636,111 +18051,6 @@
     "includeCore": false
    },
    {
-    "name": "众多猪肉",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "优秀孤儿",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "优秀门",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "优雅乐曲",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "优雅夏日",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "优雅强尼",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "体贴体验",
-    "periods": [
-     325
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "体贴水手",
     "periods": [
      329
@@ -16748,36 +18058,6 @@
     "periodCount": 1,
     "posts": 1,
     "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "体贴烟蒂",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "体贴背包",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -16831,19 +18111,19 @@
     "includeCore": false
    },
    {
-    "name": "保暖薰风",
+    "name": "停止艾玛",
     "periods": [
-     326
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 4,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "全是粤东妹偶像",
@@ -16906,21 +18186,6 @@
     "includeCore": true
    },
    {
-    "name": "分心猫咪",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "刘刘六六大顺",
     "periods": [
      324
@@ -16944,21 +18209,6 @@
     "posts": 1,
     "votes": 5,
     "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "刚猛晚餐",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -17011,19 +18261,19 @@
     "includeCore": true
    },
    {
-    "name": "努力胡荽",
+    "name": "勇猛妇人",
     "periods": [
-     326
+     330
     ],
     "periodCount": 1,
     "posts": 1,
     "votes": 4,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "勇猛强风",
@@ -17041,19 +18291,34 @@
     "includeCore": true
    },
    {
-    "name": "勤奋的雪雪",
+    "name": "勇猛雄蕊",
     "periods": [
-     326
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 2,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
+   },
+   {
+    "name": "勉强捧花",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "北湖龙哥",
@@ -17116,36 +18381,6 @@
     "includeCore": true
    },
    {
-    "name": "华丽艾玛",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "华丽针",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "华鹏",
     "periods": [
      328
@@ -17161,19 +18396,19 @@
     "includeCore": false
    },
    {
-    "name": "博爱木材",
+    "name": "博扬",
     "periods": [
-     325
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 6,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "博闻月刊",
@@ -17189,6 +18424,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "卷土重来耶",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "卷曲大炮",
@@ -17244,21 +18494,6 @@
     "posts": 1,
     "votes": 6,
     "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "可怕妈祖",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -17341,31 +18576,16 @@
     "includeCore": false
    },
    {
-    "name": "吉祥衣物",
+    "name": "君君上岸",
     "periods": [
-     327
+     330
     ],
     "periodCount": 1,
     "posts": 1,
     "votes": 2,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "吉祥雄蕊",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -17446,19 +18666,19 @@
     "includeCore": false
    },
    {
-    "name": "喷火汉水",
+    "name": "喷火岁月",
     "periods": [
-     328
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "困难月球",
@@ -17474,21 +18694,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "困难机会",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "困难根蒂",
@@ -17641,21 +18846,6 @@
     "includeCore": false
    },
    {
-    "name": "失陷阴火",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "奇怪凯蒂",
     "periods": [
      324
@@ -17686,21 +18876,6 @@
     "includeCore": false
    },
    {
-    "name": "奇怪姜黄",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "奇怪晚餐",
     "periods": [
      326
@@ -17724,21 +18899,6 @@
     "posts": 1,
     "votes": 4,
     "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "好奇旅行",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 7,
-    "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -17836,21 +18996,6 @@
     "includeCore": true
    },
    {
-    "name": "室内艾咪",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "室内风",
     "periods": [
      329
@@ -17858,21 +19003,6 @@
     "periodCount": 1,
     "posts": 1,
     "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "宥心",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
     "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -17896,36 +19026,6 @@
     "includeCore": false
    },
    {
-    "name": "宽阔灯笼",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "寒门茄子",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 11,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "小云丫头",
     "periods": [
      328
@@ -17936,6 +19036,21 @@
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "小兔子乖乖的",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -17984,6 +19099,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "巨峰",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "帅气旅行",
@@ -18046,16 +19176,16 @@
     "includeCore": false
    },
    {
-    "name": "年轻地图",
+    "name": "年轻乐曲",
     "periods": [
-     327
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 9,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 7,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 7,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -18076,19 +19206,19 @@
     "includeCore": false
    },
    {
-    "name": "幸运特码",
+    "name": "幸运加倍",
     "periods": [
-     325
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 4,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "广博花瓶",
@@ -18194,21 +19324,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "御寒风火",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "心水要稳了",
@@ -18346,21 +19461,6 @@
     "includeCore": true
    },
    {
-    "name": "成语平特肖",
-    "periods": [
-     325
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "我是小米妹妹",
     "periods": [
      328
@@ -18386,6 +19486,36 @@
     "lastPeriod": 327,
     "currentPosts": 0,
     "currentVotes": 0,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "我的无奈",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 2,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 2,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "户外教授",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
@@ -18421,21 +19551,6 @@
     "includeCore": true
    },
    {
-    "name": "找澳叔领买菜钱",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 2,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "招财猫咪咪咪",
     "periods": [
      326
@@ -18449,21 +19564,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "拥挤强风",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "拥挤水手",
@@ -18496,21 +19596,6 @@
     "includeCore": false
    },
    {
-    "name": "捡料糊口",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "操刀制锦",
     "periods": [
      328
@@ -18526,6 +19611,21 @@
     "includeCore": true
    },
    {
+    "name": "数学课代表",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "敷衍茄子",
     "periods": [
      325
@@ -18534,36 +19634,6 @@
     "posts": 1,
     "votes": 1,
     "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "文化鸡肉",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "新奇接衫",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -18584,6 +19654,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "新来的冤鬼",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 6,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 6,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "新鲜女孩",
@@ -18614,36 +19699,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
-   },
-   {
-    "name": "无双教授",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "无双月球",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 7,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
    },
    {
     "name": "无敌的神",
@@ -18684,21 +19739,6 @@
     "posts": 1,
     "votes": 6,
     "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "早睡夏天",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -18811,21 +19851,6 @@
     "includeCore": true
    },
    {
-    "name": "杨家男孩",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "桔城阿坤",
     "periods": [
      325
@@ -18839,6 +19864,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "梅老师",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "棕红春天",
@@ -18901,34 +19941,19 @@
     "includeCore": true
    },
    {
-    "name": "水中女孩",
+    "name": "浓绿军火",
     "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "浓绿忠臣",
-    "periods": [
-     328
+     330
     ],
     "periodCount": 1,
     "posts": 1,
     "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "oneoff",
     "enabled": true,
-    "includeCore": true
+    "includeCore": false
    },
    {
     "name": "浪子哥哥黑",
@@ -18961,34 +19986,19 @@
     "includeCore": false
    },
    {
-    "name": "浪费画作",
+    "name": "海滩",
     "periods": [
-     329
+     330
     ],
     "periodCount": 1,
     "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "消肿膝盖",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 2,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "清醒拖鞋",
@@ -19034,21 +20044,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "清醒篮球",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "清香车阵",
@@ -19126,36 +20121,6 @@
     "includeCore": false
    },
    {
-    "name": "滑顺宫花",
-    "periods": [
-     325
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 325,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "滑顺小树",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "滑顺恶梦",
     "periods": [
      329
@@ -19201,51 +20166,6 @@
     "includeCore": false
    },
    {
-    "name": "滑顺花朵",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "漂亮背包",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "漂亮艾咪",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "漂亮鸟儿",
     "periods": [
      329
@@ -19261,21 +20181,6 @@
     "includeCore": false
    },
    {
-    "name": "潮流服装",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "潮流陛下",
     "periods": [
      329
@@ -19289,21 +20194,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "潮流青春",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 8,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "瀟逸風仕",
@@ -19394,21 +20284,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "灯火辉煌1",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "热爱彼得",
@@ -19546,21 +20421,6 @@
     "includeCore": true
    },
    {
-    "name": "玖玖啊",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "甜蜜药",
     "periods": [
      328
@@ -19574,21 +20434,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "瘦弱强风",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "瘦弱火车",
@@ -19673,36 +20518,6 @@
     "periodCount": 1,
     "posts": 1,
     "votes": 2,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "短发征衫",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "短发鸟儿",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -19816,21 +20631,6 @@
     "includeCore": true
    },
    {
-    "name": "紫色孙权",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "繁忙水壶",
     "periods": [
      324
@@ -19844,6 +20644,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "纯男",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 5,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 5,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "线上晚餐",
@@ -19874,21 +20689,6 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "细听曲",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 2,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    },
    {
     "name": "给我看看",
@@ -19951,21 +20751,6 @@
     "includeCore": false
    },
    {
-    "name": "芯芯向妍",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "花纹双手",
     "periods": [
      326
@@ -19981,21 +20766,6 @@
     "includeCore": true
    },
    {
-    "name": "莫众而迷",
-    "periods": [
-     327
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 327,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "莫焕",
     "periods": [
      324
@@ -20009,6 +20779,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "落下气味",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 4,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 4,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "落下火云",
@@ -20056,6 +20841,36 @@
     "includeCore": true
    },
    {
+    "name": "规则棺材",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
+    "name": "规则衬衫",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 8,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 8,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "請谌",
     "periods": [
      324
@@ -20084,6 +20899,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "请宝贝转身",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "诺诺丫头",
@@ -20116,6 +20946,21 @@
     "includeCore": false
    },
    {
+    "name": "路亚姑娘",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 3,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 3,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "路先生他就是我",
     "periods": [
      325
@@ -20129,6 +20974,21 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": true
+   },
+   {
+    "name": "踏雪凌云",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 1,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 1,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
    },
    {
     "name": "辛勤女孩",
@@ -20236,21 +21096,6 @@
     "includeCore": false
    },
    {
-    "name": "退火大树",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 5,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "逝去姜黄",
     "periods": [
      329
@@ -20281,21 +21126,6 @@
     "includeCore": false
    },
    {
-    "name": "钟哥割",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
     "name": "错过药",
     "periods": [
      328
@@ -20303,36 +21133,6 @@
     "periodCount": 1,
     "posts": 1,
     "votes": 4,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "长久客人",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "长久强尼",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
     "lastPeriod": 328,
     "currentPosts": 0,
     "currentVotes": 0,
@@ -20401,21 +21201,6 @@
     "includeCore": false
    },
    {
-    "name": "防晒房门",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "阿莹",
     "periods": [
      327
@@ -20461,6 +21246,21 @@
     "includeCore": false
    },
    {
+    "name": "随便蕲蛇",
+    "periods": [
+     330
+    ],
+    "periodCount": 1,
+    "posts": 1,
+    "votes": 10,
+    "lastPeriod": 330,
+    "currentPosts": 1,
+    "currentVotes": 10,
+    "tier": "oneoff",
+    "enabled": true,
+    "includeCore": false
+   },
+   {
     "name": "青叶子",
     "periods": [
      329
@@ -20469,21 +21269,6 @@
     "posts": 1,
     "votes": 2,
     "lastPeriod": 329,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "革故鼎新",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 4,
-    "lastPeriod": 324,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -20529,21 +21314,6 @@
     "posts": 1,
     "votes": 1,
     "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": false
-   },
-   {
-    "name": "顺哥哥",
-    "periods": [
-     329
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 6,
-    "lastPeriod": 329,
     "currentPosts": 0,
     "currentVotes": 0,
     "tier": "oneoff",
@@ -20626,21 +21396,6 @@
     "includeCore": true
    },
    {
-    "name": "黄色磷光",
-    "periods": [
-     326
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 326,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
     "name": "鼓舞夏天",
     "periods": [
      326
@@ -20654,44 +21409,14 @@
     "tier": "oneoff",
     "enabled": true,
     "includeCore": false
-   },
-   {
-    "name": "鼓舞诬陷",
-    "periods": [
-     328
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 1,
-    "lastPeriod": 328,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
-   },
-   {
-    "name": "龙塘人",
-    "periods": [
-     324
-    ],
-    "periodCount": 1,
-    "posts": 1,
-    "votes": 3,
-    "lastPeriod": 324,
-    "currentPosts": 0,
-    "currentVotes": 0,
-    "tier": "oneoff",
-    "enabled": true,
-    "includeCore": true
    }
   ]
  },
  "audit": [],
  "notes": [
   "站点登记 198 个（启用 194、空 4）；325 起新接入 h1/h3/h5/h6/h8 共 0 个源，新增站连续 3 期稳定后才转固定。",
-  "论坛不是固定 0 人，而是 789 个发帖化名的轮换池；498 个至少出现 2 期，291 个只出现 1 期。",
-  "330 期 0 个发帖名中，0 个与上期同名、0 个新出现；按历史≥2期算常驻 0 个，覆盖 0% 的生肖票。",
+  "论坛不是固定 301 人，而是 819 个发帖化名的轮换池；581 个至少出现 2 期，238 个只出现 1 期。",
+  "330 期 301 个发帖名中，106 个与上期同名、195 个新出现；按历史≥2期算常驻 209 个，覆盖 72.1% 的生肖票。",
   "本名单只做来源治理，不反向修改历史 ratio/core 数字。"
  ]
 }
