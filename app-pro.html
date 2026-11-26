@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.64-Pro</title>
+<title>录单Pro · v60.65-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.64-Pro';
+var APP_VER = 'v60.65-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3304,6 +3304,30 @@ function catLedgerData(){
   if(L.em.flown > 0 && L.em.bet > 0){
     Object.keys(L.em.rows).forEach(function(k){ L.em.rows[k].flown = L.em.flown * (L.em.rows[k].bet / L.em.bet); });
   }
+  // 手动额外号（客户单没下注、自己飞出去的特/平/连）：也要进四类已飞合计，
+  // 否则分账总表总额会比分账页/飞单页的已付少一截（200 补计后仍显示 375）。
+  try{
+    var _seen = {};
+    Object.keys(L.spec.rows).forEach(function(k){ _seen[k]=1; });
+    Object.keys(L.pte.rows).forEach(function(k){ _seen['平特'+k]=1; });
+    Object.keys(L.lx.rows).forEach(function(k){ _seen['连肖'+k]=1; });
+    _seen['_em_total']=1;
+    Object.keys(flownPerPos || {}).forEach(function(k){
+      if(_seen[k]) return;
+      var paid = flownPaidOf(k) || 0;
+      if(!(paid > 0)) return;
+      var cat = catOfCode(k);
+      if(!cat) return;
+      var key = k;
+      if(cat === 'spec') key = String(parseInt(k,10)).padStart(2,'0');
+      else if(cat === 'pte') key = k.replace('平特','');
+      else if(cat === 'lx') key = k.replace('连肖','');
+      else return; // _em_total 已由上面统一处理，不重复
+      var r = L[cat].rows[key] || (L[cat].rows[key] = {key:key, bet:0, flown:0, pending:0});
+      r.flown += paid;
+      L[cat].flown += paid;
+    });
+  }catch(e){}
   // 待飞：直接取本轮飞单行（二三只有 _em_total 一条，记在类合计）
   try{
     getThisRoundFly().lines.forEach(function(l){
