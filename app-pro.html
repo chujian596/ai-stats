@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.54-Pro</title>
+<title>录单Pro · v60.55-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.54-Pro';
+var APP_VER = 'v60.55-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3242,6 +3242,7 @@ function renderSplitSide(){
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="catLedgerBox" style="margin:6px 0"></div>';
+  h += '<div style="margin:0 0 6px"><button onclick="upSettleOpen()" style="width:100%;border:1px solid #0f766e;background:#ecfdf5;color:#0f766e;border-radius:8px;padding:7px;font-size:13px;font-weight:700">上家结算单（汇总＋明细）</button></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
   h += '</div>'; // close splitBody
   box.innerHTML = h;
@@ -3361,6 +3362,129 @@ function renderCatLedger(){
   }
   h += '</div>';
   box.innerHTML = h;
+}
+
+// ===== 上家结算单：一张汇总（按四类）＋一张已飞明细，合计必须对得上 =====
+function upSettleData(){
+  var d = curShopDraw();
+  var FB = {};
+  try{ FB = flyBook(d); }catch(e){ FB = {}; }
+  var emxCost = 0, emxRows = [];
+  try{ emxRows = emExtraRows() || []; emxRows.forEach(function(r){ emxCost += Number(r.amt||0); }); }catch(e){ emxCost = 0; }
+  var cats = [
+    {k:'spec', name:'特号/特肖', fly:Number(FB.spec||0), back:Number(FB.specBack||0)},
+    {k:'pte',  name:'平特',       fly:Number(FB.pte||0),  back:Number(FB.pteBack||0)},
+    {k:'lx',   name:'连肖',       fly:Number(FB.lx||0),   back:Number(FB.lxBack||0)},
+    {k:'em',   name:'二三',       fly:Number(FB.em||0),   back:Number(FB.emBack||0)}
+  ];
+  var detail = {spec:[], pte:[], lx:[], em:[]};
+  // 手飞：默认已含在已飞里（明细标「含手飞」）；「另外单独飞」才单独加到飞额和赔回
+  var sfRows = [], sfExtra = false, sfByCode = {};
+  try{ sfRows = selfFlyRows() || []; sfExtra = selfFlyExtraOn(); }catch(e){ sfRows = []; sfExtra = false; }
+  sfRows.forEach(function(r){
+    var c = String(r.code||''), a = Number(r.amt||0); if(!(a > 0)) return;
+    sfByCode[c] = (sfByCode[c] || 0) + a;
+  });
+  if(sfExtra){
+    sfRows.forEach(function(r){
+      var c = String(r.code||''), a = Number(r.amt||0); if(!(a > 0)) return;
+      var k = catOfCode(c); if(!k || !detail[k]) return;
+      var cat = cats.filter(function(x){ return x.k === k; })[0];
+      cat.fly += a;
+      try{ cat.back += a * codeWinMult(c, d); }catch(e){}
+      detail[k].push({code:'手飞·' + c, amt:a});
+    });
+  }
+  // 已飞清单逐条（真付给上家的钱）
+  Object.keys(flownPerPos || {}).forEach(function(k){
+    var amt = flownRealOf(k); if(!(amt > 0)) return;
+    if(k === '_em_total') return;                     // 二三整笔，下面单独列
+    var note = (!sfExtra && sfByCode[k]) ? '（含手飞 ' + sfByCode[k].toFixed(0) + '）' : '';
+    if(/^\d{1,2}$/.test(String(k))) detail.spec.push({code:k + note, amt:amt});
+    else if(k.indexOf('平特') === 0) detail.pte.push({code:k + note, amt:amt});
+    else if(k.indexOf('连肖') === 0) detail.lx.push({code:k + note, amt:amt});
+  });
+  // 二三：客户单自动飞整笔 ＋ 客户单以外多飞，逐笔列
+  var emBase = Math.max(0, Number(FB.em||0) - emxCost);
+  if(emBase > 0) detail.em.push({code:'二三合计（客户单整笔飞）', amt:emBase});
+  emxRows.forEach(function(r){ detail.em.push({code:'多飞·' + String(r.code||''), amt:Number(r.amt||0)}); });
+  // 明细差额兜底：自动飞/补录没有逐条键的，补一行「其他」，保证明细合计＝汇总飞额
+  ['spec','pte','lx','em'].forEach(function(k){
+    var c = cats.filter(function(x){ return x.k === k; })[0];
+    var ds = detail[k].reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
+    var diff = Math.round((c.fly - ds) * 100) / 100;
+    if(diff > 0.01) detail[k].push({code:'其他（自动飞/补录）', amt:diff});
+  });
+  var totalFly = cats.reduce(function(s,c){ return s + c.fly; }, 0);
+  var totalBack = cats.reduce(function(s,c){ return s + c.back; }, 0);
+  return {cats:cats, detail:detail, totalFly:totalFly, totalBack:totalBack};
+}
+function upSettleHtml(){
+  var D = upSettleData();
+  var h = '<div style="max-width:760px;margin:0 auto">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">上家结算单</b><span onclick="upSettleClose()" style="font-size:22px;color:#999;padding:0 8px;cursor:pointer">×</span></div>';
+  h += '<div style="font-size:11px;color:#888;line-height:1.5;margin-bottom:6px">汇总给上家报数；下面「已飞明细」用来复核。两张单的合计必须相等。净差＝上家赔回−飞额，正数＝上家应付你，负数＝你应付上家。</div>';
+  h += '<div style="font-size:12px;color:#666;font-weight:700;margin:6px 0 3px">一、按类汇总</div>';
+  h += '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
+  h += '<div style="display:flex;background:#f8fafc;padding:4px 8px;font-size:10px;color:#999"><span style="flex:1.5">类别</span><span style="flex:1;text-align:right">飞额</span><span style="flex:1;text-align:right">上家赔回</span><span style="flex:1;text-align:right">净差</span></div>';
+  D.cats.forEach(function(c){
+    var diff = c.back - c.fly;
+    h += '<div style="display:flex;padding:4px 8px;font-size:12px;border-top:1px solid #f5f5f5"><span style="flex:1.5;font-weight:600">' + c.name + '</span><span style="flex:1;text-align:right">' + c.fly.toFixed(0) + '</span><span style="flex:1;text-align:right;color:#166534">' + c.back.toFixed(0) + '</span><span style="flex:1;text-align:right;color:' + (diff>=0?'#166534':'#cf1322') + '">' + (diff>=0?'+':'') + diff.toFixed(0) + '</span></div>';
+  });
+  var dAll = D.totalBack - D.totalFly;
+  h += '<div style="display:flex;padding:5px 8px;font-size:12px;border-top:1px solid #e5e7eb;background:#fafafa;font-weight:700"><span style="flex:1.5">合计</span><span style="flex:1;text-align:right">' + D.totalFly.toFixed(0) + '</span><span style="flex:1;text-align:right;color:#166534">' + D.totalBack.toFixed(0) + '</span><span style="flex:1;text-align:right;color:' + (dAll>=0?'#166534':'#cf1322') + '">' + (dAll>=0?'+':'') + dAll.toFixed(0) + '</span></div>';
+  h += '</div>';
+  h += '<div style="font-size:12px;color:#666;font-weight:700;margin:10px 0 3px">二、已飞明细（按类逐条）</div>';
+  D.cats.forEach(function(c){
+    var rows = D.detail[c.k] || [];
+    var sum = rows.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
+    h += '<div style="border:1px solid #eee;border-radius:8px;padding:5px 8px;margin-bottom:5px">';
+    h += '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:2px"><span>' + c.name + '</span><span style="color:#cf1322">' + sum.toFixed(0) + ' 元</span></div>';
+    rows.forEach(function(r){
+      h += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:1px 0"><span style="word-break:break-all">' + String(r.code||'') + '</span><span>' + Number(r.amt||0).toFixed(0) + '</span></div>';
+    });
+    if(!rows.length) h += '<div style="font-size:11px;color:#bbb">—</div>';
+    if(Math.abs(sum - c.fly) > 0.01) h += '<div style="font-size:10px;color:#cf1322;margin-top:2px">⚠ 明细 ' + sum.toFixed(0) + ' ≠ 汇总 ' + c.fly.toFixed(0) + '</div>';
+    h += '</div>';
+  });
+  h += '<div style="font-size:11px;color:#999;line-height:1.5;margin-top:4px">明细合计 ' + D.totalFly.toFixed(0) + ' ＝ 汇总飞额 ' + D.totalFly.toFixed(0) + '；上家赔回合计 ' + D.totalBack.toFixed(0) + '。</div>';
+  h += '<div style="display:flex;gap:6px;margin-top:10px"><button onclick="upSettleCopy()" style="flex:1;border:none;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font-size:14px;font-weight:700">复制上家结算单</button><button onclick="upSettleClose()" style="flex:1;border:1px solid #ccc;background:#fff;border-radius:8px;padding:10px;font-size:14px">关闭</button></div>';
+  h += '</div>';
+  return h;
+}
+function upSettleOpen(){
+  try{ upSettleClose(); }catch(e){}
+  var wrap = document.createElement('div');
+  wrap.id = 'upSettleOv';
+  wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  wrap.onclick = function(e){ if(e.target === wrap) upSettleClose(); };
+  var panel = document.createElement('div');
+  panel.style.cssText = 'background:#fff;width:100%;max-height:88vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:12px 12px 18px;box-sizing:border-box';
+  panel.innerHTML = upSettleHtml();
+  wrap.appendChild(panel); document.body.appendChild(wrap);
+}
+function upSettleClose(){
+  var w = document.getElementById('upSettleOv'); if(w && w.parentNode) w.parentNode.removeChild(w);
+}
+function upSettleText(){
+  var D = upSettleData();
+  var txt = '【上家结算单】\n类别\t飞额\t上家赔回\t净差\n';
+  D.cats.forEach(function(c){
+    var diff = c.back - c.fly;
+    txt += c.name + '\t' + c.fly.toFixed(0) + '\t' + c.back.toFixed(0) + '\t' + (diff>=0?'+':'') + diff.toFixed(0) + '\n';
+  });
+  var dAll = D.totalBack - D.totalFly;
+  txt += '合计\t' + D.totalFly.toFixed(0) + '\t' + D.totalBack.toFixed(0) + '\t' + (dAll>=0?'+':'') + dAll.toFixed(0) + '\n\n【已飞明细】\n';
+  D.cats.forEach(function(c){
+    var rows = D.detail[c.k] || [];
+    txt += c.name + '：' + (rows.length ? rows.map(function(r){ return String(r.code||'') + ' ' + Number(r.amt||0).toFixed(0); }).join('；') : '—') + '\n';
+  });
+  txt += '\n明细合计 ' + D.totalFly.toFixed(0) + ' ＝ 汇总飞额 ' + D.totalFly.toFixed(0) + '；上家赔回 ' + D.totalBack.toFixed(0) + '。';
+  return txt;
+}
+function upSettleCopy(){
+  var t = upSettleText();
+  _copyText(t, function(){ myAlert('已复制上家结算单，可直接贴给上家。'); }, function(){ myAlert('复制失败，请长按页面文字复制。'); });
 }
 
 function renderSideCustPay(){

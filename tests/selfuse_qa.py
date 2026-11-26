@@ -98,6 +98,9 @@ with sync_playwright() as p:
     chk('复制汇总有内容且含 1965', ('1965' in clip) or len(clip) > 20, clip[:40])
 
     # ---------- 4 今日归档：取消不动账 → 确认才清空 ----------
+    # 归档前先在飞单台账里放手飞/多飞各一笔，归档后必须一起带走，不能留在飞单页
+    pg.evaluate("()=>{var p=(typeof selfFlyPeriod==='function')?selfFlyPeriod():''; selfFlySave([{p:p,code:'特04',amt:100}]); emExtraSave([{p:p,code:'三中三:04,19,37',amt:10}]); renderAll();}"); pg.wait_for_timeout(300)
+    chk('归档前飞单台账有手飞/多飞', pg.evaluate("()=>selfFlyRows().length===1 && emExtraRows().length===1"))
     pg.evaluate("()=>switchTab('orders')"); pg.wait_for_timeout(250)
     n_before = totals()['n']
     pg.evaluate("()=>billArchiveAsk()"); pg.wait_for_timeout(350)
@@ -106,6 +109,10 @@ with sync_playwright() as p:
     pg.evaluate("()=>billArchiveAsk()"); pg.wait_for_timeout(300)
     pg.evaluate("()=>{var b=document.getElementById('mcOk'); if(b)b.click();}"); pg.wait_for_timeout(700)
     chk('归档确认后清空当前账本', totals()['n'] == 0, totals())
+    chk('归档后订单记录也清空（不再残留）', pg.evaluate("()=>customerOrders().length") == 0, pg.evaluate("()=>customerOrders().length"))
+    chk('归档后手飞/多飞台账清空（飞单页不残留）', pg.evaluate("()=>selfFlyRows().length===0 && emExtraRows().length===0"), pg.evaluate("()=>[selfFlyRows().length,emExtraRows().length]"))
+    chk('归档后飞单金额归零', pg.evaluate("()=>totalFlownReal()===0 && emExtraBook(curShopDraw()).cost===0"), pg.evaluate("()=>[totalFlownReal(),emExtraBook(curShopDraw()).cost]"))
+    chk('归档把本期手飞/多飞写进历史', pg.evaluate("()=>{try{var a=billArchive||{};var k=Object.keys(a).sort().pop();return k?((a[k].selfFly||[]).length===1&&(a[k].emExtra||[]).length===1):false}catch(e){return false}}"))
     chk('归档写入历史', pg.evaluate("()=>{try{return Object.keys(billArchive||{}).length>0}catch(e){return false}}"))
 
     # ---------- 5 历史订单能打开 ----------
@@ -160,7 +167,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>document.querySelectorAll('.ai-ov').forEach(function(o){o.remove()})")
     pg.evaluate("()=>openRankSection('split')"); pg.wait_for_timeout(250)
     pg.evaluate("()=>{_flyDirOpen=true; if(typeof showAllFlyDir==='function') showAllFlyDir();}"); pg.wait_for_timeout(300)
-    items = pg.evaluate("()=>Array.from(document.querySelectorAll('#splitBody button')).map((b,i)=>[i,b.innerText.trim(),b.getAttribute('onclick')||''])")
+    items = pg.evaluate("()=>Array.from(document.querySelectorAll('#splitBody button')).map((b,i)=>[i,b.innerText.trim(),b.getAttribute('onclick')||'']).filter(function(x){return x[1] !== '删' && x[1].indexOf('上家结算单')<0;})")
     chk('飞单页按键齐全（≥15）', len(items) >= 15, len(items))
     bad = []
     for i, lb, oc in items:
