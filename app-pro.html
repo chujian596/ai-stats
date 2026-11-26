@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v59.73</title>
+<title>录单Pro · v60.54-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.53-Pro';
+var APP_VER = 'v60.54-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -13410,8 +13410,30 @@ function renderRisk(){
         }
       }
     }); });
-    dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;   // 3055 - 4055 = -1000
-    try{ var _exbR = emExtraBook(_riskDraw); if(_exbR.back > 0) dNet += _exbR.back; }catch(e){}
+    // 自留后净盈亏直接用钱的恒等式：总单 − 客户总赔付 − 已飞实付 − 二三多飞 + 上家赔回合计。
+    // 上家赔回取 flyBook 的实际分类赔回（已飞里含手飞时它已算进去），另飞手飞再补进；
+    // 不再用「自留赔付」反推，避免手飞那笔赔回被漏掉（结算明细与飞单页会对不上）。
+    var _fbCust = 0, _fbAll = 0, _sfBackR = 0, _sfRCost = 0, _sfExtraR = false;
+    try{
+      var _fbR = flyBook(_riskDraw);
+      _fbCust = (_fbR.specBack||0) + (_fbR.pteBack||0) + (_fbR.lxBack||0) + (_fbR.emBack||0);
+      _fbAll = _fbCust;
+      var _sfrR = selfFlyBook(_riskDraw);
+      _sfRCost = Math.round(_sfrR.cost || 0);
+      _sfBackR = Math.round(_sfrR.back || 0);
+      _sfExtraR = selfFlyExtraOn();
+      if(_sfExtraR){
+        _fbAll += _sfBackR;                 // 另飞的手飞没进已飞，赔回单独加
+      }else{
+        _fbAll = _fbCust;                   // 总赔回仍用 flyBook（手飞已含在里面）
+        _fbCust = Math.max(0, _fbCust - _sfBackR);  // 拆出「客户单」那部分，避免展示时客户单+手飞重复
+      }
+      var _custAllR = _custSpec + _custPte + _custLx;
+      dNet = fullTotalSales - _custAllR - (_alreadyReal + _emxT) + _fbAll;
+    }catch(e){
+      dNet = keptCashReal - dSpecPayout - dPtePayout - dLxPayout;
+      try{ var _exbR = emExtraBook(_riskDraw); if(_exbR.back > 0) dNet += _exbR.back; }catch(e2){}
+    }
   }
   const dPayout = dSpecPayout + dPtePayout + dLxPayout;
   const isDraw = !!(_riskDraw && _riskDraw.specialNum);
@@ -13422,7 +13444,12 @@ function renderRisk(){
   if(isDraw){
     const _custAll = _custSpec + _custPte + _custLx;
     if(Math.abs(_custAll) > 0.01){
-      h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#999"><span>　客户总赔付 ${_custAll.toFixed(0)} ＝ 自留 ${dPayout.toFixed(0)} ＋ 上家赔回 ${(_custAll-dPayout).toFixed(0)}</span><span></span></div>`;
+      h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#999"><span>　客户总赔付</span><span>${_custAll.toFixed(0)}</span></div>`;
+      if(_fbCust > 0) h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#666"><span>　上家赔回·客户单</span><span>+${_fbCust.toFixed(0)}</span></div>`;
+      if(_sfBackR > 0){
+        h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#1d4ed8"><span>　上家赔回·手飞（${_sfExtraR?'另飞，本金另扣':'已含在已飞'}）</span><b>+${_sfBackR.toFixed(0)}</b></div>`;
+        h += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#166534"><span>　上家赔回合计（客户单＋手飞）</span><b>+${_fbAll.toFixed(0)}</b></div>`;
+      }
     }
   }
   h += `<div style="display:flex;justify-content:space-between"><span>自留后${isDraw?'实际':'最坏'}净盈亏</span><b style="color:${dNet>=0?'#16a34a':'#cf1322'}">${dNet>=0?'+':''}${dNet.toFixed(0)}</b></div>`;
