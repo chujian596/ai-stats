@@ -460,6 +460,32 @@
   .section-title h3{margin:0;font-size:13px}
   .rank-name .hot-note{font-size:9px;font-weight:800;color:var(--red);margin-left:4px;vertical-align:1px}
   .detail-table-wrap{overflow-x:auto}
+  /* 人群冻结 */
+  .crowd-pills{display:flex;gap:8px;margin:4px 0}
+  .crowd-pill{flex:1;text-align:center;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:10px 6px}
+  .crowd-pill b{display:block;font-size:24px;line-height:1.1;color:var(--red)}
+  .crowd-pill small{font-size:10px;color:var(--faint)}
+  .crowd-pills.small .crowd-pill b{font-size:17px;color:var(--accent-2)}
+  .crowd-formula,.formula{font-size:11.5px;color:var(--muted);line-height:1.85;background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:8px 0}
+  .crowd-table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+  .crowd-table th{font-size:10.5px;font-weight:700;color:var(--faint);text-align:right;padding:0 3px 5px;white-space:nowrap}
+  .crowd-table th:first-child{text-align:left}
+  .crowd-table td{padding:3px;text-align:right;color:var(--muted);border-top:1px solid var(--line)}
+  .crowd-table td:first-child{text-align:left;font-weight:750;color:var(--ink)}
+  .crowd-table tr.top td:first-child{color:var(--red)}
+  .crowd-table tr.bot td:first-child{color:var(--accent-2)}
+  .crowd-table td b{color:var(--ink)}
+  .crowd-hit{font-size:11.5px;color:var(--muted);line-height:1.85;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line)}
+  .crowd-hit b{color:var(--ink)}
+  .crowd-hist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:4px}
+  .crowd-hist div{background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:7px 6px;text-align:center}
+  .crowd-hist b{display:block;font-size:11px;color:var(--faint);font-weight:700}
+  .crowd-hist em{display:block;font-style:normal;font-size:16px;font-weight:800;margin:2px 0}
+  .crowd-hist small{font-size:9.5px;color:var(--faint);line-height:1.3;display:block}
+  .crowd-hist .yes em{color:var(--green)}
+  .crowd-hist .no em{color:var(--faint)}
+  .crowd-histline{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:9px}
+  .crowd-histline b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -497,6 +523,7 @@
     <button type="button" data-tab="mix">九肖·杀三<span class="cnt" id="tabMixCount">—</span></button>
     <button type="button" data-tab="ss">六七肖<span class="cnt" id="tabSsCount">—</span></button>
     <button type="button" data-tab="ex">六维<span class="cnt" id="tabExCount">—</span></button>
+    <button type="button" data-tab="crowd">人群冻结<span class="cnt" id="tabCrowdCount">—</span></button>
     <button type="button" data-tab="change">改料<span class="cnt" id="tabChangeCount">—</span></button>
   </nav>
 
@@ -1058,7 +1085,42 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.22</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze</span></div>
+  <section class="view hidden" id="view-crowd">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">CROWD FREEZE · 人群冻结</div>
+          <h2>三层票数 → z 分 → 加权，取最挤三肖与最冷三只</h2>
+          <p>开奖前冻结群众票池：九肖票、杀三票、首推票各自标准化后按 0.5 / 0.25 / 0.25 加权；开奖后回检拥挤分排名。冻结只做记录，不产生方向。</p>
+        </div>
+        <span class="badge pending" id="crowdBadge">读取中</span>
+      </div>
+      <div class="section">
+        <div class="subcard">
+          <h3>当前冻结</h3>
+          <div class="subhint" id="crowdFrozenAt">—</div>
+          <div class="crowd-pills" id="crowdTop3"></div>
+          <div class="crowd-pills small" id="crowdBottom3"></div>
+          <div class="muted" id="crowdLayerline" style="margin-top:8px"></div>
+        </div>
+        <div class="subcard">
+          <h3>算式与分层明细</h3>
+          <div class="subhint" id="crowdDenline">—</div>
+          <div class="formula" id="crowdFormula">拥挤分 = 0.5 × z(九肖) + 0.25 × z(杀三肖) + 0.25 × z(首推)</div>
+          <div id="crowdTableBox"><div class="empty">读取中…</div></div>
+          <div class="crowd-hit" id="crowdHitbox"></div>
+        </div>
+        <div class="subcard">
+          <h3>近 5 期回检</h3>
+          <div class="subhint">Top3 随机基线 25%</div>
+          <div class="crowd-hist" id="crowdHist"></div>
+          <div class="crowd-histline" id="crowdHistline"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.23</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze / crowd-score</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1611,6 +1673,77 @@
           freezeTopHtml('冻结杀三 · 被杀三肖', c.kill3, fz.killSites||cov.kill, 'kill')+
           freezeTopHtml('冻结九肖 · 全集', c.nine, fz.nineSites||cov.nine, 'nine')+
         '</div>';
+    });
+  }
+  // ===== 人群冻结标签：当前冻结明细 + 本期回检 + 近5期历史回检 =====
+  var CROWD_Z=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  function crowdFreezeGet(per){ return fetchJson('data/crowd-freeze-'+per+'.json').catch(function(){return null;}); }
+  function crowdScoreGet(per){ return fetchJson('data/crowd-score-'+per+'.json').catch(function(){return null;}); }
+  function crowdTableHtml(fz){
+    var cnt=fz.counts||{}, zs=fz.zscores||{}, cs=fz.crowdScore||{};
+    var t3=fz.top3||[], b3=fz.bottom3||[];
+    var order=CROWD_Z.slice().sort(function(a,b){return num(cs[b])-num(cs[a]);});
+    var rows=order.map(function(z){
+      var cls=t3.indexOf(z)>=0?'top':(b3.indexOf(z)>=0?'bot':'');
+      return '<tr class="'+cls+'"><td>'+esc(z)+(t3.indexOf(z)>=0?' <em>'+esc(t3.indexOf(z)+1)+'</em>':'')+'</td>'
+        +'<td>'+esc(num((cnt.nine||{})[z]))+'</td><td>'+esc(num((zs.nine||{})[z]))+'</td>'
+        +'<td>'+esc(num((cnt.kill3||{})[z]))+'</td><td>'+esc(num((zs.kill3||{})[z]))+'</td>'
+        +'<td>'+esc(num((cnt.first||{})[z]))+'</td><td>'+esc(num((zs.first||{})[z]))+'</td>'
+        +'<td><b>'+esc(cs[z]==null?'—':cs[z])+'</b></td></tr>';
+    }).join('');
+    return '<table class="crowd-table"><tr><th>肖</th><th>九肖</th><th>z</th><th>杀单</th><th>z</th><th>首推</th><th>z</th><th>拥挤分</th></tr>'+rows+'</table>';
+  }
+  function crowdHistHtml(list){
+    var cc=$('tabCrowdCount'); if(cc) cc.textContent=list.length?list.length+' 期回检':'—';
+    if(!list.length){ $('crowdHist').innerHTML='<div class="empty">还没有回检数据。</div>'; $('crowdHistline').textContent=''; return; }
+    $('crowdHist').innerHTML=list.map(function(x){
+      var cls=x.hit?'yes':'no';
+      return '<div class="'+cls+'"><b>'+esc(x.period)+'期</b><em>'+esc(x.actual||'—')+'</em><small>排名 '+esc(x.rank||'-')+'/12<br>'+(x.hit?'Top3 命中':'Top3 未中')+'</small></div>';
+    }).join('');
+    var n=list.length, hit=list.filter(function(x){return x.hit;}).length;
+    var b3=list.filter(function(x){return x.avoid;}).length;
+    $('crowdHistline').innerHTML='近 '+n+' 期：Top3 命中 <b>'+hit+'/'+n+'</b>，底层三只规避 <b>'+b3+'/'+n+'</b>；样本不足，只做记录。';
+  }
+  function renderCrowd(){
+    var badge=$('crowdBadge');
+    var base=(S.pend&&S.pend.period)?parseInt(S.pend.period,10):null;
+    function tryP(i){
+      if(i>4) return Promise.resolve(null);
+      var p=String(base-i);
+      return Promise.all([crowdFreezeGet(p),crowdScoreGet(p)]).then(function(x){
+        if(!x[0]) return tryP(i+1);
+        return {fz:x[0],sc:x[1],i:i};
+      });
+    }
+    tryP(0).then(function(x){
+      if(!x){
+        $('crowdTableBox').innerHTML='<div class="empty">还没有任何冻结数据。</div>';
+        if(badge) badge.textContent='无冻结';
+        var cc0=$('tabCrowdCount'); if(cc0) cc0.textContent='—';
+        return;
+      }
+      var fz=x.fz, sc=x.sc;
+      if(badge) badge.textContent='第'+fz.period+'期';
+      var backNote=(x.i>0&&base)?('（第 '+base+' 期尚未冻结，显示最近冻结的第 '+fz.period+' 期）'):'';
+      $('crowdFrozenAt').textContent='冻结 '+(fz.frozenAt||fz.updatedAt||'—')+backNote;
+      var t3=fz.top3||[], b3=fz.bottom3||[];
+      $('crowdTop3').innerHTML=t3.map(function(z,i){return '<div class="crowd-pill"><b>'+esc(z)+'</b><small>Top'+(i+1)+'</small></div>';}).join('')||'<div class="empty">—</div>';
+      $('crowdBottom3').innerHTML=b3.map(function(z,i){return '<div class="crowd-pill"><b>'+esc(z)+'</b><small>最冷 '+(i+1)+'</small></div>';}).join('')||'<div class="empty">—</div>';
+      var top=fz.top||{};
+      $('crowdLayerline').innerHTML='分层第一：九肖 <b>'+esc(top.nine||'—')+'</b> · 核心杀 <b>'+esc(top.kill3||'—')+'</b> · 首推 <b>'+esc(top.first||'—')+'</b>；冻结源 '+esc(fz.source||'—');
+      $('crowdDenline').textContent='九肖 '+num(fz.nineSites)+' · 杀三 '+num(fz.killSites)+' · 首推 '+num(fz.firstSites);
+      $('crowdTableBox').innerHTML=crowdTableHtml(fz);
+      if(sc&&sc.rank){
+        $('crowdHitbox').innerHTML='回检：实开 <b>'+esc(sc.specialNum||'')+' '+esc(sc.actual)+'</b>，拥挤分排第 <b>'+esc(sc.rank)+'</b>/12，Top3 '+(sc.top3Hit?'<b>命中</b>':'未中')+'，Top1 '+(sc.top1Hit?'<b>命中</b>':'未中')+'，底层三只 '+(sc.bottom3Avoid?'<b>规避成功</b>':'<b>被开中</b>')+'（'+esc(sc.scoredAt||'')+'）';
+      }else{
+        $('crowdHitbox').textContent='本期尚未开奖，冻结只做记录，不产生方向。';
+      }
+      var ps=[]; for(var k=0;k<5;k++) ps.push(String(parseInt(fz.period,10)-k));
+      Promise.all(ps.map(function(p){return Promise.all([crowdFreezeGet(p),crowdScoreGet(p)]);})).then(function(items){
+        var list=[];
+        items.forEach(function(it){ if(!it[0]||!it[1]) return; list.push({period:it[1].period,actual:it[1].actual,rank:it[1].rank,hit:it[1].top3Hit,avoid:it[1].bottom3Avoid}); });
+        crowdHistHtml(list);
+      });
     });
   }
   function entriesFor(kind,mode,light){
@@ -2428,15 +2561,16 @@
     if(t==='nine'||t==='kill'){ S.mixSub=t; t='mix'; }
     S.tab=t;
     Array.prototype.forEach.call($('tabbar').querySelectorAll('button'),function(b){b.classList.toggle('on',b.dataset.tab===t);});
-    ['overview','brief','now','mix','nine','kill','ss','ex','change'].forEach(function(k){var v=$('view-'+k); if(v) v.classList.toggle('hidden',k!==t);});
+    ['overview','brief','now','mix','nine','kill','ss','ex','crowd','change'].forEach(function(k){var v=$('view-'+k); if(v) v.classList.toggle('hidden',k!==t);});
     try{history.replaceState(null,'','#'+t);}catch(e){}
     if(t==='overview') renderOverview();
     if(t==='brief') renderBrief();
     if(t==='mix') renderMix();
     if(t==='ss') embeds.ss.render();
     if(t==='ex') embeds.ex.render();
+    if(t==='crowd') renderCrowd();
     if(t==='change') renderChange();
-    var titleMap={overview:'本期总览',brief:'本期摘要',now:'本期资料',mix:'首肖 · 杀三对照',ss:'六肖七肖',ex:'六维',change:'改料跟踪'};
+    var titleMap={overview:'本期总览',brief:'本期摘要',now:'本期资料',mix:'首肖 · 杀三对照',ss:'六肖七肖',ex:'六维',crowd:'人群冻结',change:'改料跟踪'};
     try{document.title='资料中心 · '+(titleMap[t]||'资料中心');}catch(e){}
   }
   // ===== 内嵌台账工厂：六肖七肖 / 六维 复用同一套待开/复盘渲染 =====
@@ -2931,12 +3065,12 @@
       renderNow();
       renderBrief();
       renderQC();
-      var h=(location.hash||'').replace('#',''); if(h==='overview'||h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='mix'||h==='ss'||h==='ex'||h==='change') switchTab(h); else switchTab('overview');
+      var h=(location.hash||'').replace('#',''); if(h==='overview'||h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='mix'||h==='ss'||h==='ex'||h==='crowd'||h==='change') switchTab(h); else switchTab('overview');
     }).catch(function(e){setHero('—','异常','读取失败');$('nowCards').innerHTML='<div class="empty">'+esc(e.message||e)+'</div>';});
   }
   init();
   window.addEventListener('hashchange', function(){
-    var h=(location.hash||'').replace('#',''); if(h==='overview'||h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='mix'||h==='ss'||h==='ex'||h==='change') switchTab(h);
+    var h=(location.hash||'').replace('#',''); if(h==='overview'||h==='brief'||h==='now'||h==='nine'||h==='kill'||h==='mix'||h==='ss'||h==='ex'||h==='crowd'||h==='change') switchTab(h);
   });
 })();
 </script>
