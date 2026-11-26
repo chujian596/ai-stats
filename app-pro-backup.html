@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.66-Pro</title>
+<title>录单Pro · v60.67-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.66-Pro';
+var APP_VER = 'v60.67-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5274,7 +5274,10 @@ function manualFlyOpen(){
   h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">特号、平特、连肖、二三都在这个框里，跟录单写法一样。<br><b>04 100</b>／<b>22 34 各140</b>／<b>平特虎 1000</b>／<b>连肖马蛇 400</b><br><b>三中三 17-20-25 各10</b>；多组可先写一行<b>三中三各组10</b>，下面直接贴 <b>17-20-25</b>、<b>07-15-36</b>。<br><span style="color:#999">二三也按已付上家记；多组可先写一行「三中三各组10」再贴组合，不用每组重复写。<br>平特/连肖多个肖：只写 100 是共 100；要每个 100 请写「平马猪 各100」。</span></div>';
   try{
     var _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
-    var _rows = _hist.filter(function(r){ return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod()); }).slice(0, 4);
+    var _rows = _hist.filter(function(r){
+      if(r.undone) return false;
+      return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod());
+    }).slice(0, 4);
     if(_rows.length){
       h+='<div style="margin:-2px 0 6px;font-size:11px;color:#999;line-height:1.7"><b style="color:#666">手动登记记录</b>（撤销只减这一笔，不动其它号）</div>';
       _rows.forEach(function(r){
@@ -5950,7 +5953,11 @@ function manualFlyDirHtml(){
   try{ em = emExtraRows() || []; }catch(e){}
   try{
     var _h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
-    mh = _h.filter(function(r){ return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod()); }).slice(0, 8);
+    // 已撤销的旧批次不再占额外目录：清空订单后不该还挂一排“已撤销”
+    mh = _h.filter(function(r){
+      if(r.undone) return false;
+      return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod());
+    }).slice(0, 8);
   }catch(e){ mh = []; }
   sf = sf.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
   em = em.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
@@ -14977,8 +14984,22 @@ function myChoice(title, msg, opts, cb){
   });
 }
 
+function clearCurrentFlyExtras(){
+  var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
+  function cur(r){ return (!p || !r || !r.p) ? true : (String(r.p) === String(p)); }
+  try{
+    var mh = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
+    mh = mh.filter(function(r){ return !cur(r); });
+    localStorage.setItem(sk('manualFlyHistory'), JSON.stringify(mh));
+  }catch(e){}
+  try{ localStorage.removeItem(sk('manualLastBatch')); }catch(e){}
+  try{ emExtraSave(emExtraList().filter(function(r){ return !cur(r); })); }catch(e){}
+  try{ selfFlySave(selfFlyList().filter(function(r){ return !cur(r); })); }catch(e){}
+  try{ localStorage.removeItem(flySkipKey()); }catch(e){}
+  try{ window._manualFlyBuf = ''; }catch(e){}
+}
 function clearOrders(){
-  myConfirm('确定清除所有订单和赔付记录？<br>澳门 + 香港两个店铺都会清，客户名单保留。', () => {
+  myConfirm('确定清除所有订单和赔付记录？<br>已飞、额外飞单、手动登记也一起清空；客户名单保留。', () => {
   orders = [];
   hkOrders = [];
   invalidateStats();
@@ -14999,6 +15020,7 @@ function clearOrders(){
     try { localStorage.removeItem('order_pending_v1_shop' + s); } catch(e){}
   });
   flownPerPos = {}; flownReal = {};
+  try { clearCurrentFlyExtras(); } catch(e){}
   try { saveOrders(); } catch(e){}
   restoreIfNeeded();
 renderAll();
