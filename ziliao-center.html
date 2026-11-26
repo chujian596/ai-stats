@@ -514,10 +514,15 @@
       </div>
       <div class="section">
         <div class="ledger-toolbar">
+          <div class="period-box"><label for="ovPeriod">期号</label><select id="ovPeriod"></select></div>
           <div class="tier-bar" data-tierbar></div>
           <input type="text" id="ovSearch" placeholder="搜站名 / 站号" autocomplete="off">
           <button class="btn" id="ovExpand" type="button">展开全部</button>
           <div style="flex:1"></div><span class="chip" id="ovModeChip">—</span>
+        </div>
+        <div class="subcard" style="margin-top:12px">
+          <h3>开奖前冻结快照 <span class="subhint" id="ovFreezeHint">开奖前 18:00–21:29 冻结的群众票池，仅对照，不参与中/错判定</span></h3>
+          <div id="ovFreezeBody"><div class="empty">读取中…</div></div>
         </div>
         <div class="mix-cols">
           <div class="subcard">
@@ -1053,7 +1058,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.21</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.22</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1097,7 +1102,8 @@
     sort:{now:'name',nine:'name',kill:'name'},
     limit:{now:30,nine:30,kill:30,change:30,ov:30},
     expand:{ov:false},
-    per:{nine:'pending',kill:'pending',brief:'pending',now:'pending'},
+    per:{nine:'pending',kill:'pending',brief:'pending',now:'pending',ov:'pending'},
+    freeze:{},
     c:{dim:'all',status:'all',period:'all',sort:'rank',view:'list',site:null},
     changeError:'',
     loadError:''
@@ -1575,6 +1581,38 @@
   }
   function buildBriefPeriod(){ buildIssuePeriod('briefPeriod','brief'); }
   function buildNowPeriod(){ buildIssuePeriod('nowPeriod','now'); }
+  function buildOvPeriod(){ buildIssuePeriod('ovPeriod','ov'); }
+  function loadFreeze(period){
+    if(!period) return Promise.resolve(null);
+    if(S.freeze[period]!==undefined) return Promise.resolve(S.freeze[period]);
+    return fetchJson('data/crowd-freeze-'+period+'.json').then(function(d){S.freeze[period]=d;return d;}).catch(function(){S.freeze[period]=null;return null;});
+  }
+  function freezeTopHtml(label, dict, n, kind){
+    var rows=topRows(dict,3);
+    var bar=rows.length?'<div class="rank-list">'+rows.map(function(r,i){
+      var max=rows[0].n||1;
+      return '<div class="rank-row"><span class="rank-no'+(i===0?' top':'')+'">'+(i+1)+'</span><span class="rank-name">'+esc(r.name)+'</span><span class="rank-bar'+(kind==='kill'?' kill':'')+'"><i style="width:'+Math.round(r.n/max*100)+'%"></i></span><span class="rank-count">'+r.n+' 票</span></div>';
+    }).join('')+'</div>':'';
+    return '<div class="subcard"><h3>'+label+'</h3><div class="subhint">'+(n||0)+' 站 · 开奖前冻结</div>'+bar+'</div>';
+  }
+  function renderFreeze(period){
+    var body=$('ovFreezeBody'), hint=$('ovFreezeHint');
+    if(!body) return;
+    body.innerHTML='<div class="empty">读取中…</div>';
+    loadFreeze(period).then(function(fz){
+      if(!fz){ body.innerHTML='<div class="empty">该期无开奖前冻结快照（未到冻结窗口或未留存）。</div>'; if(hint) hint.textContent='—'; return; }
+      var c=fz.counts||{}, cov=fz.coverage||{};
+      if(hint) hint.textContent='冻结于 '+(fz.frozenAt||fz.updatedAt||'—')+' · 仅对照，不参与中/错判定';
+      var top3=(fz.top3||[]).join(' / '), b3=(fz.bottom3||[]).join(' / ');
+      body.innerHTML=
+        '<div class="picks" style="margin-bottom:8px"><span class="chip accent"><span class="dot"></span>拥挤 Top3：'+esc(top3||'—')+'</span><span class="chip">规避 Bottom3：'+esc(b3||'—')+'</span></div>'+
+        '<div class="mix-cols">'+
+          freezeTopHtml('冻结首肖 · 主推第 1 肖', c.first, fz.firstSites||cov.nine, 'nine')+
+          freezeTopHtml('冻结杀三 · 被杀三肖', c.kill3, fz.killSites||cov.kill, 'kill')+
+          freezeTopHtml('冻结九肖 · 全集', c.nine, fz.nineSites||cov.nine, 'nine')+
+        '</div>';
+    });
+  }
   function entriesFor(kind,mode,light){
     var L=kind==='nine'?S.nine:S.kill; if(!L) return [];
     var arr=[];
@@ -1870,8 +1908,11 @@
     sel.value=(S.per.nine===S.per.kill)?S.per.nine:'pending';
   }
   function renderOverview(){
+    buildOvPeriod();
     var p=S.pend||{};
-    var sites=(p.sites||[]).filter(tierAllowed);
+    var isRev=!!(S.per.ov&&S.per.ov!=='pending');
+    var revPer=isRev?((S.nine&&S.nine.periods[S.per.ov])||(S.kill&&S.kill.periods[S.per.ov])):null;
+    var sites=isRev?reviewNowSites(S.per.ov):(p.sites||[]).filter(tierAllowed);
     var q=(S.q.ov||'').trim().toLowerCase();
     function ovMatch(s){
       if(!q) return true;
@@ -1886,31 +1927,36 @@
     var nineAgg=countOf(nine,function(s){return [...new Set(s.zodiacs)];});
     var killVotes=kill.reduce(function(a,s){return a+s.killZodiacs.length;},0);
     var nineVotes=nine.reduce(function(a,s){return a+s.zodiacs.length;},0);
-    var st=pendStatus(p.status);
-    setHero(p.period||'—',st.text,p.updatedAt);
+    var st=isRev?{text:'已开奖',cls:'done'}:pendStatus(p.status);
+    setHero(isRev?S.per.ov:p.period||'—',st.text,isRev?(revPer&&revPer.actual):p.updatedAt);
     var badge=$('ovBadge'),chip=$('ovModeChip');
     if(badge){ badge.textContent=st.text; badge.className='badge '+st.cls; }
-    if(chip) chip.textContent='本期原始推荐';
+    if(chip) chip.textContent=isRev?('台账复盘 · 晚版入账口径'):'本期原始推荐';
     $('ovFirstHint').textContent=nine.length+' 站 · 每站 1 票 · 主推第 1 肖';
     $('ovKillHint').textContent=kill.length+' 站 · '+killVotes+' 肖次 · 每站 3 肖';
     $('ovNineHint').textContent=nine.length+' 站 · '+nineVotes+' 票 · 9 肖全计';
     $('ovFirstRank').innerHTML=allRankHtml(firstAgg,'nine',nine.length);
     $('ovKillRank').innerHTML=allRankHtml(killAgg,'kill',killVotes);
     $('ovNineRank').innerHTML=allRankHtml(nineAgg,'nine',nineVotes);
-    // 六维共识小卡
-    var extraHtml=EXTRA.map(function(d){
-      var agg=countOf(visible,function(s){return extraPicks(s,d.key);});
-      var votes=Object.keys(agg).reduce(function(a,k){return a+agg[k];},0);
-      return '<div class="subcard"><h3>'+d.label+'</h3><div class="subhint">'+votes+' 项 · 按站次</div>'+rankHtml(topRows(agg,5),votes,'nine')+'</div>';
-    }).join('');
-    // 六 / 七肖小卡
-    var sixSites=visible.filter(function(s){return s.six&&(s.six.zodiacs||[]).length;});
-    var sevSites=visible.filter(function(s){return s.seven&&(s.seven.zodiacs||[]).length;});
-    var sixAgg=countOf(sixSites,function(s){return s.six.zodiacs;});
-    var sevAgg=countOf(sevSites,function(s){return s.seven.zodiacs;});
-    extraHtml+='<div class="subcard"><h3>六肖</h3><div class="subhint">'+sixSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sixAgg,'nine',sixSites.length*6)+'</div>';
-    extraHtml+='<div class="subcard"><h3>七肖</h3><div class="subhint">'+sevSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sevAgg,'nine',sevSites.length*7)+'</div>';
+    // 六维共识小卡（复盘期台账不回填六维/六七肖，仅九肖/杀三口径）
+    var extraHtml;
+    if(isRev){
+      extraHtml='<div class="subcard"><h3>六维 · 六七肖</h3><div class="empty">复盘期总览仅汇总九肖 / 杀三台账；六维、六七肖请切到对应标签查看。</div></div>';
+    } else {
+      extraHtml=EXTRA.map(function(d){
+        var agg=countOf(visible,function(s){return extraPicks(s,d.key);});
+        var votes=Object.keys(agg).reduce(function(a,k){return a+agg[k];},0);
+        return '<div class="subcard"><h3>'+d.label+'</h3><div class="subhint">'+votes+' 项 · 按站次</div>'+rankHtml(topRows(agg,5),votes,'nine')+'</div>';
+      }).join('');
+      var sixSites=visible.filter(function(s){return s.six&&(s.six.zodiacs||[]).length;});
+      var sevSites=visible.filter(function(s){return s.seven&&(s.seven.zodiacs||[]).length;});
+      var sixAgg=countOf(sixSites,function(s){return s.six.zodiacs;});
+      var sevAgg=countOf(sevSites,function(s){return s.seven.zodiacs;});
+      extraHtml+='<div class="subcard"><h3>六肖</h3><div class="subhint">'+sixSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sixAgg,'nine',sixSites.length*6)+'</div>';
+      extraHtml+='<div class="subcard"><h3>七肖</h3><div class="subhint">'+sevSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sevAgg,'nine',sevSites.length*7)+'</div>';
+    }
     $('ovExtraGrid').innerHTML=extraHtml;
+    renderFreeze(isRev?S.per.ov:(p.period||''));
     // 明细：默认收起，不渲染空壳卡片；标题栏右侧按钮控制展开/收起
     if(!S.expand.ov){
       $('ovHeadBtn').innerHTML=visible.length
@@ -2837,6 +2883,8 @@
     });
     var osv=$('ovSearch');
     if(osv) osv.addEventListener('input',function(){S.q.ov=this.value;S.limit.ov=30;renderOverview();});
+    var osel=$('ovPeriod');
+    if(osel) osel.addEventListener('change',function(){S.per.ov=osel.value;S.limit.ov=30;renderOverview();});
     var oex=$('ovExpand');
     if(oex) oex.addEventListener('click',function(){
       var all=$('ovCards').querySelectorAll('details');
