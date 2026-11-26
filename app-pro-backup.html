@@ -480,7 +480,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
   <section id="tab-rank" class="card tab-panel pro-panel">
     <div id="rankQuickRow" style="display:flex;gap:6px;margin-bottom:6px">
       <div data-rank-section="rank" onclick="openRankSection('rank')" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">排行榜</div>
-      <div onclick="billArchiveNow()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
+      <div onclick="billArchiveAsk()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">今日归档</div>
       <div onclick="billOpenHistory()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">历史订单</div>
       <div onclick="clearOrders()" class="rank-btn" style="flex:1;padding:8px 4px;font-size:13px;font-weight:600;color:#333;background:#fff;border:1px solid #ccc;border-radius:6px;cursor:pointer;text-align:center">清除订单</div>
 
@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.36-Pro';
+var APP_VER = 'v60.45-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3208,10 +3208,10 @@ function renderSplitSide(){
      + '</div>';
   h += '<div style="font-size:11px;color:#666;font-weight:700;margin-bottom:4px">记录方式 <span style="font-weight:400;color:#999">（点一下切换，绿色＝开）</span></div>';
   h += '<div style="display:flex;gap:3px;margin-bottom:4px">'
-     + '<button onclick="autoFlyToggleBtn()" style="flex:1;border:1px solid ' + (autoFlyOn?'#16a34a':'#ccc') + ';background:' + (autoFlyOn?'#ecfdf5':'#fff') + ';color:' + (autoFlyOn?'#15803d':'#666') + ';border-radius:6px;padding:7px;font-size:12.5px;font-weight:700">自动飞：' + (autoFlyOn?'开':'关') + '</button>'
+     + '<button onclick="autoFlyToggleBtn()" style="flex:1;border:1px solid ' + (autoFlyOn?'#16a34a':'#ccc') + ';background:' + (autoFlyOn?'#ecfdf5':'#fff') + ';color:' + (autoFlyOn?'#15803d':'#666') + ';border-radius:6px;padding:7px;font-size:12.5px;font-weight:700">自动飞（连/二/三）：' + (autoFlyOn?'开':'关') + '</button>'
      + '<button onclick="flyRoundToggleBtn()" style="flex:1;border:1px solid ' + (flyRoundOn()?'#16a34a':'#ccc') + ';background:' + (flyRoundOn()?'#ecfdf5':'#fff') + ';color:' + (flyRoundOn()?'#15803d':'#666') + ';border-radius:6px;padding:7px;font-size:12.5px;font-weight:700">凑整10元档：' + (flyRoundOn()?'开':'关') + '</button>'
      + '</div>';
-  h += '<div style="font-size:10px;color:#999;line-height:1.45;margin-bottom:4px">自动飞＝客户单里的连肖/二中二/三中三当已飞，自动复制给上家；凑整＝每个号就近凑到 10 的倍数（34→30、36→40、3→10）。</div>';
+  h += '<div style="font-size:10px;color:#999;line-height:1.45;margin-bottom:4px">自动飞（连/二/三）＝客户单里的连肖/二中二/三中三当已飞，自动复制给上家；凑整＝每个号就近凑到 10 的倍数（34→30、36→40、3→10）。</div>';
   h += '</div>';
   h += '<div style="font-size:10.5px;color:#6b7280;line-height:1.45;margin:2px 0 4px">已飞 = 自动飞 + 补录；手飞/多飞 是自己另外买的 → <a href="javascript:;" onclick="flyTermsHelp()" style="color:#1d4ed8;text-decoration:none">五个飞是什么？</a></div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
@@ -4909,20 +4909,30 @@ function afterFlyFlagChange(){
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
   try { window.scrollTo(0, _y); } catch(e){}
 }
+function _keepFlyPanel(){
+  // 重绘后保持在“飞单统计”页，不弹回首页
+  try{ _flyPin = true; _rankOpen = 'split'; }catch(e){}
+  try{ applyRankSectionState(); }catch(e){}
+  var s = document.getElementById('splitBody'); if(s) s.style.display = 'block';
+  try{ if(typeof _activeTab !== 'undefined' && _activeTab !== 'rank') switchTab('rank'); }catch(e){}
+}
 function autoFlyToggleBtn(){
   autoFlyOn = !autoFlyOn;
   try{ localStorage.setItem(sk('autoFlyOn'), autoFlyOn?'1':'0'); localStorage.setItem(sk('emFlyOn'), autoFlyOn?'1':'0'); }catch(e){}
   try{ afterFlyFlagChange(); }catch(e){}
   try{ renderSplitSide(); }catch(e){}
   try{ renderSideCustPay(); }catch(e){}
+  _keepFlyPanel();
 }
 function flyRoundToggleBtn(){
   try{ setFlyRoundOn(!flyRoundOn()); }catch(e){}
   try{ renderSplitSide(); }catch(e){}
+  _keepFlyPanel();
 }
 function manualFlyClose(){
   var w=document.getElementById('mfWrap'); if(w&&w.parentNode)w.parentNode.removeChild(w);
   try{ renderSplitSide(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
 }
 function manualFlyOpen(){
   var old=document.getElementById('mfWrap'); if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -6138,10 +6148,11 @@ function selectFlyGroup(g){
   var same = (currentFlyGroup === g);
   currentFlyGroup = null;
   try{ renderSplitSide(); }catch(e){}
-  if(same){ try{ showAllFlyDir(); }catch(e){} return; }
+  if(same){ try{ showAllFlyDir(); }catch(e){} _keepFlyPanel(); return; }
   try{ showGroupDetail(g); }catch(e){}
   try{ markFlyBtns(); }catch(e){}
   copySelectedFly(true);
+  _keepFlyPanel();
 }
 // ===== 手飞（自己买）录入浮层 =====
 function selfFlyOpen(){
@@ -6159,6 +6170,7 @@ function selfFlyClose(){
   if(w && w.parentNode) w.parentNode.removeChild(w);
   try{ if(typeof renderSideCustPay === 'function') renderSideCustPay(); }catch(e){}
   try{ if(typeof renderRisk === 'function') renderRisk(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
 }
 function selfFlyRender(){
   var wrap = document.getElementById('sfWrap'); if(!wrap) return;
@@ -6328,10 +6340,11 @@ function emExtraOpen(){
   wrap.id = 'emxWrap';
   wrap.className = 'ai-ov';
   wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:flex-end;justify-content:center';
+  wrap.onclick = function(e){ if(e.target === wrap) emExtraClose(); };
   document.body.appendChild(wrap);
   emExtraRender();
 }
-function emExtraClose(){ var w = document.getElementById('emxWrap'); if(w) w.remove(); }
+function emExtraClose(){ var w = document.getElementById('emxWrap'); if(w) w.remove(); try{ _keepFlyPanel(); }catch(e){} }
 function emExtraRender(){
   var wrap = document.getElementById('emxWrap'); if(!wrap) return;
   var rows = emExtraRows();
@@ -13401,6 +13414,7 @@ function renderAll(){
 
 var _rankOpen = '';
 function applyRankSectionState(){
+  try{ if(window._flyPin) _rankOpen = 'split'; }catch(e){}
   var p = {rank:'rankTableBody', singles:'rank-singles', split:'rank-split', profit:'rank-pay', risk:'riskBody'};
   Object.keys(p).forEach(function(k){
     var el = document.getElementById(p[k]);
@@ -13414,6 +13428,7 @@ function applyRankSectionState(){
 }
 function openRankSection(key){
   _rankOpen = (_rankOpen === key ? '' : key);
+  try{ _flyPin = (_rankOpen === 'split'); }catch(e){}
   if(_rankOpen === 'split'){
     try { calcSplit(); refreshFlySummary(); } catch(e){}
   }
@@ -13425,6 +13440,7 @@ function openRankSection(key){
 }
 
 function switchTab(name){
+  try{ if(name !== 'split' && name !== 'rank') _flyPin = false; }catch(e){}
   _activeTab = name;
   ['all','rank','cust','orders','pay','split','settings'].forEach(k => {
     var sec = document.getElementById('tab-' + k);
@@ -14662,6 +14678,19 @@ function billOwnFigures(sm, own){
   };
 }
 
+function billArchiveAsk(){
+  const d = billBookDate() || billToday();
+  const s = billSum();
+  if(!s.n && !pays.length){
+    // 空账本：不弹窗，直接切到今天
+    billArchiveNow(true);
+    myAlert('今天还没有订单，账本日期已切到 ' + billToday());
+    return;
+  }
+  myConfirm('归档 ' + d + ' 的账本？\n\n当前：' + s.n + ' 单，收 ' + s.amt.toFixed(2) + ' 元，净 ' + s.net.toFixed(2) + ' 元。\n归档后：这天的单会封存进「历史订单」，当前账本清空并切到今天，已飞记录一起清零。\n\n要归档就按「确定」，只是看看就按「取消」。', function(){
+    billArchiveNow();
+  });
+}
 function billArchiveNow(silent){
   const d = billBookDate() || billToday();
   const s = billSum();
