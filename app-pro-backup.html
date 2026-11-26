@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.69-Pro</title>
+<title>录单Pro · v60.70-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.69-Pro';
+var APP_VER = 'v60.70-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4045,18 +4045,23 @@ function emExtraBook(draw){
 // 本期手动登记里真正落账的二三（补飞/多飞）合计；只认 applied 且未撤销的批次。
 // 用来区分「真实多飞」和旧版遗留的 _em_total=380 脏值，避免把 375 又显示成 380。
 function manualEmExtraAmt(){
+  return manualEmBatchRows().reduce(function(s, r){ return s + (Number(r.amt) || 0); }, 0);
+}
+function manualEmBatchRows(){
   var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
-  var h = [], s = 0;
-  try{ h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ return 0; }
+  var h = [], out = [];
+  try{ h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ return out; }
   h.forEach(function(r){
     if(!r || r.undone) return;
     if(r.applied !== true) return;
     if(p && r.p && String(r.p) !== String(p)) return;
+    var amt = 0;
     (r.batch || []).forEach(function(x){
-      if(String(x.k) === '_em_total') s += Number(x.amt) || 0;
+      if(String(x.k) === '_em_total') amt += Number(x.amt) || 0;
     });
+    if(amt > 0) out.push({id:r.id, amt:amt, txt:String(r.txt || '')});
   });
-  return s;
+  return out;
 }
 // 单号净敞口：中奖要赔客户多少 −（系统已飞 + 手飞）×赔率。负=超买（中奖反而赚），正=自留（中奖要自己赔）
 function netExposureOfNum(n){
@@ -12075,6 +12080,10 @@ function renderOrdersList(){
     flyOutTotal += _emxUp.cost;
     if(_drawO && _emxUp.back > 0){ flyBackTotal += _emxUp.back; flyBackLines.push('二三多飞  ' + _emxUp.cost.toFixed(0) + ' → 赔回 ' + _emxUp.back.toFixed(0)); }
   }
+  // 手动登记的二三（手飞）也是真付给上家的钱，必须进飞走合计与二/三栏
+  var _manualEmRows = manualEmBatchRows();
+  var _manualEmOut = _manualEmRows.reduce(function(s, r){ return s + (Number(r.amt) || 0); }, 0);
+  if(_manualEmOut > 0) flyOutTotal += _manualEmOut;
   // 分类金额用于复制
   let cpSp = 0, cpPte = 0, cpLx = 0, cpEm = 0;
   try {
@@ -12093,6 +12102,7 @@ function renderOrdersList(){
     }); });
   } catch(e){}
   if(_emxUp.cost > 0) cpEm += _emxUp.cost;
+  if(_manualEmOut > 0) cpEm += _manualEmOut;
   // 逐项明细（带凑整标记），面板和复制共用：{key, amt, per, gap, name}
   let upItems = { sp: [], pte: [], lx: [], em: [] };
   try {
@@ -12340,10 +12350,20 @@ function renderOrdersList(){
         emChkSum += a;
         emB += '<div style="color:#b45309;font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">多飞 ' + esc(String(r.code||'').replace(/:/g, ' ')) + ' × ' + a.toFixed(0) + ' = ' + a.toFixed(0) + '</div>';
       }); }catch(e){}
+      // 手动登记的二三（手飞）逐笔列出来，不能只算进实付、明细里没有
+      var _manualEmSum = 0;
+      try{
+        manualEmBatchRows().forEach(function(r){
+          var _a = Number(r.amt || 0); if(!(_a > 0)) return;
+          _manualEmSum += _a; emChkSum += _a;
+          var _t = String(r.txt || '').replace(/\s+/g, ' ').trim().slice(0, 70);
+          emB += '<div style="color:#b45309;font-size:11px;line-height:1.7;white-space:normal;word-break:break-all">手飞二三 ' + esc(_t) + ' ＝ ' + _a.toFixed(0) + '</div>';
+        });
+      }catch(e){}
       var _emReal = Number(flownRealOf('_em_total') || 0);
       var _emPer = Number(flownPerPos['_em_total'] || 0);
       if(_emPer > 0 && _emReal > _emPer && (_emReal - _emPer) <= 10) _emReal = _emPer;
-      var emPaid = Math.max(_emReal, emSum + emExtraSum);
+      var emPaid = Math.max(_emReal, emSum + emExtraSum + _manualEmSum);
       const _diff = emPaid - emChkSum;
       emB += '<div style="font-size:10px;margin-top:3px;color:' + (Math.abs(_diff) < 0.5 ? '#16a34a' : '#cf1322') + '">' + (Math.abs(_diff) < 0.5 ? ('✓ 明细对平：' + emChkSum.toFixed(2).replace(/\.00$/, '') + ' ＝ 实付 ' + emPaid.toFixed(2).replace(/\.00$/, '')) : ('⚠ 明细差 ' + _diff.toFixed(2) + '（明细 ' + emChkSum.toFixed(2) + ' / 实付 ' + emPaid.toFixed(2) + '）')) + '</div>';
     }
