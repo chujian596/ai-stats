@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.59-Pro</title>
+<title>录单Pro · v60.60-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.59-Pro';
+var APP_VER = 'v60.60-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3240,7 +3240,6 @@ function renderSplitSide(){
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="catLedgerBox" style="margin:6px 0"></div>';
-  h += '<div style="margin:0 0 6px"><button onclick="upSettleOpen()" style="width:100%;border:1px solid #0f766e;background:#ecfdf5;color:#0f766e;border-radius:8px;padding:7px;font-size:13px;font-weight:700">上家结算单（汇总＋明细）</button></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
   h += '</div>'; // close splitBody
   box.innerHTML = h;
@@ -12982,45 +12981,6 @@ function renderRisk(){
         h += `<div>连肖<b>${x.z}</b>：收 ${x.amt.toFixed(0)} ｜ 已飞 ${x.flown.toFixed(0)} ｜ 自留 ${x.kept.toFixed(0)} ｜ 全中赔 ${x.payout.toFixed(0)}</div>`;
       });
       h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">合计 收 <b>${lxTot.toFixed(0)}</b> ｜ 已飞 <b>${lxFlyTot.toFixed(0)}</b> ｜ 自留 <b>${lxKeptTot.toFixed(0)}</b> ｜ 最坏全中赔 <b style="color:#cf1322">${lxWorst.toFixed(0)}</b></div>`;
-      h += `</div>`;
-    }
-    if(keptPteEntries.length >= 2){
-      const pteTotal = keptPteEntries.reduce((s,[,a])=>s+a,0);
-      // 连肖最多4个，超过4个只取赔付最大的4个
-      let hedgeZodiacs = keptPteEntries.map(([z,a])=>({z, amt:a, payout: a*(z==='马'?1.8:2)})).sort((a,b)=>b.payout-a.payout);
-      const totalCount = hedgeZodiacs.length;
-      let noteStr = '';
-      if(hedgeZodiacs.length > 4){
-        noteStr = `（共${totalCount}个肖，取最大4个对冲）`;
-        hedgeZodiacs = hedgeZodiacs.slice(0,4);
-      }
-      const worstPte = hedgeZodiacs.reduce((s,x)=>s+x.payout,0);
-      const smallestPte = hedgeZodiacs[hedgeZodiacs.length-1].payout;
-      const nZodiac = hedgeZodiacs.length;
-      const hasHorse = hedgeZodiacs.some(x=>x.z==='马');
-      const lianMult = nZodiac===2 ? 4 : nZodiac===3 ? 10 : 30;
-      const odds = hasHorse ? lianMult - 0.5 : lianMult;
-      const hedgeBet = Math.round(smallestPte / odds);
-      const allPteWorst = keptPteEntries.reduce((s,[z,a])=>s+a*(z==='马'?1.8:2),0);
-      const worstNoHedge = pteTotal - allPteWorst;
-      const worstProperPayout = worstPte - smallestPte;
-      const allHitNet = pteTotal - worstPte + hedgeBet*(odds-1);
-      const worstProperNet = pteTotal - worstProperPayout - hedgeBet;
-      const noneNet = pteTotal - hedgeBet;
-      const worstWithHedge = Math.min(allHitNet, worstProperNet, noneNet);
-      const hitProb = nZodiac===2 ? '~20%' : nZodiac===3 ? '~10%' : '~4%';
-      const lianName = hedgeZodiacs.map(x=>x.z).join('');
-      // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
-      if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem(sk('lxFlyName'), lxFlyName)}catch(e){} }
-      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">平特转连肖对冲（参考） ▶</div>`;
-      h += `<div id="riskHedgeBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
-      const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
-      h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
-      if(noteStr) h += `<div style="color:#999;font-size:11px">${noteStr}</div>`;
-      h += `<div style="margin-top:4px">收<b>${pteTotal.toFixed(0)}</b> 全中赔<b style="color:#cf1322">${allPteWorst.toFixed(0)}</b></div>`;
-      h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">`;
-      h += `<div>连肖全中要赔：<b style="color:${worstNoHedge<0?'#cf1322':'#16a34a'}">${worstNoHedge.toFixed(0)}</b></div>`;
-      h += `</div>`;
       h += `</div>`;
     }
   }
