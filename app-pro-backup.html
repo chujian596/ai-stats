@@ -436,8 +436,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">
         <span style="font-size:12px;color:#666;flex:none">订单输入区</span>
         <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
-          <span id="orderSummary" style="font-size:11px;color:#999;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-          <button id="quickSaveBtn" type="button" onclick="quickSaveFromHeader()">保存</button>
+          <span id="orderSummary" style="font-size:11px;color:#777;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right"></span>
         </div>
       </div>
       <div id="liveBalls" style="display:none;flex-wrap:nowrap;gap:3px;padding:8px 0;justify-content:center;align-items:flex-start;min-height:56px;overflow-x:auto"></div>
@@ -1122,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.33-Pro';
+var APP_VER = 'v60.34-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
