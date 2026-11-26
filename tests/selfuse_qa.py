@@ -135,6 +135,8 @@ with sync_playwright() as p:
     pg.evaluate("()=>{switchTab('rank'); openRankSection('singles');}"); pg.wait_for_timeout(400)
     chk('排行子页 singles(平特肖) 有内容', pg.evaluate("()=>document.getElementById('rank-singles').innerText.trim().length") > 5)
     pg.evaluate("()=>openRankSection('split')"); pg.wait_for_timeout(350)
+    # 客户单里的连肖现在会进待飞；这个用例只验特号流程，先把连肖标「不飞」
+    pg.evaluate("()=>flySkipMany('连肖马蛇')"); pg.wait_for_timeout(300)
     st = pg.evaluate("()=>{var a=actualPnL(),r=getThisRoundFly();return [a.sales,a.flyOut,r.thisRound];}")
     chk('飞单开局 910 / 已飞0 / 待飞150', st == [910, 0, 150], st)
     pg.evaluate("()=>autoFlyToggleBtn()"); pg.wait_for_timeout(500)

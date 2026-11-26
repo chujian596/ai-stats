@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.60-Pro</title>
+<title>录单Pro · v60.61-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.60-Pro';
+var APP_VER = 'v60.61-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5664,8 +5664,10 @@ function buildFlyGroups(lines, useFull){
       if(!(bookedSum[c] > 0.01)) show = _alloc[_ck];
     }
     showSum += show;
-    const k = show.toFixed(2);
-    if(!map[k]) map[k] = { amt: show, codes: [] };
+    // 分桶必须带上玩法类型：平特500 和 连肖500 不能并成一行，否则点一次「不飞」会把两类一起删
+    const _type = (/^\d{1,2}$/.test(String(c)) ? 'num' : (String(c).indexOf('平特') === 0 ? 'pte' : (String(c).indexOf('连肖') === 0 ? 'lx' : 'em')));
+    const k = _type + '|' + show.toFixed(2);
+    if(!map[k]) map[k] = { amt: show, codes: [], type: _type };
     map[k].codes.push(c);
   });
   const groups = Object.keys(map).map(k => map[k]).sort((a, b) => b.amt - a.amt);
@@ -5782,8 +5784,15 @@ function showAllFlyDir(){
     _pg.groups.forEach(function(g){
       h += '<div style="padding:2px 5px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;gap:4px;align-items:flex-start">'
          + '<span style="font-size:12px;color:#333;line-height:1.4;word-break:break-all">' + g.codes.join(' ') + ' <span style="color:#999">各' + g.amt.toFixed(0) + '</span></span>'
-         + '<span style="font-size:12px;color:#cf1322;font-weight:700;white-space:nowrap">' + (g.amt * g.codes.length).toFixed(0) + '</span></div>';
+         + '<span style="font-size:12px;color:#cf1322;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:3px">' + (g.amt * g.codes.length).toFixed(0)
+         + ' <button data-k="' + g.codes.join('|') + '" onclick="flySkipMany(this.dataset.k)" title="这项不飞，移出待飞" style="border:1px solid #fca5a5;background:#fff;color:#cf1322;border-radius:4px;font-size:11px;line-height:18px;padding:0 6px;font-weight:400">不飞</button></span></div>';
     });
+    try{
+      var _skl = flySkipList();
+      if(_skl.length){
+        h += '<div style="padding:3px 5px;font-size:10px;color:#999;background:#fafafa">已排除 ' + _skl.length + ' 项 <a href="javascript:;" onclick="flySkipClear()" style="color:#1d4ed8;text-decoration:none">恢复</a></div>';
+      }
+    }catch(e){}
   }
   h += '</div>';
   h += '</div>';
@@ -6329,8 +6338,36 @@ function pteRecordZodiacs(list){
   });
   return Object.keys(z);
 }
+// 待飞清单里手动排除某些项：只影响「还要不要飞」，不动客户订单、不动已付
+function flySkipKey(){
+  try{ return 'flySkip_shop' + shop + '_' + (selfFlyPeriod() || 'na'); }catch(e){ return 'flySkip_default'; }
+}
+function flySkipList(){
+  try{ var a = JSON.parse(localStorage.getItem(flySkipKey()) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+function flySkipSet(){ var o = {}; flySkipList().forEach(function(k){ o[k] = 1; }); return o; }
+function flySkipSave(list){
+  try{ localStorage.setItem(flySkipKey(), JSON.stringify(list || [])); }catch(e){}
+}
+function flySkipMany(codes){
+  var arr = String(codes || '').split('|').filter(Boolean);
+  if(!arr.length) return;
+  var cur = flySkipList();
+  arr.forEach(function(k){ if(cur.indexOf(k) < 0) cur.push(k); });
+  flySkipSave(cur);
+  try{ calcSplit(); }catch(e){}
+  try{ refreshFlySummary(); }catch(e){}
+  try{ showAllFlyDir(); }catch(e){}
+}
+function flySkipClear(){
+  flySkipSave([]);
+  try{ calcSplit(); }catch(e){}
+  try{ refreshFlySummary(); }catch(e){}
+  try{ showAllFlyDir(); }catch(e){}
+}
 function getThisRoundFly(){
   var _list = activeOrders();
+  const _skip = flySkipSet();
   // 返回 {lines: [], total: X, already: Y, totalFly: Z}
   // 特号/平特：用flownPerPos跟踪分批飞
   // 连肖/二中二/三中三：即飞产品，每次都显示在复制列表里，不记已飞
@@ -6346,6 +6383,7 @@ function getThisRoundFly(){
     // 例：应飞 36，凑整实付 35，记账仍是 36；若拿 35 去算会剩 1，再凑整又飞 5，造成二次飞单。
     const booked = Number((flownPerPos || {})[k] || 0);
     const done = flownPaidOf(k);
+    if(_skip[k]){ already += done; return; }   // 手动不飞：已付照算，未付不再进待飞
     const round = Math.max(0, full - booked);
     totalFly += full;
     already += done;
@@ -6362,14 +6400,34 @@ function getThisRoundFly(){
     // 同特号：待飞用原始记账额，不用凑整实付额，避免尾差被二次凑成 5 元再飞
     const booked = Number((flownPerPos || {})[code] || 0);
     const done = flownPaidOf(code);
+    if(_skip[code]){ already += done; return; }
     const round = Math.max(0, full - booked);
     totalFly += full;
     already += done;
     lines.push({code: code, amt: round, full: full, done: done, booked: booked, auto: false});
   });
-  // 连肖（即飞开关开了就全飞，也记已飞）
+  // 连肖：客户单里买的每一注都进待飞，可以逐条飞或逐条不飞
+  // 手动填了连肖金额时以手动那笔为准，不再把客户单连肖全量重复塞进来
+  if(!(lxFlyAmt > 0)) {
+    const lxMap = {};
+    _list.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
+      if(String(c).indexOf('连肖') === 0) lxMap[c] = (lxMap[c]||0) + amt;
+    }); });
+    Object.keys(lxMap).sort().forEach(function(code){
+      const full = lxMap[code];
+      if(!(full > 0.01)) return;
+      const booked = Number((flownPerPos || {})[code] || 0);
+      const done = flownPaidOf(code);
+      if(_skip[code]){ already += done; return; }
+      const round = Math.max(0, full - booked);
+      totalFly += full; already += done;
+      lines.push({code: code, amt: round, full: full, done: done, booked: booked, auto: false});
+    });
+  }
+  // 连肖：手动指定的一笔（客户单里没有这个组合时）
   if(lxFlyAmt > 0){
     const code = '连肖' + (lxFlyName||'');
+    if(!((flownPerPos||{})[code] > 0) && !lines.some(function(l){ return l.code === code; })){
     if(autoFlyOn){
       const done = lxFlyAmt;
       const round = 0;
@@ -6384,6 +6442,7 @@ function getThisRoundFly(){
       totalFly += lxFlyAmt;
       already += done;
       lines.push({code: code, amt: round, full: lxFlyAmt, done: done, booked: booked, auto: false});
+    }
     }
   }
   // 二中二/三中三/三中二（合并显示总额，记已飞）
