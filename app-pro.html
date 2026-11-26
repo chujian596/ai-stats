@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.71-Pro</title>
+<title>录单Pro · v60.72-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -226,6 +226,28 @@ html[data-system-theme="dark"] select{
 }
 html[data-system-theme="dark"] input::placeholder,
 html[data-system-theme="dark"] textarea::placeholder{color:#8192a8!important}
+#recentDrawBar{margin:6px 2px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#recentDrawToggle{border:1px solid #dfe6f0;background:#fff;color:#2457d6;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+#recentDrawPanel{display:none;margin:5px 0 0;border:1px solid #e5e7eb;border-radius:8px;background:#fff;max-height:214px;overflow:auto;-webkit-overflow-scrolling:touch}
+#recentDrawPanel .rd-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 7px;background:#f8fafc;border-bottom:1px solid #eef1f5;font-size:10px;color:#8a94a6}
+#recentDrawPanel .rd-tabs{display:flex;gap:4px}
+#recentDrawPanel .rd-tab{border:1px solid #dfe6f0;background:#fff;color:#666;border-radius:6px;padding:2px 7px;font-size:10px;cursor:pointer}
+#recentDrawPanel .rd-tab.on{background:#2457d6;border-color:#2457d6;color:#fff}
+.rd-row{display:flex;align-items:center;gap:4px;padding:4px 7px;border-top:1px solid #f2f5f8;font-size:11px;color:#333}
+.rd-row:first-of-type{border-top:0}
+.rd-p{width:36px;flex:none;color:#7b8494;font-size:10px;font-variant-numeric:tabular-nums}
+.rd-ball{width:20px;height:20px;line-height:20px;border-radius:50%;text-align:center;font-size:10px;font-weight:800;color:#fff;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
+.rd-sp{box-shadow:0 0 0 2px #fbbf24,inset 0 -1px 0 rgba(0,0,0,.18);margin-left:2px}
+.rd-zod{font-size:10px;color:#8a94a6;width:14px;flex:none;text-align:center}
+.rd-msg{padding:8px;font-size:11px;color:#999;text-align:center}
+html[data-system-theme="dark"] #recentDrawToggle{background:#14243a!important;color:#9dc0ff!important;border-color:#354762!important}
+html[data-system-theme="dark"] #recentDrawPanel{background:#0b1626!important;border-color:#354762!important}
+html[data-system-theme="dark"] #recentDrawPanel .rd-head{background:#111c2e!important;border-color:#2a3a52!important;color:#9fb0c6!important}
+html[data-system-theme="dark"] #recentDrawPanel .rd-tab{background:#14243a!important;border-color:#354762!important;color:#cbd8ea!important}
+html[data-system-theme="dark"] #recentDrawPanel .rd-tab.on{background:#2457d6!important;border-color:#4f7fe8!important;color:#fff!important}
+html[data-system-theme="dark"] .rd-row{color:#e7effc!important;border-color:#1e2d44!important}
+html[data-system-theme="dark"] .rd-p,html[data-system-theme="dark"] .rd-zod{color:#9fb0c6!important}
+html[data-system-theme="dark"] #recentDrawPanel .rd-msg{color:#9fb0c6!important}
 html[data-system-theme="dark"] #drawFetchBtn{background:#14243a!important;color:#9dc0ff!important;border-color:#354762!important}
 html[data-system-theme="dark"] #drawInfoBar,
 html[data-system-theme="dark"] #orderSummary,
@@ -446,6 +468,11 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
         <span id="drawInfoTxt">未获取开奖数据</span>
         <button id="drawFetchBtn" onclick="autoFetchDraw()" style="font-size:12px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">自动获取开奖</button>
       </div>
+      <div id="recentDrawBar">
+        <button id="recentDrawToggle" onclick="toggleRecentDraws()">最近开奖 10期 ▾</button>
+        <span id="recentDrawMeta" style="font-size:10px;color:#9aa4b2"></span>
+      </div>
+      <div id="recentDrawPanel"></div>
       <div id="hkDrawBar" style="display:none;font-size:11px;color:#b45309;margin:2px;line-height:1.5;padding:4px 6px;background:#fffbe6;border:1px solid #f0c36d;border-radius:6px">
         <span id="hkDrawTxt"></span>
       </div>
@@ -1123,7 +1150,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.71-Pro';
+var APP_VER = 'v60.72-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -9287,6 +9314,130 @@ function curShopDraw(){
   }
   return lastDraw ? { period: lastDraw.period, regularNums: lastDraw.regularNums, specialNum: lastDraw.specialNum, isHK: false } : null;
 }
+var _recentDrawCache = null, _recentDrawBusy = false, _recentDrawOpen = false, _recentDrawN = 10;
+function _rdNorm(raw){
+  var out = [];
+  function one(p, all, sp, zod){
+    p = parseInt(p); if(!p) return;
+    var nums = (all || []).map(Number).filter(function(n){ return n >= 1 && n <= 49; });
+    if(nums.length < 7) return;
+    var special = (sp === undefined || sp === null || sp === '') ? nums[6] : Number(sp);
+    var regs = nums.slice(0, 6);
+    out.push({p:p, regularNums:regs, specialNum:special, specialZod:(zod || NUM2ZODIAC[special] || '')});
+  }
+  if(Array.isArray(raw)){
+    raw.forEach(function(x){
+      if(!x) return;
+      if(x.period !== undefined && x.regularNums){
+        one(x.period, x.regularNums.concat([x.specialNum]), x.specialNum, x.specialZod);
+      }else if(x.p !== undefined && x.all){
+        one(x.p, x.all, x.specialNum, x.specialZod);
+      }
+    });
+  }else if(raw && typeof raw === 'object'){
+    Object.keys(raw).forEach(function(k){
+      var v = raw[k] || {};
+      one(k, v.all, v.specialNum, v.specialZod);
+    });
+  }
+  return out;
+}
+function rememberDraw(d){
+  if(!d || !d.period || !d.regularNums || d.regularNums.length < 6 || !d.specialNum) return;
+  var p = parseInt(d.period); if(!p) return;
+  var arr = [];
+  try{ arr = JSON.parse(localStorage.getItem(sk('drawHistory')) || '[]') || []; }catch(e){ arr = []; }
+  arr = arr.filter(function(x){ return x && parseInt(x.p) !== p; });
+  arr.unshift({p:p, regularNums:d.regularNums.map(Number), specialNum:Number(d.specialNum), specialZod:(NUM2ZODIAC[Number(d.specialNum)] || '')});
+  arr = arr.filter(function(x){ return x && x.regularNums && x.regularNums.length >= 6; }).slice(0, 120);
+  try{ localStorage.setItem(sk('drawHistory'), JSON.stringify(arr)); }catch(e){}
+  if(_recentDrawCache){ _recentDrawCache = arr.concat(_recentDrawCache.filter(function(x){ return parseInt(x.p) !== p; })); }
+  if(_recentDrawOpen) renderRecentDraws();
+}
+function recentDrawList(){
+  var merged = [], seen = {};
+  var add = function(x){
+    if(!x || !x.p) return;
+    var p = parseInt(x.p); if(!p || seen[p]) return;
+    if(!x.regularNums || x.regularNums.length < 6) return;
+    seen[p] = 1;
+    merged.push({p:p, regularNums:x.regularNums.map(Number).slice(0,6), specialNum:Number(x.specialNum), specialZod:(x.specialZod || NUM2ZODIAC[Number(x.specialNum)] || '')});
+  };
+  try{ (JSON.parse(localStorage.getItem(sk('drawHistory')) || '[]') || []).forEach(add); }catch(e){}
+  if(lastDraw && lastDraw.period && lastDraw.regularNums) add({p:lastDraw.period, regularNums:lastDraw.regularNums, specialNum:lastDraw.specialNum});
+  (_recentDrawCache || []).forEach(add);
+  return merged.sort(function(a,b){ return b.p - a.p; });
+}
+function _rdBall(n, special){
+  var c = (typeof ballColor === 'function') ? ballColor(n) : '#666';
+  return '<span class="rd-ball' + (special ? ' rd-sp' : '') + '" style="background:' + c + '">' + String(n).padStart(2,'0') + '</span>';
+}
+function renderRecentDraws(){
+  var panel = document.getElementById('recentDrawPanel');
+  var btn = document.getElementById('recentDrawToggle');
+  var meta = document.getElementById('recentDrawMeta');
+  if(!panel || !btn) return;
+  var list = recentDrawList();
+  if(meta) meta.textContent = _recentDrawBusy ? '加载中…' : (list.length ? ('已载入 ' + list.length + ' 期') : '');
+  var tabs = '<div class="rd-tabs"><button class="rd-tab' + (_recentDrawN === 10 ? ' on' : '') + '" onclick="showRecentDraws(10)">10期</button><button class="rd-tab' + (_recentDrawN === 30 ? ' on' : '') + '" onclick="showRecentDraws(30)">30期</button></div>';
+  var head = '<div class="rd-head"><span>澳门 · 最后一球为特码</span>' + tabs + '</div>';
+  if((typeof shop !== 'undefined' && shop === 'B')){
+    panel.innerHTML = head + '<div class="rd-msg">香港开奖历史暂未接入，切回澳门店查看。</div>';
+    return;
+  }
+  if(!list.length){
+    panel.innerHTML = head + '<div class="rd-msg">' + (_recentDrawBusy ? '正在读取最近开奖…' : '暂无开奖历史，点上面的「自动获取开奖」后再试') + '</div>';
+    return;
+  }
+  var arr = list.slice(0, _recentDrawN);
+  var rows = arr.map(function(x){
+    var regs = x.regularNums.map(function(n){ return _rdBall(n, false); }).join('');
+    return '<div class="rd-row"><span class="rd-p">' + x.p + '期</span>' + regs + _rdBall(x.specialNum, true) + '<span class="rd-zod">' + (x.specialZod || '') + '</span></div>';
+  }).join('');
+  panel.innerHTML = head + rows;
+}
+function showRecentDraws(n){
+  _recentDrawN = (n === 30 ? 30 : 10);
+  _recentDrawOpen = true;
+  var panel = document.getElementById('recentDrawPanel');
+  var btn = document.getElementById('recentDrawToggle');
+  if(panel) panel.style.display = 'block';
+  if(btn) btn.textContent = '最近开奖 ' + _recentDrawN + '期 ▴';
+  if(!_recentDrawCache && !_recentDrawBusy) loadRecentDraws();
+  else renderRecentDraws();
+}
+function toggleRecentDraws(){
+  if(_recentDrawOpen){
+    _recentDrawOpen = false;
+    var panel = document.getElementById('recentDrawPanel');
+    if(panel) panel.style.display = 'none';
+    var btn = document.getElementById('recentDrawToggle');
+    if(btn) btn.textContent = '最近开奖 ' + _recentDrawN + '期 ▾';
+    return;
+  }
+  showRecentDraws(_recentDrawN);
+}
+function loadRecentDraws(){
+  _recentDrawBusy = true;
+  renderRecentDraws();
+  var sources = ['/api/recent-draws?limit=60&t=' + Date.now(),
+                 'official-history.json?t=' + Date.now(),
+                 'https://aistats-9uo.pages.dev/api/recent-draws?limit=60&t=' + Date.now(),
+                 'https://chujian596.github.io/ai-stats/official-history.json?t=' + Date.now()];
+  var i = 0;
+  function next(){
+    if(i >= sources.length){ _recentDrawBusy = false; renderRecentDraws(); return; }
+    var u = sources[i++];
+    fetch(u, {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); }).then(function(d){
+      var rows = _rdNorm(d && d.periods ? d.periods : d);
+      if(!rows.length) throw new Error('empty');
+      _recentDrawCache = rows;
+      _recentDrawBusy = false;
+      renderRecentDraws();
+    }).catch(function(){ next(); });
+  }
+  next();
+}
 function updateDrawInfoBar(){
   var el = document.getElementById('drawInfoTxt');
   if(!el) return;
@@ -11633,7 +11784,7 @@ function hideSub(code){
   renderAll();
   });
 }
-function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); if(lastDraw && typeof shop !== 'undefined' && shop === 'A') localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(lastDraw)); } catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
+function saveLastDraw(){ try { localStorage.setItem(sk('lastDraw'), JSON.stringify(lastDraw)); if(lastDraw && lastDraw.period) localStorage.setItem(sk('lastDrawPeriod'), String(lastDraw.period)); if(lastDraw && typeof shop !== 'undefined' && shop === 'A') localStorage.setItem(MAC_DRAW_GLOBAL_KEY, JSON.stringify(lastDraw)); } catch(e){} try{ rememberDraw(lastDraw); }catch(e){} updateDrawInfoBar(); try{ if(typeof renderBallsForStore==='function') renderBallsForStore(); }catch(e){} }
 function macDrawGlobal(){
   try{
     var d = JSON.parse(localStorage.getItem(MAC_DRAW_GLOBAL_KEY) || 'null');
