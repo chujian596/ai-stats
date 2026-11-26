@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f5f7fb">
+<title>人群冻结 · 资料统计</title>
+<style>
+:root{--ink:#17202b;--muted:#6b7785;--faint:#93a0ad;--line:#e5eaf1;--blue:#2457d6;--red:#c0392b;--green:#1d6b4f;--amber:#9b7737;--bg:#f5f7fb;--soft:#f2f5fa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;padding-bottom:30px}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+header{background:linear-gradient(145deg,#16325c,#2457d6);color:#fff;padding:22px 14px 18px;padding-top:max(env(safe-area-inset-top),22px);border-radius:0 0 20px 20px}
+header .inner{max-width:720px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.16em;color:#cfe0ff;font-weight:700}
+h1{margin:6px 0 4px;font-size:24px;letter-spacing:-.02em}
+.sub{margin:0;color:#dbe8ff;font-size:13px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0;box-shadow:0 2px 10px rgba(16,35,70,.05)}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.card-head h2{margin:0;font-size:15px}
+.card-note{font-size:11px;color:var(--faint)}
+.top3{display:flex;gap:8px;margin:2px 0 6px}
+.zpill{flex:1;text-align:center;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 6px}
+.zpill b{display:block;font-size:26px;line-height:1.1;color:var(--red)}
+.zpill span{font-size:10.5px;color:var(--faint)}
+.zpill.small b{font-size:18px;color:var(--blue)}
+.muted{font-size:12px;color:var(--muted);line-height:1.7}
+.formula{font-size:11.5px;color:var(--muted);line-height:1.85;background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:8px 0}
+.formula b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+th{font-size:10.5px;font-weight:700;color:var(--faint);text-align:right;padding:0 3px 5px;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:3px;text-align:right;color:var(--muted);border-top:1px solid var(--line)}
+td:first-child{text-align:left;font-weight:750;color:var(--ink)}
+tr.top td:first-child{color:var(--red)}
+tr.bot td:first-child{color:var(--blue)}
+td b{color:var(--ink)}
+.hit{font-size:11.5px;color:var(--muted);line-height:1.85;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line)}
+.hit b{color:var(--ink)}
+.hist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.hist div{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 6px;text-align:center}
+.hist b{display:block;font-size:11px;color:var(--faint);font-weight:700}
+.hist em{display:block;font-style:normal;font-size:16px;font-weight:800;margin:2px 0}
+.hist small{font-size:9.5px;color:var(--faint);line-height:1.3;display:block}
+.hist .yes em{color:var(--green)}
+.hist .no em{color:var(--faint)}
+.footer{text-align:center;font-size:11px;color:var(--faint);margin:16px 0 4px}
+a.back{display:inline-block;margin-top:6px;font-size:12px;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px 10px;text-decoration:none}
+</style>
+</head>
+<body>
+<header><div class="inner">
+  <div class="kicker">CROWD FREEZE</div>
+  <h1>人群冻结</h1>
+  <p class="sub" id="subline">三层票数 → z 分 → 加权，取最挤三肖与最冷三只</p>
+  <a class="back" href="dashboard.html">← 回首页</a>
+</div></header>
+<main class="wrap">
+  <div class="card">
+    <div class="card-head"><h2>当前冻结</h2><span class="card-note" id="frozenAt">—</span></div>
+    <div class="top3" id="top3"><div class="zpill"><b>—</b><span>加载中</span></div></div>
+    <div class="top3" id="bottom3"></div>
+    <div class="muted" id="layerline"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>算式与分层明细</h2><span class="card-note" id="denline"></span></div>
+    <div class="formula" id="formula">拥挤分 = 0.5 × z(九肖) + 0.25 × z(杀三肖) + 0.25 × z(首推)</div>
+    <div id="tablebox"><div class="muted">读取中…</div></div>
+    <div class="hit" id="hitbox"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>近 5 期回检</h2><span class="card-note" id="histnote">Top3 随机基线 25%</span></div>
+    <div class="hist" id="hist"></div>
+    <div class="muted" id="histline" style="margin-top:9px"></div>
+  </div>
+  <div class="footer">AI资料统计 · 人群冻结 v1.0 · 只做公开资料统计，不生成投注指令</div>
+</main>
+<script>
+(function(){
+  var Z=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  function $(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function get(u){return fetch(u+(u.indexOf('?')>=0?'&':'?')+'v='+Date.now(),{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error('HTTP'+r.status);return r.json();});}
+  function race(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('slow'));},ms);})]);}
+  function num(v){return (v==null||isNaN(v))?0:v;}
+
+  function table(fz){
+    var cnt=fz.counts||{}, zs=fz.zscores||{}, cs=fz.crowdScore||{};
+    var t3=fz.top3||[], b3=fz.bottom3||[];
+    var order=Z.slice().sort(function(a,b){return num(cs[b])-num(cs[a]);});
+    var rows=order.map(function(z){
+      var cls=t3.indexOf(z)>=0?'top':(b3.indexOf(z)>=0?'bot':'');
+      return '<tr class="'+cls+'"><td>'+esc(z)+(t3.indexOf(z)>=0?' <em>'+esc(t3.indexOf(z)+1)+'</em>':'')+'</td>'
+        +'<td>'+esc(num((cnt.nine||{})[z]))+'</td><td>'+esc(num((zs.nine||{})[z]))+'</td>'
+        +'<td>'+esc(num((cnt.kill3||{})[z]))+'</td><td>'+esc(num((zs.kill3||{})[z]))+'</td>'
+        +'<td>'+esc(num((cnt.first||{})[z]))+'</td><td>'+esc(num((zs.first||{})[z]))+'</td>'
+        +'<td><b>'+esc(cs[z]==null?'—':cs[z])+'</b></td></tr>';
+    }).join('');
+    return '<table><tr><th>肖</th><th>九肖</th><th>z</th><th>杀单</th><th>z</th><th>首推</th><th>z</th><th>拥挤分</th></tr>'+rows+'</table>';
+  }
+
+  function hist(list){
+    var html=list.map(function(x){
+      var cls=x.hit?'yes':'no';
+      return '<div class="'+cls+'"><b>'+esc(x.period)+'期</b><em>'+esc(x.actual||'—')+'</em><small>排名 '+esc(x.rank||'-')+'/12<br>'+(x.hit?'Top3 命中':'Top3 未中')+'</small></div>';
+    }).join('');
+    $('hist').innerHTML=html;
+    var n=list.length, hit=list.filter(function(x){return x.hit;}).length;
+    var b3=list.filter(function(x){return x.avoid;}).length;
+    $('histline').innerHTML=n?('近 '+n+' 期：Top3 命中 <b>'+hit+'/'+n+'</b>，底层三只规避 <b>'+b3+'/'+n+'</b>；样本不足，只做记录。'):'还没有回检数据。';
+  }
+
+  function render(fz,sc,fallbackNote){
+    $('subline').innerHTML=fallbackNote||('第 '+esc(fz.period)+' 期冻结 · 最挤三肖与最冷三只');
+    $('frozenAt').textContent='冻结 '+esc(fz.frozenAt||'—');
+    var t3=fz.top3||[], b3=fz.bottom3||[];
+    $('top3').innerHTML=t3.map(function(z,i){return '<div class="zpill"><b>'+esc(z)+'</b><span>Top'+(i+1)+'</span></div>';}).join('');
+    $('bottom3').innerHTML=b3.map(function(z,i){return '<div class="zpill small"><b>'+esc(z)+'</b><span>最冷 '+(i+1)+'</span></div>';}).join('');
+    var top=fz.top||{};
+    $('layerline').innerHTML='分层第一：九肖 <b>'+esc(top.nine||'—')+'</b> · 核心杀 <b>'+esc(top.kill3||'—')+'</b> · 首推 <b>'+esc(top.first||'—')+'</b>；冻结源 '+esc(fz.source||'—');
+    $('denline').textContent='九肖 '+num(fz.nineSites)+' · 杀三 '+num(fz.killSites)+' · 首推 '+num(fz.firstSites);
+    $('tablebox').innerHTML=table(fz);
+    if(sc&&sc.rank){
+      $('hitbox').innerHTML='回检：实开 <b>'+esc(sc.specialNum||'')+' '+esc(sc.actual)+'</b>，拥挤分排第 <b>'+esc(sc.rank)+'</b>/12，'
+        +'Top3 '+(sc.top3Hit?'<b>命中</b>':'未中')+'，Top1 '+(sc.top1Hit?'<b>命中</b>':'未中')
+        +'，底层三只 '+(sc.bottom3Avoid?'<b>规避成功</b>':'<b>被开中</b>')+'（'+esc(sc.scoredAt||'')+'）';
+    }else{
+      $('hitbox').textContent='本期尚未开奖，冻结只做记录，不产生方向。';
+    }
+  }
+
+  function boot(){
+    Promise.all([get('data/current-recommend.json').catch(function(){return null;}),
+                 get('data/crowd-validation.json').catch(function(){return null;})]).then(function(r){
+      var cur=r[0], val=r[1];
+      var base=cur&&cur.period?parseInt(cur.period,10):329;
+      function tryP(i){
+        if(i>4) return Promise.resolve(null);
+        var p=base-i;
+        return Promise.all([race(get('data/crowd-freeze-'+p+'.json'),9000).catch(function(){return null;}),
+                            get('data/crowd-score-'+p+'.json').catch(function(){return null;})]).then(function(x){
+          if(!x[0]) return tryP(i+1);
+          return {fz:x[0],sc:x[1],i:i};
+        });
+      }
+      tryP(0).then(function(x){
+        if(!x){ $('subline').textContent='还没有任何冻结数据'; return; }
+        var note=(x.i>0)?('第 '+esc(base)+' 期尚未冻结，显示最近冻结的第 '+esc(x.fz.period)+' 期'):'';
+        render(x.fz,x.sc,note);
+        // 近 5 期
+        var list=[];
+        var ps=[]; for(var k=0;k<5;k++) ps.push(parseInt(x.fz.period,10)-k);
+        var jobs=ps.map(function(p){
+          return Promise.all([get('data/crowd-freeze-'+p+'.json').catch(function(){return null;}),
+                              get('data/crowd-score-'+p+'.json').catch(function(){return null;})]);
+        });
+        Promise.all(jobs).then(function(items){
+          items.forEach(function(it){
+            if(!it[0]||!it[1]) return;
+            list.push({period:it[1].period,actual:it[1].actual,rank:it[1].rank,hit:it[1].top3Hit,avoid:it[1].bottom3Avoid});
+          });
+          hist(list);
+        });
+      });
+    }).catch(function(){ $('subline').textContent='数据读取失败，检查网络后刷新'; });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
