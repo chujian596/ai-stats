@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.75';
+var APP_VER = 'v59.76';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4665,7 +4665,7 @@ function refreshFlySummary(){
 }
 // ==== 飞单目录美化：同金额合并成一行「各X」，可选尾数凑整 ====
 // 开关 flyRoundOn 存在 localStorage；档位 flyRoundSel 默认 5
-function flyRoundOn(){ try{ var v = localStorage.getItem(sk('flyRoundOn')); return v === null ? true : v === '1'; }catch(e){ return true; } }
+function flyRoundOn(){ try{ var v = localStorage.getItem(sk('flyRoundOn')); return v === '1'; }catch(e){ return false; } }
 function flyRoundSel(){ return '10'; }
 function getFlyRoundMode(){ return flyRoundOn() ? flyRoundSel() : ''; }
 function setFlyRoundOn(on){
@@ -4689,7 +4689,11 @@ function setFlyRoundMode(m){
 function flyShowAmt(amt, modeOverride){
   const n = Number(amt) || 0;
   if(n <= 0.01) return 0;
-  return Math.max(10, Math.round((n + 1e-9) / 10) * 10);
+  // 凑整开关关掉时按原额显示：375 不能变成 380
+  const mode = (modeOverride !== undefined) ? modeOverride : getFlyRoundMode();
+  const step = Number(mode) || 0;
+  if(!(step > 0)) return n;
+  return Math.max(step, Math.round((n + 1e-9) / step) * step);
 }
 // 按显示金额分组：金额一样的号码并成一行
 function buildFlyGroups(lines, useFull){
@@ -6234,6 +6238,14 @@ function normalizeComboLine(line){
   // 交给下面的复式展开逻辑；否则只会匹配前 3 个号码、把“复式:”留给 parseLine 报无法识别。
   var _prods = '二中二|三中二|三中三';
   var _numGroup = '\\d{1,2}(?:' + SEP + '\\d{1,2})+';
+  // 复式写在号码或产品后面：12,24,48,02,14,26,18,42, 三中三:03,27,39 复式各组1
+  // 这种写法原来只吃掉前3个号码，剩下“复式”报无法识别；这里把产品前后的号码合并成一整块复式。
+  line = line.replace(/^((?:香港|澳门|澳|港)\s*)?(.*?)(二中二|三中二|三中三)\s*[:：]?\s*(.*?)\s*复(?:式)?\s*(?:各|每)?\s*(?:组)?\s*([0-9]+(?:\.[0-9]+)?)\s*$/, function(m, hk, pre, prod, tail, amt){
+    if(/(二中二|三中二|三中三)/.test(pre) || /(二中二|三中二|三中三)/.test(tail)) return m;
+    var nums = (String(pre || '') + ' ' + String(tail || '')).match(/\d{1,2}/g) || [];
+    if(nums.length < 4) return m;
+    return (hk || '') + prod + '复式' + nums.join(' ') + ' 各组' + amt;
+  });
   line = line.replace(new RegExp('复(?:式)?\\s*(' + _prods + ')\\s*[:：]?\\s*(' + _numGroup + ')', 'g'), function(m, prod, nums){
     return prod + '复式' + (nums.match(/\d{1,2}/g) || []).join(' ') + ' ';
   });
@@ -9172,7 +9184,7 @@ function doSave(overrideText){
   // 只在平特单肖带价后面紧跟组合玩法时拆行，拆完各自按自己的价算。
   text = text.replace(/(平(?:特)?[马蛇龙兔虎牛鼠猪狗鸡猴羊]\s*(?:各\s*)?[0-9]+(?:\.[0-9]+)?)\s*(?=(?:三中三|三中二|二中二))/g, '$1\n');
   text = text.replace(/(红波|蓝波|绿波)\s*(大|小)\s*(单|双)/g, '$1$3$2');
-  text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))/g, '\n');
+  text = text.replace(/\s+(?=(?:特号|特肖|特马|平特|平肖|连肖|二中二|三中二|三中三|红波|蓝波|绿波|合数|头|尾))(?![^\n]*复式)/g, '\n');
   // 生肖之间的空格先合并，避免「特肖 龙 虎 兔 各100」被当成单个肖而漏问
   var _zchars0 = '马蛇龙兔虎牛鼠猪狗鸡猴羊';
   text = text.replace(new RegExp('(['+_zchars0+'])\\s+(?=['+_zchars0+'])', 'g'), '$1');
@@ -9548,6 +9560,11 @@ function doSave(overrideText){
   } else {
     // 混合订单：一行里用逗号/顿号写多注单时拆成多行（先保护"二中二:02,15"里的号码逗号）
     var _mix = text, _keepMix = [];
+    // 整行复式先整体保护：号码在前、产品/复式在后的写法（12,24,…, 三中三:03,27,39 复式各组1）
+    // 若不保护，前面的裸号码会被逗号拆成8行，剩下的「复式」再报无法识别。
+    _mix = _mix.replace(/[^\n]*?(?:(?:二中二|三中二|三中三)[^\n]*?复式|复式[^\n]*?(?:二中二|三中二|三中三))[^\n]*/g, function(m){
+      _keepMix.push(String(m).trim()); return '§' + (_keepMix.length-1) + '§';
+    });
     // 组合码里的逗号必须保护：带冒号的，以及「二中二03,10」这种没写冒号的裸组合
     _mix = _mix.replace(/(二中二|三中三|三中二)[ \t]*:?[ \t]*([0-9]{2}(?:[ \t]*,[ \t]*[0-9]{2}){1,2})/g, function(m, p, n){ _keepMix.push(m); return '§' + (_keepMix.length-1) + '§'; });
     // 纯号码列表后面的「各/每」要先保护：18,30,42各20 是一个号码组，
