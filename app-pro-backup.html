@@ -1122,7 +1122,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.32-Pro';
+var APP_VER = 'v60.33-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -6133,9 +6133,10 @@ function selfFlyRender(){
   var _sfx = selfFlyExtraOn();
   h += '<div style="font-size:11.5px;color:#666;line-height:1.5;margin:4px 0 6px">只记你自己向上家买的注额，<b>客户账一分不动</b>；倍数跟客户一模一样（特 47、平特 2/马 1.8、二三 60/20/600、连肖 4·10·30）。<br>' + hitLine + '</div>';
   // 关键开关：这笔手飞是不是已经在「已飞」里算过了
+  h += '<div style="font-size:11.5px;color:#1f2937;font-weight:700;margin:2px 0 5px">这笔手飞记进过「已飞」没有？<span style="font-weight:400;color:#888">（二选一，蓝框＝当前，不是两个功能）</span></div>';
   h += '<div style="display:flex;gap:5px;margin-bottom:8px">';
-  h += '<button onclick="setSelfFlyMode(false)" style="flex:1;padding:8px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid ' + (!_sfx?'#1d4ed8':'#ccc') + ';background:' + (!_sfx?'#eef4ff':'#fff') + ';color:' + (!_sfx?'#1d4ed8':'#666') + ';font-weight:' + (!_sfx?'700':'400') + '">已含在已飞里<br><span style="font-size:10px;color:' + (!_sfx?'#1d4ed8':'#999') + '">（默认，不重复扣）</span></button>';
-  h += '<button onclick="setSelfFlyMode(true)" style="flex:1;padding:8px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid ' + (_sfx?'#cf1322':'#ccc') + ';background:' + (_sfx?'#fef2f2':'#fff') + ';color:' + (_sfx?'#cf1322':'#666') + ';font-weight:' + (_sfx?'700':'400') + '">另外单独飞<br><span style="font-size:10px;color:' + (_sfx?'#cf1322':'#999') + '">（没记进已飞，才加减）</span></button>';
+  h += '<button onclick="setSelfFlyMode(false)" style="flex:1;padding:8px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid ' + (!_sfx?'#1d4ed8':'#ccc') + ';background:' + (!_sfx?'#eef4ff':'#fff') + ';color:' + (!_sfx?'#1d4ed8':'#666') + ';font-weight:' + (!_sfx?'700':'400') + '">' + (!_sfx?'● ':'○ ') + '记过了：已含在已飞里<br><span style="font-size:10px;color:' + (!_sfx?'#1d4ed8':'#999') + '">（默认，不再扣一次）</span></button>';
+  h += '<button onclick="setSelfFlyMode(true)" style="flex:1;padding:8px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid ' + (_sfx?'#cf1322':'#ccc') + ';background:' + (_sfx?'#fef2f2':'#fff') + ';color:' + (_sfx?'#cf1322':'#666') + ';font-weight:' + (_sfx?'700':'400') + '">' + (_sfx?'● ':'○ ') + '没记过：另外单独飞<br><span style="font-size:10px;color:' + (_sfx?'#cf1322':'#999') + '">（选这个才加减这笔钱）</span></button>';
   h += '</div>';
   h += '<div style="font-size:10.5px;color:#888;line-height:1.45;margin:-4px 0 8px">' + (_sfx ? '当前＝这笔手飞没进「已飞」，总账会再减本金、再加赔回。' : '当前＝这笔钱其实已经记进「已飞」里了（比如自己看中的号直接当已飞记），所以只做归属和敞口，不再扣一次。') + '</div>';
   h += '<div style="text-align:right;margin-bottom:4px"><span onclick="emExtraOpen()" style="font-size:12px;color:#b45309;cursor:pointer">二三多飞（客户单以外）›</span></div>';
