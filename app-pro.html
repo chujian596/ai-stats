@@ -5889,9 +5889,13 @@ function manualFlyDirHtml(){
   sf = sf.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
   em = em.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
   if(!sf.length && !em.length && !mh.length){
+    var _emOld = Number(flownPerPos['_em_total'] || 0);
     return '<div>'
       + '<div style="font-weight:700;font-size:12px;color:#333">额外飞单目录（本期）</div>'
-      + '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有额外飞单；点上面「+ 记一笔飞单」登记</div></div>';
+      + (_emOld > 0
+        ? '<div style="font-size:11px;color:#999;margin-top:2px">本期还没有手动批次明细；上方「已飞清单」里的「二中二/三中三合计 <b>' + _emOld.toFixed(0) + '</b> 元」就是之前登记的二三（旧版没存分组明细）。</div>'
+        : '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有额外飞单；点上面「+ 记一笔飞单」登记</div>')
+      + '</div>';
   }
   var sfTot = sf.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
   var emTot = em.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
