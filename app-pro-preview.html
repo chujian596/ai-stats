@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.34-Pro';
+var APP_VER = 'v60.35-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3201,6 +3201,7 @@ function renderSplitSide(){
   h += '<div style="display:flex;gap:3px;margin-bottom:3px">' + _bo('emExtraOpen()','二三多飞','border-color:#b45309;color:#b45309;font-weight:600') + _bo('confirmThisRoundFly()','确认飞单','border-color:#16a34a;color:#16a34a;font-weight:600') + '</div>';
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="autoFlyChk" ${autoFlyOn?'checked':''} onchange="autoFlyOn=this.checked;localStorage.setItem(sk('autoFlyOn'),autoFlyOn?'1':'0');localStorage.setItem(sk('emFlyOn'),autoFlyOn?'1':'0');afterFlyFlagChange();" style="width:16px;height:16px;margin-top:1px">（连/二/三）自动飞<br><span style="color:#999;font-size:11px">勾选直接默认连肖/二中二/三中三已飞（自行复制给上家）</span></label>`;
   h += `<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#666;margin-bottom:4px;cursor:pointer;line-height:1.4"><input type="checkbox" id="flyRoundChk" ${flyRoundOn()?'checked':''} onchange="setFlyRoundOn(this.checked)" style="width:16px;height:16px;margin-top:1px">金额凑整 <span style="white-space:nowrap;color:#cf1322;font-weight:700">10 元档</span><br><span style="color:#999;font-size:11px">每个号就近凑到 10 的倍数（34→30、36→40、3→10），飞出去只留零尾，不出现 5 元尾</span></label>`;
+  h += '<div style="font-size:10.5px;color:#6b7280;line-height:1.45;margin:2px 0 4px">已飞 = 自动飞 + 补录；手飞/多飞 是自己另外买的 → <a href="javascript:;" onclick="flyTermsHelp()" style="color:#1d4ed8;text-decoration:none">五个飞是什么？</a></div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
@@ -3645,7 +3646,7 @@ function selfFlyList(){
 }
 function selfFlySave(list){
   try{ localStorage.setItem(sk('selfFly'), JSON.stringify(list || [])); }catch(e){}
-}
+  try{ setTimeout(function(){ try{ renderAll(); }catch(e){} }, 0); }catch(e){} }
 function selfFlyPeriod(){
   var d = (typeof curShopDraw === 'function') ? curShopDraw() : null;
   return (d && (d.draw || d.period)) ? String(d.draw || d.period) : '';
@@ -3696,7 +3697,8 @@ function selfFlyBook(draw){
 function emExtraList(){
   try{ var a = JSON.parse(localStorage.getItem(sk('emExtra')) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; }
 }
-function emExtraSave(list){ try{ localStorage.setItem(sk('emExtra'), JSON.stringify(list || [])); }catch(e){} }
+function emExtraSave(list){ try{ localStorage.setItem(sk('emExtra'), JSON.stringify(list || [])); }catch(e){}
+  try{ setTimeout(function(){ try{ renderAll(); }catch(e){} }, 0); }catch(e){} }
 function emExtraRows(){
   var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
   return emExtraList().filter(function(r){ return (!p) || (String(r.p) === p); });
@@ -3758,7 +3760,9 @@ function pteExposureOfZod(z){
 function totalFlownReal(){
   let s = 0;
   const ks = new Set(Object.keys(flownReal).concat(Object.keys(flownPerPos)));
-  ks.forEach(k => { s += flownRealOf(k); });
+  ks.forEach(k => { if(k === '_em_total') return; s += flownRealOf(k); });
+  // 二三（含自动飞）统一走 flyBook，和飞单面板「已飞」用同一本账
+  try{ s += (flyBook(null).em || 0); }catch(e){}
   return s;
 }
 // 即飞产品开关：连肖/二中二/三中三是否每次自动复制
@@ -4893,6 +4897,15 @@ function afterFlyFlagChange(){
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
   try { window.scrollTo(0, _y); } catch(e){}
 }
+function flyTermsHelp(){
+  myAlert('五个"飞"一本账说明：\n\n' +
+    '① 自动飞：客户单里的连肖/二中二/三中三，勾了就当成已飞（金额跟着客户单走）。\n' +
+    '② 手动飞/手动登记：不是新飞单，是你已经付给上家、但系统没记的，贴清单补进"已飞"。\n' +
+    '③ 已飞：系统认定已经给付上家的钱 = ① + ②。\n' +
+    '④ 手飞（自己买）：客户账之外你自己买的特号/平特/连肖；默认"已含在已飞里"，不再扣一次，只算归属和敞口。\n' +
+    '⑤ 多飞（自己买的二三）：客户单以外你自己买的二中二/三中二/三中三，独立一笔，计入总飞和上家应付。\n\n' +
+    '对账只看一行：总单 － 已飞 － 多飞（＋上家赔回）＝ 你的净。');
+}
 function refreshFlySummary(){
   try {
     const total = grandOrderTotal();
@@ -5463,7 +5476,7 @@ function showAllFlyDir(){
   h += '</div>';
   // 手动插入飞单清单（贴进来两个数一行：号码 金额）—— 同属这张卡
   h += '<div style="margin-top:6px;border-top:1px dashed #ddd;padding-top:6px">'
-     + '<div style="font-size:10px;color:#666;font-weight:700;margin-bottom:2px">手动登记飞单清单</div>'
+     + '<div style="font-size:10px;color:#666;font-weight:700;margin-bottom:2px">补录已飞（贴已有清单，不是新飞单）</div>'
      + '<div style="font-size:10px;color:#999;line-height:1.5;margin-bottom:3px">用途：手上已有一份「号码 金额」清单時，整段贴进来一次性补登已飞（不用逐个点卡片）。<br>写法：<b style="color:#666">04 100</b>（一个号）／<b style="color:#666">22 34 各140</b>（多个号同额）／<b style="color:#666">平特虎 1000</b>／<b style="color:#666">连肖马蛇 400</b>／<b style="color:#666">二中二 500</b>。二三多飞请用上面「二三多飞」，别贴这里。</div>'
      + '<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:60px;border:1px solid #ddd;border-radius:6px;padding:5px;font-size:12px;box-sizing:border-box;resize:vertical" placeholder="22 140&#10;22 34 各140&#10;平特虎 1000&#10;连肖马蛇 400">' + esc(window._manualFlyBuf || '') + '</textarea>'
      + '<div style="display:flex;gap:5px;margin-top:4px">'
@@ -6138,6 +6151,23 @@ function selfFlyRender(){
   h += '<button onclick="setSelfFlyMode(true)" style="flex:1;padding:8px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid ' + (_sfx?'#cf1322':'#ccc') + ';background:' + (_sfx?'#fef2f2':'#fff') + ';color:' + (_sfx?'#cf1322':'#666') + ';font-weight:' + (_sfx?'700':'400') + '">' + (_sfx?'● ':'○ ') + '没记过：另外单独飞<br><span style="font-size:10px;color:' + (_sfx?'#cf1322':'#999') + '">（选这个才加减这笔钱）</span></button>';
   h += '</div>';
   h += '<div style="font-size:10.5px;color:#888;line-height:1.45;margin:-4px 0 8px">' + (_sfx ? '当前＝这笔手飞没进「已飞」，总账会再减本金、再加赔回。' : '当前＝这笔钱其实已经记进「已飞」里了（比如自己看中的号直接当已飞记），所以只做归属和敞口，不再扣一次。') + '</div>';
+  if(!_sfx){
+    var _cov = 0;
+    rows.forEach(function(r){
+      var c = String(r.code||'');
+      try{
+        if(/^\d{1,2}$/.test(c)) _cov += Number(flownRealOf(c) || 0);
+        else if(c.indexOf('平特') === 0) _cov += Number(flownRealOf(c) || 0);
+        else if(c.indexOf('连肖') === 0) _cov += Number(flownRealOf(c) || 0);
+      }catch(e){}
+    });
+    var _sfSum = rows.reduce(function(t,r){ return t + Number(r.amt||0); }, 0);
+    if(_sfSum > 0 && _cov < _sfSum - 0.5){
+      h += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:7px 10px;margin:0 0 8px;font-size:12px;color:#b45309;line-height:1.5">'
+        + '⚠ 已飞里只找到 <b>' + Math.round(_cov) + '</b> 元，手飞共 <b>' + Math.round(_sfSum) + '</b> 元。差额如果还没记进已飞，请改选下面的「没记过：另外单独飞」，否则总飞会少算这笔。'
+        + '</div>';
+    }
+  }
   h += '<div style="text-align:right;margin-bottom:4px"><span onclick="emExtraOpen()" style="font-size:12px;color:#b45309;cursor:pointer">二三多飞（客户单以外）›</span></div>';
   h += '<div style="font-size:11.5px;color:#999;margin-bottom:4px">这里记特号/平特/连肖（自己买的）。二三玩法请走上面「二三多飞」。</div>';
   h += '<textarea id="selfFlyInput" placeholder="一行一笔，例如：\n04 各100\n平特牛 300\n三中三 42.44.40 5" style="width:100%;height:74px;border:2px solid #1d4ed8;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box"></textarea>';
