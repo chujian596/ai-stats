@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.45-Pro';
+var APP_VER = 'v60.47-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5055,6 +5055,7 @@ function setFlyClusterOn(on){
   try{ localStorage.setItem(sk('flyClusterOn'), on ? '1' : '0'); }catch(e){}
   try{ afterFlyFlagChange(); }catch(e){}
   try{ showAllFlyDir(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
 }
 function setFlyClusterP(k, v){
   let n = parseFloat(v); if(!(n > 0)) return;
@@ -5421,12 +5422,12 @@ var _flyDirOpen = true;      // 飞单总目录默认打开
 var _flyEditOpen = false;    // 已飞清单默认收起
 function flyDirBtnToggle(){
   var box = document.getElementById('sideSplitResult');
-  if(!box || !box.innerHTML.trim()){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} return; }
+  if(!box || !box.innerHTML.trim()){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} _keepFlyPanel(); return; }
   var body = document.getElementById('flyDirBody');
-  if(!body){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} return; }
-  toggleFlyDir();
+  if(!body){ _flyDirOpen = true; try{ showAllFlyDir(); }catch(e){} _keepFlyPanel(); return; }
+  toggleFlyDir(); _keepFlyPanel();
 }
-function toggleFlyDir(){ _flyDirOpen = !_flyDirOpen; showAllFlyDir(); }
+function toggleFlyDir(){ _flyDirOpen = !_flyDirOpen; showAllFlyDir(); _keepFlyPanel(); }
 function toggleFlyEdit(){ _flyEditOpen = !_flyEditOpen; showAllFlyDir(); }
 function showAllFlyDir(){
   currentFlyGroup = null;
@@ -6484,6 +6485,7 @@ function copySelectedFly(silent){
   }catch(e){
     if(!silent) myAlert('复制失败：' + e.message);
   }
+  try{ _keepFlyPanel(); }catch(e){}
 }
 
 // 实际飞单重算：把「特号已飞记账」按当前订单（走录入词库解析出的每号注额）重算一遍。
@@ -6898,6 +6900,7 @@ function confirmThisRoundFly(){
     _t2 += '\n（凑整前 ' + _lc.orig.toFixed(0) + '，' + (_lc.grand > _lc.orig ? '多飞 ' : '省 ') + Math.abs(_lc.grand - _lc.orig).toFixed(0) + '）';
   }
   myAlert(_t2);
+  try{ _keepFlyPanel(); }catch(e){}
   });
 }
 
@@ -6928,6 +6931,7 @@ function resetFlown(){
   try { if(typeof calcSplit === 'function') calcSplit(); } catch(e){}
   try { if(typeof renderRisk === 'function') renderRisk(); } catch(e){}
   myAlert('已重置，飞单统计将从头计算');
+  try{ _keepFlyPanel(); }catch(e){}
   });
 }
 function sideSplitCalc(){
@@ -14041,7 +14045,7 @@ function myAlert(msg){
     + '<button id="maOk" style="width:100%;padding:14px;border:none;background:#fff;font-size:16px;color:#7c3aed;font-weight:700">确定</button>'
     + '</div></div>';
   document.body.appendChild(ov);
-  ov.querySelector('#maOk').onclick = () => ov.remove();
+  ov.querySelector('#maOk').onclick = () => { ov.remove(); try{ if(window._flyPin) _keepFlyPanel(); }catch(e){} };
 }
 // app 内确认框（不显示网址），用法：myConfirm('确定?', () => { 确定后做的事 })
 function myConfirm(msg, cb){
