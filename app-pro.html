@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.70-Pro</title>
+<title>录单Pro · v60.71-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.70-Pro';
+var APP_VER = 'v60.71-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -3436,9 +3436,16 @@ function upSettleData(){
     else if(k.indexOf('平特') === 0) detail.pte.push({code:k + note, amt:amt});
     else if(k.indexOf('连肖') === 0) detail.lx.push({code:k + note, amt:amt});
   });
-  // 二三：客户单自动飞整笔 ＋ 客户单以外多飞，逐笔列
-  var emBase = Math.max(0, Number(FB.em||0) - emxCost);
+  // 二三：客户单自动飞整笔 ＋ 手飞二三 ＋ 客户单以外多飞，逐笔列
+  var manualEm = [];
+  try{ manualEm = manualEmBatchRows(); }catch(e){ manualEm = []; }
+  var manualEmSum = manualEm.reduce(function(s,r){ return s + (Number(r.amt)||0); }, 0);
+  var emBase = Math.max(0, Number(FB.em||0) - emxCost - manualEmSum);
   if(emBase > 0) detail.em.push({code:'二三合计（客户单整笔飞）', amt:emBase});
+  manualEm.forEach(function(r){
+    var _t = String(r.txt||'').replace(/\s+/g,' ').slice(0, 40);
+    detail.em.push({code:'手飞二三' + (_t ? '·' + _t : ''), amt:Number(r.amt)||0});
+  });
   emxRows.forEach(function(r){ detail.em.push({code:'多飞·' + String(r.code||''), amt:Number(r.amt||0)}); });
   // 明细差额兜底：自动飞/补录没有逐条键的，补一行「其他」，保证明细合计＝汇总飞额
   ['spec','pte','lx','em'].forEach(function(k){
@@ -3937,8 +3944,12 @@ function flyBook(draw){
       activeOrders().forEach(function(o){ eachUniqueOrderCode(o, function(c, a){
         if(/^(二中二|三中二|三中三):/.test(c)) _emCust += a;
       }); });
-      if(R.em > 0 || autoFlyOn) R.em = Math.max(R.em, _emCust + R.emx);
+      var _manualEmB = 0;
+      try{ _manualEmB = Number(manualEmExtraAmt() || 0); }catch(e){ _manualEmB = 0; }
+      var _emNeed = _emCust + R.emx + _manualEmB;
+      if(R.em > 0 || autoFlyOn || _manualEmB > 0) R.em = Math.max(R.em, _emNeed);
       R.emBack += R.emxBack;
+      try{ R.emBack += manualEmWinBack(d); }catch(e){}
     }catch(e){}
     if(drawZ && d && d.specialNum){
       var sp = String(d.specialNum).padStart(2, '0');
@@ -4059,9 +4070,36 @@ function manualEmBatchRows(){
     (r.batch || []).forEach(function(x){
       if(String(x.k) === '_em_total') amt += Number(x.amt) || 0;
     });
-    if(amt > 0) out.push({id:r.id, amt:amt, txt:String(r.txt || '')});
+    if(amt > 0) out.push({id:r.id, amt:amt, txt:String(r.txt || ''), plan:(r.plan || []).slice(0, 80)});
   });
   return out;
+}
+// 手飞二三的命中赔回：按登记批次里的逐行记录解析出三中三号码，再按开奖算赔回。
+// 老记录没有 plan 的不猜；plan 合计与批次金额对不上也不猜，宁可少算不重复算。
+function manualEmWinBack(draw){
+  if(!draw || !draw.regularNums) return 0;
+  var rows = manualEmBatchRows(), back = 0;
+  rows.forEach(function(r){
+    var ps = (r.plan || []).filter(function(x){ return String(x.k) === '_em_total'; });
+    if(!ps.length) return;
+    var psum = ps.reduce(function(s,x){ return s + (Number(x.amt)||0); }, 0);
+    if(Math.abs(psum - Number(r.amt||0)) > 0.01) return;
+    ps.forEach(function(x){
+      var line = String(x.line || '').trim(); if(!line) return;
+      var pr = null;
+      try{ pr = parseLine(normalizeComboLine(line)); }catch(e){ pr = null; }
+      if(!pr || !pr.codes || !pr.codes.length) return;
+      var ems = pr.codes.filter(function(c){ return /^(二中二|三中二|三中三):/.test(String(c)); });
+      if(!ems.length) return;
+      var amt = Number(x.amt) || 0;
+      var unit = pr.isPer ? Number(pr.price) : (amt / Math.max(1, ems.length));
+      ems.forEach(function(c){
+        var m = 0; try{ m = codeWinMult(c, draw); }catch(e){ m = 0; }
+        if(m > 0) back += unit * m;
+      });
+    });
+  });
+  return back;
 }
 // 单号净敞口：中奖要赔客户多少 −（系统已飞 + 手飞）×赔率。负=超买（中奖反而赚），正=自留（中奖要自己赔）
 function netExposureOfNum(n){
@@ -12036,6 +12074,13 @@ function renderOrdersList(){
         });
       });
     }
+    // 手飞二三是真付上家的钱，命中赔回也要算，不能只算客户单里的三中三
+    var _manualBack0 = 0;
+    try{ _manualBack0 = manualEmWinBack(_drawO); }catch(e){ _manualBack0 = 0; }
+    if(_manualBack0 > 0){
+      flyBackTotal += _manualBack0;
+      flyBackLines.push('手飞二三  ' + _manualBack0.toFixed(0));
+    }
   } catch(e){}
   const flyNet = flyBackTotal - flyOutTotal;
   // 构建复制文本
@@ -12181,6 +12226,10 @@ function renderOrdersList(){
   if(cpEm || emLineBlocks(_listO).length){
     copyTail += '\n  二·三中三 ' + _ff(cpEm) + '：';
     emLineBlocks(_listO).forEach(function(b){ copyTail += '\n    ' + b.t; });
+    _manualEmRows.forEach(function(r){
+      var _t = String(r.txt||'').replace(/\s+/g,' ').slice(0, 50);
+      copyTail += '\n    手飞二三' + (_t ? ' ' + _t : '') + ' ＝ ' + _ff(r.amt);
+    });
     if(_emxUp.cost > 0) copyTail += '\n    ＋二三多飞（客户单以外）' + _ff(_emxUp.cost) + (_emxUp.back>0 ? '，赔回 +' + _ff(_emxUp.back) : '');
   } else copyTail += '\n  二·三中三：无';
   // 明细合计与飞走合计对平校验
@@ -12207,7 +12256,10 @@ function renderOrdersList(){
     _br += '\n  特码 ' + _ff(cpSp) + (_spN ? '（' + _spN + ' 个号）' : '');
     _br += '\n  平特 ' + _ff(cpPte) + ((upItems.pte || []).length ? '（' + upItems.pte.length + ' 项）' : '');
     _br += '\n  连肖 ' + _ff(cpLx) + ((upItems.lx || []).length ? '（' + upItems.lx.length + ' 项）' : '');
-    _br += '\n  二/三 ' + _ff(cpEm) + (_emN ? '（' + _emN + ' 组）' : '');
+    var _emMeta = [];
+    if(_emN) _emMeta.push(_emN + ' 组');
+    if(_manualEmOut > 0) _emMeta.push('手飞 ' + _ff(_manualEmOut));
+    _br += '\n  二/三 ' + _ff(cpEm) + (_emMeta.length ? '（' + _emMeta.join('＋') + '）' : '');
     if(_hasG(gRound)) _br += '\n记账原额 ' + _ff(gBase) + ' ＋ 凑整 ' + _ff(gRound);
     if(rebateOn && flyOutTotal > 0) _br += '\n返水 ' + _ff(rebateAmt) + '（另计）';
     if(_drawO){
@@ -12372,7 +12424,7 @@ function renderOrdersList(){
     upSections = _sec('特码', _meta(spN, spPaid, spDue), spBody)
       + _sec('平特', _meta(pteN, ptePaid, pteDue), pteBody)
       + _sec('连肖', _meta(lxN, lxSum, 0), lxBody)
-      + _sec('二·三中三', (emG ? (emG + ' 组' + (emExtraN ? '＋多飞' + emExtraN + '笔' : '') + ' · ') : '') + '实付 ' + emPaid.toFixed(0), emBody)
+      + _sec('二·三中三', (emG ? (emG + ' 组' + (emExtraN ? '＋多飞' + emExtraN + '笔' : '') + (_manualEmOut>0 ? '＋手飞' + _manualEmOut.toFixed(0) : '') + ' · ') : '') + '实付 ' + emPaid.toFixed(0), emBody)
       + '<div style="font-size:10px;color:#999">＊= 待飞（应飞还没实付）；红字 = 命中</div>';
   } catch(e){}
   h += '<div style="font-size:11px;line-height:1.7">' + upSections + '</div>';
