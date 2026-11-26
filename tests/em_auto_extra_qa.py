@@ -20,13 +20,15 @@ with sync_playwright() as p:
       var off=getThisRoundFly(); var offEm=off.lines.filter(l=>l.code==='二中二/三中三合计')[0];
       autoFlyOn=true; syncAutoEmFly();
       var on=getThisRoundFly(); var onEm=on.lines.filter(l=>l.code==='二中二/三中三合计')[0];
-      return {offAmt:offEm.amt, offFull:offEm.full, onAmt:onEm.amt, onDone:onEm.done, onFull:onEm.full, booked:flownPerPos['_em_total'], totalOff:off.totalFly, totalOn:on.totalFly};
+      var L=catLedgerData();
+      return {offAmt:offEm.amt, offFull:offEm.full, onAmt:onEm.amt, onDone:onEm.done, onFull:onEm.full, booked:flownPerPos['_em_total'], totalOff:off.totalFly, totalOn:on.totalFly, catEm:L.em.flown, catPend:L.em.pending};
     }""")
     ok('自动飞关闭：二三待飞=380', r['offAmt']==380 and r['offFull']==380, r)
     ok('自动飞打开：二三待飞=0', r['onAmt']==0, r)
     ok('自动飞打开：二三已飞=380', r['onDone']==380 and r['onFull']==380, r)
     ok('自动飞打开：落账 _em_total=380', r['booked']==380, r)
     ok('自动飞开关前后总飞都=380', r['totalOff']==380 and r['totalOn']==380, r)
+    ok('分账总表二三已飞与飞单页一致，不再自留', r['catEm']==r['onDone'] and r['catPend']==0, r)
     ok('无 JS 报错', not errs, errs)
     b.close()
 
