@@ -1121,7 +1121,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.50-Pro';
+var APP_VER = 'v60.53-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -2537,6 +2537,7 @@ function saveOrders(){
     saveHKGlobalOrders();
     saveMacauGlobalOrders();
     try { syncAutoEmFly(); } catch(e){}
+    try { syncAutoLxFly(); } catch(e){}
     return true;
   }
   catch(e){ storageOK = false; logErr('save_orders', e && e.message ? e.message : String(e)); return false; }
@@ -2568,6 +2569,30 @@ function syncAutoEmFly(){
     }
   }catch(e){ try{ logErr('sync_em_fly', e && e.message ? e.message : String(e)); }catch(_e){} }
 }
+
+// 连肖「自动飞」也要真落账：否则计划里当已飞、已飞清单/总飞里却没有
+function syncAutoLxFly(){
+  try{
+    if(!autoFlyOn || !(lxFlyAmt > 0)) return;
+    var z = String(lxFlyName || '').replace(/[0-9连]+$/,'');
+    if(!z) return;
+    var list = (typeof shop !== 'undefined' && shop === 'B') ? (hkOrders || []) : (orders || []);
+    var has = 0;
+    list.forEach(function(o){ if(!o) return; eachUniqueOrderCode(o, function(c, amt){
+      if(c.indexOf('连肖') === 0 && c.replace('连肖','') === z) has += Number(amt) || 0;
+    }); });
+    if(!(has > 0)) return;
+    var key = '连肖' + z;
+    var v = Math.min(lxFlyAmt, has);
+    if(typeof flownReal === 'undefined' || !flownReal) flownReal = {};
+    if(typeof flownPerPos === 'undefined' || !flownPerPos) flownPerPos = {};
+    if(Number(flownReal[key]||0) === v && Number(flownPerPos[key]||0) === v) return;
+    flownReal[key] = v; flownPerPos[key] = v;
+    localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal));
+    localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos));
+  }catch(e){ try{ logErr('sync_lx_fly', e && e.message ? e.message : String(e)); }catch(_e){} }
+}
+
 // ===== 离线/弱网：订单待补记队列（本地存储，按店隔离） =====
 function _pendingKey(){ return sk('order_pending_v1'); }
 function _readPendingOrders(){
@@ -3216,6 +3241,7 @@ function renderSplitSide(){
   h += '<div style="font-size:10.5px;color:#6b7280;line-height:1.45;margin:2px 0 4px">已飞 = 自动飞 + 补录；手飞/多飞 是自己另外买的 → <a href="javascript:;" onclick="flyTermsHelp()" style="color:#1d4ed8;text-decoration:none">五个飞是什么？</a></div>';
   h += '<div id="sideSplitSummary" style="font-size:14px;margin-bottom:4px"></div>';
   h += '<div id="sideSplitResult" style="font-size:16px;border:1px solid #eee;border-radius:6px;overflow-x:hidden"></div>';
+  h += '<div id="catLedgerBox" style="margin:6px 0"></div>';
   h += '<div id="sideCustPay" style="margin-top:6px;font-size:11px"></div>';
   h += '</div>'; // close splitBody
   box.innerHTML = h;
@@ -3223,6 +3249,118 @@ function renderSplitSide(){
   // 侧栏一渲染就把阈值和飞单总额填上，不用等用户改数字
   try { refreshFlySummary(); } catch(e){}
   try { renderHKFlyBox(); } catch(e){}
+  try { renderCatLedger(); } catch(e){}
+}
+
+var _catOpen = '';
+function catOfCode(c){
+  if(/^\d{1,2}$/.test(c)) return 'spec';
+  if(c.indexOf('平特') === 0) return 'pte';
+  if(c.indexOf('连肖') === 0) return 'lx';
+  if(/^(二中二|三中二|三中三):/.test(c)) return 'em';
+  return '';
+}
+function catLedgerData(){
+  var L = {
+    spec:{bet:0, flown:0, pending:0, rows:{}},
+    pte: {bet:0, flown:0, pending:0, rows:{}},
+    lx:  {bet:0, flown:0, pending:0, rows:{}},
+    em:  {bet:0, flown:0, pending:0, rows:{}}
+  };
+  var add = function(cat, key, bet){
+    var k = (cat === 'spec') ? String(parseInt(key,10)).padStart(2,'0') : key;
+    var r = L[cat].rows[k] || (L[cat].rows[k] = {key:k, bet:0, flown:0, pending:0});
+    r.bet += Number(bet)||0;
+    L[cat].bet += Number(bet)||0;
+  };
+  try{
+    activeOrders().forEach(function(o){
+      eachUniqueOrderCode(o, function(c, amt){
+        var cat = catOfCode(c);
+        if(!cat) return;
+        if(cat === 'spec') add('spec', c, amt);
+        else if(cat === 'pte') add('pte', c.replace('平特',''), amt);
+        else if(cat === 'lx') add('lx', c.replace('连肖',''), amt);
+        else add('em', c, amt);
+      });
+    });
+  }catch(e){}
+  // 已飞：特/平/连逐条取实际；二三目前只有合计，按注额分摊到组合（仅展示用）
+  Object.keys(L.spec.rows).forEach(function(k){ var v = flownRealOf(k)||0; L.spec.rows[k].flown = v; L.spec.flown += v; });
+  Object.keys(L.pte.rows).forEach(function(k){ var v = flownRealOf('平特'+k)||0; L.pte.rows[k].flown = v; L.pte.flown += v; });
+  Object.keys(L.lx.rows).forEach(function(k){ var v = flownRealOf('连肖'+k)||0; L.lx.rows[k].flown = v; L.lx.flown += v; });
+  var emFly = 0;
+  try{ emFly = flownRealOf('_em_total')||0; }catch(e){}
+  L.em.flown = emFly;
+  if(emFly > 0 && L.em.bet > 0){
+    Object.keys(L.em.rows).forEach(function(k){ L.em.rows[k].flown = emFly * (L.em.rows[k].bet / L.em.bet); });
+  }
+  // 待飞：直接取本轮飞单行（二三只有 _em_total 一条，记在类合计）
+  try{
+    getThisRoundFly().lines.forEach(function(l){
+      var c = l.code, amt = Number(l.amt)||0;
+      if(c === '_em_total'){ L.em.pending += amt; return; }
+      var cat = catOfCode(c);
+      if(cat === 'spec'){ var k=String(parseInt(c,10)).padStart(2,'0'); if(L.spec.rows[k]) L.spec.rows[k].pending += amt; L.spec.pending += amt; }
+      else if(cat === 'pte'){ var z=c.replace('平特',''); if(L.pte.rows[z]) L.pte.rows[z].pending += amt; L.pte.pending += amt; }
+      else if(cat === 'lx'){ var zz=c.replace('连肖',''); if(L.lx.rows[zz]) L.lx.rows[zz].pending += amt; L.lx.pending += amt; }
+    });
+  }catch(e){}
+  return L;
+}
+function toggleCatLedger(cat){
+  _catOpen = (_catOpen === cat) ? '' : cat;
+  try{ renderCatLedger(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
+}
+function renderCatLedger(){
+  var box = document.getElementById('catLedgerBox');
+  if(!box) return;
+  var L = catLedgerData();
+  var names = {spec:'特号/特肖', pte:'平特', lx:'连肖', em:'二三'};
+  var order = ['spec','pte','lx','em'];
+  var tot = {bet:0, flown:0, pending:0, keep:0};
+  order.forEach(function(c){ tot.bet += L[c].bet; tot.flown += L[c].flown; tot.pending += L[c].pending; });
+  tot.keep = tot.bet - tot.flown;
+  var h = '<div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;overflow:hidden">';
+  h += '<div style="padding:6px 8px;background:#f8fafc;font-weight:700;font-size:12px;color:#333;display:flex;justify-content:space-between"><span>分账总表（四类）</span><span style="font-weight:400;color:#999;font-size:10px">点行看目录</span></div>';
+  h += '<div style="display:flex;padding:3px 8px;font-size:10px;color:#999;border-bottom:1px solid #f1f5f9"><span style="flex:1.6">类别</span><span style="flex:1;text-align:right">收单</span><span style="flex:1;text-align:right">已飞</span><span style="flex:1;text-align:right">待飞</span><span style="flex:1;text-align:right">自留</span></div>';
+  order.forEach(function(c){
+    var x = L[c]; var keep = x.bet - x.flown;
+    h += '<div onclick="toggleCatLedger(\''+c+'\')" style="display:flex;padding:5px 8px;font-size:11px;border-bottom:1px solid #f5f5f5;cursor:pointer;align-items:center">'
+      + '<span style="flex:1.6;color:#333;font-weight:600">' + (_catOpen===c?'▼ ':'▶ ') + names[c] + '</span>'
+      + '<span style="flex:1;text-align:right">' + x.bet.toFixed(0) + '</span>'
+      + '<span style="flex:1;text-align:right;color:#cf1322">' + x.flown.toFixed(0) + '</span>'
+      + '<span style="flex:1;text-align:right;color:#b45309">' + x.pending.toFixed(0) + '</span>'
+      + '<span style="flex:1;text-align:right;font-weight:700;color:' + (keep<0?'#cf1322':'#166534') + '">' + keep.toFixed(0) + '</span></div>';
+  });
+  h += '<div style="display:flex;padding:5px 8px;font-size:11px;background:#fafafa;font-weight:700">'
+    + '<span style="flex:1.6">合计</span><span style="flex:1;text-align:right">' + tot.bet.toFixed(0) + '</span>'
+    + '<span style="flex:1;text-align:right;color:#cf1322">' + tot.flown.toFixed(0) + '</span>'
+    + '<span style="flex:1;text-align:right;color:#b45309">' + tot.pending.toFixed(0) + '</span>'
+    + '<span style="flex:1;text-align:right;color:' + (tot.keep<0?'#cf1322':'#166534') + '">' + tot.keep.toFixed(0) + '</span></div>';
+  if(_catOpen){
+    var x = L[_catOpen]; var rows = Object.keys(x.rows).map(function(k){ return x.rows[k]; }).filter(function(r){ return r.bet>0 || r.flown>0; }).sort(function(a,b){ return b.bet-a.bet; });
+    h += '<div style="border-top:1px dashed #ddd;padding:6px 8px;background:#fcfcfc">';
+    h += '<div style="font-size:11px;font-weight:700;color:#333;margin-bottom:3px">' + (_catOpen==='em'?'二三（二/三中二/三中三）':names[_catOpen]) + '目录　收 ' + x.bet.toFixed(0) + ' ｜ 已飞 ' + x.flown.toFixed(0) + ' ｜ 待飞 ' + x.pending.toFixed(0) + ' ｜ 自留 ' + (x.bet-x.flown).toFixed(0) + '</div>';
+    if(_catOpen === 'em') h += '<div style="font-size:10px;color:#999;margin-bottom:3px">二三已飞目前是合并一笔，目录里的已飞按注额分摊，仅作查看；改额/撤销仍在「已飞清单」的「二中二/三中三合计」。</div>';
+    if(!rows.length){ h += '<div style="font-size:11px;color:#bbb">本期该类别还没有订单</div>'; }
+    else {
+      h += '<div style="display:flex;font-size:10px;color:#999;border-bottom:1px solid #f1f5f9;padding-bottom:2px"><span style="flex:1.8">标的</span><span style="flex:1;text-align:right">注额</span><span style="flex:1;text-align:right">已飞</span><span style="flex:1;text-align:right">待飞</span><span style="flex:1;text-align:right">自留</span></div>';
+      rows.forEach(function(r){
+        var keep = r.bet - r.flown;
+        h += '<div style="display:flex;font-size:11px;padding:2px 0;border-bottom:1px solid #f7f7f7">'
+          + '<span style="flex:1.8;color:#333;word-break:break-all">' + (_catOpen==='pte'?'平特':_catOpen==='lx'?'连肖':_catOpen==='em'?r.key.replace(':',' '):'') + r.key + '</span>'
+          + '<span style="flex:1;text-align:right">' + r.bet.toFixed(0) + '</span>'
+          + '<span style="flex:1;text-align:right;color:#cf1322">' + r.flown.toFixed(0) + '</span>'
+          + '<span style="flex:1;text-align:right;color:#b45309">' + r.pending.toFixed(0) + '</span>'
+          + '<span style="flex:1;text-align:right;color:' + (keep<0?'#cf1322':'#166534') + '">' + keep.toFixed(0) + '</span></div>';
+      });
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  box.innerHTML = h;
 }
 
 function renderSideCustPay(){
@@ -4263,6 +4401,7 @@ function grandOrderTotal(){
 // 阈值改动后实时重算（防连续按键抖动）
 var _flyThTimer = null;
 function flyThChanged(){
+  try { syncAutoLxFly(); } catch(e){}
   clearTimeout(_flyThTimer);
   _flyThTimer = setTimeout(function(){
     try { renderRisk(); } catch(e){}
@@ -4919,6 +5058,7 @@ function _keepFlyPanel(){
 function autoFlyToggleBtn(){
   autoFlyOn = !autoFlyOn;
   try{ localStorage.setItem(sk('autoFlyOn'), autoFlyOn?'1':'0'); localStorage.setItem(sk('emFlyOn'), autoFlyOn?'1':'0'); }catch(e){}
+  try{ syncAutoLxFly(); }catch(e){}
   try{ afterFlyFlagChange(); }catch(e){}
   try{ renderSplitSide(); }catch(e){}
   try{ renderSideCustPay(); }catch(e){}
@@ -5435,7 +5575,8 @@ function showAllFlyDir(){
   const box = document.getElementById('sideSplitResult');
   if(!box) return;
   if(r.lines.length === 0){
-    box.innerHTML = '<div style="padding:12px;color:#999;text-align:center;font-size:14px">暂无飞单订单</div>';
+    box.innerHTML = '<div style="padding:12px;color:#999;text-align:center;font-size:14px">暂无飞单订单</div>'
+      + '<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin-top:8px">' + manualFlyDirHtml() + '</div>';
     return;
   }
   const pending = r.lines.filter(l => l.amt > 0.01);
@@ -5531,6 +5672,8 @@ function showAllFlyDir(){
   // 补录已飞已移到统一区按钮（manualFlyOpen 浮层），目录卡不再重复放输入框
     h += flyEditListHtml(true);
   h += '</div>'; // 关闭 flyDirBody：三块同属一张卡
+  // 手飞/多飞目录独立成卡，不随「飞单目录」折叠，进飞单页就能看到
+  h += '<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:8px 10px;margin-top:8px">' + manualFlyDirHtml() + '</div>';
   box.innerHTML = h;
 }
 
@@ -5553,6 +5696,43 @@ function copyFlownList(){
     catch(e){ myAlert('复制失败，请手动记录'); }
     ta.remove();
   }
+}
+
+
+// 手飞/多飞目录：这两本是自己另买的账，不进「已飞清单」，单独列清楚（可逐条删）
+function manualFlyDirHtml(){
+  var sf = [], em = [];
+  try{ sf = selfFlyRows() || []; }catch(e){}
+  try{ em = emExtraRows() || []; }catch(e){}
+  sf = sf.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
+  em = em.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
+  if(!sf.length && !em.length){
+    return '<div>'
+      + '<div style="font-weight:700;font-size:12px;color:#333">手飞 / 多飞目录（本期）</div>'
+      + '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有手飞/多飞记录；点上面「手飞·自己买」「多飞·自己买的二三」登记</div></div>';
+  }
+  var sfTot = sf.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
+  var emTot = em.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
+  var h = '<div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>手飞 / 多飞目录（本期）</span><span style="font-weight:400;color:#999;font-size:10px">' + (sf.length + em.length) + ' 笔</span></div>';
+  h += '<div style="font-size:10px;color:#999;margin:2px 0 4px">这两本是自己另买的，不进「已飞清单」，也不抵客户赔付；命中才有上家赔回。</div>';
+  var _row = function(r, kind){
+    var ts = String(r.ts || '');
+    var delFn = kind === 'self' ? 'selfFlyDel' : 'emExtraDel';
+    return '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'
+      + '<span style="flex:0 0 auto;font-size:10px;padding:1px 4px;border-radius:3px;background:' + (kind === 'self' ? '#eef4ff;color:#1d4ed8' : '#fff7ed;color:#b45309') + '">' + (kind === 'self' ? '手飞' : '多飞') + '</span>'
+      + '<span style="flex:1;min-width:0;color:#333;word-break:break-all">' + String(r.code || '') + '</span>'
+      + '<span style="white-space:nowrap;color:#333;font-weight:700">' + Number(r.amt || 0).toFixed(0) + ' 元</span>'
+      + '<button onclick="' + delFn + '(\'' + ts + '\')" style="border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:1px 7px;font-size:10px">删</button>'
+      + '</div>';
+  };
+  if(sf.length) sf.forEach(function(r){ h += _row(r, 'self'); });
+  if(em.length) em.forEach(function(r){ h += _row(r, 'em'); });
+  h += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-top:4px">'
+     + '<span>手飞 ' + sfTot.toFixed(0) + ' ｜ 多飞 ' + emTot.toFixed(0) + '</span>'
+     + '<span style="font-weight:700;color:#cf1322">合计 ' + (sfTot + emTot).toFixed(0) + ' 元</span></div>';
+  h += '</div>';
+  return h;
 }
 
 // 已飞清单：逐条可改额或撤销（飞单统计页 / 结算明细共用）
@@ -6325,6 +6505,8 @@ function selfFlyDel(ts){
   selfFlySave(list); selfFlyRender();
   try{ renderSideCustPay(); }catch(e){}
   try{ renderRisk(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
+  try{ setTimeout(function(){ try{ _keepFlyPanel(); }catch(e){} }, 60); }catch(e){}
 }
 function selfFlyClear(){
   myConfirm('清空本期手飞？\n\n只删手飞台账，客户单和已飞都不动。', function(){
@@ -6462,6 +6644,8 @@ function emExtraDel(ts){
   try{ renderRisk(); }catch(e){}
   try{ renderPaySide(); }catch(e){}
   try{ refreshFlySummary(); }catch(e){}
+  try{ _keepFlyPanel(); }catch(e){}
+  try{ setTimeout(function(){ try{ _keepFlyPanel(); }catch(e){} }, 60); }catch(e){}
 }
 function emExtraClear(){
   myConfirm('清空本期二三多飞？\n\n只删这笔额外飞单，客户单和已飞都不动。', function(){
@@ -12602,6 +12786,37 @@ function renderRisk(){
     h += `</div>`;
     // 对冲分析用自留平特金额（扣飞单后）
     const keptPteEntries = pteEntries.map(([z,a])=>[z, pteFlyTakeAll > 0 ? Math.min(a, pteFlyTakeAll) : a]).filter(([,a])=>a > 0);
+    // 真实连肖持仓：按客户单里的连肖组合逐条列（飞出去的也留档，能看出已飞/自留）
+    const lxComboMap = {};
+    _riskList.forEach(o => {
+      eachUniqueOrderCode(o, function(c, amt){
+        if(c.startsWith('连肖')){
+          const zod = c.replace('连肖','');
+          if(zod) lxComboMap[zod] = (lxComboMap[zod]||0) + amt;
+        }
+      });
+    });
+    const lxCombos = Object.keys(lxComboMap).map(function(z){
+      const amt = lxComboMap[z];
+      let recFly = flownRealOf('连肖'+z);
+      if(!(recFly > 0) && typeof autoFlyOn !== 'undefined' && autoFlyOn && lxFlyAmt > 0 && ('连肖'+z) === ('连肖'+(lxFlyName||''))) recFly = lxFlyAmt;
+      const flown = Math.min(amt, recFly);
+      const kept = Math.max(0, amt - flown);
+      return { z: z, amt: amt, flown: flown, kept: kept, odds: lxOddsOf(z), payout: kept * lxOddsOf(z) };
+    });
+    if(lxCombos.length){
+      const lxTot = lxCombos.reduce(function(s,x){ return s + x.amt; }, 0);
+      const lxFlyTot = lxCombos.reduce(function(s,x){ return s + x.flown; }, 0);
+      const lxKeptTot = lxCombos.reduce(function(s,x){ return s + x.kept; }, 0);
+      const lxWorst = lxCombos.reduce(function(s,x){ return s + x.payout; }, 0);
+      h += `<div onclick="var e=document.getElementById('lxHoldBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖持仓（${lxCombos.length}组） ▶</div>`;
+      h += `<div id="lxHoldBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.7">`;
+      lxCombos.forEach(function(x){
+        h += `<div>连肖<b>${x.z}</b>：收 ${x.amt.toFixed(0)} ｜ 已飞 ${x.flown.toFixed(0)} ｜ 自留 ${x.kept.toFixed(0)} ｜ 全中赔 ${x.payout.toFixed(0)}</div>`;
+      });
+      h += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #fcd34d">合计 收 <b>${lxTot.toFixed(0)}</b> ｜ 已飞 <b>${lxFlyTot.toFixed(0)}</b> ｜ 自留 <b>${lxKeptTot.toFixed(0)}</b> ｜ 最坏全中赔 <b style="color:#cf1322">${lxWorst.toFixed(0)}</b></div>`;
+      h += `</div>`;
+    }
     if(keptPteEntries.length >= 2){
       const pteTotal = keptPteEntries.reduce((s,[,a])=>s+a,0);
       // 连肖最多4个，超过4个只取赔付最大的4个
@@ -12630,7 +12845,7 @@ function renderRisk(){
       const lianName = hedgeZodiacs.map(x=>x.z).join('');
       // 自动同步：连肖飞单有金额但没生肖名时，用当前推荐补上
       if(lxFlyAmt > 0 && !lxFlyName){ lxFlyName = lianName; try{localStorage.setItem(sk('lxFlyName'), lxFlyName)}catch(e){} }
-      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">连肖持仓 ▶</div>`;
+      h += `<div onclick="var e=document.getElementById('riskHedgeBox');e.style.display=e.style.display==='none'?'':'none'" style="padding:8px 12px;background:#f5f5f5;color:#333;border:1px solid #eee;border-radius:8px;margin:8px 0 4px;cursor:pointer;font-size:14px;font-weight:700">平特转连肖对冲（参考） ▶</div>`;
       h += `<div id="riskHedgeBox" style="display:none;background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;font-size:13px;line-height:1.6">`;
       const pteListStr = keptPteEntries.map(([z,a])=>z+a.toFixed(0)).join('、');
       h += `<div>持仓${totalCount}个肖：${pteListStr}</div>`;
