@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.65-Pro</title>
+<title>录单Pro · v60.66-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.65-Pro';
+var APP_VER = 'v60.66-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -2559,8 +2559,8 @@ function syncAutoEmFly(){
     try{ emTotal += Number(emExtraBook(curShopDraw()).cost || 0); }catch(e){}
     if(typeof flownReal === 'undefined' || !flownReal) flownReal = {};
     if(typeof flownPerPos === 'undefined' || !flownPerPos) flownPerPos = {};
-    // 手动登记过二三时 _em_total 可能比客户单多，保留大的，不能把手工那笔冲掉
-    try{ var _bookedEm = Number(flownPerPos['_em_total'] || 0); if(_bookedEm > emTotal) emTotal = _bookedEm; }catch(e){}
+    // 只把真实手动二三并进来，并清掉旧版遗留的 380：没有多飞就是 375
+    try{ emTotal += manualEmExtraAmt(); }catch(e){}
     var old = Number(flownReal['_em_total'] || 0);
     if(emTotal > 0){
       /* 幂等：每次都按当前二三收单重算，不会叠减 */
@@ -4041,6 +4041,22 @@ function emExtraBook(draw){
   }catch(e){}
   R.net = R.back - R.cost;
   return R;
+}
+// 本期手动登记里真正落账的二三（补飞/多飞）合计；只认 applied 且未撤销的批次。
+// 用来区分「真实多飞」和旧版遗留的 _em_total=380 脏值，避免把 375 又显示成 380。
+function manualEmExtraAmt(){
+  var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
+  var h = [], s = 0;
+  try{ h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ return 0; }
+  h.forEach(function(r){
+    if(!r || r.undone) return;
+    if(r.applied !== true) return;
+    if(p && r.p && String(r.p) !== String(p)) return;
+    (r.batch || []).forEach(function(x){
+      if(String(x.k) === '_em_total') s += Number(x.amt) || 0;
+    });
+  });
+  return s;
 }
 // 单号净敞口：中奖要赔客户多少 −（系统已飞 + 手飞）×赔率。负=超买（中奖反而赚），正=自留（中奖要自己赔）
 function netExposureOfNum(n){
@@ -6743,8 +6759,8 @@ function getThisRoundFly(){
     }); });
     // 客户单以外自己多飞的二三也算总飞；否则自动飞一开，380 会变 375
     try{ emTotal += Number(emExtraBook(curShopDraw()).cost || 0); }catch(e){}
-    // 手工登记过的 _em_total 比客户单大时保留，避免被自动飞覆盖掉
-    try{ var _bookedEm = Number((flownPerPos || {})['_em_total'] || 0); if(_bookedEm > emTotal) emTotal = _bookedEm; }catch(e){}
+    // 只把真实手动二三并进来；旧版遗留的 _em_total=380 不能再把 375 顶成 380
+    try{ emTotal += manualEmExtraAmt(); }catch(e){}
     if(emTotal > 0){
       totalFly += emTotal;
       if(autoFlyOn){
@@ -6754,7 +6770,15 @@ function getThisRoundFly(){
         lines.push({code: '二中二/三中三合计', amt: 0, full: emTotal, done: done, auto: true});
       } else {
         let done = flownPaidOf('_em_total');
-        // 已飞锁定：不因调档/补单清零
+        // 旧版脏值 380 大于客户单 375 且没有真实多飞：不能当成已飞，按 0 待飞并清掉
+        if(done > emTotal + 0.01){
+          done = 0;
+          try{
+            delete flownPerPos['_em_total']; delete flownReal['_em_total'];
+            localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos));
+            localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal));
+          }catch(e){}
+        }
         const round = Math.max(0, emTotal - done);
         already += done;
         lines.push({code: '二中二/三中三合计', amt: round, full: emTotal, done: done, auto: false});
