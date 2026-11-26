@@ -894,6 +894,7 @@
       <div class="section">
         <div class="summary-chips" id="changeChips"></div>
         <div class="stats" id="changeStats"></div>
+        <div class="subcard" id="changeLockSeg" style="margin:12px 0"></div>
         <div class="change-tools">
           <div class="change-row">
             <div class="period-box"><label for="changePeriod">期号</label><select id="changePeriod"></select></div>
@@ -1120,7 +1121,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.23</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze / crowd-score</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.24</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze / crowd-score</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -2312,6 +2313,72 @@
     });
     return base.filter(function(e){return allowed[changeGroupKey(e)];});
   }
+  // ===== 封存→补充 时段改料统计（18:00 封存版 → 20:00 补充版；纯描述统计，不计入逐站成绩排名）=====
+  function snapBucket(snap){
+    if(!snap) return 'unknown';
+    var m=String(snap).match(/-(\d{2})(\d{2})\.json$/);
+    if(!m) return 'unknown';
+    var h=parseInt(m[1],10);
+    if(h===9) return 'morning';
+    if(h===15) return 'afternoon';
+    if(h===18) return 'lock';
+    if(h===19||h===20) return 'supplement';
+    if(h===22) return 'post';
+    return 'early';
+  }
+  function isLockSeg(e){ return snapBucket(e.from_snapshot)==='lock' && snapBucket(e.to_snapshot)==='supplement'; }
+  function renderChangeLockSeg(es){
+    var box=$('changeLockSeg'); if(!box) return;
+    var seg=(es||[]).filter(isLockSeg);
+    if(!seg.length){ box.innerHTML=''; return; }
+    var stations={}, addCnt={}, remCnt={}, addSt={}, remSt={}, verdict={}, byPeriod={};
+    seg.forEach(function(e){
+      var sid=changeSiteKey(e); stations[sid]=1;
+      var v=e.result?(e.result.verdict||'无差异'):'待检';
+      verdict[v]=(verdict[v]||0)+1;
+      (e.added||[]).forEach(function(z){ addCnt[z]=(addCnt[z]||0)+1; (addSt[z]=addSt[z]||{})[sid]=1; });
+      (e.removed||[]).forEach(function(z){ remCnt[z]=(remCnt[z]||0)+1; (remSt[z]=remSt[z]||{})[sid]=1; });
+      var bp=byPeriod[e.period]=byPeriod[e.period]||{entries:[],draw:e.result?e.result.drawZod:null};
+      bp.entries.push(e);
+    });
+    var addTotal=Object.keys(addCnt).reduce(function(a,z){return a+addCnt[z];},0);
+    var remTotal=Object.keys(remCnt).reduce(function(a,z){return a+remCnt[z];},0);
+    var zodiacs=ZOD.map(function(z){return {z:z,a:addCnt[z]||0,r:remCnt[z]||0,ast:Object.keys(addSt[z]||{}).length,rst:Object.keys(remSt[z]||{}).length};})
+      .filter(function(x){return x.a||x.r;})
+      .sort(function(x,y){return (y.a+y.r)-(x.a+x.r)||ZOD.indexOf(x.z)-ZOD.indexOf(y.z);});
+    var periods=Object.keys(byPeriod).sort(function(a,b){return +b-+a;});
+    var vOrder=['改掉特肖','改补命中','前后都中','前后都错','改错','改对','无差异','待检'];
+    var vChips=vOrder.filter(function(v){return verdict[v];}).map(function(v){
+      var k=changeKind({result:{verdict:v}});
+      var cls=k==='right'?'g':(k==='wrong'?'r':'');
+      return '<span class="chip '+cls+'">'+esc(v)+' '+verdict[v]+'</span>';
+    }).join('');
+    var rows=zodiacs.map(function(x){
+      return '<tr><td>'+esc(x.z)+'</td><td>'+x.a+'</td><td>'+x.ast+' 站</td><td>'+x.r+'</td><td>'+x.rst+' 站</td></tr>';
+    }).join('');
+    var zTable=zodiacs.length?'<table class="crowd-table"><tr><th>生肖</th><th>补进次</th><th>补进站</th><th>换掉次</th><th>换掉站</th></tr>'+rows+'</table>':'';
+    var dayHtml=periods.map(function(p){
+      var bp=byPeriod[p];
+      var drows=bp.entries.map(function(e){
+        var v=e.result?(e.result.verdict||'无差异'):'待检';
+        var add=(e.added||[]).map(function(z){return '<span class="change-chip add">'+esc(z)+'</span>';}).join('');
+        var rem=(e.removed||[]).map(function(z){return '<span class="change-chip rem">'+esc(z)+'</span>';}).join('');
+        return '<div class="change-trace-row"><time>'+esc(changeSiteName(e))+'</time><span>'+(add?('补进 '+add):'')+(rem?('换掉 '+rem):'')+'</span><em>'+esc(v)+'</em></div>';
+      }).join('');
+      return '<details class="change-trace"><summary>第'+esc(p)+'期'+(bp.draw?' · 特肖 '+esc(bp.draw):'')+' · '+bp.entries.length+' 条</summary>'+drows+'</details>';
+    }).join('');
+    box.innerHTML=
+      '<h3>封存→补充 时段改料 <span class="subhint">18:00 封存版 → 20:00 补充版 · 纯描述统计，不计入逐站成绩排名</span></h3>'+
+      '<div class="stats">'+
+        statCard('时段改料',seg.length,'条','封存→补充段')+
+        statCard('涉及站点',Object.keys(stations).length,'站','')+
+        statCard('补进生肖次',addTotal,'次','')+
+        statCard('换掉生肖次',remTotal,'次','')+
+      '</div>'+
+      (vChips?'<div class="summary-chips" style="margin:8px 0">'+vChips+'</div>':'')+
+      zTable+dayHtml+
+      '<div class="subhint" style="margin-top:8px">'+(periods.length<20?'样本不足（'+periods.length+' 期），只做记录、不下定论。':'累计 '+periods.length+' 期记录。')+' 时段统计不回改主榜；回检成绩仍以晚版台账为准。</div>';
+  }
   function changeAgg(es,curMap){
     var map={};
     changeGroupList(es,curMap).forEach(function(g){
@@ -2393,6 +2460,7 @@
       statCard('当前改对',activeRight,'组','只计当前版本')+
       statCard('当前改错',activeWrong,'组','只计当前版本')+
       statCard('当前待检',noBaseline&&!activePending?'—':activePending,'组',noBaseline&&!activePending?'无早版基线':'等开奖补检');
+    renderChangeLockSeg(es);
     // 维度 / 状态
     var dc=$('changeDimChips');
     dc.innerHTML=CHANGE_DIMS.map(function(d){return '<button type="button" class="filter-chip'+(S.c.dim===d[0]?' on':'')+'" data-d="'+d[0]+'">'+d[1]+'</button>';}).join('');
