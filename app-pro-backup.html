@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.62-Pro</title>
+<title>录单Pro · v60.63-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1123,7 +1123,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.62-Pro';
+var APP_VER = 'v60.63-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -5219,7 +5219,20 @@ function manualFlyOpen(){
   wrap.onclick=function(e){ if(e.target===wrap) manualFlyClose(); };
   var h='<div style="background:#fff;width:100%;max-height:88vh;overflow-y:auto;border-radius:14px 14px 0 0;padding:14px 14px 18px">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">记一笔飞单</b><span onclick="manualFlyClose()" style="font-size:20px;color:#999;padding:0 6px;cursor:pointer">×</span></div>';
-  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">特号、平特、连肖、二三都在这个框里，跟录单写法一样。<br><b>04 100</b>／<b>22 34 各140</b>／<b>平特虎 1000</b>／<b>连肖马蛇 400</b><br><b>三中三 17-20-25 各10</b>；多组可先写一行<b>三中三各组10</b>，下面直接贴 <b>17-20-25</b>、<b>07-15-36</b>。<br><span style="color:#999">二三也按已付上家记；多组可先写一行「三中三各组10」再贴组合，不用每组重复写。</span></div>';
+  h+='<div style="font-size:12px;color:#666;line-height:1.6;margin:6px 0 8px">特号、平特、连肖、二三都在这个框里，跟录单写法一样。<br><b>04 100</b>／<b>22 34 各140</b>／<b>平特虎 1000</b>／<b>连肖马蛇 400</b><br><b>三中三 17-20-25 各10</b>；多组可先写一行<b>三中三各组10</b>，下面直接贴 <b>17-20-25</b>、<b>07-15-36</b>。<br><span style="color:#999">二三也按已付上家记；多组可先写一行「三中三各组10」再贴组合，不用每组重复写。<br>平特/连肖多个肖：只写 100 是共 100；要每个 100 请写「平马猪 各100」。</span></div>';
+  try{
+    var _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
+    var _rows = _hist.filter(function(r){ return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod()); }).slice(0, 4);
+    if(_rows.length){
+      h+='<div style="margin:-2px 0 6px;font-size:11px;color:#999;line-height:1.7"><b style="color:#666">手动登记记录</b>（撤销只减这一笔，不动其它号）</div>';
+      _rows.forEach(function(r){
+        var _t = ''; try{ _t = new Date(r.t).toTimeString().slice(0,5); }catch(e){}
+        var _one = String(r.txt || '').split(/\n+/)[0].slice(0, 16).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; });
+        h+='<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:' + (r.undone ? '#bbb' : '#666') + ';padding:2px 0"><span>' + _t + '　' + _one + '　' + (r.cnt || 0) + '笔/' + Number(r.sum || 0).toFixed(0) + '元</span>' + (r.undone ? '<span>已撤销</span>' : '<a href="javascript:;" onclick="undoManualBatchById(' + r.id + ')" style="color:#cf1322;text-decoration:none;white-space:nowrap">撤销</a>') + '</div>';
+      });
+      h+='<div style="height:1px;background:#eee;margin:5px 0 7px"></div>';
+    }
+  }catch(e){}
   h+='<textarea id="manualFlyInput" oninput="window._manualFlyBuf=this.value" style="width:100%;height:110px;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:14px;box-sizing:border-box" placeholder="三中三 17-20-25 各10&#10;22 140&#10;平特虎 1000&#10;连肖马蛇 400">'+(window._manualFlyBuf||'')+'</textarea>';
   h+='<div style="display:flex;gap:6px;margin-top:8px">';
   h+='<button onclick="applyManualFlyList()" style="flex:2;background:#111;color:#fff;border:0;border-radius:8px;padding:11px;font-size:15px;font-weight:700">记入已飞</button>';
@@ -5864,23 +5877,29 @@ function copyFlownList(){
 }
 
 
-// 手飞/多飞目录：这两本是自己另买的账，不进「已飞清单」，单独列清楚（可逐条删）
+// 手飞/多飞/手动登记目录：自己另买的账单独列清楚（可逐条删）
 function manualFlyDirHtml(){
-  var sf = [], em = [];
+  var sf = [], em = [], mh = [];
   try{ sf = selfFlyRows() || []; }catch(e){}
   try{ em = emExtraRows() || []; }catch(e){}
+  try{
+    var _h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
+    mh = _h.filter(function(r){ return !r.p || !selfFlyPeriod() || String(r.p) === String(selfFlyPeriod()); }).slice(0, 8);
+  }catch(e){ mh = []; }
   sf = sf.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
   em = em.slice().sort(function(a,b){ return Number(b.ts||0)-Number(a.ts||0); });
-  if(!sf.length && !em.length){
+  if(!sf.length && !em.length && !mh.length){
     return '<div>'
       + '<div style="font-weight:700;font-size:12px;color:#333">额外飞单目录（本期）</div>'
       + '<div style="font-size:11px;color:#bbb;margin-top:2px">本期还没有额外飞单；点上面「+ 记一笔飞单」登记</div></div>';
   }
   var sfTot = sf.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
   var emTot = em.reduce(function(s,r){ return s + Number(r.amt||0); }, 0);
+  var mhTot = mh.filter(function(r){ return !r.undone; }).reduce(function(s,r){ return s + Number(r.sum||0); }, 0);
   var h = '<div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>额外飞单目录（本期）</span><span style="font-weight:400;color:#999;font-size:10px">' + (sf.length + em.length) + ' 笔</span></div>';
-  h += '<div style="font-size:10px;color:#999;margin:2px 0 4px">这两本是自己另买的，不进「已飞清单」，也不抵客户赔付；命中才有上家赔回。</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:#333"><span>额外飞单目录（本期）</span><span style="font-weight:400;color:#999;font-size:10px">' + (sf.length + em.length + mh.length) + ' 笔</span></div>';
+  h += '<div style="font-size:10px;color:#999;margin:2px 0 4px">手飞/多飞是自己另买的账；「+记一笔飞单」的每笔明细也列在这里（已计入上方已飞）。点「明细」看这笔飞了哪些号。</div>';
+  var _esc = function(t){ return String(t || '').replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); };
   var _row = function(r, kind){
     var ts = String(r.ts || '');
     var delFn = kind === 'self' ? 'selfFlyDel' : 'emExtraDel';
@@ -5893,14 +5912,45 @@ function manualFlyDirHtml(){
   };
   if(sf.length) sf.forEach(function(r){ h += _row(r, 'self'); });
   if(em.length) em.forEach(function(r){ h += _row(r, 'em'); });
+  mh.forEach(function(r){
+    var _t = ''; try{ _t = new Date(r.t).toTimeString().slice(0,5); }catch(e){}
+    var _one = _esc(String(r.txt || '').split(/\n+/).join(' / ').slice(0, 80));
+    h += '<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f5f5;font-size:12px;opacity:' + (r.undone ? '.45' : '1') + '">'
+      + '<span style="flex:0 0 auto;font-size:10px;padding:1px 4px;border-radius:3px;background:#f3e8ff;color:#7e22ce">手动</span>'
+      + '<span style="flex:1;min-width:0;color:#333;word-break:break-all">' + _t + '　' + _one + '　<span style="color:#999;font-size:10px">' + (r.cnt || 0) + '笔</span></span>'
+      + '<span style="white-space:nowrap;color:#333;font-weight:700">' + Number(r.sum || 0).toFixed(0) + ' 元</span>'
+      + (r.undone ? '<span style="color:#bbb;font-size:10px;white-space:nowrap">已撤销</span>' : '<button onclick="manualBatchDetail(' + r.id + ')" style="border:1px solid #999;color:#666;background:#fff;border-radius:4px;padding:1px 6px;font-size:10px">明细</button><button onclick="undoManualBatchById(' + r.id + ')" style="border:1px solid #cf1322;color:#cf1322;background:#fff;border-radius:4px;padding:1px 6px;font-size:10px">撤销</button>')
+      + '</div>';
+  });
   h += '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;margin-top:4px">'
-     + '<span>手飞 ' + sfTot.toFixed(0) + ' ｜ 多飞 ' + emTot.toFixed(0) + '</span>'
-     + '<span style="font-weight:700;color:#cf1322">合计 ' + (sfTot + emTot).toFixed(0) + ' 元</span></div>';
+     + '<span>手飞 ' + sfTot.toFixed(0) + ' ｜ 多飞 ' + emTot.toFixed(0) + ' ｜ 手动 ' + mhTot.toFixed(0) + '</span>'
+     + '<span style="font-weight:700;color:#cf1322">合计 ' + (sfTot + emTot + mhTot).toFixed(0) + ' 元</span></div>';
   h += '</div>';
   return h;
 }
 
-// 已飞清单：逐条可改额或撤销（飞单统计页 / 结算明细共用）
+function manualBatchDetail(id){
+  var _h = [];
+  try{ _h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ _h = []; }
+  var r = null;
+  _h.forEach(function(x){ if(String(x.id) === String(id)) r = x; });
+  if(!r){ myAlert('找不到这笔登记'); return; }
+  var _t = ''; try{ _t = new Date(r.t).toLocaleString('zh-CN'); }catch(e){}
+  var lines = String(r.txt || '').split(/\n+/).filter(Boolean);
+  var plan = r.plan || [];
+  var groups = {}, order = [];
+  plan.forEach(function(x){
+    var l = String(x.line || '(未标行)');
+    if(!groups[l]){ groups[l] = []; order.push(l); }
+    groups[l].push(x);
+  });
+  var body = order.map(function(l){
+    var xs = groups[l], t = 0; xs.forEach(function(x){ t += x.amt; });
+    return l + '\n  → ' + xs.map(function(x){ return (x.k === '_em_total' ? '二三合计' : x.k) + ' ' + x.amt.toFixed(2); }).join('、') + '（共 ' + t.toFixed(2) + ' 元）';
+  }).join('\n\n');
+  myAlert('手动登记 ' + _t + '\n' + (r.cnt || 0) + ' 笔 / ' + Number(r.sum || 0).toFixed(2) + ' 元\n\n' + (body || lines.join('\n')) + (r.undone ? '\n\n这笔已撤销' : ''));
+}
+
 function flyEditListHtml(embedded){
   var out = '';
   var _cnt = Object.keys(flownPerPos).filter(function(k){ return (flownPerPos[k]||0) > 0; }).length;
@@ -5972,12 +6022,12 @@ function _flyKeyOf(code){
   if(code.indexOf('平特') === 0 || code.indexOf('连肖') === 0) return code;
   return null;
 }
-function _flyAddAmt(key, amt){
+function _flyAddAmt(key, amt, line){
   if(!(amt > 0)) return;
   flownPerPos[key] = (flownPerPos[key] || 0) + amt;
   flownReal[key] = (flownReal[key] || 0) + flyShowAmt(amt);
   // 记本次新增，登记后弹窗逐条回显「加了多少 / 累计多少」，翻倍能立刻看见
-  try { if(window._flyAddLog) window._flyAddLog.push({key: key, amt: amt, now: flownPerPos[key]}); } catch(e){}
+  try { if(window._flyAddLog) window._flyAddLog.push({key: key, amt: amt, now: flownPerPos[key], line: String(line || '')}); } catch(e){}
 }
 
 // 按手动清单登记已飞：先走录入词库（parseLine），认不了再退回老的「号码 金额」
@@ -5986,15 +6036,85 @@ function applyManualFlyList(){
   const el = document.getElementById('manualFlyInput');
   const txt = ((el && el.value) || window._manualFlyBuf || '').trim();
   if(!txt){ myAlert('先把清单贴进输入框'); return; }
-  // 防误触：同一份清单 10 分钟内重复提交＝叠加，会翻倍；先确认再登记
+  const dry = _applyManualFlyCore(txt, el, true);
+  if(!dry || dry.cnt === 0){
+    myAlert('没认出来。可写：\n22 140\n22 34 各140\n平特虎 1000\n连肖马蛇 400\n三中三 17-20-25 各10' + (dry && dry.bad && dry.bad.length ? '\n\n没认出的行：\n' + dry.bad.slice(0,5).join('\n') : ''));
+    return;
+  }
+  if(dry.bad && dry.bad.length){
+    myAlert('有 ' + dry.bad.length + ' 行没认出来，本次一分钱都没登记（输入框内容原样保留）：\n\n' + dry.bad.slice(0,8).join('\n') + (dry.bad.length > 8 ? '\n…' : '') + '\n\n可写：连肖马蛇 400 / 马蛇各300 / 平特虎 1000 / 22 140 / 二中二 500');
+    return;
+  }
+  var _groups = {}, _order = [];
+  (dry.plan || []).forEach(function(x){
+    var l = String(x.line || '(未标行)').slice(0, 40);
+    if(!_groups[l]){ _groups[l] = []; _order.push(l); }
+    _groups[l].push(x);
+  });
+  var _pl = _order.slice(0, 12).map(function(l){
+    var xs = _groups[l], t = 0;
+    xs.forEach(function(x){ t += x.amt; });
+    return '  ' + l + '\n     → ' + xs.map(function(x){ return (x.k === '_em_total' ? '二三合计' : x.k) + ' ' + x.amt.toFixed(0); }).join('、') + '（共 ' + t.toFixed(0) + ' 元）';
+  });
+  var _more = _order.length > 12 ? '\n  …共 ' + _order.length + ' 行 / ' + dry.cnt + ' 笔' : '';
+  var _dup = '';
   try {
     if(_manualLastSubmit && _manualLastSubmit.txt === txt && (Date.now() - _manualLastSubmit.t) < 600000){
-      var _ago = Math.round((Date.now() - _manualLastSubmit.t) / 1000);
-      myConfirm('这份清单刚刚登记过（合计 ' + _manualLastSubmit.sum + ' 元，' + _ago + ' 秒前）。\n\n再登记一次是叠加，金额会翻倍。确定还要再登记一遍吗？', function(){ _applyManualFlyCore(txt, el); });
-      return;
+      _dup = '\n\n注意：这份清单 ' + Math.round((Date.now() - _manualLastSubmit.t) / 1000) + ' 秒前刚登记过，再确认会翻倍。';
     }
   } catch(e){}
-  _applyManualFlyCore(txt, el);
+  myConfirm('将登记 ' + dry.cnt + ' 笔，合计 ' + dry.sum.toFixed(0) + ' 元\n\n' + _pl.join('\n') + _more + _dup + '\n\n确认登记？', function(){
+    _applyManualFlyCore(txt, el);
+  });
+}
+function _undoBatchNow(b){
+  b.batch.forEach(function(x){
+    var k = x.k, a = Number(x.amt) || 0; if(!k || !(a > 0)) return;
+    var per = Number(flownPerPos[k] || 0) - a;
+    var real = Number(flownReal[k] || 0) - flyShowAmt(a);
+    if(per > 0.01) flownPerPos[k] = per; else delete flownPerPos[k];
+    if(real > 0.01) flownReal[k] = real; else delete flownReal[k];
+  });
+  try{ localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); }catch(e){}
+  try{ localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); }catch(e){}
+  try{
+    var _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || [];
+    _hist.forEach(function(r){ if(String(r.id) === String(b.id)) r.undone = true; });
+    localStorage.setItem(sk('manualFlyHistory'), JSON.stringify(_hist));
+  }catch(e){}
+  try{
+    var _last = JSON.parse(localStorage.getItem(sk('manualLastBatch')) || 'null');
+    if(_last && String(_last.id) === String(b.id)) localStorage.removeItem(sk('manualLastBatch'));
+  }catch(e){}
+  _manualLastSubmit = null;
+  try{ afterFlyFlagChange(); }catch(e){}
+  try{ refreshFlySummary(); }catch(e){}
+  try{ renderSplitSide(); }catch(e){}
+  try{ manualFlyOpen(); }catch(e){}
+}
+
+function undoManualBatchById(id){
+  var _hist = [];
+  try{ _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ _hist = []; }
+  var b = null;
+  _hist.forEach(function(r){ if(String(r.id) === String(id)) b = r; });
+  if(!b){ myAlert('找不到这笔登记'); return; }
+  if(b.undone){ myAlert('这笔已经撤销过了'); return; }
+  if(b.p && selfFlyPeriod() && String(b.p) !== String(selfFlyPeriod())){ myAlert('这笔是上一期的，不能在本期撤销'); return; }
+  myConfirm('撤销这笔手动登记？\n\n' + (b.cnt || b.batch.length) + ' 笔 / ' + Number(b.sum || 0).toFixed(0) + ' 元\n' + String(b.txt || '').split(/\n+/).slice(0,3).join('\n') + '\n\n只减这一笔加的量，其它已飞不动。', function(){
+    _undoBatchNow(b);
+    myAlert('已撤销这笔登记，金额已退回。');
+  });
+}
+
+function undoLastManualBatch(){
+  var b = null;
+  try{ b = JSON.parse(localStorage.getItem(sk('manualLastBatch')) || 'null'); }catch(e){ b = null; }
+  if(b && b.id !== undefined && !b.undone){ undoManualBatchById(b.id); return; }
+  var _hist = [];
+  try{ _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ _hist = []; }
+  for(var i=0;i<_hist.length;i++){ if(!_hist[i].undone){ undoManualBatchById(_hist[i].id); return; } }
+  myAlert('没有可撤销的上一笔登记');
 }
 
 // 组合多行写法归一：首行/尾行「三中三各组10」给产品和统一金额，中间裸写 17-20-25 的逐行补成「三中三:17,20,25 各组10」
@@ -6048,10 +6168,11 @@ function preprocessFlyComboRows(rows){
 }
 
 // 真正落账：认不出的行整单回滚（原子）
-function _applyManualFlyCore(txt, el){
+function _applyManualFlyCore(txt, el, dry){
   const rows = preprocessFlyComboRows(txt.split(/\n+/).map(s => s.trim()).filter(Boolean));
   let cnt = 0, sum = 0, bad = [];
-  window._flyAddLog = [];
+  const _plan = [];
+  if(!dry) window._flyAddLog = [];
   // 事务快照：只要有一行认不出，就把已飞记录还原，绝不半个单子落账
   const _snapPer = Object.assign({}, flownPerPos), _snapReal = Object.assign({}, flownReal);
   function _rollbackFly(){
@@ -6059,6 +6180,11 @@ function _applyManualFlyCore(txt, el){
     Object.keys(_snapPer).forEach(function(k){ flownPerPos[k] = _snapPer[k]; });
     Object.keys(flownReal).forEach(function(k){ delete flownReal[k]; });
     Object.keys(_snapReal).forEach(function(k){ flownReal[k] = _snapReal[k]; });
+  }
+  function _add(k, amt, line){
+    if(!(amt > 0)) return;
+    _plan.push({k: k, amt: amt, line: String(line || '')});
+    if(!dry){ _flyAddAmt(k, amt, line); }
   }
 
   const _ZOD = '鼠牛虎兔龙蛇马羊猴鸡狗猪';
@@ -6102,12 +6228,12 @@ function _applyManualFlyCore(txt, el){
       if(hasEm){
         // 二/三中三整行一笔进合计（非「各」写法时 price 就是整组金额）
         const amt = r.isPer ? r.price * Math.max(1, r.codes.length) : r.price;
-        _flyAddAmt('_em_total', amt); cnt++; sum += amt;
+        _add('_em_total', amt, line); cnt++; sum += amt;
         return;
       }
       if(keys.length){
         const unit = r.isPer ? r.price : r.price / Math.max(1, r.codes.length);
-        keys.forEach(function(k){ _flyAddAmt(k, unit); cnt++; sum += unit; });
+        keys.forEach(function(k){ _add(k, unit, line); cnt++; sum += unit; });
         if(badCode) bad.push(line + '（' + badCode + ' 不是号码/平特/连肖）');
         return;
       }
@@ -6123,9 +6249,10 @@ function _applyManualFlyCore(txt, el){
     if(/^(二中二|三中二|三中三)/.test(head)) codes = ['_em_total'];
     const keys = codes.map(_flyKeyOf).filter(Boolean);
     if(!keys.length || !(amt > 0)){ bad.push(line); return; }
-    keys.forEach(function(k){ _flyAddAmt(k, amt); cnt++; sum += amt; });
+    keys.forEach(function(k){ _add(k, amt, line); cnt++; sum += amt; });
   });
 
+  if(dry) return {cnt: cnt, sum: sum, bad: bad, plan: _plan};
   if(cnt === 0){
     myAlert('没认出来。可写：\n22 140\n22 34 各140\n平特虎 1000\n连肖马蛇 400\n二中二 500\n马蛇狗 100' + (bad.length ? '\n\n没认出的行：\n' + bad.slice(0,5).join('\n') : ''));
     return;
@@ -6139,16 +6266,29 @@ function _applyManualFlyCore(txt, el){
   }
   try { localStorage.setItem(sk('flownPerPos'), JSON.stringify(flownPerPos)); } catch(e){}
   try { localStorage.setItem(sk('flownReal'), JSON.stringify(flownReal)); } catch(e){}
+  // 记下这笔登记，给「撤销上次登记 / 手动登记记录」用（只减这一笔加的量，不动其它号）
+  try {
+    var _batch = (window._flyAddLog || []).map(function(x){ return {k: x.key, amt: x.amt}; });
+    var _rec = {id: Date.now(), p: selfFlyPeriod(), t: Date.now(), txt: String(txt).slice(0, 300), cnt: cnt, sum: sum, batch: _batch, plan: _plan.slice(0, 80), undone: false};
+    localStorage.setItem(sk('manualLastBatch'), JSON.stringify(_rec));
+    var _hist = [];
+    try{ _hist = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ _hist = []; }
+    _hist.unshift(_rec);
+    if(_hist.length > 30) _hist = _hist.slice(0, 30);
+    localStorage.setItem(sk('manualFlyHistory'), JSON.stringify(_hist));
+  } catch(e){}
   window._manualFlyBuf = '';
   if(el) el.value = '';
   _manualLastSubmit = {txt: txt, t: Date.now(), sum: sum.toFixed(0)};
   afterFlyFlagChange();
   var _log = (window._flyAddLog || []);
   var _detail = _log.slice(0, 10).map(function(x){
-    return '  ' + (x.key === '_em_total' ? '二三合计' : x.key) + '  +' + x.amt.toFixed(0) + ' → 累计 ' + x.now.toFixed(0) + ' 元';
+    var _ln = String(x.line || '').slice(0, 30);
+    var _nm = _ln ? (_ln + ' · ' + (x.key === '_em_total' ? '二三' : x.key)) : (x.key === '_em_total' ? '二三合计' : x.key);
+    return '  ' + _nm + '  +' + x.amt.toFixed(0) + ' → 累计 ' + x.now.toFixed(0) + ' 元';
   }).join('\n');
   if(_log.length > 10) _detail += '\n  …共 ' + _log.length + ' 笔';
-  myAlert('已登记 ' + cnt + ' 笔，合计 ' + sum.toFixed(0) + ' 元' + (_detail ? '\n\n本次明细：\n' + _detail : ''));
+  myAlert('已登记 ' + cnt + ' 笔，合计 ' + sum.toFixed(0) + ' 元' + (_detail ? '\n\n本次明细：\n' + _detail : '') + '\n\n如果这笔错了：关掉提示后，在「记一笔飞单」里点「撤销上次登记」。');
 }
 
 function showGroupDetail(group){
