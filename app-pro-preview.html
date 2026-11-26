@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.72-Pro</title>
+<title>录单Pro · v60.73-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -228,17 +228,19 @@ html[data-system-theme="dark"] input::placeholder,
 html[data-system-theme="dark"] textarea::placeholder{color:#8192a8!important}
 #recentDrawBar{margin:6px 2px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 #recentDrawToggle{border:1px solid #dfe6f0;background:#fff;color:#2457d6;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
-#recentDrawPanel{display:none;margin:5px 0 0;border:1px solid #e5e7eb;border-radius:8px;background:#fff;max-height:214px;overflow:auto;-webkit-overflow-scrolling:touch}
+#recentDrawPanel{display:none;margin:5px 0 0;border:1px solid #e5e7eb;border-radius:8px;background:#fff;max-height:430px;overflow:auto;-webkit-overflow-scrolling:touch}
 #recentDrawPanel .rd-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 7px;background:#f8fafc;border-bottom:1px solid #eef1f5;font-size:10px;color:#8a94a6}
 #recentDrawPanel .rd-tabs{display:flex;gap:4px}
 #recentDrawPanel .rd-tab{border:1px solid #dfe6f0;background:#fff;color:#666;border-radius:6px;padding:2px 7px;font-size:10px;cursor:pointer}
 #recentDrawPanel .rd-tab.on{background:#2457d6;border-color:#2457d6;color:#fff}
-.rd-row{display:flex;align-items:center;gap:4px;padding:4px 7px;border-top:1px solid #f2f5f8;font-size:11px;color:#333}
+.rd-row{display:flex;align-items:center;gap:3px;padding:5px 7px;border-top:1px solid #f2f5f8;font-size:11px;color:#333}
 .rd-row:first-of-type{border-top:0}
 .rd-p{width:36px;flex:none;color:#7b8494;font-size:10px;font-variant-numeric:tabular-nums}
-.rd-ball{width:20px;height:20px;line-height:20px;border-radius:50%;text-align:center;font-size:10px;font-weight:800;color:#fff;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
-.rd-sp{box-shadow:0 0 0 2px #fbbf24,inset 0 -1px 0 rgba(0,0,0,.18);margin-left:2px}
-.rd-zod{font-size:10px;color:#8a94a6;width:14px;flex:none;text-align:center}
+.rd-num{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;width:24px;flex:none;gap:1px}
+.rd-ball{width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center;font-size:10px;font-weight:800;color:#fff;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
+.rd-sp{box-shadow:0 0 0 2px #fbbf24,inset 0 -1px 0 rgba(0,0,0,.18)}
+.rd-zod{font-size:9px;line-height:11px;color:#8a94a6;white-space:nowrap;text-align:center}
+.rd-plus{font-size:15px;font-weight:700;color:#c7d0dd;line-height:22px;flex:none;margin:0 2px 11px}
 .rd-msg{padding:8px;font-size:11px;color:#999;text-align:center}
 html[data-system-theme="dark"] #recentDrawToggle{background:#14243a!important;color:#9dc0ff!important;border-color:#354762!important}
 html[data-system-theme="dark"] #recentDrawPanel{background:#0b1626!important;border-color:#354762!important}
@@ -1150,7 +1152,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.72-Pro';
+var APP_VER = 'v60.73-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -9368,9 +9370,10 @@ function recentDrawList(){
   (_recentDrawCache || []).forEach(add);
   return merged.sort(function(a,b){ return b.p - a.p; });
 }
-function _rdBall(n, special){
+function _rdNum(n, special, zod){
   var c = (typeof ballColor === 'function') ? ballColor(n) : '#666';
-  return '<span class="rd-ball' + (special ? ' rd-sp' : '') + '" style="background:' + c + '">' + String(n).padStart(2,'0') + '</span>';
+  var z = zod || NUM2ZODIAC[Number(n)] || '';
+  return '<span class="rd-num"><span class="rd-ball' + (special ? ' rd-sp' : '') + '" style="background:' + c + '">' + String(n).padStart(2,'0') + '</span><span class="rd-zod">' + z + '</span></span>';
 }
 function renderRecentDraws(){
   var panel = document.getElementById('recentDrawPanel');
@@ -9380,7 +9383,7 @@ function renderRecentDraws(){
   var list = recentDrawList();
   if(meta) meta.textContent = _recentDrawBusy ? '加载中…' : (list.length ? ('已载入 ' + list.length + ' 期') : '');
   var tabs = '<div class="rd-tabs"><button class="rd-tab' + (_recentDrawN === 10 ? ' on' : '') + '" onclick="showRecentDraws(10)">10期</button><button class="rd-tab' + (_recentDrawN === 30 ? ' on' : '') + '" onclick="showRecentDraws(30)">30期</button></div>';
-  var head = '<div class="rd-head"><span>澳门 · 最后一球为特码</span>' + tabs + '</div>';
+  var head = '<div class="rd-head"><span>澳门 · 6个平码 ＋ 1个特码</span>' + tabs + '</div>';
   if((typeof shop !== 'undefined' && shop === 'B')){
     panel.innerHTML = head + '<div class="rd-msg">香港开奖历史暂未接入，切回澳门店查看。</div>';
     return;
@@ -9391,8 +9394,8 @@ function renderRecentDraws(){
   }
   var arr = list.slice(0, _recentDrawN);
   var rows = arr.map(function(x){
-    var regs = x.regularNums.map(function(n){ return _rdBall(n, false); }).join('');
-    return '<div class="rd-row"><span class="rd-p">' + x.p + '期</span>' + regs + _rdBall(x.specialNum, true) + '<span class="rd-zod">' + (x.specialZod || '') + '</span></div>';
+    var regs = x.regularNums.map(function(n){ return _rdNum(n, false, NUM2ZODIAC[Number(n)] || ''); }).join('');
+    return '<div class="rd-row"><span class="rd-p">' + x.p + '期</span>' + regs + '<span class="rd-plus">+</span>' + _rdNum(x.specialNum, true, x.specialZod) + '</div>';
   }).join('');
   panel.innerHTML = head + rows;
 }
