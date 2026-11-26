@@ -2555,8 +2555,12 @@ function syncAutoEmFly(){
     list.forEach(function(o){ if(!o) return; eachUniqueOrderCode(o, function(c, amt){
       if(/^(二中二|三中二|三中三):/.test(c)) emTotal += Number(amt) || 0;
     }); });
+    // 客户单以外自己多飞的二三，也要算进这笔总飞；否则切自动飞会从 380 掉成 375
+    try{ emTotal += Number(emExtraBook(curShopDraw()).cost || 0); }catch(e){}
     if(typeof flownReal === 'undefined' || !flownReal) flownReal = {};
     if(typeof flownPerPos === 'undefined' || !flownPerPos) flownPerPos = {};
+    // 手动登记过二三时 _em_total 可能比客户单多，保留大的，不能把手工那笔冲掉
+    try{ var _bookedEm = Number(flownPerPos['_em_total'] || 0); if(_bookedEm > emTotal) emTotal = _bookedEm; }catch(e){}
     var old = Number(flownReal['_em_total'] || 0);
     if(emTotal > 0){
       /* 幂等：每次都按当前二三收单重算，不会叠减 */
@@ -5196,6 +5200,7 @@ function _keepFlyPanel(){
 function autoFlyToggleBtn(){
   autoFlyOn = !autoFlyOn;
   try{ localStorage.setItem(sk('autoFlyOn'), autoFlyOn?'1':'0'); localStorage.setItem(sk('emFlyOn'), autoFlyOn?'1':'0'); }catch(e){}
+  try{ syncAutoEmFly(); }catch(e){}
   try{ syncAutoLxFly(); }catch(e){}
   try{ afterFlyFlagChange(); }catch(e){}
   try{ renderSplitSide(); }catch(e){}
@@ -6656,6 +6661,10 @@ function getThisRoundFly(){
     _list.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
       if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) emTotal += amt;
     }); });
+    // 客户单以外自己多飞的二三也算总飞；否则自动飞一开，380 会变 375
+    try{ emTotal += Number(emExtraBook(curShopDraw()).cost || 0); }catch(e){}
+    // 手工登记过的 _em_total 比客户单大时保留，避免被自动飞覆盖掉
+    try{ var _bookedEm = Number((flownPerPos || {})['_em_total'] || 0); if(_bookedEm > emTotal) emTotal = _bookedEm; }catch(e){}
     if(emTotal > 0){
       totalFly += emTotal;
       if(autoFlyOn){
@@ -7032,6 +7041,8 @@ function emExtraAdd(){
     }catch(e){ miss.push(raw); }
   });
   emExtraSave(list);
+  window._emxReceipt
+  try{ syncAutoEmFly(); }catch(e){}
   window._emxReceipt = {ok: okLines, groups: okGroups, amt: okAmt, miss: miss, at: Date.now()};
   if(el) el.value = '';
   emExtraRender();
@@ -7044,6 +7055,7 @@ function emExtraAdd(){
 function emExtraDelSrc(src){
   myConfirm('删掉这一行多飞？', function(){
     emExtraSave(emExtraList().filter(function(r){ return String(r.src || r.code) !== String(src); }));
+  try{ syncAutoEmFly(); }catch(e){}
     emExtraRender();
     try{ renderSideCustPay(); }catch(e){}
     try{ renderRisk(); }catch(e){}
@@ -7053,6 +7065,7 @@ function emExtraDelSrc(src){
 }
 function emExtraDel(ts){
   emExtraSave(emExtraList().filter(function(r){ return String(r.ts) !== String(ts); }));
+  try{ syncAutoEmFly(); }catch(e){}
   emExtraRender();
   try{ renderSideCustPay(); }catch(e){}
   try{ renderRisk(); }catch(e){}
@@ -7065,6 +7078,7 @@ function emExtraClear(){
   myConfirm('清空本期二三多飞？\n\n只删这笔额外飞单，客户单和已飞都不动。', function(){
     var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
     emExtraSave(emExtraList().filter(function(r){ return p && String(r.p) !== p; }));
+  try{ syncAutoEmFly(); }catch(e){}
     emExtraRender();
     try{ renderSideCustPay(); }catch(e){}
     try{ renderRisk(); }catch(e){}
