@@ -47,8 +47,11 @@ def main():
         per = ledger["periods"][issue]
         actual = per.get("actual")
         votes = Counter()
+        early_votes = Counter()
         sites = 0
         special_killed = 0
+        early_sites = 0
+        early_sk = 0
         for r in per.get("stations", {}).values():
             if r.get("status") != "有三肖" or not r.get("zodiacs"):
                 continue
@@ -57,13 +60,26 @@ def main():
                 votes[z] += 1
             if actual and actual in r["zodiacs"]:
                 special_killed += 1
+            # 早版对照：仅作前后展示，不进累计票次/名次/开出率，也不参与中错成绩判定
+            ez = r.get("earlyZodiacs")
+            if ez:
+                early_sites += 1
+                for z in ez:
+                    early_votes[z] += 1
+                if actual and actual in ez:
+                    early_sk += 1
         rank_full = rank_of({z: votes.get(z, 0) for z in ZOD})
+        rank_early = rank_of({z: early_votes.get(z, 0) for z in ZOD}) if early_sites else []
         periods[issue] = {
             "actual": actual,
             "sites": sites,
             "specialKilled": special_killed,
             "hasSnapshot": bool(per.get("hasSnapshot", False)),
             "rank": [{"z": z, "kill": n} for z, n in rank_full],
+            "rankEarly": [{"z": z, "kill": n} for z, n in rank_early],
+            "sitesEarly": early_sites,
+            "specialKilledEarly": early_sk,
+            "hasEarly": early_sites > 0,
         }
         tot_votes.update(votes)
         if actual:
@@ -87,7 +103,7 @@ def main():
 
     out = {
         "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "rule": "杀肖票数＝当期把该肖列入杀三肖的站点数；排行按票数降序；specialKilled＝特肖被多少站杀掉（杀错）；specialRank 记特肖在当期被杀排行中的名次，cred 仅含有本地快照、记录较全的期",
+        "rule": "杀肖票数＝当期把该肖列入杀三肖的站点数；排行按票数降序；specialKilled＝特肖被多少站杀掉（杀错）；specialRank 记特肖在当期被杀排行中的名次，cred 仅含有本地快照、记录较全的期；rankEarly/sitesEarly 为早版对照口径，仅展示前后差异，不进累计票次/名次/开出率，不参与中错成绩判定",
         "periods": periods,
         "total": {
             "periods": n_periods,

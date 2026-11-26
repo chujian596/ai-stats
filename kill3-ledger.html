@@ -129,12 +129,18 @@
   .tier-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
   .tier-btn.active .nm{color:rgba(255,255,255,.72)}
   .tier-hint{font-size:10px;color:var(--sub);margin-left:auto}
+  .ed-group{display:inline-flex;gap:5px;align-items:center}
+  .ed-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer}
+  .ed-btn.active{border-color:var(--ink);background:var(--ink);color:#fff}
+  .ed-btn:disabled{opacity:.4;cursor:not-allowed}
+  .ed-note{font-size:10.5px;color:#b8860b;margin:2px 14px 0;display:none}
+  .ed-note.show{display:block}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.4</span></h1>
+    <h1>每站杀三肖台账 <span style="font-size:12px;color:#888;font-weight:400">v1.1.5</span></h1>
     <div class="meta">每站只记本站固定的杀三肖栏（绝杀三肖/杀特3肖等），跳转外站的链接不计、同名站按站号分开记；生肖按站点原排序保留。<br>命中＝当期特肖<b>不在</b>所杀3肖内记「中」，落在所杀3肖内记「错」；总中/总错与连对/连错由逐期推导。连错2期橙色提醒，连错≥3期红色重点提醒。顶部「期号」下拉切换任意往期，主表即显示该期各站杀肖；点任意一行展开该站全部逐期明细（期号/开奖/推荐三肖/中错）复盘。<br>档位＝观察标记（S稳准 / A可靠 / B波动 / C噪声 / D反向，不足8期记观察），不参与中错判定。</div>
   </header>
 
@@ -179,7 +185,14 @@
   <div class="alertbox a2" id="missAlert" style="display:none"></div>
 
   <div class="card" id="rankCard">
-    <div class="rc-title" id="rankTitle">本期被杀排行</div>
+    <div class="rc-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span id="rankTitle">本期被杀排行</span>
+      <span class="ed-group" id="rankEdition">
+        <button type="button" class="ed-btn active" data-ed="late">晚版 · 对账</button>
+        <button type="button" class="ed-btn" data-ed="early">早版对照</button>
+      </span>
+    </div>
+    <div class="ed-note" id="rankEditionNote">早版仅作前后对照；特肖被杀名次、累计榜与逐站中/错、连错始终按晚版口径。</div>
     <div class="rc-sub" id="rankSub"></div>
     <div id="curRankList"></div>
     <div id="specialRank" style="border-top:1px solid var(--line)"></div>
@@ -209,6 +222,7 @@
 
 <script>
 var LG=null, KR=null, ALIAS={}, PEND=null, MISS2=false, TIERHI=false, PROF={};
+var EDITION='late', CUR_ISSUE=null;
 function fetchJson(u){return fetch(u,{cache:'no-cache'}).then(function(r){return r.json();});}
 
 // ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于当期待开推荐 =====
@@ -307,27 +321,50 @@ function detailHtml(key,r,upTo){
     '<table class="det-table"><thead><tr><th>期号</th><th>开奖</th><th>推荐杀三肖（原序）</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
+function syncEditionBtns(per){
+  var earlyOk=!!(per&&per.hasEarly);
+  var earlyBtn=document.querySelector('#rankEdition [data-ed="early"]');
+  var lateBtn=document.querySelector('#rankEdition [data-ed="late"]');
+  if(earlyBtn) earlyBtn.disabled=!earlyOk;
+  if(EDITION==='early'&&!earlyOk) EDITION='late';
+  if(lateBtn) lateBtn.classList.toggle('active',EDITION==='late');
+  if(earlyBtn) earlyBtn.classList.toggle('active',EDITION==='early');
+  var note=document.getElementById('rankEditionNote');
+  if(note) note.classList.toggle('show',EDITION==='early');
+}
+
 function renderRank(cur){
+  CUR_ISSUE=cur;
   var listEl=document.getElementById('curRankList');
   var subEl=document.getElementById('rankSub');
   document.getElementById('rankTitle').textContent='第'+cur+'期 · 被杀排行';
-  if(!KR){ listEl.innerHTML=''; subEl.textContent='台账杀肖统计加载中…'; return; }
+  if(!KR){ listEl.innerHTML=''; subEl.textContent='台账杀肖统计加载中…'; syncEditionBtns(null); return; }
   var per=KR.periods[String(cur)]||KR.periods[cur];
-  if(!per||!per.rank||!per.rank.length){
-    subEl.textContent='第 '+cur+' 期暂无杀三肖排行数据';
+  if(!per){ syncEditionBtns(null); subEl.textContent='第 '+cur+' 期暂无杀三肖排行数据'; listEl.innerHTML=''; renderCum(); return; }
+  var earlyOk=!!per.hasEarly;
+  if(EDITION==='early'&&!earlyOk) EDITION='late';
+  syncEditionBtns(per);
+  var isEarly=EDITION==='early'&&earlyOk;
+  var rankArr=isEarly?(per.rankEarly||[]):per.rank;
+  var sitesN=isEarly?per.sitesEarly:per.sites;
+  var sk=isEarly?per.specialKilledEarly:per.specialKilled;
+  var tag=isEarly?'（早版对照）':'';
+  if(!rankArr||!rankArr.length){
+    subEl.textContent='第 '+cur+' 期'+tag+' 暂无杀三肖排行数据';
     listEl.innerHTML='';
+    renderSpecial(per);
     renderCum();
     return;
   }
-  subEl.textContent='第 '+cur+' 期 · '+per.sites+' 站有杀三肖；特肖 '+per.actual+' 被 '+per.specialKilled+' 站杀掉（杀错）。按各肖被杀站次排名。';
-  var max=per.rank[0].kill||1;
-  listEl.innerHTML=per.rank.map(function(r,i){
+  subEl.textContent='第 '+cur+' 期'+tag+' · '+sitesN+' 站有杀三肖；特肖 '+per.actual+' 被 '+sk+' 站杀掉（杀错）。按各肖被杀站次排名。';
+  var max=rankArr[0].kill||1;
+  listEl.innerHTML=rankArr.map(function(r,i){
     var cls=i===0?'t1':i===1?'t2':i===2?'t3':'';
     var bar=Math.round(r.kill/max*100);
     var hot=r.z===per.actual?' rank-hot':'';
-    var tag=r.z===per.actual?'（特肖）':'';
+    var tag2=r.z===per.actual?'（特肖）':'';
     return '<div class="rank-row"><div class="rank-no '+cls+'">'+(i+1)+'</div>'+
-      '<div class="rank-z'+hot+'">'+r.z+tag+'</div>'+
+      '<div class="rank-z'+hot+'">'+r.z+tag2+'</div>'+
       '<div class="rank-bar"><i style="width:'+bar+'%"></i></div>'+
       '<div class="rank-c">'+r.kill+' 票</div></div>';
   }).join('');
@@ -724,6 +761,14 @@ fetchJson('data/kill3-ledger.json').then(function(d){
   var sel=document.getElementById('periodSel');
   sel.addEventListener('change',function(){
     if(sel.value==='pending'){ enterPending(); } else { enterReview(sel.value); }
+  });
+  document.querySelectorAll('#rankEdition .ed-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      var per=KR&&CUR_ISSUE&&(KR.periods[String(CUR_ISSUE)]||KR.periods[CUR_ISSUE]);
+      if(b.dataset.ed==='early'&&!(per&&per.hasEarly)) return;
+      EDITION=b.dataset.ed;
+      if(CUR_ISSUE) renderRank(CUR_ISSUE);
+    });
   });
   var cb=document.getElementById('btnCollapse');
   if(cb) cb.addEventListener('click',enterPending);
