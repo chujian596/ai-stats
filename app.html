@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单 · v59.71</title>
+<title>录单 · v59.77</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -678,7 +678,7 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
         4. 保存后每行显示识别结果（特号/平特/连肖…），核对无误再下一笔<br>
         4.1 保存后不再自动跳到「订单记录」；需要核对时点「查看本次订单」按钮，页面会定位并高亮本次订单<br>
         4.2 订单页可搜客户/号码/金额，并按「全部日期 / 今天 / 只看香港」筛选<br>
-        4.3 「今日对账」把返水、飞后净、含返水到手、上家结算分开列；返水默认不计，需在飞单卡片勾选并设比例<br>
+        4.3 「今日对账」统一为客户账、上家账、我的账三层一套账；返水在“我的账”上另加，不再把飞后净、上家结算各列一个大数<br>
         5. 输入框右上角实时显示本周累计（特号数 / 平·连 / 二·三）
       </div>
 
@@ -1106,7 +1106,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v59.76';
+var APP_VER = 'v59.77';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -2991,21 +2991,18 @@ function renderPaySide(){
   // 盈利统计（折叠，默认关闭）
   let h = '<div id="profitBody" style="display:none">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">';
-  const _ap = actualPnL();
-  var _settleP = _ap.flyBack - _ap.flyOut;
+  const _tb = clientThreeBooks();
   var _gapP = 0; try { _gapP = flyRoundGapTotal(); } catch(e){}
-  h += `<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 6px;font-size:12px;color:#666;margin:2px 0 8px;width:100%">`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">总单</span><b style="color:#1a1a1a;font-size:16px">${_ap.sales.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">客户赔付</span><b style="color:#cf1322;font-size:16px">${_ap.settled?('-'+_ap.payout.toFixed(0)):'未结算'}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">毛净</span><b style="color:${(_ap.sales-_ap.payout)>=0?'#166534':'#cf1322'};font-size:16px">${(_ap.sales-_ap.payout).toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家需结算</span><b style="color:${_settleP>=0?'#166534':'#cf1322'};font-size:16px">${_settleP>=0?'+':''}${_settleP.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">已飞实付</span><b style="color:#cf1322;font-size:16px">${_ap.flyOut.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家赔回</span><b style="color:#16a34a;font-size:16px">+${_ap.flyBack.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">凑整差累计</span><b style="font-size:16px;color:${_gapP>0?'#cf1322':(_gapP<0?'#166534':'#999')}">${Math.abs(_gapP)<0.01?'0':((_gapP>0?'+':'')+_gapP.toFixed(0))}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">实际盈亏</span><b style="font-size:16px;color:${_ap.net>=0?'#166534':'#cf1322'}">${_ap.net>=0?'+':''}${_ap.net.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">返水${_ap.rebateOn?'('+(_ap.rebateRate*100).toFixed(1)+'%)':'未开'}</span><b style="font-size:16px;color:${_ap.rebate>0?'#16a34a':'#999'}">${_ap.rebate>0?'+':''}${_ap.rebate.toFixed(0)}</b></div>`
-     + `<div style="min-width:0"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">含返水到手</span><b style="font-size:16px;color:${_ap.netWithRebate>=0?'#166534':'#cf1322'}">${_ap.netWithRebate>=0?'+':''}${_ap.netWithRebate.toFixed(0)}</b></div>`
+  var _col = function(v){ return v === null ? '#999' : (v >= 0 ? '#166534' : '#cf1322'); };
+  var _mv = function(v){ return v === null ? '待开奖' : ((v >= 0 ? '+' : '') + Math.round(v)); };
+  h += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:2px 0 6px;width:100%">`
+     + `<div style="min-width:0;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">客户账</span><b style="font-size:15px;color:${_col(_tb.customerNet)}">${_mv(_tb.customerNet)}</b><span style="display:block;font-size:10px;color:#999;margin-top:2px">收 ${Math.round(_tb.sales)} − 赔 ${_tb.settled?Math.round(_tb.payout):'待开奖'}</span></div>`
+     + `<div style="min-width:0;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">上家账</span><b style="font-size:15px;color:${_col(_tb.upNet)}">${_mv(_tb.upNet)}</b><span style="display:block;font-size:10px;color:#999;margin-top:2px">回 ${_tb.settled?Math.round(_tb.flyBack):'待开奖'} − 飞 ${Math.round(_tb.flyOut)}</span></div>`
+     + `<div style="min-width:0;background:#fafafa;border:1px solid #ddd;border-radius:8px;padding:7px 8px"><span style="display:block;font-size:11px;color:#888;margin-bottom:1px">我的账</span><b style="font-size:17px;color:${_col(_tb.myNet)}">${_mv(_tb.myNet)}</b><span style="display:block;font-size:10px;color:#999;margin-top:2px">客户账 + 上家账</span></div>`
      + `</div>`;
+  h += `<div style="font-size:11px;color:#777;line-height:1.6;margin:0 0 4px">收单 <b>${Math.round(_tb.sales)}</b> · 客户赔付 <b style="color:#cf1322">${_tb.settled?Math.round(_tb.payout):'待开奖'}</b> · 已飞实付 <b>${Math.round(_tb.flyOut)}</b> · 上家赔回 <b style="color:#16a34a">${_tb.settled?Math.round(_tb.flyBack):'待开奖'}</b></div>`;
+  h += `<div style="font-size:11px;color:#777;line-height:1.6;margin:0 0 4px">返水${_tb.rebateOn?'（'+(_tb.rebateRate*100).toFixed(1)+'%）':'未开'} <b style="color:${_tb.rebate>0?'#16a34a':'#999'}">${_tb.rebate>0?'+'+Math.round(_tb.rebate):'0'}</b> → 含返水到手 <b style="color:${_col(_tb.withRebate)}">${_mv(_tb.withRebate)}</b></div>`;
+  h += `<div style="font-size:10px;color:#999;line-height:1.5;margin:0 0 6px">凑整差累计 <b style="color:${_gapP>0?'#cf1322':(_gapP<0?'#166534':'#999')}">${Math.abs(_gapP)<0.01?'0':((_gapP>0?'+':'')+Math.round(_gapP))}</b>，已含在已飞实付里，不重复计算。</div>`;
   h += `</div>`;
   if(!curShopDraw()){
     h += '<div style="padding:6px;background:#fffbe6;border:1px solid #f0c36d;border-radius:6px;font-size:11px;color:#b45309;margin-bottom:6px">还没结算本期开奖，赔付按 0 算；点「自动获取开奖」结算后这里才是实际账。</div>';
@@ -3371,14 +3368,14 @@ function renderSideCustPay(){
     const grossNet = totalBuy - totalPay;
     const realNet = grossNet - flyOutSum + flyBackSum;
     // 渲染流水账
-    h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">结算明细</div>';
+    h += '<div style="font-weight:700;font-size:15px;margin-bottom:6px">账目明细</div>';
     h += '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="font-size:14px;color:#666">总收入（总单）</span><span style="font-size:14px;font-weight:600">+' + totalBuy.toFixed(2) + '</span></div>';
     h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:2px">赔付明细：</div>';
     h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">特号赔付</span><span style="font-size:13px;color:#666">-' + paySpec.toFixed(2) + '</span></div>';
     h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">平特赔付</span><span style="font-size:13px;color:#666">-' + payPte.toFixed(2) + '</span></div>';
     if(payLx>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">连肖赔付</span><span style="font-size:13px;color:#666">-' + payLx.toFixed(2) + '</span></div>';
     if(payEm>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">二中二三中三赔付</span><span style="font-size:13px;color:#666">-' + payEm.toFixed(2) + '</span></div>';
-    h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:14px">毛净盈亏</span><span style="font-size:14px;font-weight:700;color:' + (grossNet>=0?'#166534':'#cf1322') + '">' + (grossNet>=0?'+':'') + grossNet.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #eee;margin-top:2px"><span style="font-size:14px">客户账</span><span style="font-size:14px;font-weight:700;color:' + (grossNet>=0?'#166534':'#cf1322') + '">' + (grossNet>=0?'+':'') + grossNet.toFixed(2) + '</span></div>';
     // 飞单调整
     if(flyOutSum>0 || flyBackSum>0){
       h += '<div style="font-size:12px;color:#999;padding-left:12px;margin-top:4px">飞单调整：</div>';
@@ -3393,7 +3390,7 @@ function renderSideCustPay(){
       if(flyEmBack>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回二中二三中三</span><span style="font-size:13px;color:#166534">+' + flyEmBack.toFixed(2) + '</span></div>';
       if(flyBackSum>0) h += '<div style="display:flex;justify-content:space-between;padding:2px 0 2px 12px"><span style="font-size:13px;color:#999">上家赔回合计</span><span style="font-size:13px;color:#166534">+' + flyBackSum.toFixed(2) + '</span></div>';
       var _settle = flyBackSum - flyOutSum;
-      h += '<div style="display:flex;justify-content:space-between;padding:4px 0 2px 12px;border-top:1px dashed #eee;margin-top:3px"><span style="font-size:13px;color:#333;font-weight:700">上家需结算</span><span style="font-size:16px;font-weight:700;color:' + (_settle>=0?'#166534':'#cf1322') + '">' + (_settle>=0?'+':'') + _settle.toFixed(0) + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;padding:4px 0 2px 12px;border-top:1px dashed #eee;margin-top:3px"><span style="font-size:13px;color:#333;font-weight:700">上家账</span><span style="font-size:16px;font-weight:700;color:' + (_settle>=0?'#166534':'#cf1322') + '">' + (_settle>=0?'+':'') + _settle.toFixed(0) + '</span></div>';
       h += '<div style="font-size:10px;color:#aaa;padding-left:12px;line-height:1.4">命中赔回 ' + flyBackSum.toFixed(0) + ' − 实际总飞额 ' + flyOutSum.toFixed(0) + '</div>';
       try {
         var _rg = flyRoundGapTotal();
@@ -3402,7 +3399,7 @@ function renderSideCustPay(){
         }
       } catch(e){}
     }
-    h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;margin-top:4px"><span style="font-size:15px;font-weight:700">最终余额</span><span style="font-size:18px;font-weight:700;color:' + (realNet>=0?'#166534':'#cf1322') + '">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #333;margin-top:4px"><span style="font-size:15px;font-weight:700">我的账</span><span style="font-size:18px;font-weight:700;color:' + (realNet>=0?'#166534':'#cf1322') + '">' + (realNet>=0?'+':'') + realNet.toFixed(2) + '</span></div>';
     h += '</div>';
     h += '</div>';
   }
@@ -10424,8 +10421,28 @@ function actualPnL(){
            rebate: rebate, rebateRate: _rc.rate, rebateOn: _rc.on, netWithRebate: net + rebate };
 }
 
+// 客户版唯一账本：客户账 / 上家账 / 我的账。
+// 飞额一律用已飞实付；上家赔回只算已飞部分；返水是“另加”，不混进三层本金。
+function clientThreeBooks(){
+  var ap = actualPnL();
+  var settled = !!ap.settled;
+  var customerNet = settled ? ap.sales - ap.payout : null;
+  var upNet = settled ? ap.flyBack - ap.flyOut : null;
+  var myNet = (customerNet === null || upNet === null) ? null : customerNet + upNet;
+  var withRebate = myNet === null ? null : myNet + ap.rebate;
+  return {
+    ap: ap, settled: settled, sales: ap.sales,
+    payout: settled ? ap.payout : null,
+    flyOut: ap.flyOut,
+    flyBack: settled ? ap.flyBack : null,
+    customerNet: customerNet, upNet: upNet, myNet: myNet,
+    rebateOn: !!ap.rebateOn, rebateRate: ap.rebateRate, rebate: ap.rebate,
+    withRebate: withRebate
+  };
+}
+
 function copyProfit(){
-  const ap = actualPnL();
+  const tb = clientThreeBooks();
   const _list = activeOrders();
   const _draw = curShopDraw();
   const custMap = {};
@@ -10438,16 +10455,15 @@ function copyProfit(){
   });
   const storeS = _list.reduce(function(s,o){ return s + (Number(o.amount)||0); }, 0);
   const storeP = _list.reduce(function(s,o){ return s + calcOrderWinDetail(o, _draw).total; }, 0);
+  const _m = function(v){ return v === null ? '待开奖' : ((v >= 0 ? '+' : '') + v.toFixed(0)); };
   let text = '【实际账单】\n'
-    + '总单：' + ap.sales.toFixed(0) + '\n'
-    + '客户赔付：' + (ap.settled ? ap.payout.toFixed(0) : '未结算') + '\n'
-    + '已飞实付：' + ap.flyOut.toFixed(0) + '\n'
-    + '上家赔回：+' + ap.flyBack.toFixed(0) + '\n'
-    + '返水：' + (ap.rebateOn ? '+' + ap.rebate.toFixed(0) + '（' + (ap.rebateRate*100).toFixed(1) + '%）' : '未开') + '\n'
-    + '实际盈亏：' + (ap.net>=0?'+':'') + ap.net.toFixed(0) + '\n'
-    + '含返水到手：' + (ap.netWithRebate>=0?'+':'') + ap.netWithRebate.toFixed(0) + '\n'
-    + '（口径：总单−客户赔付−已飞实付+上家赔回；返水另加）\n\n'
-    + shopNames[shop] + '：收' + storeS.toFixed(0) + ' 赔' + storeP.toFixed(0) + ' 净' + (storeS-storeP).toFixed(0) + '\n\n'
+    + '客户账：收 ' + tb.sales.toFixed(0) + ' − 赔 ' + (tb.settled ? tb.payout.toFixed(0) : '待开奖') + ' ＝ ' + _m(tb.customerNet) + '\n'
+    + '上家账：回 ' + (tb.settled ? tb.flyBack.toFixed(0) : '待开奖') + ' − 飞 ' + tb.flyOut.toFixed(0) + ' ＝ ' + _m(tb.upNet) + '\n'
+    + '我的账：客户账 + 上家账 ＝ ' + _m(tb.myNet) + '\n'
+    + '返水：' + (tb.rebateOn ? '+' + tb.rebate.toFixed(0) + '（' + (tb.rebateRate*100).toFixed(1) + '%）' : '未开') + '\n'
+    + '含返水到手：' + _m(tb.withRebate) + '\n'
+    + '（口径：收单−客户赔付−已飞实付+上家赔回；返水另加，不混进三层本金）\n\n'
+    + shopNames[shop] + '：收' + storeS.toFixed(0) + ' 赔' + storeP.toFixed(0) + ' 客户账 ' + (storeS-storeP>=0?'+':'') + (storeS-storeP).toFixed(0) + '\n\n'
     + '按客户：\n';
   Object.keys(custMap).sort((a,b)=>custMap[b].bet-custMap[a].bet).forEach(c => {
     const g = custMap[c];
@@ -11049,8 +11065,8 @@ function renderOrdersList(){
   }
   h += `<div>命中额:${flyBackTotal.toFixed(0)}</div>`;
   var _need = flyBackTotal - flyOutTotal;
-  h += `<div>上家需结算:${flyBackTotal.toFixed(0)}-${flyOutTotal.toFixed(0)}=${_need>=0?'+':'-'}${Math.abs(_need).toFixed(0)}</div>`;
-  h += `<div style="color:${_drawO?'#16a34a':'#999'}">${_drawO?'结算:'+(_need>=0?'+':'-')+Math.abs(_need).toFixed(0):'未开奖，结算待定'}</div>`;
+  h += `<div>上家账:${flyBackTotal.toFixed(0)}-${flyOutTotal.toFixed(0)}=${_need>=0?'+':'-'}${Math.abs(_need).toFixed(0)}</div>`;
+  h += `<div style="color:${_drawO?'#16a34a':'#999'}">${_drawO?'上家账:'+(_need>=0?'+':'-')+Math.abs(_need).toFixed(0):'未开奖，上家账待定'}</div>`;
   h += `</div></div></div>`;
   box.innerHTML = h;
 }
@@ -12914,14 +12930,14 @@ function todayReconData(){
     }
     gross = sales - payout;
     localNet = gross - flyCalc + flyBack;
-    upSettle = rebate - (flyCalc - flyBack);
+    upSettle = flyBack - flyCalc;
     // 对账按「已飞实付」算，不能拿「应飞」代替：两者在部分飞/调档时不是一个数
     var _apA = actualPnL();
     flyOut = _apA.flyOut;
     flyBack = _apA.flyBack;
     localNet = gross - _apA.flyOut + flyBack;
     rebate = _rcR.on ? _apA.flyOut * _rcR.rate : 0;
-    upSettle = rebate - (_apA.flyOut - flyBack);
+    upSettle = flyBack - _apA.flyOut;
   }
   return {
     shop: (typeof shop !== 'undefined' && shop === 'B') ? '香港店' : '澳门店',
@@ -12942,8 +12958,8 @@ function fourBookCheck(){
     { label: '客户赔付', a: ap.payout, b: d.payout },
     { label: '返水', a: ap.rebate, b: d.rebate },
     { label: '上家赔回', a: ap.flyBack, b: d.flyBack },
-    { label: '上家结算', a: ap.rebate - (ap.flyOut - ap.flyBack), b: d.upSettle },
-    { label: '飞后净盈亏', a: ap.net, b: d.localNet }
+    { label: '上家账', a: ap.flyBack - ap.flyOut, b: d.upSettle },
+    { label: '我的账', a: ap.net, b: d.localNet }
   ];
   var ok = rows.every(function(r){
     if(pending) return true;
@@ -13020,6 +13036,7 @@ function _reconOrderDetail(o){
 function exportTodayReconCSV(){
   var d = todayReconData();
   var book = fourBookCheck();
+  var tb = clientThreeBooks();
   var now = new Date();
   var timeText = now.toLocaleString('zh-CN', {hour12:false});
   var rows = [];
@@ -13032,7 +13049,7 @@ function exportTodayReconCSV(){
   add('活动订单数', d.orders.length);
   add('订单表', d.orderOk ? '已对平' : '有差异');
   add('飞单表', d.flyOk ? '已对平' : '有差异');
-  add('四本账', book.pending ? '待开奖' : (book.ok ? '已对平' : '有差异'));
+  add('账目自检', book.pending ? '待开奖' : (book.ok ? '已对平' : '有差异'));
   add([]);
   add('汇总');
   add('项目','数值');
@@ -13047,14 +13064,16 @@ function exportTodayReconCSV(){
   add('平特应飞', n(d.pteFull));
   add('连肖应飞', n(d.lxFull));
   add('二三中应飞', n(d.emFull));
-  add('客户赔付', orPending(d.payout));
-  add('毛净盈亏', orPending(d.gross));
-  add('飞后净盈亏', orPending(d.localNet));
-  add('返水', d.rebateOn ? n(d.rebate) : '未开');
-  add('含返水到手', d.localNet === null || d.localNet === undefined ? '待开奖' : n(d.localNet + d.rebate));
-  add('上家结算', orPending(d.upSettle));
+  add('客户赔付', orPending(tb.payout));
+  add('已飞实付', n(tb.flyOut));
+  add('上家赔回', orPending(tb.flyBack));
+  add('客户账', orPending(tb.customerNet));
+  add('上家账', orPending(tb.upNet));
+  add('我的账', orPending(tb.myNet));
+  add('返水', tb.rebateOn ? n(tb.rebate) : '未开');
+  add('含返水到手', orPending(tb.withRebate));
   add([]);
-  add('四本账自检');
+  add('账目自检（只读）');
   add('项目','全盘','今日','差异','结果');
   if(book.pending){
     book.rows.forEach(function(r){ add(r.label, '待开奖', '待开奖', '', '待开奖'); });
@@ -13091,28 +13110,24 @@ function showTodayRecon(){
   var signed = function(v){ if(v === null || v === undefined) return '待开奖'; return (v >= 0 ? '+' : '') + Number(v).toFixed(2); };
   var orderOk = d.orderOk, flyOk = d.flyOk;
   var book = fourBookCheck();
+  var tb = clientThreeBooks();
   var allOk = orderOk && flyOk && book.ok;
+  var _col = function(v){ return v === null ? '#999' : (v >= 0 ? '#166534' : '#cf1322'); };
+  var _mv = function(v){ return v === null ? '待开奖' : ((v >= 0 ? '+' : '') + Number(v).toFixed(2)); };
   var h = '<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)">';
   h += '<div style="padding:18px 18px 6px;text-align:center">';
   h += '<div style="font-size:18px;font-weight:700;color:#333">今日对账</div>';
   h += '<div style="font-size:12px;color:#888;margin-top:4px">' + esc(d.shop) + ' · 当前活动订单 ' + d.orders.length + ' 笔</div>';
-  var _badgeTxt = allOk ? (book.pending ? '订单、飞单已对平' : '订单、飞单、四本账已对平') : '发现差异，请查看下方';
+  var _badgeTxt = allOk ? (book.pending ? '订单、飞单已对平' : '订单、飞单、账目自检已对平') : '发现差异，请查看下方';
   h += '<div style="display:inline-block;margin-top:8px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;background:' + (allOk ? '#e8f7ee' : '#fff1f0') + ';color:' + (allOk ? '#166534' : '#cf1322') + '">' + _badgeTxt + '</div>';
   h += '</div>';
   h += '<div style="margin:0 18px 8px;padding:10px 12px;background:#f8f7ff;border:1px solid #e9e3ff;border-radius:12px">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:#333">四本账自检</span><span style="font-size:11px;color:#7c3aed">只读</span></div>';
-  if(book.pending){
-    h += '<div style="font-size:12px;color:#888;line-height:1.6">开奖后自动核对：客户赔付、返水、上家赔回、上家结算、飞后净盈亏。</div>';
-  } else {
-    book.rows.forEach(function(r){
-      var av = Number(r.a || 0), bv = Number(r.b || 0), diff = av - bv, ok = Math.abs(diff) <= 0.01;
-      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px dashed #ece8ff">'
-        + '<span style="font-size:12px;color:#666;flex:0 0 auto">' + r.label + '</span>'
-        + '<span style="text-align:right"><b style="font-size:12px;color:' + (ok ? '#166534' : '#cf1322') + '">' + (ok ? '一致' : (diff >= 0 ? '差 +' : '差 -') + Math.abs(diff).toFixed(2)) + '</b>'
-        + '<div style="font-size:10px;color:#999;margin-top:1px">全盘 ' + fmt(r.a) + ' / 今日 ' + fmt(r.b) + '</div></span></div>';
-    });
-    h += '<div style="font-size:10px;color:' + (book.ok ? '#999' : '#cf1322') + ';line-height:1.5;margin-top:5px">' + (book.ok ? '五组数与全盘、今日一致，未发现口径差。' : '有差异，先看下方明细；本卡只读，不改账。') + '</div>';
-  }
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:#333">一套账</span><span style="font-size:11px;color:#7c3aed">' + (tb.settled ? '已开奖' : '待开奖') + '</span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 0;border-top:1px dashed #ece8ff"><span style="font-size:13px;color:#333;font-weight:700">客户账</span><span style="text-align:right"><b style="font-size:16px;color:' + _col(tb.customerNet) + '">' + _mv(tb.customerNet) + '</b><div style="font-size:10px;color:#999;margin-top:1px">收 ' + Math.round(tb.sales) + ' − 赔 ' + (tb.settled ? Math.round(tb.payout) : '待开奖') + '</div></span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 0;border-top:1px dashed #ece8ff"><span style="font-size:13px;color:#333;font-weight:700">上家账</span><span style="text-align:right"><b style="font-size:16px;color:' + _col(tb.upNet) + '">' + _mv(tb.upNet) + '</b><div style="font-size:10px;color:#999;margin-top:1px">回 ' + (tb.settled ? Math.round(tb.flyBack) : '待开奖') + ' − 飞 ' + Math.round(tb.flyOut) + '</div></span></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 0 4px;border-top:1px solid #e9e3ff;margin-top:2px"><span style="font-size:14px;color:#333;font-weight:800">我的账</span><span style="text-align:right"><b style="font-size:19px;color:' + _col(tb.myNet) + '">' + _mv(tb.myNet) + '</b><div style="font-size:10px;color:#999;margin-top:1px">客户账 + 上家账</div></span></div>';
+  h += '<div style="font-size:11px;color:#777;line-height:1.6;margin-top:4px">返水' + (tb.rebateOn ? '（' + (tb.rebateRate*100).toFixed(1) + '%）' : '未开') + ' <b style="color:' + (tb.rebate > 0 ? '#16a34a' : '#999') + '">' + (tb.rebate > 0 ? '+' + Math.round(tb.rebate) : '0') + '</b> → 含返水到手 <b style="color:' + _col(tb.withRebate) + '">' + _mv(tb.withRebate) + '</b></div>';
+  h += '<div style="font-size:10px;color:#999;line-height:1.5;margin-top:4px">口径：飞额用已飞实付；上家赔回只算已飞部分；未开奖不猜赔回和净。</div>';
   h += '</div>';
   var row = function(label, value, color, sub){
     return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed #eee"><span style="font-size:13px;color:#666;flex:0 0 auto">' + label + '</span><span style="text-align:right"><b style="font-size:15px;color:' + (color || '#333') + '">' + value + '</b>' + (sub ? '<div style="font-size:11px;color:#999;margin-top:2px">' + sub + '</div>' : '') + '</span></div>';
@@ -13124,14 +13139,15 @@ function showTodayRecon(){
   h += '<div style="font-size:13px;font-weight:700;color:#333;margin:10px 0 2px">飞单表</div>';
   h += row('应飞总额', fmt(d.fly.totalFly) + ' 元', '#333', '已飞 ' + fmt(d.fly.already) + ' / 本轮待飞 ' + fmt(d.fly.thisRound));
   h += row('分类合计', fmt(d.flyCalc) + ' 元', flyOk ? '#166534' : '#cf1322', '特号 ' + fmt(d.specFull) + ' + 平特 ' + fmt(d.pteFull) + ' + 连肖 ' + fmt(d.lxFull) + ' + 二三中 ' + fmt(d.emFull));
-  h += '<div style="font-size:13px;font-weight:700;color:#333;margin:10px 0 2px">结算 / 盈利</div>';
-  h += row('客户赔付', d.payout === null ? '待开奖' : fmt(d.payout) + ' 元', d.payout === null ? '#999' : '#cf1322');
-  h += row('毛净盈亏', signed(d.gross) + ' 元', d.gross === null ? '#999' : (d.gross >= 0 ? '#166534' : '#cf1322'), '订单总额 - 客户赔付');
-  h += row('飞后净盈亏', signed(d.localNet) + ' 元', d.localNet === null ? '#999' : (d.localNet >= 0 ? '#166534' : '#cf1322'), '毛净 - 飞出 + 上家赔回');
-  h += row('返水', d.rebateOn ? '+' + fmt(d.rebate) + ' 元' : '未开', d.rebateOn ? '#16a34a' : '#999', d.rebateOn ? '已飞 ' + fmt(d.flyOut) + ' × ' + (d.rebateRate*100).toFixed(1) + '%' : '设置里打开返水后才有');
-  h += row('含返水到手', signed(d.localNet === null ? null : d.localNet + d.rebate) + ' 元', d.localNet === null ? '#999' : ((d.localNet + d.rebate) >= 0 ? '#166534' : '#cf1322'), '飞后净盈亏 + 返水');
-  h += row('上家结算', signed(d.upSettle) + ' 元', d.upSettle === null ? '#999' : (d.upSettle >= 0 ? '#166534' : '#cf1322'), '返水 - (飞出 - 赔回)');
-  h += '<div style="font-size:11px;color:#999;line-height:1.6;margin:6px 0 10px">上家结算只算飞出去的部分，不含客户投注；本地飞后净含客户投注，两者不是同一个口径。</div>';
+  h += '<div style="font-size:13px;font-weight:700;color:#333;margin:10px 0 2px">账目明细</div>';
+  h += row('收单', fmt(tb.sales) + ' 元', '#333', '客户订单金额');
+  h += row('客户赔付', tb.settled ? fmt(tb.payout) + ' 元' : '待开奖', tb.settled ? '#cf1322' : '#999');
+  h += row('已飞实付', fmt(tb.flyOut) + ' 元', '#333', '真付给上家的钱');
+  h += row('上家赔回', tb.settled ? fmt(tb.flyBack) + ' 元' : '待开奖', tb.settled ? '#16a34a' : '#999', '只算已飞部分');
+  h += row('返水', tb.rebateOn ? '+' + fmt(tb.rebate) + ' 元' : '未开', tb.rebateOn ? '#16a34a' : '#999', tb.rebateOn ? '已飞 ' + fmt(tb.flyOut) + ' × ' + (tb.rebateRate*100).toFixed(1) + '%' : '设置里打开返水后才有');
+  h += row('我的账', _mv(tb.myNet) + ' 元', _col(tb.myNet), '客户账 + 上家账');
+  h += row('含返水到手', _mv(tb.withRebate) + ' 元', _col(tb.withRebate), '我的账 + 返水');
+  h += '<div style="font-size:11px;color:#999;line-height:1.6;margin:6px 0 10px">客户账、上家账、我的账只用这一套公式；旧的四本账只作自检，不再单独列成大数。</div>';
   if(!orderOk){
     h += '<div style="font-size:13px;font-weight:700;color:#cf1322;margin:6px 0 2px">差异订单</div>';
     d.badOrders.slice(0, 20).forEach(function(b){
@@ -13140,6 +13156,20 @@ function showTodayRecon(){
   }
   h += '</div>';
   h += '<div style="padding:0 18px 12px">';
+  h += '<details style="margin:4px 0;border:1px solid #eee;border-radius:8px;padding:8px 10px"><summary style="font-size:13px;font-weight:700;cursor:pointer">账目自检（只读）</summary><div style="margin-top:6px">';
+  if(book.pending){
+    h += '<div style="font-size:12px;color:#888;line-height:1.6">开奖后自动核对全盘与今日：客户赔付、返水、上家赔回、上家账、我的账。</div>';
+  } else {
+    book.rows.forEach(function(r){
+      var av = Number(r.a || 0), bv = Number(r.b || 0), diff = av - bv, ok = Math.abs(diff) <= 0.01;
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px dashed #eee">'
+        + '<span style="font-size:12px;color:#666;flex:0 0 auto">' + r.label + '</span>'
+        + '<span style="text-align:right"><b style="font-size:12px;color:' + (ok ? '#166534' : '#cf1322') + '">' + (ok ? '一致' : (diff >= 0 ? '差 +' : '差 -') + Math.abs(diff).toFixed(2)) + '</b>'
+        + '<div style="font-size:10px;color:#999;margin-top:1px">全盘 ' + fmt(r.a) + ' / 今日 ' + fmt(r.b) + '</div></span></div>';
+    });
+    h += '<div style="font-size:10px;color:' + (book.ok ? '#999' : '#cf1322') + ';line-height:1.5;margin-top:5px">' + (book.ok ? '五组数与全盘、今日一致，未发现口径差。' : '有差异，先看下方明细；本卡只读，不改账。') + '</div>';
+  }
+  h += '</div></details>';
   h += '<details style="margin:4px 0;border:1px solid #eee;border-radius:8px;padding:8px 10px"><summary style="font-size:13px;font-weight:700;cursor:pointer">订单明细（' + d.orders.length + ' 笔）</summary><div style="max-height:220px;overflow:auto;margin-top:6px">';
   d.orders.slice(0, 100).forEach(function(o, i){
     h += '<div style="font-size:12px;color:#666;padding:5px 0;border-bottom:1px dashed #eee"><div style="display:flex;justify-content:space-between;gap:8px"><span>#' + (i + 1) + ' ' + esc(o.customer || '散客') + '</span><b style="color:#333">' + fmt(o.amount) + '</b></div><div style="word-break:break-all">' + esc(o.raw || '') + '</div></div>';
