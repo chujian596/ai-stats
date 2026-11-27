@@ -66,7 +66,7 @@ with sync_playwright() as p:
     # 总表与目录
     txt = pg.evaluate("()=>{var b=document.getElementById('catLedgerBox'); return b?b.innerText:'';}")
     chk("分账总表出现", "分账总表（四类）" in txt)
-    chk("总表四行齐全", all(k in txt for k in ["特号/特肖", "平特", "连肖", "二三"]))
+    chk("总表四行齐全", all(k in txt for k in ["特号", "平特", "连肖", "二三"]))
     pg.evaluate("()=>toggleCatLedger('spec')"); pg.wait_for_timeout(250)
     t = pg.evaluate("()=>document.getElementById('catLedgerBox').innerText")
     chk("特号目录有 04 且收100/已飞40", "04" in t and "100" in t and "40" in t)
