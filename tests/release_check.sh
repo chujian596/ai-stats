@@ -27,7 +27,11 @@ python3 tests/verify_release.py || { echo "硬校验失败，禁止发版"; exit
 
 echo "=== 4/5 关键项自检（金额断言） ==="
 echo "107 项矩阵已在第 2 步逐项断言，失败即中止"
-python3 tests/client_three_book_qa.py || { echo "客户版三层账自检失败，禁止发版"; exit 1; }
+if grep -q "APP_MODE = 'pro-core'" app.html; then
+  echo "客户版当前为专业内核，跳过旧客户版三层账用例（该用例只适用于 v59.79 回退页）"
+else
+  python3 tests/client_three_book_qa.py || { echo "客户版三层账自检失败，禁止发版"; exit 1; }
+fi
 
 echo "=== 5/5 浏览器端到端（QA 116 + 词库 154 + 混搭 4 + 选择对账 55 + 录入金额 38） ==="
 python3 tests/browser_gate.py || { echo "浏览器门禁失败，禁止发版"; exit 1; }

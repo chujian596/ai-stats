@@ -395,7 +395,7 @@ gate('削峰无NaN', !/NaN|undefined/.test(cut100Text+cut21Text), (cut100Text+cu
   const ap = actualPnL();
   const d = todayReconData();
   // 客户版 v59.77 起上家结算拆成纯上家账（赔回-已飞），返水另加；专业版仍保留旧口径
-  const expUp = /Pro/i.test(typeof APP_VER!=='undefined'?APP_VER:'') ? 10506 : 10500;
+  const expUp = (/Pro/i.test(typeof APP_VER!=='undefined'?APP_VER:'') || typeof billOpenHistory==='function') ? 10506 : 10500;
   const exp = {sales:200, payout:10700, flyOut:200, flyBack:10700, net:0, rebate:6, localNet:0, upSettle:expUp};
   R.replay = {
     sales:ap.sales, payout:ap.payout, flyOut:ap.flyOut, flyBack:ap.flyBack, net:ap.net, rebate:ap.rebate,
