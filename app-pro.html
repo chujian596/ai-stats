@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.74-Pro</title>
+<title>录单Pro · v60.76-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -238,7 +238,7 @@ html[data-system-theme="dark"] textarea::placeholder{color:#8192a8!important}
 .rd-p{width:38px;flex:none;color:#7b8494;font-size:10px;font-variant-numeric:tabular-nums}
 .rd-num{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;width:30px;flex:none;gap:1px}
 .rd-ball{width:28px;height:28px;line-height:28px;border-radius:50%;text-align:center;font-size:12px;font-weight:800;color:#fff;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
-.rd-sp{box-shadow:0 0 0 2px #fbbf24,inset 0 -1px 0 rgba(0,0,0,.18)}
+.rd-sp{box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
 .rd-zod{font-size:10px;line-height:12px;color:#8a94a6;white-space:nowrap;text-align:center}
 .rd-plus{font-size:16px;font-weight:700;color:#c7d0dd;line-height:28px;flex:none;margin:0 2px 14px}
 .rd-msg{padding:8px;font-size:11px;color:#999;text-align:center}
@@ -1152,7 +1152,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.74-Pro';
+var APP_VER = 'v60.76-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4678,6 +4678,12 @@ function hkDrawCache(){
 function hkSetDrawCache(c){
   try{ localStorage.setItem('hk_draw_cache_global', JSON.stringify(c)); }catch(e){}
   try{ localStorage.setItem(sk('hk_draw_cache'), JSON.stringify(c)); }catch(e){}
+  // 香港店拉到新一期时，顺手写进香港自己的开奖历史，不混进澳门库
+  try{
+    if(c && c.draw && c.nums && c.nums.length >= 7 && typeof rememberDraw === 'function' && typeof shop !== 'undefined' && shop === 'B'){
+      rememberDraw({ period: c.draw, regularNums: c.nums.slice(0,6), specialNum: c.nums[6] });
+    }
+  }catch(e){}
 }
 var _hkBarVisible = false;   // 只在本次点过「自动获取开奖」且拉到香港数据后才显示；刷新页面即复位
 function hideHKBar(){ _hkBarVisible = false; renderHKDraw(); }
@@ -9374,7 +9380,13 @@ function recentDrawList(){
     merged.push({p:p, regularNums:x.regularNums.map(Number).slice(0,6), specialNum:Number(x.specialNum), specialZod:(x.specialZod || NUM2ZODIAC[Number(x.specialNum)] || '')});
   };
   try{ (JSON.parse(localStorage.getItem(sk('drawHistory')) || '[]') || []).forEach(add); }catch(e){}
-  if(lastDraw && lastDraw.period && lastDraw.regularNums) add({p:lastDraw.period, regularNums:lastDraw.regularNums, specialNum:lastDraw.specialNum});
+  if(typeof shop !== 'undefined' && shop === 'B'){
+    // 香港店只加香港最新一期，不能拿澳门 lastDraw 冒充港奖
+    var _hd = (typeof hkDrawObj === 'function') ? hkDrawObj() : null;
+    if(_hd && _hd.draw && _hd.regularNums && _hd.regularNums.length >= 6) add({p:_hd.draw, regularNums:_hd.regularNums, specialNum:_hd.specialNum});
+  }else if(lastDraw && lastDraw.period && lastDraw.regularNums){
+    add({p:lastDraw.period, regularNums:lastDraw.regularNums, specialNum:lastDraw.specialNum});
+  }
   (_recentDrawCache || []).forEach(add);
   return merged.sort(function(a,b){ return b.p - a.p; });
 }
@@ -9390,14 +9402,11 @@ function renderRecentDraws(){
   if(!panel || !btn) return;
   var list = recentDrawList();
   if(meta) meta.textContent = _recentDrawBusy ? '加载中…' : ((_recentDrawTotal > 0 || list.length) ? ('历史库 ' + Math.max(_recentDrawTotal, list.length) + ' 期') : '');
+  var isHK = (typeof shop !== 'undefined' && shop === 'B');
   var tabs = '<div class="rd-tabs"><button class="rd-tab' + (_recentDrawN === 10 ? ' on' : '') + '" onclick="showRecentDraws(10)">10期</button><button class="rd-tab' + (_recentDrawN === 30 ? ' on' : '') + '" onclick="showRecentDraws(30)">30期</button></div>';
-  var head = '<div class="rd-head"><span>澳门 · 6个平码 ＋ 1个特码</span>' + tabs + '</div>';
-  if((typeof shop !== 'undefined' && shop === 'B')){
-    panel.innerHTML = head + '<div class="rd-msg">香港开奖历史暂未接入，切回澳门店查看。</div>';
-    return;
-  }
+  var head = '<div class="rd-head"><span>' + (isHK ? '香港' : '澳门') + ' · 6个平码 ＋ 1个特码</span>' + tabs + '</div>';
   if(!list.length){
-    panel.innerHTML = head + '<div class="rd-msg">' + (_recentDrawBusy ? '正在读取最近开奖…' : '暂无开奖历史，点上面的「自动获取开奖」后再试') + '</div>';
+    panel.innerHTML = head + '<div class="rd-msg">' + (_recentDrawBusy ? '正在读取最近开奖…' : (isHK ? '暂无香港开奖历史，点上面的「自动获取开奖」后再试' : '暂无开奖历史，点上面的「自动获取开奖」后再试')) + '</div>';
     return;
   }
   var arr = list.slice(0, _recentDrawN);
@@ -9431,10 +9440,15 @@ function toggleRecentDraws(){
 function loadRecentDraws(){
   _recentDrawBusy = true;
   renderRecentDraws();
-  var sources = ['/api/recent-draws?limit=60&t=' + Date.now(),
-                 'official-history.json?t=' + Date.now(),
-                 'https://aistats-9uo.pages.dev/api/recent-draws?limit=60&t=' + Date.now(),
-                 'https://chujian596.github.io/ai-stats/official-history.json?t=' + Date.now()];
+  var isHK = (typeof shop !== 'undefined' && shop === 'B');
+  var sources = isHK ? ['/api/recent-draws-hk?limit=60&t=' + Date.now(),
+                        'official-history-hk.json?t=' + Date.now(),
+                        'https://aistats-9uo.pages.dev/api/recent-draws-hk?limit=60&t=' + Date.now(),
+                        'https://chujian596.github.io/ai-stats/official-history-hk.json?t=' + Date.now()]
+                      : ['/api/recent-draws?limit=60&t=' + Date.now(),
+                        'official-history.json?t=' + Date.now(),
+                        'https://aistats-9uo.pages.dev/api/recent-draws?limit=60&t=' + Date.now(),
+                        'https://chujian596.github.io/ai-stats/official-history.json?t=' + Date.now()];
   var i = 0;
   function next(){
     if(i >= sources.length){ _recentDrawBusy = false; renderRecentDraws(); return; }
