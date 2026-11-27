@@ -10587,6 +10587,7 @@ function billCategoryTableHtml(cat, compact){
   Object.keys(cat.rows).forEach(function(k){ rowHtml(cat.rows[k].label, cat.rows[k], false); });
   rowHtml('合计', cat.total, true);
   h += '</tbody></table></div>';
+  if(full) h += '<div style="font-size:9px;color:#bbb;text-align:right;margin:-3px 0 4px">← 左右滑动查看完整分类 →</div>';
   h += '<div style="font-size:10px;color:' + (cat.ok ? '#166534' : '#cf1322') + ';line-height:1.5;margin:0 0 5px">'
     + (cat.ok ? '分类合计与一套账一致' : ('分类合计有差异：' + cat.diffs.slice(0,3).join('；')))
     + '</div>';
