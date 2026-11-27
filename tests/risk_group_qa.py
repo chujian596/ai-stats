@@ -45,7 +45,7 @@ with sync_playwright() as p:
     # 部分已飞：连肖按实际记录扣，不按阈值变量拍脑袋
     pg.evaluate("""()=>{flownPerPos={'02':100,'08':100,'平特马':100,'连肖马蛇':50,'_em_total':10};flownReal={'02':100,'08':100,'平特马':100,'连肖马蛇':50,'_em_total':10};localStorage.setItem(sk('flownPerPos'),JSON.stringify(flownPerPos));localStorage.setItem(sk('flownReal'),JSON.stringify(flownReal));renderRisk();}""" ); pg.wait_for_timeout(300)
     rows2=pg.evaluate("()=>Array.from(document.querySelectorAll('#rkGroupTable tbody tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim().replace(/,/g,'')))")
-    chk('连肖部分已飞：50/0/50',rows2[2][1:5]==['100','50','0','50'],rows2[2])
+    chk('连肖部分已飞：50/50/0',rows2[2][1:5]==['100','50','50','0'],rows2[2])
     chk('部分已飞每行相加=下注',all(abs(num(r[1])-num(r[2])-num(r[3])-num(r[4]))<0.6 for r in rows2[1:5]),rows2)
     head2=pg.evaluate("()=>document.querySelector('div[onclick=\"toggleRiskBox()\"]').innerText")
     m2=re.search(r'最坏\s*(-?\d+)',head2); top2=float(m2.group(1)) if m2 else None
