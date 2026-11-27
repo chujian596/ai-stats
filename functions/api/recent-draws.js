@@ -15,7 +15,9 @@ export async function onRequest(context) {
     });
     if (!r.ok) return new Response(JSON.stringify({ error: 'history ' + r.status }), { status: 502, headers });
     const raw = await r.json();
-    const keys = Object.keys(raw || {}).filter((k) => /^\d+$/.test(k)).map(Number).sort((a, b) => b - a).slice(0, limit);
+    const allKeys = Object.keys(raw || {}).filter((k) => /^\d+$/.test(k)).map(Number).sort((a, b) => b - a);
+    const total = allKeys.length;
+    const keys = allKeys.slice(0, limit);
     const periods = keys.map((p) => {
       const v = raw[String(p)] || {};
       const all = Array.isArray(v.all) ? v.all.map(Number) : [];
@@ -27,7 +29,7 @@ export async function onRequest(context) {
         specialZod: v.specialZod || '',
       };
     }).filter(Boolean);
-    return new Response(JSON.stringify({ updated: new Date().toISOString(), count: periods.length, periods }), { status: 200, headers });
+    return new Response(JSON.stringify({ updated: new Date().toISOString(), total, count: periods.length, periods }), { status: 200, headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: String((e && e.message) || e) }), { status: 502, headers });
   }

@@ -12,6 +12,7 @@ with sync_playwright() as p:
     chk('首页有「最近开奖」入口', pg.locator('#recentDrawToggle').count()==1)
     pg.click('#recentDrawToggle'); pg.wait_for_timeout(900)
     chk('默认展示10期', pg.locator('.rd-row').count()==10, pg.locator('.rd-row').count())
+    chk('总数标成历史库而不是已载入', '历史库' in pg.locator('#recentDrawMeta').inner_text(), pg.locator('#recentDrawMeta').inner_text())
     first=pg.locator('.rd-row').first.inner_text()
     chk('最新一期是330期','330期' in first, first[:40])
     chk('330平码25 35 20 08 30 22',all(x in first for x in ['25','35','20','08','30','22']),first)
