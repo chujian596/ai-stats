@@ -35,6 +35,9 @@ with sync_playwright() as p:
     grow=pg.evaluate("()=>Array.from(document.querySelectorAll('#rkGroupTable tbody tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim().replace(/,/g,'')) )")
     chk('分组表二三 375/415/0/-40',grow[4][1:5]==['375','415','0','-40'],grow[4])
     chk('分组合计同数',grow[-1][1:5]==['375','415','0','-40'],grow[-1])
+    # 明细漏一行时，按“同一笔订单二三合计”补齐：30 不能变 20
+    hh=pg.evaluate("""()=>{var o={raw:'三中三:01,02,03 10;三中三:04,05,06 20',codes:['三中三:01,02,03','三中三:04,05,06'],codeAmts:{'三中三:01,02,03':10,'三中三:04,05,06':20},price:0,lines:[{r:'三中三:01,02,03',a:10}]};return renderFlyChannelsV2({riskList:[o],lines:[],emFlyOn:true,autoFlyOn:true,totalBet:30,sales:{},pteBetByZod:{},splitTakeAll:100,pteFlyTakeAll:0});}""")
+    chk('缺行按订单合计补齐 30', '小计：下注 30' in hh and '1笔订单 · 下注30' in hh)
     chk('无 JS 报错',not errs,errs[:2])
     b.close()
 print('FAILS',len(FAIL)); sys.exit(1 if FAIL else 0)

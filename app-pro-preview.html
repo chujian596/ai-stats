@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v61.06-Pro</title>
+<title>录单Pro · v61.07-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1181,7 +1181,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v61.06-Pro';
+var APP_VER = 'v61.07-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -4129,6 +4129,22 @@ function manualEmBatchRows(){
       if(String(x.k) === '_em_total') amt += Number(x.amt) || 0;
     });
     if(amt > 0) out.push({id:r.id, amt:amt, txt:String(r.txt || ''), plan:(r.plan || []).slice(0, 80)});
+  });
+  return out;
+}
+// 本期手动登记里落账的连肖（额外飞）；只认 applied 且未撤销的批次。
+function manualLxBatchRows(){
+  var p = (typeof selfFlyPeriod === 'function') ? selfFlyPeriod() : '';
+  var h = [], out = [];
+  try{ h = JSON.parse(localStorage.getItem(sk('manualFlyHistory')) || '[]') || []; }catch(e){ return out; }
+  h.forEach(function(r){
+    if(!r || r.undone || r.applied !== true) return;
+    if(p && r.p && String(r.p) !== String(p)) return;
+    (r.plan || []).forEach(function(x){
+      if(String(x.k).indexOf('连肖') !== 0) return;
+      var amt = Number(x.amt) || 0;
+      if(amt > 0.01) out.push({k:String(x.k), amt:amt, line:String(x.line || '')});
+    });
   });
   return out;
 }
@@ -13457,14 +13473,42 @@ function renderFlyChannelsV2(ctx){
       });
     }
   }
+  // 连肖客户单以外的额外飞（手动登记）：逐笔列，只进已飞、不进下注；让明细=分组表
+  var lxDoneTotal = 0;
+  try{ lxDoneTotal = Number(flyBook(null).lx) || 0; }catch(e){ lxDoneTotal = 0; }
+  var lxExtraNeed = Math.max(0, lxDoneTotal - lxDone);
+  if(lxExtraNeed > 0.01){
+    var _lxXSum = 0;
+    var _lxX = [];
+    try{ _lxX = manualLxBatchRows() || []; }catch(e){ _lxX = []; }
+    _lxX.forEach(function(x){
+      var amt = Number(x.amt) || 0; if(!(amt > 0.01)) return;
+      if(_lxXSum >= lxExtraNeed - 0.01) return;
+      _lxXSum += amt;
+      var nm = String(x.k || '连肖').replace(/^连肖/, '');
+      lxRows.push({name:(nm || '额外飞'), bet:0, done:amt, pending:0, kept:-amt, full:0, manual:true, extra:true});
+    });
+    var _lxRem = lxExtraNeed - _lxXSum;
+    if(_lxRem > 0.01){
+      lxRows.push({name:'额外飞（未登记明细）', bet:0, done:_lxRem, pending:0, kept:-_lxRem, full:0, manual:true, extra:true});
+      _lxXSum += _lxRem;
+    }
+    lxDone += _lxXSum; lxKept -= _lxXSum;
+  }
   var lxBody = '';
   if(!lxRows.length){
     lxBody = '<div class="fd-note" style="padding-bottom:7px">本组暂无连肖注单</div>';
   } else {
-    lxBody = table('组合', lxRows.map(function(r){
-      return '<tr'+(r.muted?' style="color:#94a3b8"':'')+'><td>'+r.name+(r.manual?' <span style="font-size:9px;color:#7c3aed">手动</span>':'')+'</td>'
-        + '<td>'+n0(r.bet)+'</td><td'+cls(r.done)+'>'+n0(r.done)+'</td><td'+cls(r.pending)+'>'+n0(r.pending)+'</td><td'+cls(r.kept)+'>'+n0(r.kept)+'</td></tr>';
-    }).join(''));
+    var _lxRowsHtml = [], _lxSubDone = false;
+    lxRows.forEach(function(r){
+      if(r.extra && !_lxSubDone){
+        _lxRowsHtml.push('<tr class="fd-sub"><td colspan="5">额外飞（客户单以外，已付上家；不计下注）</td></tr>');
+        _lxSubDone = true;
+      }
+      _lxRowsHtml.push('<tr'+(r.muted?' style="color:#94a3b8"':'')+'><td>'+r.name+(r.manual?' <span style="font-size:9px;color:#7c3aed">'+(r.extra?'额外飞':'手动')+'</span>':'')+'</td>'
+        + '<td>'+(r.extra?'<span style="color:#94a3b8">—</span>':n0(r.bet))+'</td><td'+cls(r.done)+'>'+n0(r.done)+'</td><td'+cls(r.pending)+'>'+n0(r.pending)+'</td><td'+cls(r.kept)+'>'+n0(r.kept)+'</td></tr>');
+    });
+    lxBody = table('组合', _lxRowsHtml.join(''));
   }
   addSum(lxBet, lxDone, lxPend, lxKept);
 
@@ -13515,6 +13559,8 @@ function renderFlyChannelsV2(ctx){
   var emDoneAllocBase = emCustSum;
   // 每一笔二三订单各一行：复式只显示该笔的号码/组数，不展开组合
   riskList.forEach(function(o){
+    var _oRowStart = emOrderRows.length;
+    var _oBet0 = emOrderBet, _oDone0 = emOrderDone, _oPend0 = emOrderPend, _oKept0 = emOrderKept;
     orderLineItems(o).forEach(function(l){
       var raw = String((l && l.r) || '').replace(/^\[手动\]\s*/, '').trim();
       var m = raw.match(/^(三中三|三中二|二中二)(复式)?/);
@@ -13538,7 +13584,35 @@ function renderFlyChannelsV2(ctx){
       emOrderRows.push({prod:prod,isRepe:isRepe,cnt:cnt,pretty:pretty,numCount:numCount,bet:bet, done:done, pending:pending, kept:kept});
       emOrderBet += bet; emOrderDone += done; emOrderPend += pending; emOrderKept += kept;
     });
+    // 同一笔客户订单可能有多行/复式，明细逐行取额时偶尔会漏一行；用订单真实二三合计补齐，
+    // 保证“15笔375”在明细里也是375，不再出现小计355、与总单差20。
+    var _oEmSum = 0;
+    try{ _oEmSum = sumUniqueOrderCodeAmt(o, function(c){ return c.indexOf('二中二:') === 0 || c.indexOf('三中二:') === 0 || c.indexOf('三中三:') === 0; }); }catch(e){ _oEmSum = 0; }
+    var _oRowsSum = emOrderBet - _oBet0;
+    if(emOrderRows.length > _oRowStart && _oEmSum - _oRowsSum > 0.01){
+      var _miss = _oEmSum - _oRowsSum;
+      var _last = emOrderRows[emOrderRows.length - 1];
+      _last.bet += _miss;
+      var _nd = (emFlyOn && autoFlyOn) ? _last.bet : (emDoneAllocBase > 0 ? Math.min(_last.bet, emDone * _last.bet / emDoneAllocBase) : 0);
+      var _np = emFlyOn ? Math.max(0, _last.bet - _nd) : 0;
+      var _nk = _last.bet - _nd;
+      emOrderBet += _miss;
+      emOrderDone += (_nd - _last.done); emOrderPend += (_np - _last.pending); emOrderKept += (_nk - _last.kept);
+      _last.done = _nd; _last.pending = _np; _last.kept = _nk;
+    }
   });
+  // 兜底：客户二三合计与逐行合计必须相等；个别订单的明细行取不到额时，把这笔差补到最后一行。
+  if(emOrderRows.length && emCustSum - emOrderBet > 0.01){
+    var _gmiss = emCustSum - emOrderBet;
+    var _glast = emOrderRows[emOrderRows.length - 1];
+    _glast.bet += _gmiss;
+    var _gnd = (emFlyOn && autoFlyOn) ? _glast.bet : (emDoneAllocBase > 0 ? Math.min(_glast.bet, emDone * _glast.bet / emDoneAllocBase) : 0);
+    var _gnp = emFlyOn ? Math.max(0, _glast.bet - _gnd) : 0;
+    var _gnk = _glast.bet - _gnd;
+    emOrderBet += _gmiss;
+    emOrderDone += (_gnd - _glast.done); emOrderPend += (_gnp - _glast.pending); emOrderKept += (_gnk - _glast.kept);
+    _glast.done = _gnd; _glast.pending = _gnp; _glast.kept = _gnk;
+  }
   emOrderRows.forEach(function(r){
     var autoTag = (emFlyOn && autoFlyOn) ? '<span style="font-size:9px;color:#16a34a"> 自动飞</span>' : (emFlyOn ? '' : '<span style="font-size:9px;color:#94a3b8"> 未开飞</span>');
     var doneText = (emFlyOn && autoFlyOn) || Math.abs(r.done-r.bet) < 0.5 ? n0(r.done) : '≈'+n0(r.done);
