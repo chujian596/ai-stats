@@ -33,7 +33,7 @@ with sync_playwright() as p:
     colsum=[sum(num(r[i]) for r in rows[:4]) for i in range(1,6)]
     chk('四组各列相加=合计行',all(abs(colsum[i]-num(rows[4][i+1]))<0.6 for i in range(4)),[colsum,rows[4]])
     head=pg.evaluate("()=>document.querySelector('div[onclick=\"toggleRiskBox()\"]').innerText")
-    m=re.search(r'最坏\s*(-?\d+)',head); top=float(m.group(1)) if m else None
+    m=re.search(r'最坏\s*([-+]?\d[\d,]*(?:\.\d+)?)',head); top=float(m.group(1).replace(',','')) if m else None
     chk('四组最坏相加=持仓分析最坏',top is not None and abs(num(rows[4][5])-top)<0.6,(rows[4][5],top))
     txt=pg.evaluate("()=>document.getElementById('riskBody').textContent")
     chk('旧独立持仓标题已取消',all(x not in txt for x in ['特号持仓（只算特号）','平特持仓 ·','连肖持仓（']))
@@ -49,7 +49,7 @@ with sync_playwright() as p:
     chk('连肖部分已飞：50/50/50',rows2[2][1:5]==['100','50','50','50'],rows2[2])
     chk('部分已飞每行 下注=已飞+自留',all(abs(num(r[1])-num(r[2])-num(r[4]))<0.6 for r in rows2[1:5]),rows2)
     head2=pg.evaluate("()=>document.querySelector('div[onclick=\"toggleRiskBox()\"]').innerText")
-    m2=re.search(r'最坏\s*(-?\d+)',head2); top2=float(m2.group(1)) if m2 else None
+    m2=re.search(r'最坏\s*([-+]?\d[\d,]*(?:\.\d+)?)',head2); top2=float(m2.group(1).replace(',','')) if m2 else None
     chk('部分已飞四组最坏相加=整盘',top2 is not None and abs(num(rows2[4][5])-top2)<0.6,(rows2[4][5],top2))
     chk('无 JS 报错',not errs,errs[:2])
     b.close()
