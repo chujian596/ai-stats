@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单 · v61.09</title>
+<title>录单 · v61.10</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -853,7 +853,8 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
       <div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--modalText,#fff)">六、飞单统计（分批飞单）</div>
       <div style="font-size:13px;line-height:1.9;color:var(--modalLabel,#8E8E93)">
         1. <b style="color:var(--modalText,#fff)">阈值</b> = 每个号码最多自留多少，超出的才飞<br>
-        2. 阈值填 <b style="color:var(--modalText,#fff)">0</b> = 不削（全部自留，一个都不飞）；填得越小留得越少、飞得越多<br>
+        2. 阈值填 <b style="color:var(--modalText,#fff)">0</b> = 全飞（每号自留 0，全部飞出去）；填得越小留得越少、飞得越多<br>
+        · 要“本期不飞、只记录”，点飞单统计里的“⏸ 本期不飞（只记录）”，或把阈值输入框留空；<b style="color:var(--modalText,#fff)">0 和“不飞”不是一回事</b><br>
         3. 不确定填多少：勾 <b style="color:var(--modalText,#fff)">自动稳健</b>，系统按当天盘面自动挑一个亏得最少的档填进去<br>
         4. 分批飞单流程：<br>
         &nbsp;&nbsp;- 快截止时：<b style="color:var(--modalText,#fff)">复制本轮飞单</b> → 发给上家 → 点 <b style="color:var(--modalText,#fff)">确认本轮飞单</b><br>
@@ -1181,7 +1182,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v61.09';
+var APP_VER = 'v61.10';
 var APP_MODE = 'pro-core';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
@@ -2056,8 +2057,8 @@ function autoPayout(){
         // 计算本期上家净盈亏
         const sales0 = getSplitSales();
         let flyOut0 = 0, flyBack0 = 0;
-        Object.keys(sales0).forEach(k => { flyOut0 += Math.max(0, sales0[k] - splitTakeAll); });
-        flyBack0 += Math.max(0, (sales0[specialNum]||0) - splitTakeAll) * 47;
+        Object.keys(sales0).forEach(k => { flyOut0 += Math.max(0, sales0[k] - flyKeepCap()); });
+        flyBack0 += Math.max(0, (sales0[specialNum]||0) - flyKeepCap()) * 47;
         const pteAgg0 = {};
         ledger.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
           if(c.startsWith('平特')){
@@ -3893,7 +3894,23 @@ try {
 } catch(e){}
 
 let splitTakeAll = 100;
-try { var _sv = localStorage.getItem(SPLIT_KEY); if(_sv !== null){ var _pv = parseFloat(_sv); if(isFinite(_pv) && _pv >= 0) splitTakeAll = (_pv === 0 ? 0 : Math.max(10, Math.round(_pv/10)*10)); } } catch(e){}
+let _migrateZeroCap = false;
+try {
+  var _shopTag = (typeof shop !== 'undefined' ? shop : 'A');
+  var _zKey = 'flyZeroSemanticsMigrated_' + _shopTag;
+  var _zeroMigrated = localStorage.getItem(_zKey) === '1';
+  var _sv = localStorage.getItem(SPLIT_KEY);
+  if(_sv !== null){
+    var _pv = parseFloat(_sv);
+    if(isFinite(_pv) && _pv >= 0){
+      if(_pv === 0 && !_zeroMigrated){ _migrateZeroCap = true; splitTakeAll = 100; }
+      else if(_pv !== 0){ splitTakeAll = Math.max(10, Math.round(_pv/10)*10); }
+      else { splitTakeAll = 0; }
+    }
+  }
+  if(!_zeroMigrated){ localStorage.setItem(_zKey, '1'); }
+} catch(e){}
+setTimeout(function(){ if(_migrateZeroCap){ try{ localStorage.setItem('flyPauseLegacy_' + (typeof shop !== 'undefined' ? shop : 'A'), '1'); saveSplitAll(); }catch(e){} } }, 0);
 // 已飞累计（分批飞单）：key=位置代码，value=已飞金额
 let flownPerPos = {};
 try { flownPerPos = JSON.parse(localStorage.getItem(sk('flownPerPos')) || '{}'); } catch(e){ flownPerPos = {}; }
@@ -3934,6 +3951,7 @@ function flownRealOf(k){
 }
 // 某号实际扣掉的钱：已飞按记录、没飞的按凑整后（弹窗与明细共用这一套，避免两边打架）
 function realFlyAmount(k, bet){
+  if(flyPauseOn()) return flownPaidOf(k);   // 暂停只记录：已飞仍算，新飞为 0
   if(!(bet > 0)) return 0;   // 这个号今天没人下注，旧飞单记录不能算进来
   const should = flyPlanAmtOf(k, bet);
   const done = flownPerPos[k] || 0;
@@ -3942,7 +3960,7 @@ function realFlyAmount(k, bet){
   // 已飞一旦确认就锁定：调档位/补单只影响“后续应飞”，不回撤、不清零已飞记录
   const pending = Math.max(0, should - done);
   // 还没开始飞这一号时，金额以聚档结果为准（明细/卡片/风险面板共用同一个数）
-  if(done <= 0.01){
+  if(done <= 0.01 && splitTakeAll > 0){
     try {
       const _alloc = flyClusterAlloc();
       const _key = (/^\d{1,2}$/.test(String(k)) ? String(k).padStart(2, '0') : k);
@@ -4249,7 +4267,17 @@ function syncFlyThInputs(exceptId){
   });
 }
 function setFlyTh(v, redraw, exceptId){
-  var n=parseFloat(v); if(!isFinite(n) || n<0) return;
+  var _raw = String(v == null ? '' : v).trim();
+  if(_raw === ''){
+    if(redraw){
+      flyPauseSetRaw(true);
+      try{ refreshFlySummary(); }catch(e){}
+      try{ calcSplit(); }catch(e){}
+    }
+    return;
+  }
+  var n=parseFloat(_raw); if(!isFinite(n) || n<0) return;
+  flyPauseSetRaw(false);
   // 阈值也只留 10 的整数档，避免 67/78 这种档位再流回卡片
   n = (n === 0 ? 0 : Math.max(10, Math.round(n/10)*10));
   splitTakeAll=n; saveSplitAll();
@@ -4302,7 +4330,7 @@ function cutBets(raw){
   Object.keys(sales).forEach(function(k){
     var nb = Number(sales[k]) || 0;
     if(nb <= 0) return;
-    var self = raw ? nb : (cap > 0 ? Math.min(nb, cap) : nb);
+    var self = raw ? nb : (flyPauseOn() ? nb : (cap > 0 ? Math.min(nb, cap) : 0));
     arr.push({n:k, nb:nb, self:self});
   });
   arr.sort(function(a,b){ return b.self - a.self; });
@@ -4565,7 +4593,7 @@ function renderSplit(){
     tbody.innerHTML = '<div style="grid-column:1/3;color:#999;padding:8px">暂无01-49销售记录</div>';
   } else {
     tbody.innerHTML = keys.map(k => {
-      const extra = Math.max(0, sales[k] - splitTakeAll);
+      const extra = Math.max(0, sales[k] - flyKeepCap());
       if(extra <= 0) return '';
       return `<div style="background:#fff;display:flex;justify-content:space-between;padding:4px 8px"><span style="font-weight:600">${esc(k)}</span><span style="color:#333;font-weight:600">${extra.toFixed(0)}</span></div>`;
     }).join('');
@@ -5470,6 +5498,7 @@ function refreshFlySummary(){
             return '<div style="padding-top:3px">总单 <b>' + _fs.orders.toFixed(0) + '</b> ｜ 总飞出去 <b style="color:#cf1322">' + _fs.total + '</b></div>'
                  + '<div>已飞 <b style="color:#333">' + _fs.paid + '</b> ｜ 待付 <b style="color:#cf1322;font-size:16px">' + _fs.pending + '</b></div>';
           })()
+        + flyPauseBadge();
 
     }
     var box = document.getElementById('sideSplitResult');
@@ -5507,7 +5536,9 @@ function setFlyRoundMode(m){
 function flyPlanAmtOf(code, bet){
   var b = Number(bet) || 0;
   if(b <= 0.01) return 0;
-  var CAP = (typeof splitTakeAll === 'number' && splitTakeAll > 0) ? splitTakeAll : 0;
+  if(flyPauseOn()) return 0;
+  var CAP = (typeof splitTakeAll === 'number' && splitTakeAll >= 0) ? splitTakeAll : 0;
+  if(CAP === 0) return b;           // 0 = 每号自留 0，全部飞
   if(!(CAP > 0)) return 0;
   try{
     var a = flyClusterAlloc();
@@ -6817,7 +6848,49 @@ function refreshFlyViewsAfterSkip(){
     window.scrollTo(0, sy);
   }catch(e){}
 }
+function flyPauseKey(){
+  var _p = '';
+  try{ _p = selfFlyPeriod() || ''; }catch(e){}
+  return 'flyPause_shop' + (typeof shop !== 'undefined' ? shop : 'A') + '_' + (_p || 'na');
+}
+function flyPauseOn(){
+  try{
+    var _s = 'flyPauseLegacy_' + (typeof shop !== 'undefined' ? shop : 'A');
+    if(localStorage.getItem(_s) === '1') return true;
+    return localStorage.getItem(flyPauseKey()) === '1';
+  }catch(e){ return false; }
+}
+function flyPauseSetRaw(on){
+  try{
+    var _s = 'flyPauseLegacy_' + (typeof shop !== 'undefined' ? shop : 'A');
+    if(!on) localStorage.removeItem(_s);
+    localStorage.setItem(flyPauseKey(), on ? '1' : '0');
+  }catch(e){}
+}
+function flyPauseToggle(){
+  var on = !flyPauseOn(); flyPauseSetRaw(on);
+  try{ refreshFlySummary(); }catch(e){}
+  try{ calcSplit(); }catch(e){}
+  try{ renderRisk(); }catch(e){}
+  try{ renderSplit(); }catch(e){}
+}
+function flyPauseBadge(){
+  var on = flyPauseOn();
+  return '<div style="margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+    + '<button type="button" onclick="flyPauseToggle()" style="border:1px solid ' + (on?'#cf1322':'#999') + ';background:' + (on?'#fff1f0':'#fff') + ';color:' + (on?'#cf1322':'#333') + ';border-radius:6px;padding:4px 10px;font-size:12px">' + (on?'▶ 恢复飞单':'⏸ 本期不飞（只记录）') + '</button>'
+    + (on?'<span style="font-size:12px;color:#cf1322">已暂停：只记录，不产生新飞单；已飞仍计入账目</span>':'<span style="font-size:12px;color:#888">暂停后本期新飞单为 0</span>')
+    + '</div>';
+}
+function flyKeepCap(){
+  try{ if(flyPauseOn()) return 1000000000; }catch(e){}
+  return splitTakeAll;
+}
 function getThisRoundFly(){
+  if(flyPauseOn()){
+    var _paid = 0;
+    try{ Object.keys(flownPerPos||{}).forEach(function(k){ _paid += flownPaidOf(k); }); }catch(e){}
+    return {lines:[], thisRound:0, already:_paid, totalFly:_paid, extra:_paid};
+  }
   var _list = activeOrders();
   const _skip = flySkipSet();
   // 返回 {lines: [], total: X, already: Y, totalFly: Z}
@@ -7800,7 +7873,9 @@ function resetFlown(){
   });
 }
 function sideSplitCalc(){
-  splitTakeAll = parseFloat(document.getElementById('sideSplitTh').value) || 0;
+  var _thRaw = String(document.getElementById('sideSplitTh').value || '').trim();
+  if(_thRaw === ''){ flyPauseSetRaw(true); splitTakeAll = 0; }
+  else { flyPauseSetRaw(false); splitTakeAll = parseFloat(_thRaw) || 0; }
   saveSplitAll();
   const sales = getSplitSales();
   const keys = Object.keys(sales).sort();
@@ -7812,7 +7887,7 @@ function sideSplitCalc(){
         var _fs = flyMoneySummary();
         return `<div style="padding-top:3px">总单 <b>${_fs.orders.toFixed(0)}</b> ｜ 飞单总额 <b style="color:#cf1322">${_fs.total}</b></div>`
     + `<div>已付 ${_fs.paid} ｜ 待付 <b style="color:#cf1322;font-size:16px">${_fs.pending}</b></div>`;
-      })();
+      })() + flyPauseBadge();
   // 明细表
   let h = '<div style="font-size:14px">';
   h += '<div style="display:flex;align-items:center;padding:8px 4px;background:#f0f0f0;font-weight:700;font-size:13px;border-radius:6px 6px 0 0">';
@@ -7865,7 +7940,7 @@ function calcSplit(){
   const sales = getSplitSales();
   const keys = Object.keys(sales);
   const total = keys.reduce((s,k) => s + sales[k], 0);
-  const partner = keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
+  const partner = flyPauseOn() ? 0 : keys.reduce((s,k) => s + Math.max(0, sales[k] - splitTakeAll), 0);
   // 实际飞出（已飞按记录、未飞按凑整后）—— 与飞单明细、风险面板同一个数
   const partnerReal = keys.reduce((s,k) => s + realFlyAmount(k, sales[k]||0), 0);
   const _rcRisk = rebateCfg();
@@ -7903,12 +7978,16 @@ function calcSplit(){
   }); });
   Object.values(pteAggAll).forEach(amt => { pteFlyAll += pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt; });
   if(lxFlyAmt > 0) lxFlyAll = lxFlyAmt;
+  else {
+    _list.forEach(o => { eachUniqueOrderCode(o, function(c, amt){ if(c.startsWith('连肖')) lxFlyAll += amt; }); });
+  }
   let emOnChk = true; try { emOnChk = localStorage.getItem(sk('emFlyOn')) !== '0'; } catch(e){}
   if(emOnChk){ _list.forEach(o => { eachUniqueOrderCode(o, function(c, amt){
     if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0){
       emFlyAll += amt;
     }
   }); });}
+  if(flyPauseOn()){ pteFlyAll = 0; lxFlyAll = 0; emFlyAll = 0; }
   const totalFly = partner + pteFlyAll + lxFlyAll + emFlyAll;
   // 分批飞单：已飞累计 vs 本轮应飞
   const _r = getThisRoundFly();
@@ -7916,9 +7995,10 @@ function calcSplit(){
     `<div>特号总单：<b>${total.toFixed(2)}</b> + 平特连肖：<b>${pteLxTotal.toFixed(2)}</b>` +
     (emTotal > 0 ? ` + 二中二三中三：<b>${emTotal.toFixed(2)}</b>` : '') +
     ` = <b>${(total+pteLxTotal+emTotal).toFixed(2)}</b></div>` +
-    `<div>阈值：<b>${splitTakeAll.toFixed(0)}</b>/号</div>` +
+    `<div>阈值：<b>${flyPauseOn()?'暂停':(splitTakeAll===0?'0/号（全飞）':splitTakeAll.toFixed(0)+'/号')}</b></div>` +
     `<div>应飞总额：<b style="color:#cf1322">${totalFly.toFixed(2)}</b></div>` +
     `<div style="font-size:13px;color:#666">已飞累计：${_r.already.toFixed(2)}　|　本轮应飞：<b style="color:#cf1322">${_r.thisRound.toFixed(2)}</b></div>`;
+  splitHtml += flyPauseBadge();
   try{
     var _exs = emExtraBook(_draw);
     if(_exs.cost > 0) splitHtml += `<div style="font-size:12px;color:#b45309">二三多飞（客户单以外）：<b>${_exs.cost.toFixed(0)}</b> 已额外付出${_exs.back>0?'，赔回 +'+_exs.back.toFixed(0):''}</div>`;
@@ -7997,7 +8077,7 @@ function calcSplit(){
     const lines = [];
     let partner = 0;
     keys.forEach(k => {
-      const extra = Math.max(0, sales[k] - splitTakeAll);
+      const extra = Math.max(0, sales[k] - flyKeepCap());
       if(extra > 0){ lines.push(`${k} ${extra.toFixed(2)}`); partner += extra; }
     });
     const pteMap = {};
@@ -8031,7 +8111,7 @@ function copySplit(){
   const lines = [];
   let partner = 0;
   keys.forEach(k => {
-    const extra = Math.max(0, sales[k] - splitTakeAll);
+    const extra = Math.max(0, sales[k] - flyKeepCap());
     if(extra > 0){
       lines.push(`${k} ${extra.toFixed(2)}`);
       partner += extra;
@@ -8123,7 +8203,7 @@ function copyFlyType(type){
   if(type === 'special'){
     const sales = getSplitSales();
     Object.keys(sales).sort().forEach(k => {
-      const extra = Math.max(0, sales[k] - splitTakeAll);
+      const extra = Math.max(0, sales[k] - flyKeepCap());
       if(extra > 0) lines.push(`${k} ${extra.toFixed(2)}`);
     });
   } else if(type === 'zodiac'){
@@ -12324,7 +12404,7 @@ function renderOrdersList(){
   try {
     const sales = getSplitSales();
     Object.keys(sales).sort().forEach(k => {
-      const extra = Math.max(0, sales[k] - splitTakeAll);
+      const extra = Math.max(0, sales[k] - flyKeepCap());
       if(extra > 0) upCopyLines.push(`特码${k} ${extra.toFixed(0)}`);
     });
     const pteMap2 = {};
