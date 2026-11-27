@@ -352,7 +352,7 @@ await appendSave('特01 8930');
 await appendSave('特02 3000');
 await appendSave('特03 1000');
 await appendSave('平特马 600');
-applyTh(0);
+applyTh(100000); // 0 已改为全飞，削峰测试改用大阈值模拟全部自留
 const bets=cutBets();
 const selfSum=bets.reduce((a,b)=>a+b.self,0);
 const c0=cutCalc(0), c100=cutCalc(100), c21=cutCalc(21);
