@@ -67,7 +67,8 @@ if git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
   while IFS= read -r -d '' p; do
     case "$p" in
       app-pro.html|app-pro-backup.html|app-pro-preview.html|app.html|app-client-backup.html|app-client-v59.03-test.html|apps.html|version.txt|version-client.txt|version-client-test.txt|sw.js|manifest.json|system-guide.html|extra-ledger.html|kill3-ledger.html|nine-zodiac.html|site-registry.html|engine.html|dashboard.html|change-ledger.html|independence.html|max-zodiac-current.html|max-zodiac.html|compare.html|stats.html|ziliao-center.html|start.html|lab.html|ziliao.html|portal.html|0491.html|ai-analysis.html|issue*.html|zhengpiao.html) ;;
-      data/zhengpiao-*.json) ;;
+      data/zhengpiao-*.json|data/*-ledger.json|data/current-recommend.json|data/site-directory.json|data/site-registry.json|data/sites-current.json|data/closure-report-*.json) ;;
+      official-history.json|draw-latest.json) ;;
       versions/*|functions/*) ;;
       .wrangler/*|node_modules/*|__pycache__/*|*/__pycache__/*|tests/__pycache__/*|tools/__pycache__/*|*.pyc|*.pyo) ;;
       # APK 壳工程 / 设计稿草稿：本地并发会话产物，不进站点部署包，出现改动不阻断部署
