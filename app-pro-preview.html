@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v61.01-Pro</title>
+<title>录单Pro · v61.02-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1182,7 +1182,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v61.01-Pro';
+var APP_VER = 'v61.02-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -13941,13 +13941,18 @@ function renderRisk(){
     var _sgSpecPend = Math.max(0, _sbet - _sgSpecDone - specKept);
     var _sgPtePend = Math.max(0, pteTotalSalesSum - _sgPteDone - pteKept);
     var _sgLxPend = Math.max(0, lxTotalSalesSum - _sgLxDone - lxKept);
-    var _sgBet = _sbet + pteTotalSalesSum + lxTotalSalesSum;
-    var _sgDone = _sgSpecDone + _sgPteDone + _sgLxDone;
-    var _sgPend = _sgSpecPend + _sgPtePend + _sgLxPend;
-    var _sgKept = specKept + pteKept + lxKept;
+    var _sgEmBet = Number(emFlySales) || 0;
+    var _sgEmDone = Number(_fb.em) || 0;
+    var _sgEmKept = emFlyOn ? 0 : Math.max(0, _sgEmBet - _sgEmDone);
+    var _sgEmPend = Math.max(0, _sgEmBet - _sgEmDone - _sgEmKept);
+    var _sgEmW = emFlyOn ? 0 : null;   // 未开即时飞时二三风险不在本表口径内
+    var _sgBet = _sbet + pteTotalSalesSum + lxTotalSalesSum + _sgEmBet;
+    var _sgDone = _sgSpecDone + _sgPteDone + _sgLxDone + _sgEmDone;
+    var _sgPend = _sgSpecPend + _sgPtePend + _sgLxPend + _sgEmPend;
+    var _sgKept = specKept + pteKept + lxKept + _sgEmKept;
     var _sgW = _sgSpecW + _sgPteW + _sgLxW;
     function _n(v){ v=Number(v)||0; return (Math.abs(v)<0.5?0:Math.round(v)).toLocaleString('en-US'); }
-    function _wc(v){ return '<span style="color:'+(v>=0?'#166534':'#cf1322')+'">'+(v>=0?'+':'')+_n(v)+'</span>'; }
+    function _wc(v){ if(v===null) return '<span style="color:#94a3b8">—</span>'; return '<span style="color:'+(v>=0?'#166534':'#cf1322')+'">'+(v>=0?'+':'')+_n(v)+'</span>'; }
     function _row(label,b,d,p,k,w,sum){
       return '<tr'+(sum?' style="background:#f8fafc;font-weight:800"':'')+'><td style="padding:5px 4px;text-align:left;border-top:1px solid #f1f5f9">'+label+'</td>'
         +'<td style="padding:5px 4px;text-align:right;border-top:1px solid #f1f5f9">'+_n(b)+'</td>'
@@ -13962,9 +13967,10 @@ function renderRisk(){
       + _row('特号',_sbet,_sgSpecDone,_sgSpecPend,specKept,_sgSpecW,false)
       + _row('平特',pteTotalSalesSum,_sgPteDone,_sgPtePend,pteKept,_sgPteW,false)
       + _row('连肖',lxTotalSalesSum,_sgLxDone,_sgLxPend,lxKept,_sgLxW,false)
+      + _row('二三',_sgEmBet,_sgEmDone,_sgEmPend,_sgEmKept,_sgEmW,false)
       + _row('合计',_sgBet,_sgDone,_sgPend,_sgKept,_sgW,true)
       + '</tbody></table>'
-      + '<div style="font-size:9px;color:#94a3b8;line-height:1.5;margin:3px 2px 6px">三组「最坏」取同一总盘最坏场景的分摊，相加就是持仓分析 '+_n(worstNet)+'；下注/已飞/待飞/自留四列也各自相加等于合计。二三即时飞，不进这组持仓。</div>';
+      + '<div style="font-size:9px;color:#94a3b8;line-height:1.5;margin:3px 2px 6px">四组「最坏」取同一总盘最坏场景的分摊，相加就是持仓分析 '+_n(worstNet)+'；下注/已飞/待飞/自留四列也各自相加等于合计。'+(emFlyOn?'二三即时过账，已飞计入合计，最坏不担风险。':'二三未开即时飞，最坏另算，不计入本表合计。')+'</div>';
     h = h.replace('<!--RK_GROUP_SUMMARY-->', _sg);
   })();
   const specialPayout = worstKeptBet * payMult;
@@ -14533,6 +14539,16 @@ function renderRisk(){
     + '<span style="color:#333">特号 <b>' + (splitTakeAll||0) + '</b> ｜ 平特 <b>' + (pteFlyTakeAll||0) + '</b> ｜ 连肖 <b>' + (lxFlyAmt||0) + '</b></span>'
     + '</div>' + h;
 box.innerHTML = h;
+  // 持仓分析的展开内容紧跟标题：不再隔在分组明细最下面
+  try{
+    var _hd = box.querySelector('div[onclick="toggleRiskBox()"]');
+    var _hc = box.querySelector('#riskHealthCard');
+    var _cc = box.querySelector('#cutCard');
+    if(_hd && _hc){
+      _hd.insertAdjacentElement('afterend', _hc);
+      if(_cc) _hc.insertAdjacentElement('afterend', _cc);
+    }
+  }catch(e){}
   try{ renderNeedList(); }catch(e){}
 }
 
