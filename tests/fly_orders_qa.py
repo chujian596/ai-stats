@@ -29,7 +29,7 @@ with sync_playwright() as p:
     meta=pg.evaluate("()=>Array.from(document.querySelectorAll('#flyListPreview .fd-sec-meta')).pop().innerText")
     chk('头部写3笔订单而不是合并组数','3笔订单' in meta and '55组' not in meta,meta)
     foot=pg.evaluate("()=>Array.from(document.querySelectorAll('#flyListPreview .fd-sec')).pop().querySelector('.fd-foot').innerText")
-    chk('写明每笔一行', '每一笔订单各占一行' in foot)
+    chk('写明每笔一行', '每一笔客户订单各占一行' in foot)
     chk('写明复式整组结算', '命中时按复式整组结算' in foot)
     chk('不出现逐组合行',len(data['rows'])==3)
     chk('无 JS 报错',not errs,errs[:2])

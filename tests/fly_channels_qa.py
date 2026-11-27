@@ -55,7 +55,7 @@ with sync_playwright() as p:
     grow=pg.evaluate("()=>Array.from(document.querySelectorAll('#rkGroupTable tbody tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim()))")
     chk('分组持仓合计下注3304',grow[-1][1]=='3,304',grow[-1])
     chk('分组持仓合计待飞2005',grow[-1][3]=='2,005',grow[-1])
-    chk('分组持仓合计自留1299',grow[-1][4]=='1,299',grow[-1])
+    chk('分组持仓合计自留3304',grow[-1][4]=='3,304',grow[-1])
     ths=pg.evaluate("()=>Array.from(document.querySelectorAll('#flyListPreview .fd-table thead tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim()).join('|'))")
     chk('每张表都有下注/已飞/待飞/自留四列',len(ths)==4 and all(x.endswith('下注|已飞|待飞|自留') for x in ths),ths)
     bad=pg.evaluate("""()=>Array.from(document.querySelectorAll('#flyListPreview .fd-table tbody tr:not(.fd-sub)')).filter(r=>r.children.length!==5).length""")
@@ -64,7 +64,7 @@ with sync_playwright() as p:
     chk('各分组下注合计3304',sums[0]==3304,sums)
     chk('各分组已飞合计0',sums[1]==0,sums)
     chk('各分组待飞合计2005',sums[2]==2005,sums)
-    chk('各分组自留合计1299',sums[3]==1299,sums)
+    chk('各分组自留合计3304',sums[3]==3304,sums)
     # 点“不飞”后，分组表和飞单明细都必须立即把该组待飞扣掉，不能留旧数
     pg.evaluate("()=>flySkipMany('平特马')"); pg.wait_for_timeout(300)
     grow2=pg.evaluate("()=>Array.from(document.querySelectorAll('#rkGroupTable tbody tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim()))")

@@ -27,8 +27,9 @@ with sync_playwright() as p:
     good=True
     for r in rows[1:]:
         bx,dx,px,kx,wx=map(num,r[1:])
-        if abs(bx-dx-px-kx)>0.6: good=False
-    chk('每行 下注=已飞+待飞+自留',good,rows)
+        if abs(bx-dx-kx)>0.6: good=False
+    chk('每行 下注=已飞+自留（待飞是自留的一部分）',good,rows)
+    chk('待飞不超过自留',all(num(r[3])<=num(r[4])+0.6 for r in rows[1:5]),rows)
     colsum=[sum(num(r[i]) for r in rows[:4]) for i in range(1,6)]
     chk('四组各列相加=合计行',all(abs(colsum[i]-num(rows[4][i+1]))<0.6 for i in range(4)),[colsum,rows[4]])
     head=pg.evaluate("()=>document.querySelector('div[onclick=\"toggleRiskBox()\"]').innerText")
@@ -45,8 +46,8 @@ with sync_playwright() as p:
     # 部分已飞：连肖按实际记录扣，不按阈值变量拍脑袋
     pg.evaluate("""()=>{flownPerPos={'02':100,'08':100,'平特马':100,'连肖马蛇':50,'_em_total':10};flownReal={'02':100,'08':100,'平特马':100,'连肖马蛇':50,'_em_total':10};localStorage.setItem(sk('flownPerPos'),JSON.stringify(flownPerPos));localStorage.setItem(sk('flownReal'),JSON.stringify(flownReal));renderRisk();}""" ); pg.wait_for_timeout(300)
     rows2=pg.evaluate("()=>Array.from(document.querySelectorAll('#rkGroupTable tbody tr')).map(r=>Array.from(r.children).map(x=>x.innerText.trim().replace(/,/g,'')))")
-    chk('连肖部分已飞：50/50/0',rows2[2][1:5]==['100','50','50','0'],rows2[2])
-    chk('部分已飞每行相加=下注',all(abs(num(r[1])-num(r[2])-num(r[3])-num(r[4]))<0.6 for r in rows2[1:5]),rows2)
+    chk('连肖部分已飞：50/50/50',rows2[2][1:5]==['100','50','50','50'],rows2[2])
+    chk('部分已飞每行 下注=已飞+自留',all(abs(num(r[1])-num(r[2])-num(r[4]))<0.6 for r in rows2[1:5]),rows2)
     head2=pg.evaluate("()=>document.querySelector('div[onclick=\"toggleRiskBox()\"]').innerText")
     m2=re.search(r'最坏\s*(-?\d+)',head2); top2=float(m2.group(1)) if m2 else None
     chk('部分已飞四组最坏相加=整盘',top2 is not None and abs(num(rows2[4][5])-top2)<0.6,(rows2[4][5],top2))
