@@ -32,7 +32,7 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" href="icon-512.png">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>录单Pro · v60.76-Pro</title>
+<title>录单Pro · v61.00-Pro</title>
 <style>
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -389,6 +389,36 @@ html[data-system-theme="dark"] [style*="color:#b45309"]{color:#fcd34d!important}
 .tdark-border-blue{border-color:#31527e!important}
 .tdark-border-amber{border-color:#7a5b1c!important}
 .tdark-border-red{border-color:#7f2635!important}
+
+
+/* ===== 飞单明细·通道版 v61.00 ===== */
+.fd-wrap{margin-top:6px}
+.fd-sum{display:flex;gap:5px;margin:2px 0 7px}
+.fd-stat{flex:1;min-width:0;background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:6px 5px;text-align:center}
+.fd-stat span{display:block;font-size:9px;color:#9ca3af;line-height:1.2}
+.fd-stat b{display:block;font-size:16px;line-height:1.35;color:#111827}
+.fd-stat i{display:block;font-size:9px;color:#9ca3af;font-style:normal;line-height:1.2}
+.fd-sec{margin-top:7px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden}
+.fd-sec>summary{list-style:none;cursor:pointer;padding:7px 8px;display:flex;align-items:center;gap:6px;background:#fafafa;border-left:4px solid var(--fd-c);}
+.fd-sec>summary::-webkit-details-marker{display:none}
+.fd-sec>summary:before{content:'▸';color:#9ca3af;font-size:10px;flex:none}
+.fd-sec[open]>summary:before{transform:rotate(90deg)}
+.fd-badge{display:inline-block;flex:none;padding:2px 6px;border-radius:4px;background:var(--fd-c);color:#fff;font-size:10px;font-weight:700}
+.fd-sec-title{font-size:12px;font-weight:700;color:#111827;flex:none}
+.fd-sec-meta{font-size:10px;color:#6b7280;margin-left:auto;text-align:right;line-height:1.35}
+.fd-sec-meta b{color:#111827}
+.fd-note{font-size:10px;color:#9ca3af;line-height:1.5;padding:5px 8px 0}
+.fd-table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.fd-table th{background:#f9fafb;color:#6b7280;font-weight:600;font-size:10px;padding:4px 4px;border-bottom:1px solid #f1f5f9;text-align:right;white-space:nowrap}
+.fd-table th:first-child{text-align:left}
+.fd-table td{padding:4px;border-bottom:1px solid #f8fafc;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#374151}
+.fd-table td:first-child{text-align:left;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#111827}
+.fd-table tr:last-child td{border-bottom:none}
+.fd-sub td{background:#fbfbfc;color:#9ca3af;font-size:10px;font-weight:600;text-align:left!important;padding:3px 6px}
+.fd-zero{color:#cbd5e1!important}
+.fd-red{color:#cf1322!important}.fd-orange{color:#d97706!important}.fd-green{color:#16a34a!important}.fd-purple{color:#7c3aed!important}
+.fd-foot{font-size:10px;color:#9ca3af;line-height:1.5;padding:6px 8px;border-top:1px solid #f1f5f9;background:#fcfcfd}
+.fd-scroll{max-height:270px;overflow:auto;-webkit-overflow-scrolling:touch}
 
 </style>
 </head>
@@ -1152,7 +1182,7 @@ var OWNER_FP = ['780a7275fbd28a02', 'e5690e7d2be068d2'];
 function isOwnerDevice(){ try { return OWNER_FP.indexOf(fpOf(DEVICE_ID)) >= 0; } catch(e){ return false; } }
 // 设备白名单：从whitelist.json远程拉取
 // 强制版本检查
-var APP_VER = 'v60.76-Pro';
+var APP_VER = 'v61.00-Pro';
 /* ===== 可观测性：本地错误日志 + 诊断导出 ===== */
 var ERR_KEY = 'ai_err_log_v1';
 var _errMem = null;
@@ -13276,6 +13306,239 @@ function preflightReport(){
   lines += '建议：单号不超过 ' + L2.toFixed(0) + ' 元；超了就把超出部分飞出去。';
   myAlert(lines);
 }
+
+// ===== 飞单明细·通道版（v61.00）=====
+// 一个玩法一个通道，一行一个对象，所有金额列严格对应：
+// 下注 = 客户本玩法注额；已飞 = 实际上家实付；待飞 = 按本轮阈值还没付；自留 = 下注 − 应飞。
+// 只做展示，不改任何记账/凑整/聚档逻辑。
+function renderFlyChannelsV2(ctx){
+  ctx = ctx || {};
+  var riskList = ctx.riskList || [];
+  var sales = ctx.sales || {};
+  var pteMap = ctx.pteBetByZod || {};
+  var lines = ctx.lines || [];
+  var emFlyOn = !!ctx.emFlyOn;
+  var autoFlyOn = !!ctx.autoFlyOn;
+  var splitCap = Number(ctx.splitTakeAll) || 0;
+  var pteCap = Number(ctx.pteFlyTakeAll) || 0;
+  var lxManual = Number(ctx.lxFlyAmt) || 0;
+  var lxName = ctx.lxFlyName || '';
+  var lineMap = {};
+  lines.forEach(function(l){
+    var k = (l.code === '二中二/三中三合计') ? '_em_total' : l.code;
+    lineMap[k] = l;
+  });
+  function L(code){ return lineMap[code] || null; }
+  function n0(v){ v = Number(v) || 0; return Math.abs(v) < 0.5 ? '0' : String(Math.round(v)); }
+  function n1(v){ v = Number(v) || 0; return Math.abs(v) >= 0.05 ? v.toFixed(v % 1 ? 1 : 0) : '0'; }
+  function cls(v){ if(Math.abs(Number(v)||0) < 0.5) return ' class="fd-zero"'; return ''; }
+  function foot(b,d,p,k,note){
+    return '<b style="color:#374151">小计：下注 '+n0(b)+' ｜ 已飞 '+n0(d)+' ｜ 待飞 '+n0(p)+' ｜ 自留 '+n0(k)+'</b><br>'+note;
+  }
+  function table(head, rows, clsName){
+    return '<table class="fd-table '+(clsName||'')+'"><colgroup><col style="width:35%"><col style="width:15%"><col style="width:17%"><col style="width:17%"><col style="width:16%"></colgroup><thead><tr><th>'+head+'</th><th>下注</th><th>已飞</th><th>待飞</th><th>自留</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  function sec(o){
+    var open = o.open === false ? '' : ' open';
+    return '<details class="fd-sec"'+open+' style="--fd-c:'+o.color+'"><summary>'
+      + '<span class="fd-badge" style="background:'+o.color+'">'+o.badge+'</span>'
+      + '<span class="fd-sec-title">'+o.title+'</span>'
+      + '<span class="fd-sec-meta">'+o.meta+'</span></summary>'
+      + (o.note ? '<div class="fd-note">'+o.note+'</div>' : '')
+      + (o.scroll ? '<div class="fd-scroll">' : '')
+      + o.body
+      + (o.scroll ? '</div>' : '')
+      + (o.foot ? '<div class="fd-foot">'+o.foot+'</div>' : '')
+      + '</details>';
+  }
+  var sumBet = 0, sumDone = 0, sumPending = 0, sumKept = 0;
+  function addSum(b,d,p,k){ sumBet += b; sumDone += d; sumPending += p; sumKept += k; }
+
+  // ---------- 特号通道 ----------
+  var spRows = [], spBet = 0, spDone = 0, spPend = 0, spKept = 0;
+  Object.keys(sales).filter(function(k){ return /^\d{2}$/.test(k); }).forEach(function(code){
+    var bet = Number(sales[code]) || 0; if(bet <= 0.01) return;
+    var full = 0; try{ full = flyPlanAmtOf(code, bet); }catch(e){ full = Math.max(0, bet - splitCap); }
+    var line = L(code);
+    var done = line ? Number(line.done || 0) : flownPaidOf(code);
+    var pending = line ? Number(line.amt || 0) : Math.max(0, full - Number((flownPerPos||{})[code] || 0));
+    var kept = bet - full;
+    spBet += bet; spDone += done; spPend += pending; spKept += kept;
+    spRows.push({code:code, bet:bet, done:done, pending:pending, kept:kept, full:full});
+  });
+  spRows.sort(function(a,b){ return b.full - a.full || b.bet - a.bet || a.code.localeCompare(b.code); });
+  var spBody = '';
+  if(!spRows.length){
+    spBody = '<div class="fd-note" style="padding-bottom:7px">本通道暂无号码注单</div>';
+  } else {
+    var spTr = spRows.map(function(r){
+      return '<tr><td>'+r.code+' <span style="color:#9ca3af;font-weight:400">'+((NUM2ZODIAC[Number(r.code)]||''))+'</span></td>'
+        + '<td>'+n0(r.bet)+'</td>'
+        + '<td'+cls(r.done)+'>'+n0(r.done)+'</td>'
+        + '<td'+cls(r.pending)+'>'+n0(r.pending)+'</td>'
+        + '<td'+cls(r.kept)+'>'+n0(r.kept)+'</td></tr>';
+    }).join('');
+    spBody = table('号码/生肖', spTr);
+  }
+  addSum(spBet, spDone, spPend, spKept);
+
+  // ---------- 平特通道 ----------
+  var pteRows = [], pteBet = 0, pteDone = 0, ptePend = 0, pteKept = 0;
+  Object.keys(pteMap).forEach(function(z){
+    var bet = Number(pteMap[z]) || 0; if(bet <= 0.01) return;
+    var code = '平特' + z;
+    var full = pteCap > 0 ? Math.max(0, bet - pteCap) : bet;
+    var line = L(code);
+    var done = line ? Number(line.done || 0) : flownPaidOf(code);
+    var pending = line ? Number(line.amt || 0) : Math.max(0, full - Number((flownPerPos||{})[code] || 0));
+    var kept = bet - full;
+    pteBet += bet; pteDone += done; ptePend += pending; pteKept += kept;
+    pteRows.push({z:z, bet:bet, done:done, pending:pending, kept:kept, full:full});
+  });
+  pteRows.sort(function(a,b){ return b.full - a.full || b.bet - a.bet; });
+  var pteBody = '';
+  if(!pteRows.length){
+    pteBody = '<div class="fd-note" style="padding-bottom:7px">本通道暂无生肖注单</div>';
+  } else {
+    pteBody = table('生肖', pteRows.map(function(r){
+      return '<tr><td>'+r.z+'</td><td>'+n0(r.bet)+'</td><td'+cls(r.done)+'>'+n0(r.done)+'</td><td'+cls(r.pending)+'>'+n0(r.pending)+'</td><td'+cls(r.kept)+'>'+n0(r.kept)+'</td></tr>';
+    }).join(''));
+  }
+  addSum(pteBet, pteDone, ptePend, pteKept);
+
+  // ---------- 连肖通道 ----------
+  var lxCust = {};
+  riskList.forEach(function(o){ eachUniqueOrderCode(o, function(c, amt){
+    if(String(c).indexOf('连肖') === 0) lxCust[c] = (lxCust[c] || 0) + amt;
+  }); });
+  var lxRows = [], lxBet = 0, lxDone = 0, lxPend = 0, lxKept = 0;
+  if(lxManual > 0){
+    var code = '连肖' + lxName;
+    var bet = Math.max(Number(lxCust[code] || 0), lxManual);
+    var line = L(code);
+    var done = line ? Number(line.done || 0) : flownPaidOf(code);
+    var pending = line ? Number(line.amt || 0) : Math.max(0, lxManual - Number((flownPerPos||{})[code] || 0));
+    var kept = bet - lxManual;
+    lxBet += bet; lxDone += done; lxPend += pending; lxKept += kept;
+    lxRows.push({name:(lxName || code.slice(2)), bet:bet, done:done, pending:pending, kept:kept, full:lxManual, manual:true});
+    var other = 0;
+    Object.keys(lxCust).forEach(function(k){ if(k !== code) other += Number(lxCust[k]) || 0; });
+    if(other > 0.01){
+      lxBet += other; lxKept += other;
+      lxRows.push({name:'其他客户连肖（本批不飞）', bet:other, done:0, pending:0, kept:other, full:0, manual:false, muted:true});
+    }
+  } else {
+    lines.filter(function(l){ return String(l.code).indexOf('连肖') === 0; }).forEach(function(l){
+      var bet = Number(l.full || l.amt || 0);
+      if(bet <= 0.01) return;
+      lxBet += bet; lxDone += Number(l.done || 0); lxPend += Number(l.amt || 0); lxKept += 0;
+      lxRows.push({name:l.code.slice(2).replace(/[0-9连]+$/,''), bet:bet, done:Number(l.done||0), pending:Number(l.amt||0), kept:0, full:bet, manual:false});
+    });
+    if(!lxRows.length){
+      Object.keys(lxCust).forEach(function(code){
+        var bet = Number(lxCust[code]) || 0; if(bet <= 0.01) return;
+        lxBet += bet; lxKept += bet;
+        lxRows.push({name:code.slice(2).replace(/[0-9连]+$/,''), bet:bet, done:0, pending:0, kept:bet, full:0, manual:false, muted:true});
+      });
+    }
+  }
+  var lxBody = '';
+  if(!lxRows.length){
+    lxBody = '<div class="fd-note" style="padding-bottom:7px">本通道暂无连肖注单</div>';
+  } else {
+    lxBody = table('组合', lxRows.map(function(r){
+      return '<tr'+(r.muted?' style="color:#94a3b8"':'')+'><td>'+r.name+(r.manual?' <span style="font-size:9px;color:#7c3aed">手动</span>':'')+'</td>'
+        + '<td>'+n0(r.bet)+'</td><td'+cls(r.done)+'>'+n0(r.done)+'</td><td'+cls(r.pending)+'>'+n0(r.pending)+'</td><td'+cls(r.kept)+'>'+n0(r.kept)+'</td></tr>';
+    }).join(''));
+  }
+  addSum(lxBet, lxDone, lxPend, lxKept);
+
+  // ---------- 二/三通道 ----------
+  var emCust = {}, emCustSum = 0;
+  riskList.forEach(function(o){ eachUniqueOrderCode(o, function(c, amt){
+    if(c.indexOf('二中二:') === 0 || c.indexOf('三中二:') === 0 || c.indexOf('三中三:') === 0){
+      emCust[c] = (emCust[c] || 0) + amt; emCustSum += amt;
+    }
+  }); });
+  var emLine = L('_em_total');
+  var emFull = emLine ? Number(emLine.full || 0) : (emFlyOn ? emCustSum : 0);
+  var emDone = emLine ? Number(emLine.done || 0) : flownPaidOf('_em_total');
+  var emPend = emLine ? Number(emLine.amt || 0) : Math.max(0, emFull - Number((flownPerPos||{})['_em_total'] || 0));
+  var emExtra = Math.max(0, emFull - emCustSum);
+  var emBet = emFull;
+  var emKept = emFlyOn ? 0 : emCustSum;
+  var emRows = '';
+  var prods = ['三中三','三中二','二中二'];
+  var emDoneAllocBase = emCustSum;
+  prods.forEach(function(prod){
+    var list = Object.keys(emCust).filter(function(c){ return c.indexOf(prod + ':') === 0; });
+    if(!list.length) return;
+    list.sort();
+    var prodBet = list.reduce(function(t,c){ return t + emCust[c]; }, 0);
+    var prodDone = emDoneAllocBase > 0 ? emDone * prodBet / emDoneAllocBase : 0;
+    var prodPend = emFlyOn ? Math.max(0, prodBet - (autoFlyOn ? prodBet : prodDone)) : 0;
+    emRows += '<tr class="fd-sub"><td colspan="5">'+prod+' · '+list.length+'组 · 注额 '+n0(prodBet)
+      + (emFlyOn ? (autoFlyOn ? ' · 自动飞' : '') : ' · 未开飞') + '</td></tr>';
+    list.forEach(function(c){
+      var amt = Number(emCust[c]) || 0;
+      var done = emDoneAllocBase > 0 ? emDone * amt / emDoneAllocBase : 0;
+      var full = emFlyOn ? amt : 0;
+      var pending = emFlyOn ? (autoFlyOn ? 0 : Math.max(0, full - done)) : 0;
+      var kept = amt - full;
+      emRows += '<tr><td>'+c.split(':')[1].replace(/,/g,'.')+'</td><td>'+n0(amt)+'</td>'
+        + '<td'+cls(done)+'>'+(done >= 0.5 ? '≈'+n0(done) : '0')+'</td>'
+        + '<td'+cls(pending)+'>'+n0(pending)+'</td><td'+cls(kept)+'>'+n0(kept)+'</td></tr>';
+    });
+  });
+  if(emExtra > 0.01){
+    emRows += '<tr class="fd-sub"><td colspan="5">客户单以外多飞 · 已付给上家</td></tr>';
+    emRows += '<tr><td>额外二三</td><td>'+n0(emExtra)+'</td><td>'+n0(emExtra)+'</td><td>0</td><td>0</td></tr>';
+  }
+  var emBody = '';
+  if(!emRows){
+    emBody = '<div class="fd-note" style="padding-bottom:7px">本通道暂无二/三注单'+(emFlyOn?'':'（当前未开飞）')+'</div>';
+  } else {
+    emBody = table('组合', emRows);
+  }
+  addSum(emBet, emDone, emPend, emKept);
+
+  // ---------- 汇总 ----------
+  var totalBet = Number(ctx.totalBet);
+  if(!(totalBet > 0)) totalBet = sumBet;
+  var paidAll = Number(ctx.paidAll);
+  if(!(paidAll >= 0)) paidAll = sumDone;
+  var pendingAll = Number(ctx.pendingAll);
+  if(!(pendingAll >= 0)) pendingAll = sumPending;
+  var keptAll = totalBet - paidAll - pendingAll;
+
+  var h = '';
+  h += '<div class="fd-sum">'
+    + '<div class="fd-stat"><span>下注</span><b>'+n0(totalBet)+'</b><i>四通道合计</i></div>'
+    + '<div class="fd-stat"><span>已飞</span><b class="fd-red">'+n0(paidAll)+'</b><i>上家实付</i></div>'
+    + '<div class="fd-stat"><span>待飞</span><b class="fd-orange">'+n0(pendingAll)+'</b><i>按现阈值</i></div>'
+    + '<div class="fd-stat"><span>付完后自留</span><b class="fd-green">'+n0(keptAll)+'</b><i>下注−已飞−待飞</i></div>'
+    + '</div>';
+  h += '<div style="font-size:9px;color:#9ca3af;line-height:1.5;margin:-2px 2px 6px">下注＝客户本玩法注额；已飞＝上家实付；待飞＝按本轮阈值还没付；自留＝下注−应飞。四个通道各算各的，不再左右栏混排。</div>';
+
+  h += sec({badge:'特', color:'#cf1322', title:'特号通道', meta:'自留/号 <b>'+n0(splitCap)+'</b><br><span style="font-size:9px">'+spRows.length+'个号 · 下注'+n0(spBet)+'</span>',
+    body:spBody, scroll:spRows.length>10, foot:foot(spBet,spDone,spPend,spKept,'一行一个号码；自留 = 下注 − 应飞。已飞按实付，待飞按本轮凑整后。')});
+
+  h += sec({badge:'平', color:'#d97706', title:'平特通道', meta:'自留/肖 <b>'+n0(pteCap)+'</b><br><span style="font-size:9px">'+pteRows.length+'个肖 · 下注'+n0(pteBet)+'</span>',
+    body:pteBody, scroll:pteRows.length>10, foot:foot(pteBet,pteDone,ptePend,pteKept,'一行一个生肖；平特按生肖单通道算，不和特号混栏。')});
+
+  h += sec({badge:'连', color:'#7c3aed', title:'连肖通道', meta:(lxManual>0?'手动单笔 <b>'+n0(lxManual)+'</b>':'按客户注单逐条')+'<br><span style="font-size:9px">'+lxRows.length+'组 · 下注'+n0(lxBet)+'</span>',
+    body:lxBody, scroll:lxRows.length>8, foot:foot(lxBet,lxDone,lxPend,lxKept,'连肖一组一价；手动单笔优先时，其他客户连肖只记录不重复飞。')});
+
+  h += sec({badge:'二·三', color:'#b45309', title:'二/三通道', meta:(emFlyOn?'<b>已开飞</b>':'<b>未开飞</b>')+' · 整包<br><span style="font-size:9px">'+Object.keys(emCust).length+'组 · 下注'+n0(emCustSum)+'</span>',
+    body:emBody, scroll:Object.keys(emCust).length>10, open:true, foot:foot(emBet,emDone,emPend,emKept,'二三按整包确认（_em_total），逐组“已飞≈”是按注额分摊供查看，不是逐组实付；合计以通道头“已飞”及下方飞后残留为准。')});
+
+  h += '<div class="fd-foot" style="margin-top:7px;border:1px solid #f1f5f9;border-radius:7px">'
+    + '通道合计：下注 '+n0(sumBet)+' ｜ 已飞 '+n0(sumDone)+' ｜ 待飞 '+n0(sumPending)+' ｜ 自留 '+n0(sumKept)
+    + (Math.abs(sumBet-totalBet) > 0.5 ? '<br>与总单差 '+n0(totalBet-sumBet)+'（手动额外号/未归类项，见下方飞后残留）' : '')
+    + '</div>';
+  return h;
+}
+
 function renderRisk(){
   var _riskList = activeOrders();
   var _riskDraw = curShopDraw();
@@ -13990,71 +14253,32 @@ function renderRisk(){
     }
   }catch(e){}
   h += `<div style="margin-top:8px;padding:10px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:14px;line-height:1.6">`;
-  // 飞单清单折叠预览
-  h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#f3f4f6;border-radius:6px;margin-top:6px;font-size:13px">`
-    + `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="cursor:pointer;font-weight:700;color:#374151">📄 飞单明细 ▶</div>`
-    + `<div style="color:#6b7280;white-space:nowrap">阈值 特 <b style="color:#333">${splitTakeAll||0}</b> ｜ 平 <b style="color:#333">${pteFlyTakeAll||0}</b> ｜ 连 <b style="color:#333">${lxFlyAmt||0}</b></div></div>`;
-  h += `<div id="flyListPreview" style="display:none;background:#f9fafb;border-radius:6px;padding:8px;font-size:12px;line-height:1.7">`;
-  const flySales = getSplitSales();
-  const flyKeys = Object.keys(flySales).sort();
-  let flyTotal = 0;
-  // 左栏：特码
-  let colL = '';
-  flyKeys.forEach(k => {
-    const extra = Math.max(0, flySales[k] - splitTakeAll);
-    if(extra > 0){ colL += `<div>特码${k} ${extra.toFixed(0)}</div>`; flyTotal += extra; }
-  });
-  if(!colL) colL = '<div style="color:#bbb">—</div>';
-  // 中栏：平特+连肖
-  let colM = '';
-  Object.entries(pteBetByZod).forEach(([z,amt]) => {
-    const extra = pteFlyTakeAll > 0 ? Math.max(0, amt - pteFlyTakeAll) : amt;
-    if(extra > 0){ colM += `<div>${z} ${extra.toFixed(0)}</div>`; flyTotal += extra; }
-  });
-  if(lxFlyAmt > 0){ colM += `<div>连肖${lxFlyName||''} ${lxFlyAmt.toFixed(0)}</div>`; flyTotal += lxFlyAmt; }
-  if(!colM) colM = '<div style="color:#bbb">—</div>';
-  // 右栏：二中二/三中三（复式折叠）
-  let colR = '';
-  if(emFlyOn){
-    const emList = {};
-    _riskList.forEach(o => {
-      eachUniqueOrderCode(o, function(c, amt){
-        if(c.indexOf('二中二:')===0 || c.indexOf('三中三:')===0 || c.indexOf('三中二:')===0) emList[c] = (emList[c]||0) + amt;
-      });
+  // 飞单明细·通道版（v61.00）：旧的三栏预览取消，按特号/平特/连肖/二三分通道
+  h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:#f3f4f6;border-radius:6px;margin-top:6px;font-size:13px">`
+    + `<div onclick="var e=document.getElementById('flyListPreview');e.style.display=e.style.display==='none'?'':'none'" style="cursor:pointer;font-weight:700;color:#374151">📄 飞单明细 · 通道版 ▶</div>`
+    + `<div style="color:#6b7280;white-space:nowrap;font-size:10px">特 <b style="color:#cf1322">${splitTakeAll||0}</b> ｜ 平 <b style="color:#d97706">${pteFlyTakeAll||0}</b> ｜ 连 <b style="color:#7c3aed">${lxFlyAmt||0}</b></div></div>`;
+  h += `<div id="flyListPreview" style="display:none;background:#f9fafb;border-radius:6px;padding:8px">`;
+  try{
+    var _fdRound = getThisRoundFly();
+    var _fdPaid = flownRows().reduce(function(t,x){ return t + (Number(x.a)||0); }, 0);
+    h += renderFlyChannelsV2({
+      riskList: _riskList,
+      pteBetByZod: pteBetByZod,
+      sales: getSplitSales(),
+      lines: _fdRound.lines,
+      emFlyOn: emFlyOn,
+      autoFlyOn: autoFlyOn,
+      splitTakeAll: splitTakeAll,
+      pteFlyTakeAll: pteFlyTakeAll,
+      lxFlyAmt: lxFlyAmt,
+      lxFlyName: lxFlyName,
+      totalBet: fullTotalSales,
+      paidAll: _fdPaid,
+      pendingAll: _fdRound.thisRound
     });
-    const usedEm = new Set();
-    const emEntries = Object.entries(emList);
-    for(let i = 0; i < emEntries.length; i++){
-      if(usedEm.has(emEntries[i][0])) continue;
-      const [code, amt] = emEntries[i];
-      const prod = code.split(':')[0];
-      const nums = code.split(':')[1].split(',');
-      const k = nums.length;
-      const group = emEntries.filter(([c,a]) => !usedEm.has(c) && c.startsWith(prod+':') && a === amt);
-      const allNums = new Set();
-      group.forEach(([c]) => c.split(':')[1].split(',').forEach(n => allNums.add(n)));
-      const sortedNums = [...allNums].sort();
-      function comb(n,kk){ let r=1; for(let j=0;j<kk;j++){r=r*(n-j)/(j+1);} return Math.round(r); }
-      const expected = comb(sortedNums.length, k);
-      if(group.length >= 3 && group.length === expected && sortedNums.length > k){
-        colR += `<div style="color:#d97706">${sortedNums.join('.')}复${k===2?'二':'三'} ${amt}</div>`;
-        flyTotal += amt * group.length;
-        group.forEach(([c]) => usedEm.add(c));
-      } else {
-        colR += `<div style="color:#d97706">${code.replace(':','')} ${amt.toFixed(0)}</div>`;
-        flyTotal += amt;
-        usedEm.add(code);
-      }
-    }
+  }catch(e){
+    h += '<div style="color:#cf1322;font-size:12px;padding:6px">飞单通道渲染失败：'+esc(String(e && e.message || e))+'</div>';
   }
-  if(!colR) colR = '<div style="color:#bbb">—</div>';
-  h += `<div style="display:flex;gap:8px">`;
-  h += `<div style="flex:1">${colL}</div>`;
-  h += `<div style="flex:1">${colM}</div>`;
-  h += `<div style="flex:1">${colR}</div>`;
-  h += `</div>`;
-  if(flyTotal === 0){ h += `<div style="color:#999">无飞单</div>`; }
-  else { h += `<div style="border-top:1px solid #ddd;margin-top:4px;padding-top:4px;font-weight:700">合计　${flyTotal.toFixed(0)}</div>`; }
   h += `</div>`;
   h += `</div>`;
   // 飞后残留
