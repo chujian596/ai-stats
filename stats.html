@@ -213,6 +213,17 @@
   .table td .sub{display:block;font-size:10px;color:var(--faint);font-weight:400}
   .table .hit{color:var(--green);font-weight:700}
   .table .miss{color:var(--red);font-weight:700}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .matrix{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+  .matrix th{font-size:10.5px;color:var(--faint);font-weight:700;text-align:center;padding:7px 2px;white-space:nowrap}
+  .matrix th:first-child{text-align:left}
+  .matrix td{padding:7px 2px;text-align:center;border-top:1px solid #edf0f4}
+  .matrix td:first-child{text-align:left;font-weight:700;color:var(--ink)}
+  .m-cell b{color:var(--ink)}
+  .m-cell .m-n{color:var(--faint);font-size:10px;margin-left:3px}
+  .m-cell.top1{background:#fff4f2}
+  .m-cell.top1 b{color:var(--red)}
+  .m-cell.zero{color:#cfd6df}
   .table .pending{color:var(--faint)}
 
   .draw-item{padding:11px 0;border-top:1px solid #edf0f4}
@@ -381,7 +392,8 @@ var state = {
   current:null, latest:null, periods:[], official:{}, draws:null,
   ratio:null, core:null, forum:null, intensityLoading:false, intensitySeq:0,
   ledgers:{}, ledgerPending:{}, closure:null, closureView:null, closureSel:null, activeTab:'now', dim:'nine',
-  stationQuery:'', stationLimit:30, openSite:'', expanded:{}
+  stationQuery:'', stationLimit:30, openSite:'', expanded:{},
+  rankPos:null, rankTier:'100'
 };
 
 // ===== 站池档位：core 基线始终包含，added 按 grade 白名单截断；仅作用于逐站明细列表 =====
@@ -496,6 +508,56 @@ function listOf(cur, key){
 }
 function totalList(arr){ return arr.reduce(function(a,x){ return a+num(x.n); },0); }
 
+function _emptyZod(){ var c={}; ZOD.forEach(function(z){ c[z]=0; }); return c; }
+function aggZodiacField(sites, field){
+  var c=_emptyZod();
+  (sites||[]).forEach(function(s){ (s[field]||[]).forEach(function(z){ if(c[z]!==undefined) c[z]++; }); });
+  return c;
+}
+function rankMap(c){
+  var order=Object.keys(c).sort(function(a,b){ return c[b]-c[a]||ZOD.indexOf(a)-ZOD.indexOf(b); });
+  var r={}; order.forEach(function(z,i){ r[z]=c[z]>0?i+1:null; }); return r;
+}
+// 历史开出位置频次：表头=类目，行=1~12 名次，格内为该档累计开出次数；档位按钮切换站池
+var RANK_SHORT={max_zodiac_first:'首肖九',max_zodiac_all:'全集九',kill3:'杀三',six:'六肖',seven:'七肖',pingte:'平特',wave:'波色',head:'头数',tail:'尾数',size:'大小',parity:'单双'};
+function rankPosSection(){
+  var rp=state.rankPos;
+  if(!rp||!rp.boards||!Object.keys(rp.boards).length){
+    return '<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">03</span><h3>历史开出位置频次</h3></div></div><div class="card-note">位置频次统计未加载。</div></section>';
+  }
+  var keys=Object.keys(rp.boards);
+  var tk=state.rankTier||'100';
+  var tierBtn=TIERS.map(function(t){
+    var act=t.key===tk?' active':'';
+    return '<button type="button" class="tier-btn'+act+'" data-rptier="'+t.key+'"><span class="n">'+t.key+'</span><span class="nm">'+esc(t.name)+'</span></button>';
+  }).join('');
+  var heads='<tr><th>位置</th>'+keys.map(function(k){ return '<th>'+esc(RANK_SHORT[k]||rp.boards[k].title)+'</th>'; }).join('')+'</tr>';
+  var rows='';
+  for(var i=1;i<=12;i++){
+    var tds=keys.map(function(k){
+      var b=rp.boards[k], s=b.tiers[tk].summary;
+      if(i>b.opts) return '<td class="m-cell zero">—</td>';
+      return '<td class="m-cell"><b>'+s.rankDist[i-1]+'</b></td>';
+    }).join('');
+    rows+='<tr><td class="m-z">第'+i+'位</td>'+tds+'</tr>';
+  }
+  var none='<tr><td class="m-z">未上榜</td>'+keys.map(function(k){ return '<td class="m-cell">'+rp.boards[k].tiers[tk].summary.rankNone+'</td>'; }).join('')+'</tr>';
+  var periods='<tr><td class="m-z">期数</td>'+keys.map(function(k){ return '<td class="m-cell zero">'+rp.boards[k].tiers[tk].summary.periods+'</td>'; }).join('')+'</tr>';
+  return '<section class="card" id="rankPosCard"><div class="card-head"><div class="card-title"><span class="sec-no">03</span><h3>历史开出位置频次</h3></div><span class="card-note">只记落在第几名 · 不记生肖</span></div>'
+    +'<div class="tier-bar">'+tierBtn+'</div>'
+    +'<div class="table-scroll"><table class="matrix rank-matrix"><thead>'+heads+'</thead><tbody>'+rows+none+periods+'</tbody></table>'
+    +'<div class="method"><b>读法：</b>表头是类目，行是历史开出落在共识榜的名次（1~12），格子为累计开出次数；上方按钮切换站池档位（100 基线 / 139 / 147 / 151 / 192 / 194 全量），各档独立计票排名。样本不足 30 期仅供参考。</div></section>';
+}
+function bindRankTier(){
+  var card=$('rankPosCard'); if(!card) return;
+  Array.prototype.forEach.call(card.querySelectorAll('[data-rptier]'),function(b){
+    b.addEventListener('click',function(){
+      state.rankTier=b.dataset.rptier;
+      renderNow();
+    });
+  });
+}
+
 function loadBase(){
   state.ledgers={}; state.ledgerPending={};
   state.ratio=null; state.core=null; state.forum=null; state.intensityLoading=true;
@@ -507,10 +569,12 @@ function loadBase(){
     safe(fetchJson('official-history.json',8000)),
     safe(fetchJson('data/draws-recent.json',8000)),
     safe(fetchJson('data/closure-report.json',8000)),
+    safe(fetchJson('data/rank-position-stats.json',9000)),
     loadDir()
   ]).then(function(r){
     state.current=r[0]; state.latest=r[1]||{}; state.periods=(r[2]&&r[2].periods)||[];
     state.official=r[3]||{}; state.draws=r[4]; state.closure=r[5]||null;
+    state.rankPos=r[6];
     var intensityPer=(state.current&&state.current.period)||(state.latest&&state.latest.period)||'';
     if(intensityPer) loadIntensity(intensityPer);
     renderNow();
@@ -687,14 +751,7 @@ function renderNow(){
     +'<div class="method"><b>读法：</b>九肖看“谁被最多站写进 9 肖”，杀三肖看“谁被最多站列入必杀”。两者是站方资料结构，不是概率，也不代表开奖结果。</div>'
     +'</section>';
 
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">03</span><h3>九肖票数</h3></div><span class="card-note">'+nineDen+' 站 · '+nineTotal+' 票</span></div>'
-    +barRows(sortCount(nine),'', 'nine')+'</section>';
-
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">04</span><h3>杀三肖票数</h3></div><span class="card-note">'+killDen+' 站 · '+killTotal+' 票</span></div>'
-    +barRows(sortCount(kill),'kill','kill')+'</section>';
-
-  h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">05</span><h3>平特一肖票数</h3></div><span class="card-note">'+(cov.pingte||siteDen(sites,'pingte'))+' 站 · '+totalList(pingte)+' 票</span></div>'
-    +barRows(pingte.slice().sort(function(a,b){return b.n-a.n;}),'rec','pingte')+'</section>';
+  h+=rankPosSection();
 
   h+='<section class="card"><div class="card-head"><div class="card-title"><span class="sec-no">06</span><h3>其他维度</h3></div><span class="card-note">'+esc(covLine)+'</span></div>'
     +'<div class="mini-grid">'
@@ -717,6 +774,7 @@ function renderNow(){
   h+=consensusSection();
   setTimeout(bindPeriodChips,0);
   setTimeout(hydrateCrowd,0);
+  setTimeout(bindRankTier,0);
 
   p.innerHTML=h;
 }
