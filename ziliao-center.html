@@ -480,6 +480,15 @@
   .zrank td.rank{color:var(--faint);font-weight:700;width:26px}
   .zrank .rank-bar{min-width:52px}
   .zrank td.total b{font-size:13px}
+  .zrank{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+  .zrank th{font-size:10.5px;font-weight:700;color:var(--faint);text-align:right;padding:0 3px 5px;white-space:nowrap}
+  .zrank th:first-child{text-align:left}
+  .zrank td{padding:3px;text-align:right;color:var(--muted);border-top:1px solid var(--line)}
+  .zrank td:first-child{text-align:left;font-weight:750;color:var(--ink)}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -2px}
+  .rank-matrix{min-width:420px}
+  .rank-matrix th,.rank-matrix td{white-space:nowrap}
+  .rank-matrix .zero{color:var(--faint);opacity:.7}
   .crowd-hit{font-size:11.5px;color:var(--muted);line-height:1.85;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line)}
   .crowd-hit b{color:var(--ink)}
   .crowd-hist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:4px}
@@ -574,6 +583,11 @@
           <div id="ovNineRank"></div>
         </div>
         <div class="ov-grid" id="ovExtraGrid"></div>
+        <div class="subcard" style="margin-top:12px">
+          <h3>历史开出位置频次</h3>
+          <div class="subhint">只记落在共识榜第几名 · 不记生肖 · 各站池档位独立计票排名</div>
+          <div id="ovRankPos"></div>
+        </div>
         <div class="subcard" style="margin-top:12px">
           <div class="ov-head">
             <h3>本期站点明细</h3>
@@ -1127,7 +1141,7 @@
     </div>
   </section>
 
-  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.25</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze / crowd-score</span></div>
+  <div class="foot"><span>资料中心 · 只记录，不定论 · v1.5.26</span><span>数据：current-recommend / max-zodiac-ledger / kill3-ledger / six-zodiac-ledger / seven-zodiac-ledger / pingte·wave·head·tail·size·parity-ledger / change-ledger / quality-report / crowd-freeze / crowd-score / rank-position-stats</span></div>
 </div>
 
 <div class="modal hidden" id="rulesModal" aria-hidden="true">
@@ -1166,6 +1180,7 @@
   var CHANGE_DIM_LABEL={kill:'杀肖',pingte:'平特一肖',nine:'九肖',wave:'波色',tail:'尾数',head:'头数',size:'大小',parity:'单双'};
   var S={
     tab:'overview', mixSub:'nine', pend:null, nine:null, kill:null, change:null, pos:null, kr:null, qc:null, aliases:{},
+    rankPos:null, rankTier:'100',
     q:{now:'',nine:'',kill:'',change:'',ov:''},
     f:{now:'all',nine:'has',kill:'has'},
     sort:{now:'name',nine:'name',kill:'name'},
@@ -1258,6 +1273,39 @@
   function zarr(s,kind){ return kind==='nine' ? (s&&s.zodiacs||[]) : (s&&s.killZodiacs||s&&s.killZodiacs||[]); }
   function extraPicks(s,k){ var o=(s&&s[k])||{}; return (o.picks||[]).map(String); }
   function hasSix(s){ return EXTRA.some(function(d){return extraPicks(s,d.key).length;}); }
+
+  // ===== 历史开出位置频次：表头=类目，行=1~12 名次，格内为该档累计开出次数；档位按钮切换站池 =====
+  var RANK_SHORT={max_zodiac_first:'首肖九',max_zodiac_all:'全集九',kill3:'杀三',six:'六肖',seven:'七肖',pingte:'平特',wave:'波色',head:'头数',tail:'尾数',size:'大小',parity:'单双'};
+  var RANK_POS_BOXES=['ovRankPos'];
+  function renderRankPos(box){
+    if(!box) return;
+    var rp=S.rankPos;
+    if(!rp||!rp.boards||!Object.keys(rp.boards).length){ box.innerHTML='<div class="empty">位置频次统计未加载。</div>'; return; }
+    var keys=Object.keys(rp.boards);
+    var tk=S.rankTier||'100';
+    var tierBtn=TIERS.map(function(t){
+      var act=t.key===tk?' active':'';
+      return '<button type="button" class="tier-btn'+act+'" data-rptier="'+t.key+'"><span class="n">'+t.key+'</span><span class="nm">'+esc(t.name)+'</span></button>';
+    }).join('');
+    var heads='<tr><th>位置</th>'+keys.map(function(k){ return '<th>'+esc(RANK_SHORT[k]||rp.boards[k].title)+'</th>'; }).join('')+'</tr>';
+    var rows='';
+    for(var i=1;i<=12;i++){
+      var tds=keys.map(function(k){
+        var b=rp.boards[k], s=b.tiers[tk].summary;
+        if(i>b.opts) return '<td class="zero">—</td>';
+        return '<td>'+s.rankDist[i-1]+'</td>';
+      }).join('');
+      rows+='<tr><td>第'+i+'位</td>'+tds+'</tr>';
+    }
+    var none='<tr><td>未上榜</td>'+keys.map(function(k){ return '<td>'+rp.boards[k].tiers[tk].summary.rankNone+'</td>'; }).join('')+'</tr>';
+    var periods='<tr><td>期数</td>'+keys.map(function(k){ return '<td class="zero">'+rp.boards[k].tiers[tk].summary.periods+'</td>'; }).join('')+'</tr>';
+    box.innerHTML='<div class="tier-bar">'+tierBtn+'</div>'
+      +'<div class="table-scroll"><table class="zrank rank-matrix"><thead>'+heads+'</thead><tbody>'+rows+none+periods+'</tbody></table></div>';
+    Array.prototype.forEach.call(box.querySelectorAll('[data-rptier]'),function(b){
+      b.addEventListener('click',function(){ S.rankTier=b.dataset.rptier; refreshRankPos(); });
+    });
+  }
+  function refreshRankPos(){ RANK_POS_BOXES.forEach(function(id){ renderRankPos($(id)); }); }
   function isEmptySite(s){
     if(!s) return true;
     if((s.zodiacs||[]).length) return false;
@@ -2096,6 +2144,7 @@
       extraHtml+='<div class="subcard"><h3>七肖</h3><div class="subhint">'+sevSites.length+' 站 · 12 肖全列</div>'+allRankHtml(sevAgg,'nine',sevSites.length*7)+'</div>';
     }
     $('ovExtraGrid').innerHTML=extraHtml;
+    refreshRankPos();
     renderFreeze(isRev?S.per.ov:(p.period||''));
     // 明细：默认收起，不渲染空壳卡片；标题栏右侧按钮控制展开/收起
     if(!S.expand.ov){
@@ -3141,10 +3190,11 @@
       fetchJson('data/zodiac-position-stats.json').catch(function(){return null;}),
       fetchJson('data/kill-rank-stats.json').catch(function(){return null;}),
       fetchJson('data/quality-report.json').catch(function(){return null;}),
-      fetchJson('data/site-directory.json').catch(function(){return null;})
+      fetchJson('data/site-directory.json').catch(function(){return null;}),
+      fetchJson('data/rank-position-stats.json').catch(function(){return null;})
     ]).then(function(r){
       S.pend=r[0]; S.nine=r[1]; S.kill=r[2]; S.change=r[3]; S.aliases=(r[4]&&(r[4].aliases||r[4]))||{};
-      S.pos=r[5]; S.kr=r[6]; S.qc=r[7];
+      S.pos=r[5]; S.kr=r[6]; S.qc=r[7]; S.rankPos=r[9];
       var dir=r[8]||{}; DIR.sites=dir.sites||[]; DIR.byId=dir.bySiteId||{}; DIR.byKey=dir.bySiteKey||{};
       if(!S.pend&&!S.nine&&!S.kill){ setHero('—','异常','读取失败'); $('nowCards').innerHTML='<div class="empty">'+esc(S.loadError||'数据读取失败')+'</div>'; return; }
       var per=(S.pend&&S.pend.period)||(S.nine&&Object.keys(S.nine.periods).slice(-1)[0])||'—';
