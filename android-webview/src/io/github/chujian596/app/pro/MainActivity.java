@@ -58,9 +58,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         applySystemBars();
         buildUi();
-        // 启动直接用包里内置的页面顶上（URL 仍是线上地址，localStorage 同源，历史数据不搬家）
-        // 这样网络被墙/断网也能秒开，绝不会卡在白屏或报错页
-        loadLocalFirst(HOME_URL);
+        // 启动先走线上最新页；网络失败再由 onMainFrameFail 自动切到包里内置页兜底。
+        // 这样以后页面改了只要刷新/重开 APP 就是新版，不用每版重打 APK。
+        load(HOME_URL + "?v=" + System.currentTimeMillis());
     }
 
     /** 是否系统深色模式 */
