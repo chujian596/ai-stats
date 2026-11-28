@@ -724,6 +724,11 @@
           <button class="btn" id="mixBack" type="button">回到待开</button>
           <div style="flex:1"></div><span class="chip" id="mixModeChip">—</span>
         </div>
+        <div class="subcard" style="margin-bottom:12px">
+          <h3>历史开出位置频次</h3>
+          <div class="subhint">跨期累计 · 只记落在共识榜第几名 · 不记生肖 · 各站池档位独立计票排名</div>
+          <div id="mixRankPos"></div>
+        </div>
         <div class="mix-cols">
           <div class="subcard">
             <h3>首肖排行 · 主推第 1 肖</h3>
@@ -966,6 +971,11 @@
           <button class="btn" id="ssCopy" type="button">复制本期</button>
           <button class="btn ghostish" id="ssExpand" type="button">展开全部</button>
         </div>
+        <div class="subcard" style="margin-bottom:12px">
+          <h3>历史开出位置频次</h3>
+          <div class="subhint">跨期累计 · 只记落在共识榜第几名 · 不记生肖 · 各站池档位独立计票排名</div>
+          <div id="ssRankPos"></div>
+        </div>
         <div id="ssPend">
           <div class="mix-cols">
             <div class="subcard">
@@ -1059,6 +1069,11 @@
           <button class="btn ghostish" id="exBack" type="button">回到待开</button>
           <button class="btn" id="exCopy" type="button">复制本期</button>
           <button class="btn ghostish" id="exExpand" type="button">展开全部</button>
+        </div>
+        <div class="subcard" style="margin-bottom:12px">
+          <h3>历史开出位置频次</h3>
+          <div class="subhint">跨期累计 · 只记落在共识榜第几名 · 不记生肖 · 各站池档位独立计票排名</div>
+          <div id="exRankPos"></div>
         </div>
         <div id="exPend">
           <div class="subcard" id="exPendRankWrap"><h3>共识票数</h3><div class="subhint" id="exPendHint"></div><div id="exPendRank"></div></div>
@@ -1276,7 +1291,7 @@
 
   // ===== 历史开出位置频次：表头=类目，行=1~12 名次，格内为该档累计开出次数；档位按钮切换站池 =====
   var RANK_SHORT={max_zodiac_first:'首肖九',max_zodiac_all:'全集九',kill3:'杀三',six:'六肖',seven:'七肖',pingte:'平特',wave:'波色',head:'头数',tail:'尾数',size:'大小',parity:'单双'};
-  var RANK_POS_BOXES=['ovRankPos'];
+  var RANK_POS_BOXES=['ovRankPos','mixRankPos','ssRankPos','exRankPos'];
   function renderRankPos(box){
     if(!box) return;
     var rp=S.rankPos;
@@ -2191,6 +2206,7 @@
     if(pend) setHero(S.pend?S.pend.period:'—','待开',S.pend&&S.pend.updatedAt);
     else setHero(mode,'已开奖',per?((per.specialNum?'特码 '+per.specialNum+' · ':'')+(per.actual||'')):'—');
     mixSub(S.mixSub||'nine');
+    renderRankPos($('mixRankPos'));
   }
   function mixSub(k){
     S.mixSub=k;
@@ -3060,6 +3076,7 @@
         renderTabs(); buildSelect();
         if(st.mode==='review'&&st.period&&perOf('left',st.period)) enterReview(st.period);
         else if(isPending()) enterPending(); else enterReview(lastIssue());
+        renderRankPos($(P+'RankPos'));
       }).catch(function(){ el('PendList').innerHTML='<div class="empty">数据加载失败，请刷新重试。</div>'; });
     }
     function bind(){
