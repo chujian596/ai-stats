@@ -68,9 +68,14 @@ for k, v in load(DRAW).items():
     plains = v.get('plains', [])
     plains_zod = [meta[n]['zodiac'] for n in plains if n in meta]
     sp_zod = meta[sp]['zodiac'] if sp in meta else v.get('special_zodiac')
+    seven_list = []
+    for z in plains_zod + [sp_zod]:
+        if z and z not in seven_list:
+            seven_list.append(z)
     draws[int(k)] = {
         'sp': sp, 'sp_zod': sp_zod,
         'seven': set(plains_zod) | {sp_zod},
+        'seven_list': seven_list,
         'wave': meta[sp]['wave'] if sp in meta else None,
         'tail': sp % 10, 'head': sp // 10,
         'big': '大' if sp >= 25 else '小',
@@ -267,6 +272,7 @@ for iss, dr in draws.items():
                 'specialNum': dr['sp'], 'actual': dr['sp_zod'],
                 'actualWave': dr['wave'], 'actualTail': dr['tail'], 'actualHead': dr['head'],
                 'actualSize': dr['big'], 'actualParity': dr['parity'],
+                'actualSet': dr['seven_list'] if dim == 'pingte' else None,
                 'hasSnapshot': early_path is not None,
                 'source': 'snapshot' if early_path else 'history',
                 'stations': stations,

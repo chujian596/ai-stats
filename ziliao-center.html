@@ -2717,10 +2717,10 @@
     function renderRank(rows,hot,target){
       if(!target) return;
       var max=rows.length?Math.max.apply(null,rows.map(function(r){return Number(r.n)||0;})):1;
-      var hotStr=hot===null||hot===undefined?null:String(hot), hotPad=hotStr?hotStr.padStart(2,'0'):null;
+      var hotArr=(hot===null||hot===undefined)?[]:(Array.isArray(hot)?hot:[hot]);
       target.innerHTML=rows.map(function(r,i){
         var p=String(r.p);
-        var isHot=hotStr!==null&&(p===hotStr||p===hotPad);
+        var isHot=hotArr.some(function(h){ h=String(h); return p===h||p===h.padStart(2,'0'); });
         var bar=max?Math.round((Number(r.n)||0)/max*100):0;
         return '<div class="rank-row"><div class="rank-no'+(i<3?' top':'')+'">'+(i+1)+'</div>'+
           '<div class="rank-name">'+esc(p)+(isHot?'<span class="hot-note">开出</span>':'')+'</div>'+
@@ -2943,7 +2943,7 @@
       var zodRows=rankRows(zodCnt,false), codeRows=rankRows(codeCnt,true);
       if(cfg.dual){ renderRank(zodRows,perL.actual,el('ZodRank')); renderRank(codeRows,perL.specialNum,el('CodeRank')); }
       else if(split){ toggleRankWrap(true); renderRank(zodRows,perL[d.left.hot],el('ZodRank')); renderRank(codeRows,perR[d.right.hot],el('CodeRank')); }
-      else { toggleRankWrap(false); renderRank(zodRows,perL[d.hot],el('Rank')); }
+      else { toggleRankWrap(false); var hotV=(d.key==='pingte'&&perL.actualSet)?perL.actualSet:perL[d.hot]; renderRank(zodRows,hotV,el('Rank')); }
       if(cfg.mixPair){
         [['six','RevSixZod','RevSixHint'],['seven','RevSevenZod','RevSevenHint']].forEach(function(pair){
           var a=aggLedgerZod(st.cache[pair[0]],st.period);

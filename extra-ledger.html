@@ -625,9 +625,10 @@ function trailHits(key,cur){
 
 function renderRank(rows,hot,target){
   var max=rows.length?Math.max.apply(null,rows.map(function(r){return Number(r.n)||0;})):1;
+  var hotArr=(hot===null||hot===undefined)?[]:(Array.isArray(hot)?hot:[hot]);
   target.innerHTML=rows.map(function(r,i){
     var p=String(r.p);
-    var isHot=hot!==null && p===String(hot);
+    var isHot=hotArr.some(function(h){ h=String(h); return p===h||p===h.padStart(2,'0'); });
     var bar=max?Math.round((Number(r.n)||0)/max*100):0;
     return '<div class="rank-row"><div class="rank-no'+(i<3?' top':'')+'">'+(i+1)+'</div>'+
       '<div class="rank-name">'+esc(p)+(isHot?'<span class="hot-note">开出</span>':'')+'</div>'+
@@ -680,7 +681,8 @@ function renderReview(){
   var cnt={};
   visible.forEach(function(x){ (x.r.picks||[]).forEach(function(p){ cnt[p]=(cnt[p]||0)+1; }); });
   var rankRows=Object.keys(cnt).map(function(p){return {p:p,n:cnt[p]};}).sort(function(a,b){return (b.n-a.n)||String(a.p).localeCompare(String(b.p),'zh');});
-  renderRank(rankRows,per[cfg.hot],$('rankList'));
+  var hotVal=(dim==='pingte'&&per.actualSet)?per.actualSet:per[cfg.hot];
+  renderRank(rankRows,hotVal,$('rankList'));
   $('reviewSearch').value=reviewState.q;
   $('reviewSort').value=reviewState.sort;
   applyFilterButtons('reviewFilter',reviewState.filter);
